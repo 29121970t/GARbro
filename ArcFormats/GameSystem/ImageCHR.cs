@@ -33,28 +33,28 @@ namespace GameRes.Formats.GameSystem
     internal class ChrMetaData : ImageMetaData
     {
         public uint DataOffset;
-        public int  RgbSize;
+        public int RgbSize;
     }
 
     [Export(typeof(ImageFormat))]
     public class ChrFormat : ImageFormat
     {
-        public override string         Tag { get { return "CHR"; } }
+        public override string Tag { get { return "CHR"; } }
         public override string Description { get { return "'Game System' character image format"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
             if (file.Signature != file.Length)
                 return null;
-            var header = file.ReadHeader (0x18);
-            int rgb_size = header.ToInt32 (4);
+            var header = file.ReadHeader(0x18);
+            int rgb_size = header.ToInt32(4);
             if (rgb_size <= 0x20 || rgb_size > file.Length)
                 return null;
-            uint width = header.ToUInt32 (8);
-            uint height = header.ToUInt32 (0xC);
-            int x = header.ToInt32 (0x10);
-            int y = header.ToInt32 (0x14);
+            uint width = header.ToUInt32(8);
+            uint height = header.ToUInt32(0xC);
+            int x = header.ToInt32(0x10);
+            int y = header.ToInt32(0x14);
             if (0 == width || width > 0x8000 || 0 == height || height > 0x8000
                 || x < 0 || x + width > 0x8000 || y < 0 || y + height > 0x8000)
                 return null;
@@ -70,41 +70,41 @@ namespace GameRes.Formats.GameSystem
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new ChrReader (file, (ChrMetaData)info);
+            var reader = new ChrReader(file, (ChrMetaData)info);
             return reader.Image;
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("ChrFormat.Write not implemented");
+            throw new System.NotImplementedException("ChrFormat.Write not implemented");
         }
     }
 
     internal class ChrReader : BinaryImageDecoder
     {
-        ChrMetaData     m_info;
-        byte[]          m_output;
-        int             m_stride;
+        ChrMetaData m_info;
+        byte[] m_output;
+        int m_stride;
 
         public byte[] Data { get { return m_output; } }
-        public int  Stride { get { return m_stride; } }
+        public int Stride { get { return m_stride; } }
 
-        public ChrReader (IBinaryStream input, ChrMetaData info) : base (input, info)
+        public ChrReader(IBinaryStream input, ChrMetaData info) : base(input, info)
         {
             m_info = info;
             m_stride = (int)m_info.Width * 4;
             m_output = new byte[m_stride * (int)m_info.Height];
         }
 
-        protected override ImageData GetImageData ()
+        protected override ImageData GetImageData()
         {
             var pixels = Unpack();
-            return ImageData.CreateFlipped (Info, PixelFormats.Bgra32, null, pixels, Stride);
+            return ImageData.CreateFlipped(Info, PixelFormats.Bgra32, null, pixels, Stride);
         }
 
-        public byte[] Unpack ()
+        public byte[] Unpack()
         {
             UnpackBaseline();
             if (m_info.RgbSize < m_input.Length)
@@ -117,28 +117,28 @@ namespace GameRes.Formats.GameSystem
             return m_output;
         }
 
-        public byte[] UnpackBaseline ()
+        public byte[] UnpackBaseline()
         {
             m_input.Position = m_info.DataOffset;
-            UnpackRgb ((int)m_info.Height);
+            UnpackRgb((int)m_info.Height);
             return m_output;
         }
 
-        void UnpackRgb (int row_count)
+        void UnpackRgb(int row_count)
         {
             int row = 0;
-            while (row_count --> 0)
+            while (row_count-- > 0)
             {
                 int dst = row;
                 int x = 0;
-                for (;;)
+                for (; ; )
                 {
                     int ctl = m_input.ReadUInt8();
                     if (ctl < 0x7F)
                     {
                         int alpha = -(2 * ctl - 0xFE);
-                        m_input.Read (m_output, dst, 3);
-                        m_output[dst+3] = (byte)~alpha;
+                        m_input.Read(m_output, dst, 3);
+                        m_output[dst + 3] = (byte)~alpha;
                         dst += 4;
                         ++x;
                     }
@@ -146,10 +146,10 @@ namespace GameRes.Formats.GameSystem
                     {
                         int count = ctl - 0x7E;
                         x += count;
-                        m_input.Read (m_output, dst, 3);
-                        m_output[dst+3] = 0xFF;
+                        m_input.Read(m_output, dst, 3);
+                        m_output[dst + 3] = 0xFF;
                         count *= 4;
-                        Binary.CopyOverlapped (m_output, dst, dst+4, count-4);
+                        Binary.CopyOverlapped(m_output, dst, dst + 4, count - 4);
                         dst += count;
                     }
                     else if (0xFF == ctl)
@@ -165,7 +165,7 @@ namespace GameRes.Formats.GameSystem
             }
         }
 
-        void ReadOverlay ()
+        void ReadOverlay()
         {
             m_input.ReadInt32();
             int frame_count = m_input.ReadInt32();
@@ -184,9 +184,9 @@ namespace GameRes.Formats.GameSystem
                 int dst = output;
                 for (int j = 0; j < w; ++j)
                 {
-                    m_input.Read (m_output, dst, 3);
+                    m_input.Read(m_output, dst, 3);
                     int a = m_input.ReadByte();
-                    m_output[dst+3] = (byte)(a * 0xFF / 0x80);
+                    m_output[dst + 3] = (byte)(a * 0xFF / 0x80);
                     dst += 4;
                 }
                 output += m_stride;

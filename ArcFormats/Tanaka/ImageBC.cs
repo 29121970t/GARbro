@@ -34,25 +34,25 @@ namespace GameRes.Formats.Will
 {
     internal class TxMetaData : BmpMetaData
     {
-        public int  Colors;
-        public int  Stride;
+        public int Colors;
+        public int Stride;
         public long DataOffset;
     }
 
     [Export(typeof(ImageFormat))]
     public class BcFormat : ImageFormat
     {
-        public override string         Tag { get { return "BC"; } }
+        public override string Tag { get { return "BC"; } }
         public override string Description { get { return "Tanaka Tatsuhiro's engine image format"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x12);
-            if (!header.AsciiEqual ("BC"))
+            var header = file.ReadHeader(0x12);
+            if (!header.AsciiEqual("BC"))
                 return null;
-            uint data_offset = header.ToUInt32 (0xA);
-            uint width  = file.ReadUInt32();
+            uint data_offset = header.ToUInt32(0xA);
+            uint width = file.ReadUInt32();
             uint height = file.ReadUInt32();
             file.ReadInt16();
             int bpp = file.ReadInt16();
@@ -75,7 +75,7 @@ namespace GameRes.Formats.Will
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
             var meta = (TxMetaData)info;
             PixelFormat format;
@@ -90,38 +90,38 @@ namespace GameRes.Formats.Will
             {
                 format = PixelFormats.Indexed8;
                 file.Position = 0x36;
-                palette = ReadPalette (file.AsStream, meta.Colors);
+                palette = ReadPalette(file.AsStream, meta.Colors);
             }
             else
                 throw new InvalidFormatException();
-            var reader = new TxReader (file, meta);
+            var reader = new TxReader(file, meta);
             var pixels = reader.Unpack();
-            return ImageData.CreateFlipped (info, format, palette, pixels, (reader.Stride + 3) & ~3);
+            return ImageData.CreateFlipped(info, format, palette, pixels, (reader.Stride + 3) & ~3);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("BcFormat.Write not implemented");
+            throw new System.NotImplementedException("BcFormat.Write not implemented");
         }
     }
 
     internal class TxReader
     {
-        IBinaryStream   m_input;
-        TxMetaData      m_info;
-        byte[]          m_output;
+        IBinaryStream m_input;
+        TxMetaData m_info;
+        byte[] m_output;
 
-        public byte[]           Data { get { return m_output; } }
-        public int            Stride { get { return m_info.Stride; } }
+        public byte[] Data { get { return m_output; } }
+        public int Stride { get { return m_info.Stride; } }
 
-        public TxReader (IBinaryStream input, TxMetaData info)
+        public TxReader(IBinaryStream input, TxMetaData info)
         {
             m_input = input;
             m_info = info;
             m_output = new byte[((m_info.Stride + 3) & ~3) * (int)m_info.Height];
         }
 
-        public byte[] Unpack ()
+        public byte[] Unpack()
         {
             m_input.Position = m_info.DataOffset;
             Decompress();
@@ -135,7 +135,7 @@ namespace GameRes.Formats.Will
                     for (uint x = 1; x < m_info.Width; ++x)
                     {
                         for (int i = 0; i < pixel_size; ++i)
-                            m_output[dst+pixel_size+i] += m_output[dst+i];
+                            m_output[dst + pixel_size + i] += m_output[dst + i];
                         dst += pixel_size;
                     }
                 }
@@ -143,9 +143,9 @@ namespace GameRes.Formats.Will
             return m_output;
         }
 
-        void Decompress ()
+        void Decompress()
         {
-            m_input.Read (m_output, 0, 2);
+            m_input.Read(m_output, 0, 2);
             int dst = 2;
             while (dst < m_output.Length)
             {
@@ -154,8 +154,8 @@ namespace GameRes.Formats.Will
                     break;
                 if (0xE0 == (count & 0xE0))
                 {
-                    count = Math.Min ((count & 0x1F) + 1, m_output.Length - dst);
-                    m_input.Read (m_output, dst, count);
+                    count = Math.Min((count & 0x1F) + 1, m_output.Length - dst);
+                    m_input.Read(m_output, dst, count);
                     dst += count;
                     continue;
                 }
@@ -197,8 +197,8 @@ namespace GameRes.Formats.Will
                         count = m_input.ReadUInt8();
                     src = dst - Stride * 2 + offset - 8;
                 }
-                count = Math.Min (count, m_output.Length - dst);
-                Binary.CopyOverlapped (m_output, src, dst, count);
+                count = Math.Min(count, m_output.Length - dst);
+                Binary.CopyOverlapped(m_output, src, dst, count);
                 dst += count;
             }
         }

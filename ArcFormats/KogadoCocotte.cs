@@ -20,8 +20,8 @@ namespace GameRes.Formats.Kogado
 {
     public class CocotteEncoder
     {
-        BWTEncode   m_cBWTEncode = new BWTEncode();
-        MTFEncode   m_cMTFEncode = new MTFEncode();
+        BWTEncode m_cBWTEncode = new BWTEncode();
+        MTFEncode m_cMTFEncode = new MTFEncode();
         CRangeCoder m_cRangeCoder = new CRangeCoder();
 
         const int RANGECODER_BLOCKSIZE = 0x2000;
@@ -87,23 +87,23 @@ namespace GameRes.Formats.Kogado
         */
 
         // Decode
-        public bool Decode (Stream input, Stream output)
+        public bool Decode(Stream input, Stream output)
         {
             uint dwSrcLength = (uint)input.Length;
-            var buffer = new byte [RANGECODER_BLOCKSIZE*4+2];
+            var buffer = new byte[RANGECODER_BLOCKSIZE * 4 + 2];
             uint dwSrcCursor = 0;
             var input_buffer = new byte[RANGECODER_BLOCKSIZE];
 
             m_cRangeCoder.InitQSModel();
             m_cMTFEncode.InitMTFOrder();
 
-            using (var reader = new BinaryReader (input, Encoding.ASCII, true))
+            using (var reader = new BinaryReader(input, Encoding.ASCII, true))
             {
                 while (dwSrcCursor < dwSrcLength)
                 {
                     if (dwSrcCursor + 4 >= dwSrcLength)
                         return false;
-                    ushort src_block_size  = reader.ReadUInt16();
+                    ushort src_block_size = reader.ReadUInt16();
                     ushort dest_block_size = reader.ReadUInt16();
                     ushort comp_block_size = (ushort)(src_block_size - 4);
                     ushort decomp_block_size = (ushort)(dest_block_size + 2);
@@ -114,24 +114,24 @@ namespace GameRes.Formats.Kogado
                         return false;
                     if (comp_block_size == decomp_block_size)
                     {
-                        int read = input.Read (buffer, 0, comp_block_size);
+                        int read = input.Read(buffer, 0, comp_block_size);
                         m_cRangeCoder.InitQSModel();
                     }
                     else
                     {
                         if (comp_block_size > input_buffer.Length)
                             input_buffer = new byte[comp_block_size];
-                        int read = input.Read (input_buffer, 0, comp_block_size);
+                        int read = input.Read(input_buffer, 0, comp_block_size);
                         if (read != comp_block_size)
                             return false;
-                        uint written = m_cRangeCoder.Decode (buffer, input_buffer, decomp_block_size, comp_block_size);
+                        uint written = m_cRangeCoder.Decode(buffer, input_buffer, decomp_block_size, comp_block_size);
                         if (0 == written)
                             break;
                         if (written != decomp_block_size)
                             return false;
                     }
-                    m_cMTFEncode.Decode (buffer, buffer, decomp_block_size);
-                    m_cBWTEncode.Decode (output, buffer, decomp_block_size);
+                    m_cMTFEncode.Decode(buffer, buffer, decomp_block_size);
+                    m_cBWTEncode.Decode(output, buffer, decomp_block_size);
 
                     dwSrcCursor += src_block_size;
                 }
@@ -142,12 +142,12 @@ namespace GameRes.Formats.Kogado
 
     internal class CRangeCoder
     {
-        byte[]  m_pSrcBuffer;
-        byte[]  m_pDestBuffer;
-        uint    m_dwSrcEnd;
-        uint    m_dwDestEnd;
-        uint    m_dwSrcIndex;
-        uint    m_dwDestIndex;
+        byte[] m_pSrcBuffer;
+        byte[] m_pDestBuffer;
+        uint m_dwSrcEnd;
+        uint m_dwDestEnd;
+        uint m_dwSrcIndex;
+        uint m_dwDestIndex;
         RangeCoder m_rc = new RangeCoder();
         QSModel m_qsm;
 
@@ -199,12 +199,12 @@ namespace GameRes.Formats.Kogado
 
         public void InitQSModel()
         {
-            InitQSModel (257, 12, 2000, RANGECODER_INITFREQ, false);
+            InitQSModel(257, 12, 2000, RANGECODER_INITFREQ, false);
         }
 
-        public void InitQSModel (int n, int lg_totf, int rescale, int[] init, bool compress)
+        public void InitQSModel(int n, int lg_totf, int rescale, int[] init, bool compress)
         {
-            m_qsm = new QSModel (n, lg_totf, rescale, init, compress);
+            m_qsm = new QSModel(n, lg_totf, rescale, init, compress);
         }
 
         /*
@@ -239,12 +239,12 @@ namespace GameRes.Formats.Kogado
         }
         */
 
-        public uint Decode (byte[] dest, byte[] src, uint destsize, uint srcsize)
+        public uint Decode(byte[] dest, byte[] src, uint destsize, uint srcsize)
         {
-            return Decode (dest, 0, destsize, src, 0, srcsize);
+            return Decode(dest, 0, destsize, src, 0, srcsize);
         }
 
-        public uint Decode (byte[] dst, uint dst_index, uint dst_size,
+        public uint Decode(byte[] dst, uint dst_index, uint dst_size,
                             byte[] src, uint src_index, uint src_size)
         {
             int ch, ltfreq, syfreq;
@@ -260,113 +260,113 @@ namespace GameRes.Formats.Kogado
 
             while (m_dwSrcIndex < m_dwSrcEnd)
             {
-                ltfreq = (int)DecodeCulshift (12);
-                ch = m_qsm.GetSym (ltfreq);
+                ltfreq = (int)DecodeCulshift(12);
+                ch = m_qsm.GetSym(ltfreq);
                 if (256 == ch)	// check for end-of-file
                     break;
-                if (!SetDestByteImpl ((byte)ch))
+                if (!SetDestByteImpl((byte)ch))
                     return 0;
-                m_qsm.GetFreq (ch, out syfreq, out ltfreq);
-                DecodeUpdate (syfreq, ltfreq, 1 << 12);
-                m_qsm.Update (ch);
+                m_qsm.GetFreq(ch, out syfreq, out ltfreq);
+                DecodeUpdate(syfreq, ltfreq, 1 << 12);
+                m_qsm.Update(ch);
             }
-            m_qsm.GetFreq (256, out syfreq, out ltfreq);
-            DecodeUpdate (syfreq, ltfreq, 1 << 12);
+            m_qsm.GetFreq(256, out syfreq, out ltfreq);
+            DecodeUpdate(syfreq, ltfreq, 1 << 12);
             DoneDecoding();
-            return m_dwDestIndex-dst_index;
+            return m_dwDestIndex - dst_index;
         }
-/*
-        // Encode --------------------------------------------------------
-        void StartEncoding( char c = 0, int initlength = 0 )
-        {
-            m_rc.low = 0;	// Full code range
-            m_rc.range = Top_value;
-            m_rc.buffer = c;
-            m_rc.help = 0;	// No bytes to follow
-            m_rc.bytecount = initlength;
-        }
-        void EncNormalize()
-        {
-            while ( m_rc.range <= Bottom_value ) {	// do we need renormalisation?
-                if ( m_rc.low < (uint)0xff << SHIFT_BITS ) {	// no carry possible --> output
-                    this->SetDestByteImpl( m_rc.buffer );
-                    for ( ; m_rc.help; m_rc.help -- )
-                        this->SetDestByteImpl( 0xff );
-                    m_rc.buffer = (unsigned char)( m_rc.low >> SHIFT_BITS );
-                } else if ( m_rc.low & Top_value ) {	// carry now, no future carry
-                    this->SetDestByteImpl( m_rc.buffer+1 );
-                    for ( ; m_rc.help; m_rc.help -- )
-                        this->SetDestByteImpl( 0 );
-                    m_rc.buffer = (unsigned char)( m_rc.low >> SHIFT_BITS );
-                } else	// passes on a potential carry
-                    m_rc.help ++;
-                m_rc.range <<= 8;
-                m_rc.low = ( m_rc.low << 8 ) & ( Top_value - 1 );
-                m_rc.bytecount ++;
-            }
-        }
-        void EncodeFreq (uint sy_f, uint lt_f, uint tot_f)
-        {
-            uint r, tmp;
+        /*
+                // Encode --------------------------------------------------------
+                void StartEncoding( char c = 0, int initlength = 0 )
+                {
+                    m_rc.low = 0;	// Full code range
+                    m_rc.range = Top_value;
+                    m_rc.buffer = c;
+                    m_rc.help = 0;	// No bytes to follow
+                    m_rc.bytecount = initlength;
+                }
+                void EncNormalize()
+                {
+                    while ( m_rc.range <= Bottom_value ) {	// do we need renormalisation?
+                        if ( m_rc.low < (uint)0xff << SHIFT_BITS ) {	// no carry possible --> output
+                            this->SetDestByteImpl( m_rc.buffer );
+                            for ( ; m_rc.help; m_rc.help -- )
+                                this->SetDestByteImpl( 0xff );
+                            m_rc.buffer = (unsigned char)( m_rc.low >> SHIFT_BITS );
+                        } else if ( m_rc.low & Top_value ) {	// carry now, no future carry
+                            this->SetDestByteImpl( m_rc.buffer+1 );
+                            for ( ; m_rc.help; m_rc.help -- )
+                                this->SetDestByteImpl( 0 );
+                            m_rc.buffer = (unsigned char)( m_rc.low >> SHIFT_BITS );
+                        } else	// passes on a potential carry
+                            m_rc.help ++;
+                        m_rc.range <<= 8;
+                        m_rc.low = ( m_rc.low << 8 ) & ( Top_value - 1 );
+                        m_rc.bytecount ++;
+                    }
+                }
+                void EncodeFreq (uint sy_f, uint lt_f, uint tot_f)
+                {
+                    uint r, tmp;
 
-            this->EncNormalize();
-            r = m_rc.range / tot_f;
-            tmp = r * lt_f;
-            m_rc.low += tmp;
-            if ( lt_f + sy_f < tot_f )
-                m_rc.range = r * sy_f;
-            else
-                m_rc.range -= tmp;
-        }
-        void EncodeShift (uint sy_f, uint lt_f, uint shift)
-        {
-            uint r, tmp;
+                    this->EncNormalize();
+                    r = m_rc.range / tot_f;
+                    tmp = r * lt_f;
+                    m_rc.low += tmp;
+                    if ( lt_f + sy_f < tot_f )
+                        m_rc.range = r * sy_f;
+                    else
+                        m_rc.range -= tmp;
+                }
+                void EncodeShift (uint sy_f, uint lt_f, uint shift)
+                {
+                    uint r, tmp;
 
-            this->EncNormalize();
-            r = m_rc.range >> shift;
-            tmp = r * lt_f;
-            m_rc.low += tmp;
-            if ( ( lt_f + sy_f ) >> shift )
-                m_rc.range -= tmp;
-            else  
-                m_rc.range = r * sy_f;
-        }
-        uint4 DoneEncoding()
-        {
-            uint tmp;
+                    this->EncNormalize();
+                    r = m_rc.range >> shift;
+                    tmp = r * lt_f;
+                    m_rc.low += tmp;
+                    if ( ( lt_f + sy_f ) >> shift )
+                        m_rc.range -= tmp;
+                    else  
+                        m_rc.range = r * sy_f;
+                }
+                uint4 DoneEncoding()
+                {
+                    uint tmp;
 
-            this->EncNormalize();	// now we have a normalized state
-            m_rc.bytecount += 5;
-            if ( ( m_rc.low & ( Bottom_value - 1 ) ) < ( ( m_rc.bytecount & 0xffffffL ) >> 1 ) )
-                tmp = m_rc.low >> SHIFT_BITS;
-            else
-                tmp = ( m_rc.low >> SHIFT_BITS ) + 1;
-            if ( tmp > 0xff ) {	// we have a carry
-                this->SetDestByteImpl( m_rc.buffer + 1 );
-                for ( ; m_rc.help; m_rc.help -- )
-                    this->SetDestByteImpl( 0 );
-            } else {	// no carry
-                this->SetDestByteImpl( m_rc.buffer );
-                for ( ; m_rc.help; m_rc.help -- )
-                    this->SetDestByteImpl( 0xff );
-            }
-            this->SetDestByteImpl( static_cast< BYTE >( tmp ) );
-            this->SetDestByteImpl( static_cast< BYTE >( m_rc.bytecount >> 16 ) );
-            this->SetDestByteImpl( static_cast< BYTE >( m_rc.bytecount >> 8 ) );
-            this->SetDestByteImpl( static_cast< BYTE >( m_rc.bytecount ) );
+                    this->EncNormalize();	// now we have a normalized state
+                    m_rc.bytecount += 5;
+                    if ( ( m_rc.low & ( Bottom_value - 1 ) ) < ( ( m_rc.bytecount & 0xffffffL ) >> 1 ) )
+                        tmp = m_rc.low >> SHIFT_BITS;
+                    else
+                        tmp = ( m_rc.low >> SHIFT_BITS ) + 1;
+                    if ( tmp > 0xff ) {	// we have a carry
+                        this->SetDestByteImpl( m_rc.buffer + 1 );
+                        for ( ; m_rc.help; m_rc.help -- )
+                            this->SetDestByteImpl( 0 );
+                    } else {	// no carry
+                        this->SetDestByteImpl( m_rc.buffer );
+                        for ( ; m_rc.help; m_rc.help -- )
+                            this->SetDestByteImpl( 0xff );
+                    }
+                    this->SetDestByteImpl( static_cast< BYTE >( tmp ) );
+                    this->SetDestByteImpl( static_cast< BYTE >( m_rc.bytecount >> 16 ) );
+                    this->SetDestByteImpl( static_cast< BYTE >( m_rc.bytecount >> 8 ) );
+                    this->SetDestByteImpl( static_cast< BYTE >( m_rc.bytecount ) );
 
-            return m_rc.bytecount;
-        }
-*/
+                    return m_rc.bytecount;
+                }
+        */
 
         // Decode --------------------------------------------------------
-        int StartDecoding ()
+        int StartDecoding()
         {
             byte c;
 
-            if (!GetSrcByteImpl (out c))
+            if (!GetSrcByteImpl(out c))
                 return -1;
-            if (!GetSrcByteImpl (out m_rc.buffer))
+            if (!GetSrcByteImpl(out m_rc.buffer))
                 return -1;
             m_rc.low = (uint)(m_rc.buffer >> (8 - EXTRA_BITS));
             m_rc.range = (uint)1 << EXTRA_BITS;
@@ -376,18 +376,18 @@ namespace GameRes.Formats.Kogado
 
         bool DecNormalize()
         {
-            while ( m_rc.range <= Bottom_value )
+            while (m_rc.range <= Bottom_value)
             {
-                m_rc.low = ( m_rc.low << 8 ) | (byte)(m_rc.buffer << EXTRA_BITS);
-                if (!GetSrcByteImpl (out m_rc.buffer))
+                m_rc.low = (m_rc.low << 8) | (byte)(m_rc.buffer << EXTRA_BITS);
+                if (!GetSrcByteImpl(out m_rc.buffer))
                     return false;
-                m_rc.low |= (uint)m_rc.buffer >> ( 8 - EXTRA_BITS );
+                m_rc.low |= (uint)m_rc.buffer >> (8 - EXTRA_BITS);
                 m_rc.range <<= 8;
             }
             return true;
         }
 
-        uint DecodeCulshift (int shift)
+        uint DecodeCulshift(int shift)
         {
             uint tmp;
 
@@ -397,12 +397,12 @@ namespace GameRes.Formats.Kogado
             return (0 != (tmp >> shift) ? (1u << shift) - 1u : tmp);
         }
 
-        void DecodeUpdate (int sy_f, int lt_f, int tot_f)
+        void DecodeUpdate(int sy_f, int lt_f, int tot_f)
         {
             uint tmp = m_rc.help * (uint)lt_f;
 
             m_rc.low -= tmp;
-            if ( lt_f + sy_f < tot_f )
+            if (lt_f + sy_f < tot_f)
                 m_rc.range = m_rc.help * (uint)sy_f;
             else
                 m_rc.range -= tmp;
@@ -414,7 +414,7 @@ namespace GameRes.Formats.Kogado
         }
 
         // I/O -----------------------------------------------------------
-        bool GetSrcByteImpl (out byte pData)
+        bool GetSrcByteImpl(out byte pData)
         {
             if (m_dwSrcIndex >= m_dwSrcEnd)
             {
@@ -425,7 +425,7 @@ namespace GameRes.Formats.Kogado
             return true;
         }
 
-        bool SetDestByteImpl (byte byData)
+        bool SetDestByteImpl(byte byData)
         {
             if (m_dwDestIndex >= m_dwDestEnd)
                 return false;
@@ -441,7 +441,7 @@ namespace GameRes.Formats.Kogado
         public uint help;      /* bytes_to_follow resp. intermediate value */
         public byte buffer;    /* buffer for input/output */
         /* the following is used only when encoding */
-//        public uint bytecount; /* counter for outputed bytes  */
+        //        public uint bytecount; /* counter for outputed bytes  */
     }
 
     // とりあえずこれで可逆性を概ね確認 (数タイトルの song.txt で確認)
@@ -449,78 +449,78 @@ namespace GameRes.Formats.Kogado
     {
         public const ulong BWT_SORTTABLESIZE = 0x00010000;
 
-/*
-        byte[] m_pWorkTable = new byte[BWT_SORTTABLESIZE / 2];
+        /*
+                byte[] m_pWorkTable = new byte[BWT_SORTTABLESIZE / 2];
 
-        void Encode( BYTE *dest, const BYTE *src, int size )
-        {
-            int top = 0;	// 初期値は不要だが、警告回避のため
-            BYTE *ptr;
-            int count[256] = { 0, };
-            int count_sum[256+1];
-            BYTE *sort_buffer = new BYTE[size*2];
-            LPBYTE *sort_table = new LPBYTE[BWT_SORTTABLESIZE];
+                void Encode( BYTE *dest, const BYTE *src, int size )
+                {
+                    int top = 0;	// 初期値は不要だが、警告回避のため
+                    BYTE *ptr;
+                    int count[256] = { 0, };
+                    int count_sum[256+1];
+                    BYTE *sort_buffer = new BYTE[size*2];
+                    LPBYTE *sort_table = new LPBYTE[BWT_SORTTABLESIZE];
 
-            // 作業領域にコピー
-            memcpy( sort_buffer, src, size );
-            memcpy( sort_buffer + size, sort_buffer, size );
+                    // 作業領域にコピー
+                    memcpy( sort_buffer, src, size );
+                    memcpy( sort_buffer + size, sort_buffer, size );
 
-            // 分布数え上げソート
-            for ( int i = 0; i < size; i ++ )
-                count[ sort_buffer[i] ]++;
-            count_sum[0] = 0;
-            for ( int i = 1; i <= 256; i ++ )
-                count_sum[i] = count[i-1] + count_sum[i-1];
-            for ( int i = 1; i < 256; i ++ )
-                count[i] += count[i-1];
+                    // 分布数え上げソート
+                    for ( int i = 0; i < size; i ++ )
+                        count[ sort_buffer[i] ]++;
+                    count_sum[0] = 0;
+                    for ( int i = 1; i <= 256; i ++ )
+                        count_sum[i] = count[i-1] + count_sum[i-1];
+                    for ( int i = 1; i < 256; i ++ )
+                        count[i] += count[i-1];
 
-            for ( int i = size - 1; i >= 0; i -- ) {
-                ptr = sort_buffer + i;
-                sort_table[ -- count[*ptr] ] = ptr;
-            }
-
-            // 2 段階ソート
-            for ( int i = 1; i < 256; i ++ ) {
-                int j, k;
-                int high = count_sum[i+1];
-
-                for ( j = k = count_sum[i]; j < high; j ++ ) {
-                    ptr = sort_table[j];
-                    if ( *ptr > *(ptr + 1) ) {
-                        sort_table[j] = sort_table[k];
-                        sort_table[k ++] = ptr;
+                    for ( int i = size - 1; i >= 0; i -- ) {
+                        ptr = sort_buffer + i;
+                        sort_table[ -- count[*ptr] ] = ptr;
                     }
+
+                    // 2 段階ソート
+                    for ( int i = 1; i < 256; i ++ ) {
+                        int j, k;
+                        int high = count_sum[i+1];
+
+                        for ( j = k = count_sum[i]; j < high; j ++ ) {
+                            ptr = sort_table[j];
+                            if ( *ptr > *(ptr + 1) ) {
+                                sort_table[j] = sort_table[k];
+                                sort_table[k ++] = ptr;
+                            }
+                        }
+                        if ( high - k > 1 )
+                            this->MergeSort( sort_table, k, high - 1, size );
+                    }
+                    // 0 は全てソート
+                    if ( count_sum[1] > 1 )
+                        this->MergeSort( sort_table, 0, count_sum[1] - 1, size );
+                    // ソート不要部分
+                    for ( int i = 0; i < size; i ++ ) {
+                        ptr = sort_table[i];
+                        if ( ptr == sort_buffer )
+                            ptr += size;
+                        if ( *(ptr - 1) > *ptr )
+                            sort_table[ count_sum[*(ptr - 1)] ++ ] = ptr - 1;
+                    }
+                    // 出力
+                    for ( int i = 0; i < size; i ++ ) {
+                        ptr = sort_table[i];
+                        if ( ptr == sort_buffer )
+                            top = i;
+                        dest[i+2] = *(ptr + size - 1);
+                    }
+                    *reinterpret_cast< unsigned short * >( dest ) = static_cast< unsigned short >( top );
+                    // 解放
+                    delete[] sort_buffer;
+                    delete[] sort_table;
                 }
-                if ( high - k > 1 )
-                    this->MergeSort( sort_table, k, high - 1, size );
-            }
-            // 0 は全てソート
-            if ( count_sum[1] > 1 )
-                this->MergeSort( sort_table, 0, count_sum[1] - 1, size );
-            // ソート不要部分
-            for ( int i = 0; i < size; i ++ ) {
-                ptr = sort_table[i];
-                if ( ptr == sort_buffer )
-                    ptr += size;
-                if ( *(ptr - 1) > *ptr )
-                    sort_table[ count_sum[*(ptr - 1)] ++ ] = ptr - 1;
-            }
-            // 出力
-            for ( int i = 0; i < size; i ++ ) {
-                ptr = sort_table[i];
-                if ( ptr == sort_buffer )
-                    top = i;
-                dest[i+2] = *(ptr + size - 1);
-            }
-            *reinterpret_cast< unsigned short * >( dest ) = static_cast< unsigned short >( top );
-            // 解放
-            delete[] sort_buffer;
-            delete[] sort_table;
-        }
-*/
+        */
         int[] sort_table = new int[BWT_SORTTABLESIZE];
 
-        public void Decode (Stream dest, byte[] src, int size)
+        public void Decode(Stream dest, byte[] src, int size)
         {
             int[] count = new int[256];
             int top = src[0] | src[1] << 8;
@@ -529,64 +529,64 @@ namespace GameRes.Formats.Kogado
             size -= 2;
             // 分布数え上げソート
             for (int i = 0; i < size; i++)
-                count[ src[pos+i] ]++;
+                count[src[pos + i]]++;
             for (short i = 1; i < 256; i++)
-                count[i] += count[i-1];
-            for (int i = size - 1; i >= 0; i --)
+                count[i] += count[i - 1];
+            for (int i = size - 1; i >= 0; i--)
             {
-                sort_table[--count[src[pos+i]]] = i;
+                sort_table[--count[src[pos + i]]] = i;
             }
             // 出力
-            int ptr = sort_table[top]; 
+            int ptr = sort_table[top];
             for (int i = 0; i < size; i++)
             {
-                dest.WriteByte (src[pos+ptr]);
+                dest.WriteByte(src[pos + ptr]);
                 ptr = sort_table[ptr];
             }
         }
-/*
-        void MergeSort( BYTE *sort_table[], int low, int high, int size )
-        {
-            int len = size - 1;
+        /*
+                void MergeSort( BYTE *sort_table[], int low, int high, int size )
+                {
+                    int len = size - 1;
 
-            if ( high - low <= 10 ) {
-                this->InsertSort( sort_table, low, high, size );
-            } else {
-                int middle = (low + high) / 2;
-                int i, p, j, k;
+                    if ( high - low <= 10 ) {
+                        this->InsertSort( sort_table, low, high, size );
+                    } else {
+                        int middle = (low + high) / 2;
+                        int i, p, j, k;
 
-                this->MergeSort( sort_table, low, middle, size );
-                this->MergeSort( sort_table, middle + 1, high, size );
-                p = 0;
-                i = low;
-                while ( i <= middle )
-                    m_pWorkTable[p ++] = sort_table[i ++];
-                i = middle + 1;
-                j = 0;
-                k = low;
-                while ( i <= high && j < p ) {
-                    if ( memcmp( m_pWorkTable[j] + 1, sort_table[i] + 1, len ) <= 0 )
-                        sort_table[k ++] = m_pWorkTable[j ++];
-                    else
-                        sort_table[k ++] = sort_table[i ++];
+                        this->MergeSort( sort_table, low, middle, size );
+                        this->MergeSort( sort_table, middle + 1, high, size );
+                        p = 0;
+                        i = low;
+                        while ( i <= middle )
+                            m_pWorkTable[p ++] = sort_table[i ++];
+                        i = middle + 1;
+                        j = 0;
+                        k = low;
+                        while ( i <= high && j < p ) {
+                            if ( memcmp( m_pWorkTable[j] + 1, sort_table[i] + 1, len ) <= 0 )
+                                sort_table[k ++] = m_pWorkTable[j ++];
+                            else
+                                sort_table[k ++] = sort_table[i ++];
+                        }
+                        while ( j < p )
+                            sort_table[k ++] = m_pWorkTable[j ++];
+                    }
                 }
-                while ( j < p )
-                    sort_table[k ++] = m_pWorkTable[j ++];
-            }
-        }
-        void InsertSort( BYTE *sort_table[], int low, int high, int size )
-        {
-            int j, len = size - 1;
+                void InsertSort( BYTE *sort_table[], int low, int high, int size )
+                {
+                    int j, len = size - 1;
 
-            for ( int i = low + 1; i <= high ; i ++ ) {
-                BYTE *tmp = sort_table[i];
+                    for ( int i = low + 1; i <= high ; i ++ ) {
+                        BYTE *tmp = sort_table[i];
 
-                for ( j = i - 1; j >= low && memcmp( tmp + 1, sort_table[j] + 1, len ) < 0; j -- )
-                    sort_table[j + 1] = sort_table[j];
-                sort_table[j + 1] = tmp;
-            }
-        }
-*/
+                        for ( j = i - 1; j >= low && memcmp( tmp + 1, sort_table[j] + 1, len ) < 0; j -- )
+                            sort_table[j + 1] = sort_table[j];
+                        sort_table[j + 1] = tmp;
+                    }
+                }
+        */
     }
 
     internal class MTFEncode
@@ -600,7 +600,7 @@ namespace GameRes.Formats.Kogado
         }
 
         // MTF は当然、destsize == srcsize
-        public void Encode (byte[] dest, byte[] src, int size)
+        public void Encode(byte[] dest, byte[] src, int size)
         {
             for (int i = 0; i < size; i++)
             {
@@ -611,7 +611,7 @@ namespace GameRes.Formats.Kogado
                     n++;
                 if (n > 0)
                 {
-                    Buffer.BlockCopy (m_MTFTable, 0, m_MTFTable, 1, n);
+                    Buffer.BlockCopy(m_MTFTable, 0, m_MTFTable, 1, n);
                     m_MTFTable[0] = c;
                 }
                 dest[i] = n;
@@ -619,15 +619,15 @@ namespace GameRes.Formats.Kogado
         }
 
         // MTF は当然、destsize == srcsize
-        public void Decode (byte[] dest, byte[] src, int size)
+        public void Decode(byte[] dest, byte[] src, int size)
         {
-            for ( int i = 0; i < size; i++ )
+            for (int i = 0; i < size; i++)
             {
                 byte n = src[i];
                 byte c = m_MTFTable[n];
                 if (n > 0)
                 {
-                    Buffer.BlockCopy (m_MTFTable, 0, m_MTFTable, 1, n);
+                    Buffer.BlockCopy(m_MTFTable, 0, m_MTFTable, 1, n);
                     m_MTFTable[0] = c;
                 }
                 dest[i] = c;
@@ -695,15 +695,15 @@ namespace GameRes.Formats.Kogado
         /// <param name="rescale">desired rescaling interval, should be &lt; 1&lt;&lt;(lg_totf+1)</param>
         /// <param name="init">array of int's to be used for initialisation (NULL ok)</param>
         /// <param name="compress">true on compression, false on decompression</param>
-        public QSModel (int n, int lg_totf, int rescale, int[] init, bool compress)
+        public QSModel(int n, int lg_totf, int rescale, int[] init, bool compress)
         {
             m_n = n;
             m_targetrescale = rescale;
             m_searchshift = lg_totf - TBLSHIFT;
             if (m_searchshift < 0)
                 m_searchshift = 0;
-            m_cf = new ushort[n+1];
-            m_newf = new ushort[n+1];
+            m_cf = new ushort[n + 1];
+            m_newf = new ushort[n + 1];
             m_cf[n] = (ushort)(1 << lg_totf);
             m_cf[0] = 0;
             if (compress)
@@ -712,27 +712,27 @@ namespace GameRes.Formats.Kogado
             }
             else
             {
-                m_search = new ushort[(1<<TBLSHIFT)+1];
-                m_search[1<<TBLSHIFT] = (ushort)(n-1);
+                m_search = new ushort[(1 << TBLSHIFT) + 1];
+                m_search[1 << TBLSHIFT] = (ushort)(n - 1);
             }
-            Reset (init);
+            Reset(init);
         }
 
         /// <summary>
         /// reinitialisation of qsmodel
         /// </summary>
         /// <param name="init">array of int's to be used for initialisation (NULL ok)</param>
-        public void Reset (int[] init)
+        public void Reset(int[] init)
         {
             int i;
-            m_rescale = m_n>>4 | 2;
+            m_rescale = m_n >> 4 | 2;
             m_nextleft = 0;
             if (init == null)
             {
                 int initval = m_cf[m_n] / m_n;
                 int end = m_cf[m_n] % m_n;
                 for (i = 0; i < end; i++)
-                    m_newf[i] = (ushort)(initval+1);
+                    m_newf[i] = (ushort)(initval + 1);
                 for (; i < m_n; i++)
                     m_newf[i] = (ushort)initval;
             }
@@ -744,7 +744,7 @@ namespace GameRes.Formats.Kogado
             DoRescale();
         }
 
-        void DoRescale ()
+        void DoRescale()
         {
             if (0 != m_nextleft)  /* we have some more before actual rescaling */
             {
@@ -761,19 +761,19 @@ namespace GameRes.Formats.Kogado
             }
             int i, cf, missing;
             cf = missing = m_cf[m_n];  /* do actual rescaling */
-            for (i = m_n-1; i != 0; i--)
+            for (i = m_n - 1; i != 0; i--)
             {
                 int tmp = m_newf[i];
                 cf -= tmp;
                 m_cf[i] = (ushort)cf;
-                tmp = tmp>>1 | 1;
+                tmp = tmp >> 1 | 1;
                 missing -= tmp;
                 m_newf[i] = (ushort)tmp;
             }
             if (cf != m_newf[0])
-                throw new ApplicationException ("Run-time error in QSModel.DoRescale");
+                throw new ApplicationException("Run-time error in QSModel.DoRescale");
 
-            m_newf[0] = (ushort)(m_newf[0]>>1 | 1);
+            m_newf[0] = (ushort)(m_newf[0] >> 1 | 1);
             missing -= m_newf[0];
             m_incr = missing / m_rescale;
             m_nextleft = missing % m_rescale;
@@ -783,7 +783,7 @@ namespace GameRes.Formats.Kogado
                 i = m_n;
                 while (i != 0)
                 {
-                    int end = (m_cf[i]-1) >> m_searchshift;
+                    int end = (m_cf[i] - 1) >> m_searchshift;
                     i--;
                     int start = m_cf[i] >> m_searchshift;
                     while (start <= end)
@@ -802,23 +802,23 @@ namespace GameRes.Formats.Kogado
         /// <param name="sy_f">frequency of that symbol</param>
         /// <param name="lt_f">frequency of all smaller symbols together</param>
         /// the total frequency is 1&lt;&lt;lg_totf
-        public void GetFreq (int sym, out int sy_f, out int lt_f)
+        public void GetFreq(int sym, out int sy_f, out int lt_f)
         {
             lt_f = m_cf[sym];
-            sy_f = m_cf[sym+1] - lt_f;
-        }	
+            sy_f = m_cf[sym + 1] - lt_f;
+        }
 
         /// <summary>
         /// find out symbol for a given cumulative frequency.
         /// </summary>
         /// <param name="lt_f">cumulative frequency</param>
-        public int GetSym (int lt_f)
+        public int GetSym(int lt_f)
         {
             int lo, hi;
             int tmp = lt_f >> m_searchshift;
             lo = m_search[tmp];
-            hi = m_search[tmp+1] + 1;
-            while (lo+1 < hi)
+            hi = m_search[tmp + 1] + 1;
+            while (lo + 1 < hi)
             {
                 int mid = (lo + hi) >> 1;
                 if (lt_f < m_cf[mid])
@@ -833,7 +833,7 @@ namespace GameRes.Formats.Kogado
         /// update model
         /// </summary>
         /// <param name="sym">symbol that occurred (must be &lt;n from init)</param>
-        public void Update (int sym)
+        public void Update(int sym)
         {
             if (m_left <= 0)
                 DoRescale();

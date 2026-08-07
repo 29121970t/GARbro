@@ -38,12 +38,12 @@ namespace GameRes.Formats.TechnoBrain
         public bool HasBitmap;
         public bool IsCompressed;
         public long PalOffset;
-        public int  PalSize;
+        public int PalSize;
         public long BmpOffset;
         public long DataOffset;
         public string FormatString;
 
-        public object Clone ()
+        public object Clone()
         {
             return MemberwiseClone();
         }
@@ -52,27 +52,28 @@ namespace GameRes.Formats.TechnoBrain
     [Export(typeof(ImageFormat))]
     public class IpfFormat : ImageFormat
     {
-        public override string         Tag { get { return "IPF"; } }
+        public override string Tag { get { return "IPF"; } }
         public override string Description { get { return "TechnoBrain's 'Inteligent Picture Format'"; } }
-        public override uint     Signature { get { return 0; } } // 'RIFF'
+        public override uint Signature { get { return 0; } } // 'RIFF'
 
-        internal IpfMetaData ReadIpfHeader (IBinaryStream file)
+        internal IpfMetaData ReadIpfHeader(IBinaryStream file)
         {
             // 'RIFF' isn't included into signature to avoid auto-detection of the WAV files as IPF images.
             if (0x46464952 != file.Signature) // 'RIFF'
                 return null;
-            var header = file.ReadHeader (0x14);
-            if (!header.AsciiEqual (0xC, "fmt "))
+            var header = file.ReadHeader(0x14);
+            if (!header.AsciiEqual(0xC, "fmt "))
                 return null;
-            int fmt_size = header.ToInt32 (0x10);
+            int fmt_size = header.ToInt32(0x10);
             if (fmt_size < 0x24)
                 return null;
-            header = file.ReadHeader (0x14 + fmt_size);
-            var info = new IpfMetaData {
+            header = file.ReadHeader(0x14 + fmt_size);
+            var info = new IpfMetaData
+            {
                 BPP = 8,
-                HasPalette = header.ToInt32 (0x18) != 0,
-                HasBitmap  = header.ToInt32 (0x28) != 0,
-                FormatString = header.GetCString (8, 8),
+                HasPalette = header.ToInt32(0x18) != 0,
+                HasBitmap = header.ToInt32(0x28) != 0,
+                FormatString = header.GetCString(8, 8),
             };
             if (info.HasPalette)
             {
@@ -88,7 +89,7 @@ namespace GameRes.Formats.TechnoBrain
             return info;
         }
 
-        internal bool ReadBmpInfo (IBinaryStream file, IpfMetaData info)
+        internal bool ReadBmpInfo(IBinaryStream file, IpfMetaData info)
         {
             if (0x20706D62 != file.ReadInt32()) // 'bmp '
                 return false;
@@ -96,70 +97,70 @@ namespace GameRes.Formats.TechnoBrain
             if (bmp_size < 0x1C)
                 return false;
             info.BmpOffset = file.Position + 0x18;
-            info.Width  = file.ReadUInt16();
+            info.Width = file.ReadUInt16();
             info.Height = file.ReadUInt16();
             file.ReadUInt32();
             info.OffsetX = file.ReadInt16();
             info.OffsetY = file.ReadInt16();
-            file.Seek (6, SeekOrigin.Current);
+            file.Seek(6, SeekOrigin.Current);
             info.IsCompressed = 0 != (file.ReadByte() & 1);
             return true;
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var info = ReadIpfHeader (file);
+            var info = ReadIpfHeader(file);
             if (null == info || info.FormatString != "IPF fmt " || !info.HasBitmap)
                 return null;
             file.Position = info.DataOffset;
-            if (!ReadBmpInfo (file, info))
+            if (!ReadBmpInfo(file, info))
                 return null;
             return info;
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new IpfReader (file, (IpfMetaData)info, this);
+            var reader = new IpfReader(file, (IpfMetaData)info, this);
             return reader.Image;
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("IpfFormat.Write not implemented");
+            throw new System.NotImplementedException("IpfFormat.Write not implemented");
         }
     }
 
     internal sealed class IpfReader : IImageDecoder
     {
-        IBinaryStream   m_input;
-        IpfMetaData     m_info;
-        byte[]          m_output;
-        ImageData       m_image;
+        IBinaryStream m_input;
+        IpfMetaData m_info;
+        byte[] m_output;
+        ImageData m_image;
 
         public BitmapPalette Palette { get; private set; }
-        public PixelFormat    Format { get; private set; }
+        public PixelFormat Format { get; private set; }
 
-        public Stream         Source { get { return m_input.AsStream; } }
-        public ImageMetaData    Info { get { return m_info; } }
-        public ImageData       Image { get { return m_image ?? (m_image = GetImageData()); } }
+        public Stream Source { get { return m_input.AsStream; } }
+        public ImageMetaData Info { get { return m_info; } }
+        public ImageData Image { get { return m_image ?? (m_image = GetImageData()); } }
         public ImageFormat SourceFormat { get; private set; }
 
-        public IpfReader (IBinaryStream input, IpfMetaData info, ImageFormat impl)
+        public IpfReader(IBinaryStream input, IpfMetaData info, ImageFormat impl)
         {
             m_input = input;
             m_info = info;
-            m_output = new byte[m_info.Width*m_info.Height];
+            m_output = new byte[m_info.Width * m_info.Height];
             Format = m_info.HasPalette ? PixelFormats.Indexed8 : PixelFormats.Gray8;
             SourceFormat = impl;
         }
 
-        private ImageData GetImageData ()
+        private ImageData GetImageData()
         {
             var pixels = Unpack();
-            return ImageData.Create (m_info, Format, Palette, pixels);
+            return ImageData.Create(m_info, Format, Palette, pixels);
         }
 
-        public byte[] Unpack ()
+        public byte[] Unpack()
         {
             if (m_info.HasPalette)
             {
@@ -169,16 +170,16 @@ namespace GameRes.Formats.TechnoBrain
             if (m_info.IsCompressed)
                 UnpackBitmap();
             else
-                m_input.Read (m_output, 0, m_output.Length);
+                m_input.Read(m_output, 0, m_output.Length);
 
             return m_output;
         }
 
-        void UnpackPalette ()
+        void UnpackPalette()
         {
-            m_input.Position = m_info.PalOffset+4;
-            var header = m_input.ReadBytes (0x20);
-            var data = m_input.ReadBytes (m_info.PalSize - 0x24);
+            m_input.Position = m_info.PalOffset + 4;
+            var header = m_input.ReadBytes(0x20);
+            var data = m_input.ReadBytes(m_info.PalSize - 0x24);
 
             const int min_index = 0x0A;
             const int max_index = 0xF6;
@@ -196,17 +197,17 @@ namespace GameRes.Formats.TechnoBrain
                     {
                         if (dst >= min_index && dst <= max_index)
                         {
-                            color_map[dst] = Color.FromRgb (data[src], data[src+1], data[src+2]);
+                            color_map[dst] = Color.FromRgb(data[src], data[src + 1], data[src + 2]);
                         }
                         src += 3;
                     }
                     bits <<= 1;
                 }
             }
-            Palette = new BitmapPalette (color_map);
+            Palette = new BitmapPalette(color_map);
         }
 
-        void UnpackBitmap () // IPF_12
+        void UnpackBitmap() // IPF_12
         {
             int dst = 0;
             while (dst < m_output.Length)
@@ -231,7 +232,7 @@ namespace GameRes.Formats.TechnoBrain
                 {
                     int offset = ((ctl - 0x10) << 8 | m_input.ReadUInt8()) + 1;
                     int count = m_input.ReadUInt8() + 1;
-                    Binary.CopyOverlapped (m_output, dst - offset, dst, count);
+                    Binary.CopyOverlapped(m_output, dst - offset, dst, count);
                     dst += count;
                 }
                 else
@@ -243,14 +244,14 @@ namespace GameRes.Formats.TechnoBrain
 
         #region IDisposable members
         bool m_disposed = false;
-        public void Dispose ()
+        public void Dispose()
         {
             if (!m_disposed)
             {
                 m_input.Dispose();
                 m_disposed = true;
             }
-            GC.SuppressFinalize (this);
+            GC.SuppressFinalize(this);
         }
         #endregion
     }

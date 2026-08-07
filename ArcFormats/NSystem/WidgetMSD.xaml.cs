@@ -12,11 +12,11 @@ namespace GameRes.Formats.GUI
     /// </summary>
     public partial class WidgetMSD : StackPanel
     {
-        public WidgetMSD ()
+        public WidgetMSD()
         {
-            InitializeComponent ();
+            InitializeComponent();
             var first = new Dictionary<string, string> { { arcStrings.ArcNoEncryption, "" } };
-            Title.ItemsSource = first.Concat (FjsysOpener.KnownPasswords.OrderBy (x => x.Key));
+            Title.ItemsSource = first.Concat(FjsysOpener.KnownPasswords.OrderBy(x => x.Key));
         }
     }
 }

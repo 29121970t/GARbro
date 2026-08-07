@@ -24,15 +24,15 @@ namespace GARbro.GUI
         {
             obj.SetValue(IsEnabledProperty, value);
         }
-        
-        public static Cursor GetDraggingCursor (UIElement e)
+
+        public static Cursor GetDraggingCursor(UIElement e)
         {
-            return (Cursor)e.GetValue (DraggingCursorProperty);
+            return (Cursor)e.GetValue(DraggingCursorProperty);
         }
 
-        public static void SetDraggingCursor (UIElement e, Cursor value)
+        public static void SetDraggingCursor(UIElement e, Cursor value)
         {
-            e.SetValue (DraggingCursorProperty, value);
+            e.SetValue(DraggingCursorProperty, value);
         }
 
         public bool IsEnabled
@@ -43,8 +43,8 @@ namespace GARbro.GUI
 
         public Cursor DraggingCursor
         {
-            get { return (Cursor)GetValue (DraggingCursorProperty); }
-            set { SetValue (DraggingCursorProperty, value); }
+            get { return (Cursor)GetValue(DraggingCursorProperty); }
+            set { SetValue(DraggingCursorProperty, value); }
         }
 
         public static readonly DependencyProperty IsEnabledProperty =
@@ -92,10 +92,10 @@ namespace GARbro.GUI
             var target = sender as FrameworkElement;
             if (null == target)
                 return;
-            var scroller = FindVisualParent<ScrollViewer> (target);
+            var scroller = FindVisualParent<ScrollViewer>(target);
             if (null == scroller)
             {
-                Trace.WriteLine ("Control should be placed inside ScrollViewer for drag scrolling to work");
+                Trace.WriteLine("Control should be placed inside ScrollViewer for drag scrolling to work");
                 return;
             }
 
@@ -106,7 +106,7 @@ namespace GARbro.GUI
                 Point = e.GetPosition(scroller),
             };
 
-            var cursor = target.GetValue (DraggingCursorProperty) as Cursor;
+            var cursor = target.GetValue(DraggingCursorProperty) as Cursor;
             if (cursor != null)
                 Mouse.OverrideCursor = cursor;
         }
@@ -116,7 +116,7 @@ namespace GARbro.GUI
             var target = sender as FrameworkElement;
             if (target == null) return;
 
-//            Debug.WriteLine("DragScroll target Loaded", sender);
+            //            Debug.WriteLine("DragScroll target Loaded", sender);
 
             target.Unloaded += target_Unloaded;
             target.PreviewMouseLeftButtonDown += target_PreviewMouseLeftButtonDown;
@@ -147,13 +147,13 @@ namespace GARbro.GUI
             var target = sender as FrameworkElement;
             if (null == target)
                 return;
-            var scroller = FindVisualParent<ScrollViewer> (target);
+            var scroller = FindVisualParent<ScrollViewer>(target);
             if (null == scroller)
                 return;
 
             var capture = _captures[sender];
 
-            var point = e.GetPosition (scroller);
+            var point = e.GetPosition(scroller);
 
             var dx = point.X - capture.Point.X;
             var dy = point.Y - capture.Point.Y;
@@ -165,14 +165,14 @@ namespace GARbro.GUI
             scroller.ScrollToVerticalOffset(capture.VerticalOffset - dy);
         }
 
-        static parentItem FindVisualParent<parentItem> (DependencyObject obj) where parentItem : DependencyObject
+        static parentItem FindVisualParent<parentItem>(DependencyObject obj) where parentItem : DependencyObject
         {
             if (null == obj)
                 return null;
-            DependencyObject parent = VisualTreeHelper.GetParent (obj);
+            DependencyObject parent = VisualTreeHelper.GetParent(obj);
             while (parent != null && !(parent is parentItem))
             {
-                parent = VisualTreeHelper.GetParent (parent);
+                parent = VisualTreeHelper.GetParent(parent);
             }
             return parent as parentItem;
         }

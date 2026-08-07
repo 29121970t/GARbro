@@ -46,7 +46,7 @@ namespace GameRes.Formats.WildBug
         public int UnpackedSize;
         public int PackedSize;
 
-        public static WpxSection Find (byte[] header, byte id, int count, int dir_size)
+        public static WpxSection Find(byte[] header, byte id, int count, int dir_size)
         {
             int ptr = 0;
             int n = 0;
@@ -58,11 +58,12 @@ namespace GameRes.Formats.WildBug
                 if (++n >= count)
                     return null;
             }
-            return new WpxSection {
-                DataFormat = header[ptr+1],
-                Offset = LittleEndian.ToInt32 (header, ptr+4),
-                UnpackedSize = LittleEndian.ToInt32 (header, ptr+8),
-                PackedSize = LittleEndian.ToInt32 (header, ptr+12),
+            return new WpxSection
+            {
+                DataFormat = header[ptr + 1],
+                Offset = LittleEndian.ToInt32(header, ptr + 4),
+                UnpackedSize = LittleEndian.ToInt32(header, ptr + 8),
+                PackedSize = LittleEndian.ToInt32(header, ptr + 12),
             };
         }
     }
@@ -70,47 +71,47 @@ namespace GameRes.Formats.WildBug
     [Export(typeof(ImageFormat))]
     public class WbmFormat : ImageFormat
     {
-        public override string         Tag { get { return "WBM"; } }
+        public override string Tag { get { return "WBM"; } }
         public override string Description { get { return "Wild Bug's image format"; } }
-        public override uint     Signature { get { return 0x1A585057; } } // 'WPX'
+        public override uint Signature { get { return 0x1A585057; } } // 'WPX'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
-            var header = stream.ReadHeader (0x10);
-            if (!header.AsciiEqual (4, "BMP"))
+            var header = stream.ReadHeader(0x10);
+            if (!header.AsciiEqual(4, "BMP"))
                 return null;
             int count = header[0xE];
             int dir_size = header[0xF];
             if (1 != header[0xC] || 0 == count || 0 == dir_size)
                 return null;
-            var dir = stream.ReadBytes (count * dir_size);
-            var section = WpxSection.Find (dir, 0x10, count, dir_size);
+            var dir = stream.ReadBytes(count * dir_size);
+            var section = WpxSection.Find(dir, 0x10, count, dir_size);
             if (null == section)
                 return null;
             if (section.UnpackedSize < 0x10)
                 return null;
 
             stream.Position = section.Offset;
-            var data = stream.ReadBytes (section.UnpackedSize);
+            var data = stream.ReadBytes(section.UnpackedSize);
             if (data.Length != section.UnpackedSize)
                 return null;
 
             return new WbmMetaData
             {
-                Width  = LittleEndian.ToUInt16 (data, 4),
-                Height = LittleEndian.ToUInt16 (data, 6),
-                BPP    = data[0xC],
+                Width = LittleEndian.ToUInt16(data, 4),
+                Height = LittleEndian.ToUInt16(data, 6),
+                BPP = data[0xC],
                 EntryCount = count,
                 EntrySize = dir_size,
                 Header = dir,
             };
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
             var meta = (WbmMetaData)info;
 
-            var section = WpxSection.Find (meta.Header, 0x11, meta.EntryCount, meta.EntrySize);
+            var section = WpxSection.Find(meta.Header, 0x11, meta.EntryCount, meta.EntrySize);
             if (null == section)
                 throw new InvalidFormatException();
 
@@ -118,60 +119,60 @@ namespace GameRes.Formats.WildBug
             int pixel_size;
             switch (meta.BPP)
             {
-            case 24:
-                format = PixelFormats.Bgr24;
-                pixel_size = 3;
-                break;
-            case 32:
-                format = PixelFormats.Bgr32;
-                pixel_size = 4;
-                break;
-            case 16:
-                format = PixelFormats.Bgr555;
-                pixel_size = 2;
-                break;
-            case 8:
-                format = PixelFormats.Indexed8;
-                pixel_size = 1;
-                break;
-            default:
-                throw new NotSupportedException ("Not supported WBM bitdepth");
+                case 24:
+                    format = PixelFormats.Bgr24;
+                    pixel_size = 3;
+                    break;
+                case 32:
+                    format = PixelFormats.Bgr32;
+                    pixel_size = 4;
+                    break;
+                case 16:
+                    format = PixelFormats.Bgr555;
+                    pixel_size = 2;
+                    break;
+                case 8:
+                    format = PixelFormats.Indexed8;
+                    pixel_size = 1;
+                    break;
+                default:
+                    throw new NotSupportedException("Not supported WBM bitdepth");
             }
             int stride = ((int)meta.Width * pixel_size + 3) & -4;
-            var reader = new WbmReader (stream, section);
-            var pixels = reader.Unpack (stride, pixel_size, section.DataFormat);
+            var reader = new WbmReader(stream, section);
+            var pixels = reader.Unpack(stride, pixel_size, section.DataFormat);
             if (null == pixels)
                 throw new InvalidFormatException();
 
             if (8 == meta.BPP)
             {
-                section = WpxSection.Find (meta.Header, 0x12, meta.EntryCount, meta.EntrySize);
+                section = WpxSection.Find(meta.Header, 0x12, meta.EntryCount, meta.EntrySize);
                 if (null == section)
-                    return ImageData.Create (info, PixelFormats.Gray8, null, pixels, stride);
-                reader = new WbmReader (stream, section);
-                var palette_data = reader.Unpack (48, 3, section.DataFormat);
-                var palette = CreatePalette (palette_data);
-                return ImageData.Create (info, PixelFormats.Indexed8, palette, pixels, stride);
+                    return ImageData.Create(info, PixelFormats.Gray8, null, pixels, stride);
+                reader = new WbmReader(stream, section);
+                var palette_data = reader.Unpack(48, 3, section.DataFormat);
+                var palette = CreatePalette(palette_data);
+                return ImageData.Create(info, PixelFormats.Indexed8, palette, pixels, stride);
             }
 
             if (meta.BPP < 24)
-                return ImageData.Create (info, format, null, pixels, stride);
-            section = WpxSection.Find (meta.Header, 0x13, meta.EntryCount, meta.EntrySize);
+                return ImageData.Create(info, format, null, pixels, stride);
+            section = WpxSection.Find(meta.Header, 0x13, meta.EntryCount, meta.EntrySize);
             if (null == section)
-                return ImageData.Create (info, format, null, pixels, stride);
+                return ImageData.Create(info, format, null, pixels, stride);
 
             int alpha_stride = ((int)meta.Width + 3) & -4;
             byte[] alpha = null;
             try
             {
-                reader = new WbmReader (stream, section);
-                alpha = reader.Unpack (alpha_stride, 1, section.DataFormat);
+                reader = new WbmReader(stream, section);
+                alpha = reader.Unpack(alpha_stride, 1, section.DataFormat);
             }
             catch { }
             if (null == alpha)
-                return ImageData.Create (info, format, null, pixels, stride);
+                return ImageData.Create(info, format, null, pixels, stride);
 
-            byte[] alpha_image = new byte[4*meta.Width*meta.Height];
+            byte[] alpha_image = new byte[4 * meta.Width * meta.Height];
             int dst = 0;
             for (int y = 0; y < meta.Height; ++y)
             {
@@ -180,40 +181,40 @@ namespace GameRes.Formats.WildBug
                 for (int x = 0; x < meta.Width; ++x)
                 {
                     alpha_image[dst++] = pixels[src];
-                    alpha_image[dst++] = pixels[src+1];
-                    alpha_image[dst++] = pixels[src+2];
-                    alpha_image[dst++] = alpha[alpha_src+x];
+                    alpha_image[dst++] = pixels[src + 1];
+                    alpha_image[dst++] = pixels[src + 2];
+                    alpha_image[dst++] = alpha[alpha_src + x];
                     src += pixel_size;
                 }
             }
-            return ImageData.Create (info, PixelFormats.Bgra32, null, alpha_image, (int)meta.Width*4);
+            return ImageData.Create(info, PixelFormats.Bgra32, null, alpha_image, (int)meta.Width * 4);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("WbmFormat.Write not implemented");
+            throw new System.NotImplementedException("WbmFormat.Write not implemented");
         }
 
-        static BitmapPalette CreatePalette (byte[] palette_data)
+        static BitmapPalette CreatePalette(byte[] palette_data)
         {
-            int colors = Math.Min (palette_data.Length/3, 0x100);
+            int colors = Math.Min(palette_data.Length / 3, 0x100);
             var palette = new Color[0x100];
             for (int i = 0; i < colors; ++i)
             {
                 int c = i * 3;
-                palette[i] = Color.FromRgb (palette_data[c], palette_data[c+1], palette_data[c+2]);
+                palette[i] = Color.FromRgb(palette_data[c], palette_data[c + 1], palette_data[c + 2]);
             }
-            return new BitmapPalette (palette);
+            return new BitmapPalette(palette);
         }
     }
 
     internal class WbmReader : WpxDecoder
     {
-        public WbmReader (IBinaryStream input, WpxSection section) : base (input.AsStream, section)
+        public WbmReader(IBinaryStream input, WpxSection section) : base(input.AsStream, section)
         {
         }
 
-        void GenerateOffsetTableV1 (int[] offset_table, int stride, int pixel_size)
+        void GenerateOffsetTableV1(int[] offset_table, int stride, int pixel_size)
         {
             offset_table[4] = pixel_size;
             offset_table[2] = 2 * pixel_size;
@@ -236,7 +237,7 @@ namespace GameRes.Formats.WildBug
             }
         }
 
-        void GenerateOffsetTableV2 (int[] offset_table, int stride, int pixel_size)
+        void GenerateOffsetTableV2(int[] offset_table, int stride, int pixel_size)
         {
             offset_table[0] = pixel_size;
             offset_table[1] = 2 * pixel_size;
@@ -262,10 +263,10 @@ namespace GameRes.Formats.WildBug
         int m_version;
         int m_condition;
 
-        public byte[] Unpack (int stride, int pixel_size, int flags) // sub_40919C
+        public byte[] Unpack(int stride, int pixel_size, int flags) // sub_40919C
         {
             int[] offset_table = new int[8];
-            GenerateOffsetTableV2 (offset_table, stride, pixel_size);
+            GenerateOffsetTableV2(offset_table, stride, pixel_size);
             for (m_version = 2; m_version >= 0; --m_version)
             {
                 m_condition = m_version > 0 ? 1 : 0;
@@ -280,25 +281,25 @@ namespace GameRes.Formats.WildBug
                             if (0 != (flags & 8))
                             {
                                 if (0 != (flags & 4))
-                                    return UnpackVD (ref_table, offset_table, pixel_size);
+                                    return UnpackVD(ref_table, offset_table, pixel_size);
                                 else if (0 != (flags & 2))
-                                    return UnpackVB (ref_table, offset_table, pixel_size);
+                                    return UnpackVB(ref_table, offset_table, pixel_size);
                                 else
-                                    return UnpackV9 (offset_table, pixel_size);
+                                    return UnpackV9(offset_table, pixel_size);
                             }
                             else if (0 != (flags & 4))
-                                return UnpackV5 (ref_table, offset_table, pixel_size);
+                                return UnpackV5(ref_table, offset_table, pixel_size);
                             else if (0 != (flags & 2))
-                                return UnpackV3 (ref_table, offset_table, pixel_size);
+                                return UnpackV3(ref_table, offset_table, pixel_size);
                             else
-                                return UnpackV1 (offset_table, pixel_size);
+                                return UnpackV1(offset_table, pixel_size);
                         }
                         else if (0 != (flags & 4))
-                            return UnpackV4 (ref_table, offset_table, pixel_size);
+                            return UnpackV4(ref_table, offset_table, pixel_size);
                         else if (0 != (flags & 2))
-                            return UnpackV2 (ref_table, offset_table, pixel_size);
+                            return UnpackV2(ref_table, offset_table, pixel_size);
                         else
-                            return UnpackV0 (offset_table, pixel_size);
+                            return UnpackV0(offset_table, pixel_size);
                     }
                     else
                         return ReadUncompressed();
@@ -309,12 +310,12 @@ namespace GameRes.Formats.WildBug
                         throw;
                 }
                 if (1 == m_version)
-                    GenerateOffsetTableV1 (offset_table, stride, pixel_size);
+                    GenerateOffsetTableV1(offset_table, stride, pixel_size);
             }
             return null;
         }
 
-        byte[] UnpackVD (byte[] a4, int[] offset_table, int pixel_size) // 0x0F format
+        byte[] UnpackVD(byte[] a4, int[] offset_table, int pixel_size) // 0x0F format
         {
             byte[] v47 = BuildTable(); //sub_46C26C();
             int min_count = 1 == pixel_size ? 2 : 1;
@@ -327,12 +328,12 @@ namespace GameRes.Formats.WildBug
                 return null;
 
             int v7 = -pixel_size & 3;
-            Buffer.BlockCopy (m_buffer, 0, m_output, 0, pixel_size);
+            Buffer.BlockCopy(m_buffer, 0, m_output, 0, pixel_size);
             int dst = pixel_size;
             int remaining = m_output.Length - pixel_size;
             m_current = pixel_size + v7 + 128;
 
-            if (!FillRefTable (a4, pixel_size + v7))
+            if (!FillRefTable(a4, pixel_size + v7))
                 return null;
 
             int v45 = 16384;
@@ -345,7 +346,7 @@ namespace GameRes.Formats.WildBug
                     v45 &= ~0xff00;
                     v45 |= m_output[dst - pixel_size] << 8;
                     int v26 = 16384;
-                    for (;;)
+                    for (; ; )
                     {
                         v24 = (v24 + 1) & 0xFF;
                         if (GetNextBit() != 0)
@@ -360,7 +361,7 @@ namespace GameRes.Formats.WildBug
                     byte v28 = v47[v45 + v24];
                     if (0 != v24)
                     {
-                        Buffer.BlockCopy (v47, v45, v47, v45+1, v24);
+                        Buffer.BlockCopy(v47, v45, v47, v45 + 1, v24);
                         v47[v45] = v28;
                     }
                     m_output[dst++] = v28;
@@ -390,14 +391,14 @@ namespace GameRes.Formats.WildBug
                 }
                 if (remaining < count)
                     return null;
-                Binary.CopyOverlapped (m_output, src_offset, dst, count);
+                Binary.CopyOverlapped(m_output, src_offset, dst, count);
                 dst += count;
                 remaining -= count;
             }
             return m_output;
         }
 
-        byte[] UnpackVB (byte[] a4, int[] offset_table, int pixel_size) // 0x0B format
+        byte[] UnpackVB(byte[] a4, int[] offset_table, int pixel_size) // 0x0B format
         {
             byte[] v47 = BuildTable(); //sub_46C26C();
             int min_count = 1 == pixel_size ? 2 : 1;
@@ -410,12 +411,12 @@ namespace GameRes.Formats.WildBug
                 return null;
 
             int v7 = -pixel_size & 3;
-            Buffer.BlockCopy (m_buffer, 0, m_output, 0, pixel_size);
+            Buffer.BlockCopy(m_buffer, 0, m_output, 0, pixel_size);
             int dst = pixel_size;
             int remaining = m_output.Length - pixel_size;
             m_current = pixel_size + v7 + 128;
 
-            if (!FillRefTable (a4, pixel_size + v7))
+            if (!FillRefTable(a4, pixel_size + v7))
                 return null;
 
             while (remaining > 0)
@@ -425,7 +426,7 @@ namespace GameRes.Formats.WildBug
                     int v24 = 0;
                     int v25 = 0;
                     int v26 = 16384;
-                    for (;;)
+                    for (; ; )
                     {
                         v24 = (v24 + 1) & 0xFF;
                         if (GetNextBit() != 0)
@@ -463,14 +464,14 @@ namespace GameRes.Formats.WildBug
                 }
                 if (remaining < count)
                     return null;
-                Binary.CopyOverlapped (m_output, src_offset, dst, count);
+                Binary.CopyOverlapped(m_output, src_offset, dst, count);
                 dst += count;
                 remaining -= count;
             }
             return m_output;
         }
 
-        byte[] UnpackV9 (int[] offset_table, int pixel_size) // 0x09 format
+        byte[] UnpackV9(int[] offset_table, int pixel_size) // 0x09 format
         {
             int min_count = 1 == pixel_size ? 2 : 1;
             m_available = FillBuffer();
@@ -481,7 +482,7 @@ namespace GameRes.Formats.WildBug
             if (m_available < step)
                 return null;
 
-            Buffer.BlockCopy (m_buffer, 0, m_output, 0, pixel_size);
+            Buffer.BlockCopy(m_buffer, 0, m_output, 0, pixel_size);
             int dst = pixel_size;
             int remaining = m_output.Length - pixel_size;
             m_current = pixel_size + (-pixel_size & 3);
@@ -518,14 +519,14 @@ namespace GameRes.Formats.WildBug
                 }
                 if (remaining < count)
                     return null;
-                Binary.CopyOverlapped (m_output, src_offset, dst, count);
+                Binary.CopyOverlapped(m_output, src_offset, dst, count);
                 dst += count;
                 remaining -= count;
             }
             return m_output;
         }
-   
-        byte[] UnpackV5 (byte[] a4, int[] offset_table, int pixel_size) // 0x07 format
+
+        byte[] UnpackV5(byte[] a4, int[] offset_table, int pixel_size) // 0x07 format
         {
             byte[] v46 = BuildTable();
             int min_count = 1 == pixel_size ? 2 : 1;
@@ -538,12 +539,12 @@ namespace GameRes.Formats.WildBug
                 return null;
 
             int v10 = -pixel_size & 3;
-            Buffer.BlockCopy (m_buffer, 0, m_output, 0, pixel_size);
+            Buffer.BlockCopy(m_buffer, 0, m_output, 0, pixel_size);
             int dst = pixel_size;
             int remaining = m_output.Length - pixel_size;
             m_current = pixel_size + v10 + 128;
 
-            if (!FillRefTable (a4, pixel_size + v10))
+            if (!FillRefTable(a4, pixel_size + v10))
                 return null;
 
             int v43 = 16384;
@@ -554,9 +555,9 @@ namespace GameRes.Formats.WildBug
                     int v25 = 0;
                     int v26 = 0;
                     v43 &= ~0xff00;
-                    v43 |= m_output[dst-pixel_size] << 8;
+                    v43 |= m_output[dst - pixel_size] << 8;
                     int v27 = 16384;
-                    for (;;)
+                    for (; ; )
                     {
                         v25 = (v25 + 1) & 0xff;
                         if (GetNextBit() != 0)
@@ -571,7 +572,7 @@ namespace GameRes.Formats.WildBug
                     byte v29 = v46[v43 + v25];
                     if (0 != v25)
                     {
-                        Buffer.BlockCopy (v46, v43, v46, v43+1, v25);
+                        Buffer.BlockCopy(v46, v43, v46, v43 + 1, v25);
                         v46[v43] = v29;
                     }
                     m_output[dst++] = v29;
@@ -592,7 +593,7 @@ namespace GameRes.Formats.WildBug
                         }
                         else
                         {
-                            v35  = ReadNext();
+                            v35 = ReadNext();
                             v35 |= ReadNext() << 8;
                             count = 3;
                         }
@@ -630,14 +631,14 @@ namespace GameRes.Formats.WildBug
                 }
                 if (remaining < count)
                     return null;
-                Binary.CopyOverlapped (m_output, src_offset, dst, count);
+                Binary.CopyOverlapped(m_output, src_offset, dst, count);
                 dst += count;
                 remaining -= count;
             }
             return m_output;
         }
 
-        byte[] UnpackV4 (byte[] a4, int[] offset_table, int pixel_size) // 0x06 format
+        byte[] UnpackV4(byte[] a4, int[] offset_table, int pixel_size) // 0x06 format
         {
             byte[] v48 = BuildTable();
             int min_count = 1 == pixel_size ? 2 : 1;
@@ -650,12 +651,12 @@ namespace GameRes.Formats.WildBug
                 return null;
 
             int v10 = -pixel_size & 3;
-            Buffer.BlockCopy (m_buffer, 0, m_output, 0, pixel_size);
+            Buffer.BlockCopy(m_buffer, 0, m_output, 0, pixel_size);
             int dst = pixel_size;
             int remaining = m_output.Length - pixel_size;
             m_current = pixel_size + v10 + 128;
 
-            if (!FillRefTable (a4, pixel_size + v10))
+            if (!FillRefTable(a4, pixel_size + v10))
                 return null;
 
             int v46 = 16384;
@@ -669,7 +670,7 @@ namespace GameRes.Formats.WildBug
                     v46 &= ~0xff00;
                     v46 |= m_output[dst - pixel_size] << 8;
                     int v29 = 16384;
-                    for (;;)
+                    for (; ; )
                     {
                         v27 = (v27 + 1) & 0xff;
                         if (GetNextBit() != 0)
@@ -684,7 +685,7 @@ namespace GameRes.Formats.WildBug
                     byte v31 = v48[v46 + v27];
                     if (0 != v27)
                     {
-                        Buffer.BlockCopy (v48, v46, v48, v46+1, v27);
+                        Buffer.BlockCopy(v48, v46, v48, v46 + 1, v27);
                         v48[v46] = v31;
                     }
                     m_output[dst++] = v31;
@@ -708,32 +709,32 @@ namespace GameRes.Formats.WildBug
                 }
                 if (remaining < count)
                     return null;
-                Binary.CopyOverlapped (m_output, src_offset, dst, count);
+                Binary.CopyOverlapped(m_output, src_offset, dst, count);
                 dst += count;
                 remaining -= count;
             }
             return m_output;
         }
 
-        byte[] UnpackV3 (byte[] a4, int[] offset_table, int pixel_size) // 0x03 format
+        byte[] UnpackV3(byte[] a4, int[] offset_table, int pixel_size) // 0x03 format
         {
             int min_count = 1 == pixel_size ? 2 : 1;
 
             m_available = FillBuffer();
             if (0 == m_available)
                 return null;
-            
+
             int step = (pixel_size + 3) & -4;
             if (m_available < step + 0x80)
                 return null;
 
             int v9 = -pixel_size & 3;
-            Buffer.BlockCopy (m_buffer, 0, m_output, 0, pixel_size);
+            Buffer.BlockCopy(m_buffer, 0, m_output, 0, pixel_size);
             int dst = pixel_size;
             int remaining = m_output.Length - pixel_size;
             m_current = pixel_size + v9 + 128;
 
-            if (!FillRefTable (a4, pixel_size + v9))
+            if (!FillRefTable(a4, pixel_size + v9))
                 return null;
 
             while (remaining > 0)
@@ -743,7 +744,7 @@ namespace GameRes.Formats.WildBug
                     int v24 = 0;
                     int v25 = 0;
                     int v26 = 16384;
-                    for (;;)
+                    for (; ; )
                     {
                         ++v24;
                         if (GetNextBit() != 0)
@@ -772,7 +773,7 @@ namespace GameRes.Formats.WildBug
                         else
                         {
                             count = 3;
-                            src_offset  = ReadNext();
+                            src_offset = ReadNext();
                             src_offset |= ReadNext() << 8;
                         }
                         src_offset = dst - 1 - src_offset;
@@ -809,14 +810,14 @@ namespace GameRes.Formats.WildBug
                 }
                 if (remaining < count)
                     return null;
-                Binary.CopyOverlapped (m_output, src_offset, dst, count);
+                Binary.CopyOverlapped(m_output, src_offset, dst, count);
                 dst += count;
                 remaining -= count;
             }
             return m_output;
         }
 
-        byte[] UnpackV2 (byte[] a4, int[] offset_table, int pixel_size) // 0x02 format
+        byte[] UnpackV2(byte[] a4, int[] offset_table, int pixel_size) // 0x02 format
         {
             int min_count = 1 == pixel_size ? 2 : 1;
             m_available = FillBuffer();
@@ -828,12 +829,12 @@ namespace GameRes.Formats.WildBug
                 return null;
 
             int v9 = -pixel_size & 3;
-            Buffer.BlockCopy (m_buffer, 0, m_output, 0, pixel_size);
+            Buffer.BlockCopy(m_buffer, 0, m_output, 0, pixel_size);
             int dst = pixel_size;
             int remaining = m_output.Length - pixel_size;
             m_current = pixel_size + v9 + 128; // within m_buffer
 
-            if (!FillRefTable (a4, pixel_size + v9))
+            if (!FillRefTable(a4, pixel_size + v9))
                 return null;
 
             while (remaining > 0)
@@ -843,7 +844,7 @@ namespace GameRes.Formats.WildBug
                     int v20 = 0;
                     int v21 = 0;
                     v9 = 16384;
-                    for (;;)
+                    for (; ; )
                     {
                         ++v20;
                         if (0 != GetNextBit())
@@ -875,14 +876,14 @@ namespace GameRes.Formats.WildBug
                 }
                 if (remaining < count)
                     return null;
-                Binary.CopyOverlapped (m_output, src_offset, dst, count);
+                Binary.CopyOverlapped(m_output, src_offset, dst, count);
                 dst += count;
                 remaining -= count;
             }
             return m_output;
         }
 
-        byte[] UnpackV1 (int[] offset_table, int pixel_size) // 0x01 format
+        byte[] UnpackV1(int[] offset_table, int pixel_size) // 0x01 format
         {
             int min_count = 1 == pixel_size ? 2 : 1;
             m_available = FillBuffer();
@@ -893,7 +894,7 @@ namespace GameRes.Formats.WildBug
             if (m_available < step)
                 return null;
 
-            Buffer.BlockCopy (m_buffer, 0, m_output, 0, pixel_size);
+            Buffer.BlockCopy(m_buffer, 0, m_output, 0, pixel_size);
             int dst = pixel_size;
             int remaining = m_output.Length - pixel_size;
             m_current = pixel_size + (-pixel_size & 3);
@@ -921,7 +922,7 @@ namespace GameRes.Formats.WildBug
                         }
                         else
                         {
-                            src_offset  = ReadNext();
+                            src_offset = ReadNext();
                             src_offset |= ReadNext() << 8;
                             count = 3;
                         }
@@ -958,14 +959,14 @@ namespace GameRes.Formats.WildBug
                 }
                 if (remaining < count)
                     return null;
-                Binary.CopyOverlapped (m_output, src_offset, dst, count);
+                Binary.CopyOverlapped(m_output, src_offset, dst, count);
                 dst += count;
                 remaining -= count;
             }
             return m_output;
         }
 
-        byte[] UnpackV0 (int[] offset_table, int pixel_size) // 0x00 format
+        byte[] UnpackV0(int[] offset_table, int pixel_size) // 0x00 format
         {
             int min_count = 1 == pixel_size ? 2 : 1;
             m_available = FillBuffer();
@@ -976,7 +977,7 @@ namespace GameRes.Formats.WildBug
             if (m_available < step)
                 return null;
 
-            Buffer.BlockCopy (m_buffer, 0, m_output, 0, pixel_size);
+            Buffer.BlockCopy(m_buffer, 0, m_output, 0, pixel_size);
             int dst = pixel_size;
             int remaining = m_output.Length - pixel_size;
             m_current = pixel_size + (-pixel_size & 3);
@@ -1008,7 +1009,7 @@ namespace GameRes.Formats.WildBug
                 }
                 if (remaining < count)
                     return null;
-                Binary.CopyOverlapped (m_output, src_offset, dst, count);
+                Binary.CopyOverlapped(m_output, src_offset, dst, count);
                 dst += count;
                 remaining -= count;
             }
@@ -1018,15 +1019,15 @@ namespace GameRes.Formats.WildBug
 
     internal class WpxDecoder
     {
-        Stream              m_input;
-        protected byte[]    m_output;
-        int                 m_packed_size;
-        int                 m_start_pos;
+        Stream m_input;
+        protected byte[] m_output;
+        int m_packed_size;
+        int m_start_pos;
 
         public byte[] Data { get { return m_output; } }
         protected int PackedSize { get { return m_packed_size; } }
 
-        protected WpxDecoder (Stream input, WpxSection section)
+        protected WpxDecoder(Stream input, WpxSection section)
         {
             m_input = input;
             m_start_pos = section.Offset;
@@ -1034,33 +1035,33 @@ namespace GameRes.Formats.WildBug
             m_packed_size = section.PackedSize;
         }
 
-        protected byte[] ReadUncompressed ()
+        protected byte[] ReadUncompressed()
         {
-            if (m_output.Length == m_input.Read (m_output, 0, m_output.Length))
+            if (m_output.Length == m_input.Read(m_output, 0, m_output.Length))
                 return m_output;
             else
                 return null;
         }
 
-        protected static byte[] BuildTable () // sub_4090E0
+        protected static byte[] BuildTable() // sub_4090E0
         {
-            var table = new byte[0x100*0x100];
+            var table = new byte[0x100 * 0x100];
             for (int i = 0; i < 0x100; ++i)
             {
                 byte v2 = (byte)(-1 - i);
                 for (int j = 0; j < 0x100; ++j)
                 {
-                    table[0x100*i + j] = v2--;
+                    table[0x100 * i + j] = v2--;
                 }
             }
             return table;
         }
 
-        protected bool FillRefTable (byte[] table, int src)
+        protected bool FillRefTable(byte[] table, int src)
         {
             m_bits = m_buffer[m_current++];
             m_bit_count = 8;
-            for (int n = 0; n < 0x100; )
+            for (int n = 0; n < 0x100;)
             {
                 byte v16 = m_buffer[src++];
                 for (int half = 0; half < 2; ++half)
@@ -1095,23 +1096,23 @@ namespace GameRes.Formats.WildBug
             return true;
         }
 
-        protected byte[]  m_buffer = new byte[0x8000];
-        protected int     m_current = 0;
-        protected int     m_available = 0;
+        protected byte[] m_buffer = new byte[0x8000];
+        protected int m_current = 0;
+        protected int m_available = 0;
 
-        protected byte ReadNext ()
+        protected byte ReadNext()
         {
             if (m_current >= m_available)
             {
                 m_available = FillBuffer();
                 if (0 == m_available)
-                    throw new InvalidFormatException ("Unexpected end of file");
+                    throw new InvalidFormatException("Unexpected end of file");
                 m_current = 0;
             }
             return m_buffer[m_current++];
         }
 
-        protected int ReadCount ()
+        protected int ReadCount()
         {
             int n = 1;
             while (0 == GetNextBit())
@@ -1128,28 +1129,28 @@ namespace GameRes.Formats.WildBug
 
         protected int m_input_remaining;
 
-        protected void ResetInput ()
+        protected void ResetInput()
         {
             m_input.Position = m_start_pos;
             m_input_remaining = m_packed_size;
         }
 
-        protected int FillBuffer () // sub_409B02
+        protected int FillBuffer() // sub_409B02
         {
             int read = 0;
             if (m_input_remaining > 0)
             {
-                int size = Math.Min (m_input_remaining, 0x8000);
+                int size = Math.Min(m_input_remaining, 0x8000);
                 m_input_remaining -= size;
-                read = m_input.Read (m_buffer, 0, size);
+                read = m_input.Read(m_buffer, 0, size);
             }
             return read;
         }
 
         protected byte m_bits;
-        protected int  m_bit_count = 0;
+        protected int m_bit_count = 0;
 
-        protected int GetNextBit ()
+        protected int GetNextBit()
         {
             if (0 == m_bit_count)
             {

@@ -33,19 +33,19 @@ namespace GameRes.Formats.Propeller
 {
     internal class MgrMetaData : ImageMetaData
     {
-        public int  Offset;
-        public int  PackedSize;
-        public int  UnpackedSize;
+        public int Offset;
+        public int PackedSize;
+        public int UnpackedSize;
     }
 
     [Export(typeof(ImageFormat))]
     public class MgrFormat : ImageFormat
     {
-        public override string         Tag { get { return "MGR"; } }
+        public override string Tag { get { return "MGR"; } }
         public override string Description { get { return "Propeller image format"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
             int count = stream.ReadInt16();
             if (count <= 0 || count >= 0x100)
@@ -66,12 +66,12 @@ namespace GameRes.Formats.Propeller
             if (offset + packed_size > stream.Length)
                 return null;
             byte[] header = new byte[0x36];
-            if (0x36 != MgrOpener.Decompress (stream.AsStream, header)
+            if (0x36 != MgrOpener.Decompress(stream.AsStream, header)
                 || header[0] != 'B' || header[1] != 'M')
                 return null;
-            using (var bmp = new BinMemoryStream (header, stream.Name))
+            using (var bmp = new BinMemoryStream(header, stream.Name))
             {
-                var info = Bmp.ReadMetaData (bmp);
+                var info = Bmp.ReadMetaData(bmp);
                 if (null == info)
                     return null;
                 return new MgrMetaData
@@ -86,33 +86,33 @@ namespace GameRes.Formats.Propeller
             }
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
             var meta = (MgrMetaData)info;
             stream.Position = meta.Offset;
             var data = new byte[meta.UnpackedSize];
-            if (data.Length != MgrOpener.Decompress (stream.AsStream, data))
+            if (data.Length != MgrOpener.Decompress(stream.AsStream, data))
                 throw new InvalidFormatException();
             if (meta.BPP != 32)
             {
-                using (var bmp = new BinMemoryStream (data, stream.Name))
-                    return Bmp.Read (bmp, info);
+                using (var bmp = new BinMemoryStream(data, stream.Name))
+                    return Bmp.Read(bmp, info);
             }
             // special case for 32bpp bitmaps with alpha-channel
             int stride = (int)meta.Width * 4;
             var pixels = new byte[stride * (int)meta.Height];
-            int src = LittleEndian.ToInt32 (data, 0xA);
-            for (int dst = stride*((int)meta.Height-1); dst >= 0; dst -= stride)
+            int src = LittleEndian.ToInt32(data, 0xA);
+            for (int dst = stride * ((int)meta.Height - 1); dst >= 0; dst -= stride)
             {
-                Buffer.BlockCopy (data, src, pixels, dst, stride);
+                Buffer.BlockCopy(data, src, pixels, dst, stride);
                 src += stride;
             }
-            return ImageData.Create (info, PixelFormats.Bgra32, null, pixels);
+            return ImageData.Create(info, PixelFormats.Bgra32, null, pixels);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("MgrFormat.Write not implemented");
+            throw new System.NotImplementedException("MgrFormat.Write not implemented");
         }
     }
 }

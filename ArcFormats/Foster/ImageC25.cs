@@ -35,40 +35,40 @@ namespace GameRes.Formats.Foster
     [Export(typeof(ImageFormat))]
     public class C25Format : C24Format
     {
-        public override string         Tag { get { return "C25"; } }
+        public override string Tag { get { return "C25"; } }
         public override string Description { get { return "BeF game engine image format"; } }
-        public override uint     Signature { get { return 0x00353243; } } // 'C25'
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x00353243; } } // 'C25'
+        public override bool CanWrite { get { return false; } }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (12);
-            int count = header.ToInt32 (4);
+            var header = file.ReadHeader(12);
+            int count = header.ToInt32(4);
             if (count <= 0)
                 return null;
-            return ReadMetaData (file, header.ToUInt32 (8), 32);
+            return ReadMetaData(file, header.ToUInt32(8), 32);
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            using (var reader = new C25Decoder (file, (C24MetaData)info, true))
+            using (var reader = new C25Decoder(file, (C24MetaData)info, true))
                 return reader.Image;
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("C25Format.Write not implemented");
+            throw new System.NotImplementedException("C25Format.Write not implemented");
         }
     }
 
     internal class C25Decoder : CDecoderBase
     {
-        public C25Decoder (IBinaryStream file, C24MetaData info, bool leave_open = false)
-            : base (file, info, PixelFormats.Bgra32, leave_open)
+        public C25Decoder(IBinaryStream file, C24MetaData info, bool leave_open = false)
+            : base(file, info, PixelFormats.Bgra32, leave_open)
         {
         }
 
-        protected override void Unpack ()
+        protected override void Unpack()
         {
             var rows = ReadRows();
             int dst = 0;
@@ -76,7 +76,7 @@ namespace GameRes.Formats.Foster
             foreach (uint row_offset in rows)
             {
                 m_input.Position = row_offset;
-                for (int x = 0; x < width; )
+                for (int x = 0; x < width;)
                 {
                     int count = m_input.ReadUInt8();
                     if (count > 0x7F)
@@ -92,7 +92,7 @@ namespace GameRes.Formats.Foster
                             count = m_input.ReadUInt16();
                         for (int i = 0; i < count; ++i)
                         {
-                            m_input.Read (m_output, dst, bpp);
+                            m_input.Read(m_output, dst, bpp);
                             dst += bpp;
                             if (3 == bpp)
                                 m_output[dst++] = 0xFF;

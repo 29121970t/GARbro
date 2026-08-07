@@ -36,67 +36,68 @@ namespace GameRes.Formats.ScrPlayer
     [Export(typeof(ImageFormat))]
     public class ImgFormat : ImageFormat
     {
-        public override string         Tag { get => "IMG"; }
+        public override string Tag { get => "IMG"; }
         public override string Description { get => "ScrPlayer image format"; }
-        public override uint     Signature { get => 0x20474D49; } // 'IMG '
+        public override uint Signature { get => 0x20474D49; } // 'IMG '
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x18);
-            int bpp = header.ToUInt16 (0x10);
+            var header = file.ReadHeader(0x18);
+            int bpp = header.ToUInt16(0x10);
             if (bpp != 24 && bpp != 32)
                 return null;
-            return new ImageMetaData {
-                Width  = header.ToUInt16 (0xC),
-                Height = header.ToUInt16 (0xE),
+            return new ImageMetaData
+            {
+                Width = header.ToUInt16(0xC),
+                Height = header.ToUInt16(0xE),
                 BPP = bpp,
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            using (var reader = new ImgReader (file, info))
+            using (var reader = new ImgReader(file, info))
                 return reader.Unpack();
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("ImgFormat.Write not implemented");
+            throw new System.NotImplementedException("ImgFormat.Write not implemented");
         }
     }
 
     internal sealed class ImgReader : IDisposable
     {
-        ImgBitStream    m_input;
-        ImageMetaData   m_info;
-        int             m_stride;
-        byte[]          m_output;
+        ImgBitStream m_input;
+        ImageMetaData m_info;
+        int m_stride;
+        byte[] m_output;
 
         public PixelFormat Format { get; private set; }
 
-        public ImgReader (IBinaryStream input, ImageMetaData info)
+        public ImgReader(IBinaryStream input, ImageMetaData info)
         {
-            m_input = new ImgBitStream (input.AsStream, true);
+            m_input = new ImgBitStream(input.AsStream, true);
             m_info = info;
             m_stride = m_info.iWidth * 4;
             m_output = new byte[m_stride * (m_info.iHeight + 1)];
             Format = m_info.BPP == 32 ? PixelFormats.Bgra32 : PixelFormats.Bgr32;
         }
 
-        public ImageData Unpack ()
+        public ImageData Unpack()
         {
             m_input.Input.Position = 0x18;
             if (32 == m_info.BPP)
                 Unpack32bpp();
             else
                 Unpack24bpp();
-            return ImageData.Create (m_info, Format, null, m_output);
+            return ImageData.Create(m_info, Format, null, m_output);
         }
 
         byte[] m_row_buffer = new byte[0x2580];
-        int[]  m_rows_ptr = new int[3] { 0, 0xC80, 0xC80 * 2 };
+        int[] m_rows_ptr = new int[3] { 0, 0xC80, 0xC80 * 2 };
 
-        void Unpack24bpp ()
+        void Unpack24bpp()
         {
             var offset_table = Img2Reader.OffsetTable.Clone() as int[];
             int dst = 0;
@@ -106,27 +107,27 @@ namespace GameRes.Formats.ScrPlayer
                 m_rows_ptr[2] = m_rows_ptr[1];
                 m_rows_ptr[1] = m_rows_ptr[0];
                 m_rows_ptr[0] = row_pos;
-                for (int x = 0; x < m_info.iWidth; )
+                for (int x = 0; x < m_info.iWidth;)
                 {
-                    int ctl = m_input.GetBits (ControlTable1, 13);
+                    int ctl = m_input.GetBits(ControlTable1, 13);
                     if (0xEF == ctl)
-                        ctl += m_input.GetBits (ControlTable2, 11);
+                        ctl += m_input.GetBits(ControlTable2, 11);
 
-                    int pos = m_input.GetBits (PosTable24, 5) * 2;
+                    int pos = m_input.GetBits(PosTable24, 5) * 2;
                     int x_offset = offset_table[pos];
                     int y_offset = offset_table[pos + 1];
                     if (pos > 0)
                     {
-                        offset_table[pos]   = offset_table[pos-2];
-                        offset_table[pos+1] = offset_table[pos-1];
-                        offset_table[pos-2] = x_offset;
-                        offset_table[pos-1] = y_offset;
+                        offset_table[pos] = offset_table[pos - 2];
+                        offset_table[pos + 1] = offset_table[pos - 1];
+                        offset_table[pos - 2] = x_offset;
+                        offset_table[pos - 1] = y_offset;
                     }
                     int src = m_rows_ptr[y_offset] + (x + x_offset) * 4;
                     if (ctl >= 0xD8)
                     {
                         int count = ctl - 0xD6;
-                        Binary.CopyOverlapped (m_row_buffer, src, row_pos, count * 4);
+                        Binary.CopyOverlapped(m_row_buffer, src, row_pos, count * 4);
                         row_pos += count * 4;
                         x += count;
                     }
@@ -134,57 +135,57 @@ namespace GameRes.Formats.ScrPlayer
                     {
                         switch (ColorCode[ctl])
                         {
-                        case 0:
-                            m_row_buffer[row_pos + 2] = (byte)(m_row_buffer[src + 2] - MapRed[ctl]);
-                            m_row_buffer[row_pos + 1] = (byte)(m_row_buffer[src + 1] - MapGreen[ctl]);
-                            m_row_buffer[row_pos    ] = (byte)(m_row_buffer[src    ] - MapBlue[ctl]);
-                            break;
-                        case 1:
-                            m_row_buffer[row_pos + 2] = (byte)(m_row_buffer[src + 2] - GetDelta());
-                            m_row_buffer[row_pos + 1] = (byte)(m_row_buffer[src + 1] - MapGreen[ctl]);
-                            m_row_buffer[row_pos    ] = (byte)(m_row_buffer[src    ] - MapBlue[ctl]);
-                            break;
-                        case 2:
-                            m_row_buffer[row_pos + 2] = (byte)(m_row_buffer[src + 2] - MapRed[ctl]);
-                            m_row_buffer[row_pos + 1] = (byte)(m_row_buffer[src + 1] - GetDelta());
-                            m_row_buffer[row_pos    ] = (byte)(m_row_buffer[src    ] - MapBlue[ctl]);
-                            break;
-                        case 3:
-                            m_row_buffer[row_pos + 2] = (byte)(m_row_buffer[src + 2] - GetDelta());
-                            m_row_buffer[row_pos + 1] = (byte)(m_row_buffer[src + 1] - GetDelta());
-                            m_row_buffer[row_pos    ] = (byte)(m_row_buffer[src    ] - MapBlue[ctl]);
-                            break;
-                        case 4:
-                            m_row_buffer[row_pos + 2] = (byte)(m_row_buffer[src + 2] - MapRed[ctl]);
-                            m_row_buffer[row_pos + 1] = (byte)(m_row_buffer[src + 1] - MapGreen[ctl]);
-                            m_row_buffer[row_pos    ] = (byte)(m_row_buffer[src    ] - GetDelta());
-                            break;
-                        case 5:
-                            m_row_buffer[row_pos + 2] = (byte)(m_row_buffer[src + 2] - GetDelta());
-                            m_row_buffer[row_pos + 1] = (byte)(m_row_buffer[src + 1] - MapGreen[ctl]);
-                            m_row_buffer[row_pos    ] = (byte)(m_row_buffer[src    ] - GetDelta());
-                            break;
-                        case 6:
-                            m_row_buffer[row_pos + 2] = (byte)(m_row_buffer[src + 2] - MapRed[ctl]);
-                            m_row_buffer[row_pos + 1] = (byte)(m_row_buffer[src + 1] - GetDelta());
-                            m_row_buffer[row_pos    ] = (byte)(m_row_buffer[src    ] - GetDelta());
-                            break;
-                        case 7:
-                            m_row_buffer[row_pos + 2] = (byte)(m_row_buffer[src + 2] - GetDelta());
-                            m_row_buffer[row_pos + 1] = (byte)(m_row_buffer[src + 1] - GetDelta());
-                            m_row_buffer[row_pos    ] = (byte)(m_row_buffer[src    ] - GetDelta());
-                            break;
+                            case 0:
+                                m_row_buffer[row_pos + 2] = (byte)(m_row_buffer[src + 2] - MapRed[ctl]);
+                                m_row_buffer[row_pos + 1] = (byte)(m_row_buffer[src + 1] - MapGreen[ctl]);
+                                m_row_buffer[row_pos] = (byte)(m_row_buffer[src] - MapBlue[ctl]);
+                                break;
+                            case 1:
+                                m_row_buffer[row_pos + 2] = (byte)(m_row_buffer[src + 2] - GetDelta());
+                                m_row_buffer[row_pos + 1] = (byte)(m_row_buffer[src + 1] - MapGreen[ctl]);
+                                m_row_buffer[row_pos] = (byte)(m_row_buffer[src] - MapBlue[ctl]);
+                                break;
+                            case 2:
+                                m_row_buffer[row_pos + 2] = (byte)(m_row_buffer[src + 2] - MapRed[ctl]);
+                                m_row_buffer[row_pos + 1] = (byte)(m_row_buffer[src + 1] - GetDelta());
+                                m_row_buffer[row_pos] = (byte)(m_row_buffer[src] - MapBlue[ctl]);
+                                break;
+                            case 3:
+                                m_row_buffer[row_pos + 2] = (byte)(m_row_buffer[src + 2] - GetDelta());
+                                m_row_buffer[row_pos + 1] = (byte)(m_row_buffer[src + 1] - GetDelta());
+                                m_row_buffer[row_pos] = (byte)(m_row_buffer[src] - MapBlue[ctl]);
+                                break;
+                            case 4:
+                                m_row_buffer[row_pos + 2] = (byte)(m_row_buffer[src + 2] - MapRed[ctl]);
+                                m_row_buffer[row_pos + 1] = (byte)(m_row_buffer[src + 1] - MapGreen[ctl]);
+                                m_row_buffer[row_pos] = (byte)(m_row_buffer[src] - GetDelta());
+                                break;
+                            case 5:
+                                m_row_buffer[row_pos + 2] = (byte)(m_row_buffer[src + 2] - GetDelta());
+                                m_row_buffer[row_pos + 1] = (byte)(m_row_buffer[src + 1] - MapGreen[ctl]);
+                                m_row_buffer[row_pos] = (byte)(m_row_buffer[src] - GetDelta());
+                                break;
+                            case 6:
+                                m_row_buffer[row_pos + 2] = (byte)(m_row_buffer[src + 2] - MapRed[ctl]);
+                                m_row_buffer[row_pos + 1] = (byte)(m_row_buffer[src + 1] - GetDelta());
+                                m_row_buffer[row_pos] = (byte)(m_row_buffer[src] - GetDelta());
+                                break;
+                            case 7:
+                                m_row_buffer[row_pos + 2] = (byte)(m_row_buffer[src + 2] - GetDelta());
+                                m_row_buffer[row_pos + 1] = (byte)(m_row_buffer[src + 1] - GetDelta());
+                                m_row_buffer[row_pos] = (byte)(m_row_buffer[src] - GetDelta());
+                                break;
                         }
                         row_pos += 4;
                         ++x;
                     }
                 }
-                Buffer.BlockCopy (m_row_buffer, m_rows_ptr[0], m_output, dst, m_stride);
+                Buffer.BlockCopy(m_row_buffer, m_rows_ptr[0], m_output, dst, m_stride);
                 dst += m_stride;
             }
         }
 
-        void Unpack32bpp ()
+        void Unpack32bpp()
         {
             for (int i = 3; i < m_row_buffer.Length; i += 4)
                 m_row_buffer[i] = 0xFF;
@@ -196,29 +197,29 @@ namespace GameRes.Formats.ScrPlayer
                 m_rows_ptr[2] = m_rows_ptr[1];
                 m_rows_ptr[1] = m_rows_ptr[0];
                 m_rows_ptr[0] = row_pos;
-                for (int x = 0; x < m_info.iWidth; )
+                for (int x = 0; x < m_info.iWidth;)
                 {
-                    int ctl = m_input.GetBits (ControlTable1, 13);
+                    int ctl = m_input.GetBits(ControlTable1, 13);
                     if (0xEF == ctl)
-                        ctl += m_input.GetBits (ControlTable2, 11);
+                        ctl += m_input.GetBits(ControlTable2, 11);
 
-                    int t = m_input.GetBits (ControlTable32, 13) * 2;
+                    int t = m_input.GetBits(ControlTable32, 13) * 2;
                     int pos = PosTable32[t] * 2;
-                    int alpha = PosTable32[t+1];
+                    int alpha = PosTable32[t + 1];
                     int x_offset = offset_table[pos];
                     int y_offset = offset_table[pos + 1];
                     if (pos > 0)
                     {
-                        offset_table[pos]   = offset_table[pos-2];
-                        offset_table[pos+1] = offset_table[pos-1];
-                        offset_table[pos-2] = x_offset;
-                        offset_table[pos-1] = y_offset;
+                        offset_table[pos] = offset_table[pos - 2];
+                        offset_table[pos + 1] = offset_table[pos - 1];
+                        offset_table[pos - 2] = x_offset;
+                        offset_table[pos - 1] = y_offset;
                     }
                     int src = m_rows_ptr[y_offset] + (x + x_offset) * 4;
                     if (ctl >= 0xD8)
                     {
                         int count = ctl - 0xD6;
-                        Binary.CopyOverlapped (m_row_buffer, src, row_pos, count * 4);
+                        Binary.CopyOverlapped(m_row_buffer, src, row_pos, count * 4);
                         row_pos += count * 4;
                         x += count;
                     }
@@ -226,46 +227,46 @@ namespace GameRes.Formats.ScrPlayer
                     {
                         switch (ColorCode[ctl])
                         {
-                        case 0:
-                            m_row_buffer[row_pos + 2] = (byte)(m_row_buffer[src + 2] - MapRed[ctl]);
-                            m_row_buffer[row_pos + 1] = (byte)(m_row_buffer[src + 1] - MapGreen[ctl]);
-                            m_row_buffer[row_pos    ] = (byte)(m_row_buffer[src    ] - MapBlue[ctl]);
-                            break;
-                        case 1:
-                            m_row_buffer[row_pos + 2] = (byte)(m_row_buffer[src + 2] - GetDelta());
-                            m_row_buffer[row_pos + 1] = (byte)(m_row_buffer[src + 1] - MapGreen[ctl]);
-                            m_row_buffer[row_pos    ] = (byte)(m_row_buffer[src    ] - MapBlue[ctl]);
-                            break;
-                        case 2:
-                            m_row_buffer[row_pos + 2] = (byte)(m_row_buffer[src + 2] - MapRed[ctl]);
-                            m_row_buffer[row_pos + 1] = (byte)(m_row_buffer[src + 1] - GetDelta());
-                            m_row_buffer[row_pos    ] = (byte)(m_row_buffer[src    ] - MapBlue[ctl]);
-                            break;
-                        case 3:
-                            m_row_buffer[row_pos + 2] = (byte)(m_row_buffer[src + 2] - GetDelta());
-                            m_row_buffer[row_pos + 1] = (byte)(m_row_buffer[src + 1] - GetDelta());
-                            m_row_buffer[row_pos    ] = (byte)(m_row_buffer[src    ] - MapBlue[ctl]);
-                            break;
-                        case 4:
-                            m_row_buffer[row_pos + 2] = (byte)(m_row_buffer[src + 2] - MapRed[ctl]);
-                            m_row_buffer[row_pos + 1] = (byte)(m_row_buffer[src + 1] - MapGreen[ctl]);
-                            m_row_buffer[row_pos    ] = (byte)(m_row_buffer[src    ] - GetDelta());
-                            break;
-                        case 5:
-                            m_row_buffer[row_pos + 2] = (byte)(m_row_buffer[src + 2] - GetDelta());
-                            m_row_buffer[row_pos + 1] = (byte)(m_row_buffer[src + 1] - MapGreen[ctl]);
-                            m_row_buffer[row_pos    ] = (byte)(m_row_buffer[src    ] - GetDelta());
-                            break;
-                        case 6:
-                            m_row_buffer[row_pos + 2] = (byte)(m_row_buffer[src + 2] - MapRed[ctl]);
-                            m_row_buffer[row_pos + 1] = (byte)(m_row_buffer[src + 1] - GetDelta());
-                            m_row_buffer[row_pos    ] = (byte)(m_row_buffer[src    ] - GetDelta());
-                            break;
-                        case 7:
-                            m_row_buffer[row_pos + 2] = (byte)(m_row_buffer[src + 2] - GetDelta());
-                            m_row_buffer[row_pos + 1] = (byte)(m_row_buffer[src + 1] - GetDelta());
-                            m_row_buffer[row_pos    ] = (byte)(m_row_buffer[src    ] - GetDelta());
-                            break;
+                            case 0:
+                                m_row_buffer[row_pos + 2] = (byte)(m_row_buffer[src + 2] - MapRed[ctl]);
+                                m_row_buffer[row_pos + 1] = (byte)(m_row_buffer[src + 1] - MapGreen[ctl]);
+                                m_row_buffer[row_pos] = (byte)(m_row_buffer[src] - MapBlue[ctl]);
+                                break;
+                            case 1:
+                                m_row_buffer[row_pos + 2] = (byte)(m_row_buffer[src + 2] - GetDelta());
+                                m_row_buffer[row_pos + 1] = (byte)(m_row_buffer[src + 1] - MapGreen[ctl]);
+                                m_row_buffer[row_pos] = (byte)(m_row_buffer[src] - MapBlue[ctl]);
+                                break;
+                            case 2:
+                                m_row_buffer[row_pos + 2] = (byte)(m_row_buffer[src + 2] - MapRed[ctl]);
+                                m_row_buffer[row_pos + 1] = (byte)(m_row_buffer[src + 1] - GetDelta());
+                                m_row_buffer[row_pos] = (byte)(m_row_buffer[src] - MapBlue[ctl]);
+                                break;
+                            case 3:
+                                m_row_buffer[row_pos + 2] = (byte)(m_row_buffer[src + 2] - GetDelta());
+                                m_row_buffer[row_pos + 1] = (byte)(m_row_buffer[src + 1] - GetDelta());
+                                m_row_buffer[row_pos] = (byte)(m_row_buffer[src] - MapBlue[ctl]);
+                                break;
+                            case 4:
+                                m_row_buffer[row_pos + 2] = (byte)(m_row_buffer[src + 2] - MapRed[ctl]);
+                                m_row_buffer[row_pos + 1] = (byte)(m_row_buffer[src + 1] - MapGreen[ctl]);
+                                m_row_buffer[row_pos] = (byte)(m_row_buffer[src] - GetDelta());
+                                break;
+                            case 5:
+                                m_row_buffer[row_pos + 2] = (byte)(m_row_buffer[src + 2] - GetDelta());
+                                m_row_buffer[row_pos + 1] = (byte)(m_row_buffer[src + 1] - MapGreen[ctl]);
+                                m_row_buffer[row_pos] = (byte)(m_row_buffer[src] - GetDelta());
+                                break;
+                            case 6:
+                                m_row_buffer[row_pos + 2] = (byte)(m_row_buffer[src + 2] - MapRed[ctl]);
+                                m_row_buffer[row_pos + 1] = (byte)(m_row_buffer[src + 1] - GetDelta());
+                                m_row_buffer[row_pos] = (byte)(m_row_buffer[src] - GetDelta());
+                                break;
+                            case 7:
+                                m_row_buffer[row_pos + 2] = (byte)(m_row_buffer[src + 2] - GetDelta());
+                                m_row_buffer[row_pos + 1] = (byte)(m_row_buffer[src + 1] - GetDelta());
+                                m_row_buffer[row_pos] = (byte)(m_row_buffer[src] - GetDelta());
+                                break;
                         }
                         if (-3 == alpha)
                         {
@@ -276,24 +277,24 @@ namespace GameRes.Formats.ScrPlayer
                         ++x;
                     }
                 }
-                Buffer.BlockCopy (m_row_buffer, m_rows_ptr[0], m_output, dst, m_stride);
+                Buffer.BlockCopy(m_row_buffer, m_rows_ptr[0], m_output, dst, m_stride);
                 dst += m_stride;
             }
         }
 
-        int GetDelta ()
+        int GetDelta()
         {
-            int d = m_input.GetBits (DeltaTable1, 8);
+            int d = m_input.GetBits(DeltaTable1, 8);
             if (0x2B == d)
-                d += m_input.GetBits (DeltaTable2, 13);
+                d += m_input.GetBits(DeltaTable2, 13);
             return DeltaTable3[d];
         }
 
-        static byte[] LoadResource (string name) => EmbeddedResource.Load (name, typeof(ImgReader));
+        static byte[] LoadResource(string name) => EmbeddedResource.Load(name, typeof(ImgReader));
 
         #region IDisposable Members
         bool _disposed = false;
-        public void Dispose ()
+        public void Dispose()
         {
             if (!_disposed)
             {
@@ -304,15 +305,15 @@ namespace GameRes.Formats.ScrPlayer
         #endregion
 
         #region Bitmap Tables
-        static readonly Lazy<byte[]> s_control_table1 = new Lazy<byte[]> (() => LoadResource ("ImgControlTable1"));
-        static readonly Lazy<byte[]> s_control_table2 = new Lazy<byte[]> (() => LoadResource ("ImgControlTable2"));
-        static readonly Lazy<byte[]> s_control_table32 = new Lazy<byte[]> (() => LoadResource ("ImgControlTable32"));
-        static readonly Lazy<byte[]> s_delta_table2   = new Lazy<byte[]> (() => LoadResource ("ImgDeltaTable2"));
+        static readonly Lazy<byte[]> s_control_table1 = new Lazy<byte[]>(() => LoadResource("ImgControlTable1"));
+        static readonly Lazy<byte[]> s_control_table2 = new Lazy<byte[]>(() => LoadResource("ImgControlTable2"));
+        static readonly Lazy<byte[]> s_control_table32 = new Lazy<byte[]>(() => LoadResource("ImgControlTable32"));
+        static readonly Lazy<byte[]> s_delta_table2 = new Lazy<byte[]>(() => LoadResource("ImgDeltaTable2"));
 
-        static byte[] ControlTable1   { get { return s_control_table1.Value; } }
-        static byte[] ControlTable2   { get { return s_control_table2.Value; } }
-        static byte[] ControlTable32  { get { return s_control_table32.Value; } }
-        static byte[] DeltaTable2     { get { return s_delta_table2.Value; } }
+        static byte[] ControlTable1 { get { return s_control_table1.Value; } }
+        static byte[] ControlTable2 { get { return s_control_table2.Value; } }
+        static byte[] ControlTable32 { get { return s_control_table32.Value; } }
+        static byte[] DeltaTable2 { get { return s_delta_table2.Value; } }
 
         static readonly byte[] PosTable24 = {
             4, 2, 1, 0, 4, 3, 1, 0, 3, 1, 1, 0, 4, 4, 1, 0, 5, 5, 1, 0, 5, 7, 1, 0, 3, 1, 1, 0, 5, 9, 1, 0, 4,
@@ -386,7 +387,7 @@ namespace GameRes.Formats.ScrPlayer
             0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1,
             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2,
-            2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 
+            2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
         };
         static readonly byte[] MapGreen = {
             0x0FD, 0x0FD, 0x0FD, 0x0FD, 0x0FD, 0x0FD, 0x0FE, 0x0FE, 0x0FE, 0x0FE, 0x0FE, 0x0FE, 0x0FF, 0x0FF,
@@ -427,20 +428,20 @@ namespace GameRes.Formats.ScrPlayer
 
     internal class ImgBitStream : BitStream
     {
-        public ImgBitStream (Stream file, bool leave_open = false) : base (file, leave_open)
+        public ImgBitStream(Stream file, bool leave_open = false) : base(file, leave_open)
         {
         }
 
-        public int GetBits (byte[] table, int count)
+        public int GetBits(byte[] table, int count)
         {
-            int n = PeekBits (count) * 2;
+            int n = PeekBits(count) * 2;
             count = table[n];
             m_bits >>= count;
             m_cached_bits -= count;
             return table[n + 1];
         }
 
-        public int PeekBits (int count)
+        public int PeekBits(int count)
         {
             if (m_cached_bits < count)
             {

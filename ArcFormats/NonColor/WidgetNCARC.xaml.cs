@@ -12,7 +12,7 @@ namespace GameRes.Formats.GUI
         public WidgetNCARC()
         {
             InitializeComponent();
-            Scheme.ItemsSource = DatOpener.KnownSchemes.OrderBy (x => x.Key);
+            Scheme.ItemsSource = DatOpener.KnownSchemes.OrderBy(x => x.Key);
         }
     }
 }

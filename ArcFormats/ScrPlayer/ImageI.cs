@@ -34,50 +34,50 @@ namespace GameRes.Formats.ScrPlayer
     [Export(typeof(ImageFormat))]
     public class Img2Format : ImageFormat
     {
-        public override string         Tag { get { return "IMG2"; } }
+        public override string Tag { get { return "IMG2"; } }
         public override string Description { get { return "ScrPlayer image format"; } }
-        public override uint     Signature { get { return 0x32474D49; } } // 'IMG2'
+        public override uint Signature { get { return 0x32474D49; } } // 'IMG2'
 
-        public Img2Format ()
+        public Img2Format()
         {
             Extensions = new string[] { "i" };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
-            var header = stream.ReadHeader (0x20);
+            var header = stream.ReadHeader(0x20);
             return new ImageMetaData
             {
-                Width   = header.ToUInt16 (0xC),
-                Height  = header.ToUInt16 (0xE),
-                BPP     = header.ToUInt16 (0x10),
+                Width = header.ToUInt16(0xC),
+                Height = header.ToUInt16(0xE),
+                BPP = header.ToUInt16(0x10),
             };
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
-            using (var reader = new Img2Reader (stream.AsStream, info))
+            using (var reader = new Img2Reader(stream.AsStream, info))
             {
                 reader.Unpack();
-                return ImageData.Create (info, reader.Format, null, reader.Data);
+                return ImageData.Create(info, reader.Format, null, reader.Data);
             }
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("Img2Format.Write not implemented");
+            throw new System.NotImplementedException("Img2Format.Write not implemented");
         }
     }
 
     internal class Img2BitStream : BitStream
     {
-        public Img2BitStream (Stream file, bool leave_open = false) : base (file, leave_open)
+        public Img2BitStream(Stream file, bool leave_open = false) : base(file, leave_open)
         {
         }
 
-        public int GetBits (byte[] table, int count)
+        public int GetBits(byte[] table, int count)
         {
-            int n = PeekBits (count);
+            int n = PeekBits(count);
             if (-1 == n)
                 throw new EndOfStreamException();
             n *= 2;
@@ -87,7 +87,7 @@ namespace GameRes.Formats.ScrPlayer
             return table[n + 1];
         }
 
-        public int PeekBits (int count)
+        public int PeekBits(int count)
         {
             while (m_cached_bits < count)
             {
@@ -103,19 +103,19 @@ namespace GameRes.Formats.ScrPlayer
 
     internal sealed class Img2Reader : IDisposable
     {
-        Img2BitStream   m_input;
-        byte[]          m_output;
-        int             m_width;
-        int             m_height;
-        int             m_stride;
-        bool            m_has_alpha;
+        Img2BitStream m_input;
+        byte[] m_output;
+        int m_width;
+        int m_height;
+        int m_stride;
+        bool m_has_alpha;
 
-        public byte[]        Data { get { return m_output; } }
+        public byte[] Data { get { return m_output; } }
         public PixelFormat Format { get; private set; }
 
-        public Img2Reader (Stream input, ImageMetaData info)
+        public Img2Reader(Stream input, ImageMetaData info)
         {
-            m_input = new Img2BitStream (input, true);
+            m_input = new Img2BitStream(input, true);
             m_width = (int)info.Width;
             m_height = (int)info.Height;
             m_stride = m_width * 4;
@@ -124,7 +124,7 @@ namespace GameRes.Formats.ScrPlayer
             Format = m_has_alpha ? PixelFormats.Bgra32 : PixelFormats.Bgr32;
         }
 
-        public void Unpack ()
+        public void Unpack()
         {
             m_input.Input.Position = 0x20;
             if (m_has_alpha)
@@ -133,36 +133,36 @@ namespace GameRes.Formats.ScrPlayer
                 Unpack24bpp();
         }
 
-        void Unpack24bpp ()
+        void Unpack24bpp()
         {
-            int extra_row = m_output.Length-m_stride;
+            int extra_row = m_output.Length - m_stride;
             var rows = new int[3] { 0, extra_row, extra_row };
             var offset_table = OffsetTable.Clone() as int[];
             for (int y = 0; y < m_height; ++y)
             {
                 int dst = rows[0];
-                for (int x = 0; x < m_width; )
+                for (int x = 0; x < m_width;)
                 {
-                    int ctl = m_input.GetBits (ControlTable1, 13);
+                    int ctl = m_input.GetBits(ControlTable1, 13);
                     if (0xB8 == ctl)
-                        ctl += m_input.GetBits (ControlTable2, 13);
+                        ctl += m_input.GetBits(ControlTable2, 13);
 
-                    int pos = m_input.GetBits (PosTable24, 6) * 2;
+                    int pos = m_input.GetBits(PosTable24, 6) * 2;
                     int x_offset = offset_table[pos];
                     int y_offset = offset_table[pos + 1];
                     if (pos > 0)
                     {
-                        offset_table[pos]   = offset_table[pos-2];
-                        offset_table[pos+1] = offset_table[pos-1];
-                        offset_table[pos-2] = x_offset;
-                        offset_table[pos-1] = y_offset;
+                        offset_table[pos] = offset_table[pos - 2];
+                        offset_table[pos + 1] = offset_table[pos - 1];
+                        offset_table[pos - 2] = x_offset;
+                        offset_table[pos - 1] = y_offset;
                     }
 
                     int src = rows[y_offset] + (x + x_offset) * 4;
                     if (ctl >= 0xD8)
                     {
                         int count = ctl - 0xD6;
-                        Binary.CopyOverlapped (m_output, src, dst, count * 4);
+                        Binary.CopyOverlapped(m_output, src, dst, count * 4);
                         dst += count * 4;
                         x += count;
                     }
@@ -170,11 +170,11 @@ namespace GameRes.Formats.ScrPlayer
                     {
                         for (int j = 2; j >= 0; --j)
                         {
-                            byte r = RgbBits[j,ctl];
+                            byte r = RgbBits[j, ctl];
                             if (0xFD == r)
-                                r = GetDelta (DeltaTable);
+                                r = GetDelta(DeltaTable);
 
-                            m_output[dst+j] = (byte)(m_output[src+j] - r);
+                            m_output[dst + j] = (byte)(m_output[src + j] - r);
                         }
                         dst += 4;
                         ++x;
@@ -186,26 +186,26 @@ namespace GameRes.Formats.ScrPlayer
             }
         }
 
-        void Unpack32bpp ()
+        void Unpack32bpp()
         {
-            int extra_row = m_output.Length-m_stride;
+            int extra_row = m_output.Length - m_stride;
             for (int i = 3; i < m_stride; i += 4)
             {
                 m_output[i] = 0xFF;
-                m_output[extra_row+i] = 0xFF;
+                m_output[extra_row + i] = 0xFF;
             }
             var rows = new int[3] { 0, extra_row, extra_row };
             var offset_table = OffsetTable.Clone() as int[];
             for (int y = 0; y < m_height; ++y)
             {
                 int dst = rows[0];
-                for (int x = 0; x < m_width; )
+                for (int x = 0; x < m_width;)
                 {
-                    int ctl = m_input.GetBits (ControlTable1, 13);
+                    int ctl = m_input.GetBits(ControlTable1, 13);
                     if (0xB8 == ctl)
-                        ctl += m_input.GetBits (ControlTable2, 13);
+                        ctl += m_input.GetBits(ControlTable2, 13);
 
-                    int t = m_input.GetBits (ControlTable32, 9) * 2;
+                    int t = m_input.GetBits(ControlTable32, 9) * 2;
                     int pos = PosTable32[t] * 2;
                     bool diff_alpha = PosTable32[t + 1] != 0;
 
@@ -213,17 +213,17 @@ namespace GameRes.Formats.ScrPlayer
                     int y_offset = offset_table[pos + 1];
                     if (pos > 0)
                     {
-                        offset_table[pos]   = offset_table[pos-2];
-                        offset_table[pos+1] = offset_table[pos-1];
-                        offset_table[pos-2] = x_offset;
-                        offset_table[pos-1] = y_offset;
+                        offset_table[pos] = offset_table[pos - 2];
+                        offset_table[pos + 1] = offset_table[pos - 1];
+                        offset_table[pos - 2] = x_offset;
+                        offset_table[pos - 1] = y_offset;
                     }
 
                     int src = rows[y_offset] + (x + x_offset) * 4;
                     if (ctl >= 0xD8)
                     {
                         int count = ctl - 0xD6;
-                        Binary.CopyOverlapped (m_output, src, dst, count * 4);
+                        Binary.CopyOverlapped(m_output, src, dst, count * 4);
                         dst += count * 4;
                         x += count;
                     }
@@ -231,17 +231,17 @@ namespace GameRes.Formats.ScrPlayer
                     {
                         for (int j = 2; j >= 0; --j)
                         {
-                            byte r = RgbBits[j,ctl];
+                            byte r = RgbBits[j, ctl];
                             if (0xFD == r)
-                                r = GetDelta (DeltaTable);
+                                r = GetDelta(DeltaTable);
 
-                            m_output[dst+j] = (byte)(m_output[src+j] - r);
+                            m_output[dst + j] = (byte)(m_output[src + j] - r);
                         }
                         byte alpha = 0;
                         if (diff_alpha)
-                            alpha = GetDelta (AlphaTable);
+                            alpha = GetDelta(AlphaTable);
 
-                        m_output[dst+3] = (byte)(m_output[src+3] - alpha);
+                        m_output[dst + 3] = (byte)(m_output[src + 3] - alpha);
                         dst += 4;
                         ++x;
                     }
@@ -252,22 +252,22 @@ namespace GameRes.Formats.ScrPlayer
             }
         }
 
-        byte GetDelta (byte[] table)
+        byte GetDelta(byte[] table)
         {
-            int delta = m_input.GetBits (ColorBitsTable1, 10);
+            int delta = m_input.GetBits(ColorBitsTable1, 10);
             if (0x41 == delta)
-                delta += m_input.GetBits (ColorBitsTable2, 10);
+                delta += m_input.GetBits(ColorBitsTable2, 10);
             return table[delta];
         }
 
-        static byte[] LoadResource (string name)
+        static byte[] LoadResource(string name)
         {
-            return EmbeddedResource.Load (name, typeof(Img2Reader));
+            return EmbeddedResource.Load(name, typeof(Img2Reader));
         }
 
         #region IDisposable Members
         bool _disposed = false;
-        public void Dispose ()
+        public void Dispose()
         {
             if (!_disposed)
             {
@@ -278,15 +278,15 @@ namespace GameRes.Formats.ScrPlayer
         #endregion
 
         #region Bitmap tables
-        static readonly Lazy<byte[]> s_control_table1 = new Lazy<byte[]> (() => LoadResource ("IControlTable1"));
-        static readonly Lazy<byte[]> s_control_table2 = new Lazy<byte[]> (() => LoadResource ("IControlTable2"));
-        static readonly Lazy<byte[]> s_control_table32 = new Lazy<byte[]> (() => LoadResource ("IControlTable32"));
-        static readonly Lazy<byte[]> s_color_bits1 = new Lazy<byte[]> (() => LoadResource ("IColorBitsTable1"));
-        static readonly Lazy<byte[]> s_color_bits2 = new Lazy<byte[]> (() => LoadResource ("IColorBitsTable2"));
+        static readonly Lazy<byte[]> s_control_table1 = new Lazy<byte[]>(() => LoadResource("IControlTable1"));
+        static readonly Lazy<byte[]> s_control_table2 = new Lazy<byte[]>(() => LoadResource("IControlTable2"));
+        static readonly Lazy<byte[]> s_control_table32 = new Lazy<byte[]>(() => LoadResource("IControlTable32"));
+        static readonly Lazy<byte[]> s_color_bits1 = new Lazy<byte[]>(() => LoadResource("IColorBitsTable1"));
+        static readonly Lazy<byte[]> s_color_bits2 = new Lazy<byte[]>(() => LoadResource("IColorBitsTable2"));
 
-        static byte[] ControlTable1   { get { return s_control_table1.Value; } }
-        static byte[] ControlTable2   { get { return s_control_table2.Value; } }
-        static byte[] ControlTable32  { get { return s_control_table32.Value; } }
+        static byte[] ControlTable1 { get { return s_control_table1.Value; } }
+        static byte[] ControlTable2 { get { return s_control_table2.Value; } }
+        static byte[] ControlTable32 { get { return s_control_table32.Value; } }
         static byte[] ColorBitsTable1 { get { return s_color_bits1.Value; } }
         static byte[] ColorBitsTable2 { get { return s_color_bits2.Value; } }
 

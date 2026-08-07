@@ -34,17 +34,17 @@ namespace GameRes.Formats.Primel
     internal abstract class PackedStream : InputProxyStream
     {
         private IEnumerator<int> m_unpacker;
-        private bool             m_eof;
-        private byte[]  m_buffer;
-        private int     m_offset;
-        private int     m_count;
+        private bool m_eof;
+        private byte[] m_buffer;
+        private int m_offset;
+        private int m_count;
 
-        protected PackedStream (Stream input) : base (input)
+        protected PackedStream(Stream input) : base(input)
         {
             m_eof = false;
         }
 
-        protected bool YieldByte (byte c)
+        protected bool YieldByte(byte c)
         {
             m_buffer[m_offset++] = c;
             return --m_count <= 0;
@@ -52,20 +52,20 @@ namespace GameRes.Formats.Primel
 
         protected int YieldOffset { get { return m_offset; } }
 
-        public override bool CanSeek  { get { return false; } }
-        public override long Length   { get { throw new NotSupportedException(); } }
+        public override bool CanSeek { get { return false; } }
+        public override long Length { get { throw new NotSupportedException(); } }
         public override long Position
         {
             get { throw new NotSupportedException(); }
             set { throw new NotSupportedException(); }
         }
 
-        public override long Seek (long offset, SeekOrigin origin)
+        public override long Seek(long offset, SeekOrigin origin)
         {
             throw new NotSupportedException();
         }
 
-        public override int Read (byte[] buffer, int offset, int count)
+        public override int Read(byte[] buffer, int offset, int count)
         {
             if (m_eof || 0 == count)
                 return 0;
@@ -79,18 +79,18 @@ namespace GameRes.Formats.Primel
             return m_offset - offset;
         }
 
-        protected abstract IEnumerator<int> Unpack ();
+        protected abstract IEnumerator<int> Unpack();
 
         #region IDisposable Members
         bool m_disposed = false;
-        protected override void Dispose (bool disposing)
+        protected override void Dispose(bool disposing)
         {
             if (!m_disposed)
             {
                 if (null != m_unpacker)
                     m_unpacker.Dispose();
                 m_disposed = true;
-                base.Dispose (disposing);
+                base.Dispose(disposing);
             }
         }
         #endregion
@@ -98,14 +98,14 @@ namespace GameRes.Formats.Primel
 
     internal class LzssPackedStream : PackedStream
     {
-        public LzssPackedStream (Stream input) : base (input)
+        public LzssPackedStream(Stream input) : base(input)
         {
         }
 
-        protected override IEnumerator<int> Unpack ()
+        protected override IEnumerator<int> Unpack()
         {
             int unpacked_size, frame_size;
-            using (var reader = new ArcView.Reader (BaseStream))
+            using (var reader = new ArcView.Reader(BaseStream))
             {
                 unpacked_size = reader.ReadInt32();
                 frame_size = 2 << reader.ReadUInt16();
@@ -129,7 +129,7 @@ namespace GameRes.Formats.Primel
                     yield break;
                 if (0 != (bits & 1))
                 {
-                    if (YieldByte ((byte)c))
+                    if (YieldByte((byte)c))
                         yield return YieldOffset;
                     frame[frame_pos++ % frame_size] = (byte)c;
                     ++dst;
@@ -145,10 +145,10 @@ namespace GameRes.Formats.Primel
                     if (p < 0)
                         p += frame_size;
 
-                    while (count --> 0)
+                    while (count-- > 0)
                     {
                         byte b = frame[p++ % frame_size];
-                        if (YieldByte (b))
+                        if (YieldByte(b))
                             yield return YieldOffset;
                         frame[frame_pos++ % frame_size] = b;
                         ++dst;
@@ -160,18 +160,18 @@ namespace GameRes.Formats.Primel
 
     internal class RlePackedStream : PackedStream
     {
-        public RlePackedStream (Stream input) : base (input)
+        public RlePackedStream(Stream input) : base(input)
         {
         }
 
-        protected override IEnumerator<int> Unpack ()
+        protected override IEnumerator<int> Unpack()
         {
             int unpacked_size;
-            using (var reader = new ArcView.Reader (BaseStream))
+            using (var reader = new ArcView.Reader(BaseStream))
                 unpacked_size = reader.ReadInt32();
             int dst = 0;
             int prev_byte = BaseStream.ReadByte();
-            while (dst+1 < unpacked_size)
+            while (dst + 1 < unpacked_size)
             {
                 int b = BaseStream.ReadByte();
                 if (-1 == b)
@@ -182,9 +182,9 @@ namespace GameRes.Formats.Primel
                     if (-1 == count)
                         break;
                     count += 2;
-                    while (count --> 0)
+                    while (count-- > 0)
                     {
-                        if (YieldByte ((byte)b))
+                        if (YieldByte((byte)b))
                             yield return YieldOffset;
                         ++dst;
                     }
@@ -192,7 +192,7 @@ namespace GameRes.Formats.Primel
                 }
                 else
                 {
-                    if (YieldByte ((byte)prev_byte))
+                    if (YieldByte((byte)prev_byte))
                         yield return YieldOffset;
                     ++dst;
                 }
@@ -200,26 +200,26 @@ namespace GameRes.Formats.Primel
             }
             if (dst < unpacked_size && prev_byte != -1)
             {
-                YieldByte ((byte)prev_byte);
+                YieldByte((byte)prev_byte);
             }
         }
     }
 
     internal class RangePackedStream : PackedStream
     {
-        public RangePackedStream (Stream input) : base (input)
+        public RangePackedStream(Stream input) : base(input)
         {
         }
 
-        protected override IEnumerator<int> Unpack ()
+        protected override IEnumerator<int> Unpack()
         {
             var freq = new ushort[0x100];
             var table2 = new byte[0xFFFF00];
             var table3 = new uint[0x100];
             var table4 = new uint[0x100];
-            using (var reader = new ArcView.Reader (BaseStream))
+            using (var reader = new ArcView.Reader(BaseStream))
             {
-                for (;;)
+                for (; ; )
                 {
                     int chunk_len = reader.ReadInt32();
 
@@ -229,31 +229,31 @@ namespace GameRes.Formats.Primel
 
                     switch (ctl & 0x1F)
                     {
-                    case 1:
-                        int count = reader.ReadByte();
-                        while (count --> 0)
-                        {
-                            byte i = reader.ReadByte();
-                            byte b = reader.ReadByte();
+                        case 1:
+                            int count = reader.ReadByte();
+                            while (count-- > 0)
+                            {
+                                byte i = reader.ReadByte();
+                                byte b = reader.ReadByte();
 
-                            if (0 != (b & 0x80))
-                                freq[i] = (ushort)(b & 0x7F);
-                            else
-                                freq[i] = (ushort)((reader.ReadByte() << 7) | b);
-                        }
-                        break;
+                                if (0 != (b & 0x80))
+                                    freq[i] = (ushort)(b & 0x7F);
+                                else
+                                    freq[i] = (ushort)((reader.ReadByte() << 7) | b);
+                            }
+                            break;
 
-                    case 2:
-                        for (int i = 0; i < 256; i++)
-                        {
-                            byte b = reader.ReadByte();
+                        case 2:
+                            for (int i = 0; i < 256; i++)
+                            {
+                                byte b = reader.ReadByte();
 
-                            if (0 != (b & 0x80))
-                                freq[i] = (ushort)(b & 0x7F);
-                            else
-                                freq[i] = (ushort)((reader.ReadByte() << 7) | b);
-                        }
-                        break;
+                                if (0 != (b & 0x80))
+                                    freq[i] = (ushort)(b & 0x7F);
+                                else
+                                    freq[i] = (ushort)((reader.ReadByte() << 7) | b);
+                            }
+                            break;
                     }
 
                     uint f = 0;
@@ -267,14 +267,14 @@ namespace GameRes.Formats.Primel
                     }
 
                     uint range = 0xC0000000;
-                    uint high  = Binary.BigEndian (reader.ReadUInt32());
+                    uint high = Binary.BigEndian(reader.ReadUInt32());
 
                     for (int i = 0; i < chunk_len; i++)
                     {
                         uint index = high / (range >> 12);
                         byte c = table2[index];
 
-                        if (YieldByte (c))
+                        if (YieldByte(c))
                             yield return YieldOffset;
 
                         high -= (range >> 12) * table3[c];
@@ -295,24 +295,24 @@ namespace GameRes.Formats.Primel
 
     internal class MtfPackedStream : PackedStream
     {
-        public MtfPackedStream (Stream input) : base (input)
+        public MtfPackedStream(Stream input) : base(input)
         {
         }
 
-        protected override IEnumerator<int> Unpack ()
+        protected override IEnumerator<int> Unpack()
         {
             int start_index;
-            using (var reader = new ArcView.Reader (BaseStream))
+            using (var reader = new ArcView.Reader(BaseStream))
                 start_index = reader.ReadInt32();
 
-            byte[] table1 = Enumerable.Range (0, 256).Select (x => (byte)x).ToArray();
+            byte[] table1 = Enumerable.Range(0, 256).Select(x => (byte)x).ToArray();
             var input = new List<byte>();
             for (int i = 0; ; ++i)
             {
                 int b = BaseStream.ReadByte();
                 if (-1 == b)
                     break;
-                byte c    = table1[b];
+                byte c = table1[b];
                 byte prev = table1[0];
 
                 if (prev != c)
@@ -327,7 +327,7 @@ namespace GameRes.Formats.Primel
                     }
                     table1[0] = c;
                 }
-                input.Add (c);
+                input.Add(c);
             }
             int input_length = input.Count;
             var table2 = new int[256];
@@ -346,10 +346,10 @@ namespace GameRes.Formats.Primel
                 order[table2[input[i]]++] = i;
 
             int index = start_index;
-            for (;;) // XXX stream is endless, should be wrapped into LimitStream
+            for (; ; ) // XXX stream is endless, should be wrapped into LimitStream
             {
                 index = order[index];
-                if (YieldByte (input[index]))
+                if (YieldByte(input[index]))
                     yield return YieldOffset;
             }
         }

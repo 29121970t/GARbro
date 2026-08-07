@@ -34,29 +34,29 @@ namespace GameRes.Formats.Banana
     internal class MagMetaData : ImageMetaData
     {
         public uint AlphaOffset;
-        public int  BackWidth;
-        public int  BackHeight;
+        public int BackWidth;
+        public int BackHeight;
     }
 
     [Export(typeof(ImageFormat))]
     public class MagFormat : ImageFormat
     {
-        public override string         Tag { get { return "MAG"; } }
+        public override string Tag { get { return "MAG"; } }
         public override string Description { get { return "BANANA Shu-Shu image format"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
-            var header = stream.ReadHeader (0x24);
-            if (0 != header.ToInt32 (0x10) || 0 != header.ToInt32 (0x14))
+            var header = stream.ReadHeader(0x24);
+            if (0 != header.ToInt32(0x10) || 0 != header.ToInt32(0x14))
                 return null;
-            int left = header.ToInt32 (0);
-            int top  = header.ToInt32 (4);
-            int right = header.ToInt32 (8);
-            int bottom = header.ToInt32 (0xC);
-            int back_width = header.ToInt32 (0x18);
-            int back_height = header.ToInt32 (0x1C);
-            uint alpha_channel = header.ToUInt32 (0x20);
+            int left = header.ToInt32(0);
+            int top = header.ToInt32(4);
+            int right = header.ToInt32(8);
+            int bottom = header.ToInt32(0xC);
+            int back_width = header.ToInt32(0x18);
+            int back_height = header.ToInt32(0x1C);
+            uint alpha_channel = header.ToUInt32(0x20);
             int width = right - left;
             int height = bottom - top;
             if (left >= back_width || top >= back_height
@@ -65,9 +65,9 @@ namespace GameRes.Formats.Banana
                 return null;
             return new MagMetaData
             {
-                Width   = (uint)width,
-                Height  = (uint)height,
-                BPP     = alpha_channel != 0 ? 32 : 24,
+                Width = (uint)width,
+                Height = (uint)height,
+                BPP = alpha_channel != 0 ? 32 : 24,
                 OffsetX = left,
                 OffsetY = top,
                 AlphaOffset = alpha_channel,
@@ -76,14 +76,14 @@ namespace GameRes.Formats.Banana
             };
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
             int stride = (int)info.Width * 3;
             var pixels = new byte[stride * (int)info.Height];
             stream.Position = 0x24;
-            using (var lz = new LzssStream (stream.AsStream, LzssMode.Decompress, true))
+            using (var lz = new LzssStream(stream.AsStream, LzssMode.Decompress, true))
             {
-                if (pixels.Length != lz.Read (pixels, 0, pixels.Length))
+                if (pixels.Length != lz.Read(pixels, 0, pixels.Length))
                     throw new InvalidFormatException();
             }
             int src = 0;
@@ -98,16 +98,16 @@ namespace GameRes.Formats.Banana
             }
             var meta = (MagMetaData)info;
             if (0 == meta.AlphaOffset)
-                return ImageData.CreateFlipped (info, PixelFormats.Bgr24, null, pixels, stride);
+                return ImageData.CreateFlipped(info, PixelFormats.Bgr24, null, pixels, stride);
 
             stream.Position = 0x24 + meta.AlphaOffset;
-            var alpha = new byte[meta.BackWidth*meta.BackHeight];
-            using (var lz = new LzssStream (stream.AsStream, LzssMode.Decompress, true))
+            var alpha = new byte[meta.BackWidth * meta.BackHeight];
+            using (var lz = new LzssStream(stream.AsStream, LzssMode.Decompress, true))
             {
-                if (alpha.Length != lz.Read (alpha, 0, alpha.Length))
+                if (alpha.Length != lz.Read(alpha, 0, alpha.Length))
                     throw new InvalidFormatException();
             }
-            int img_stride = (int)info.Width*4;
+            int img_stride = (int)info.Width * 4;
             var img = new byte[img_stride * (int)info.Height];
             int dst = 0;
             int alpha_y = meta.BackHeight - (meta.OffsetY + (int)meta.Height);
@@ -123,12 +123,12 @@ namespace GameRes.Formats.Banana
                     img[dst++] = alpha[src_alpha++];
                 }
             }
-            return ImageData.Create (info, PixelFormats.Bgra32, null, img, img_stride);
+            return ImageData.Create(info, PixelFormats.Bgra32, null, img, img_stride);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("MagFormat.Write not implemented");
+            throw new System.NotImplementedException("MagFormat.Write not implemented");
         }
     }
 }

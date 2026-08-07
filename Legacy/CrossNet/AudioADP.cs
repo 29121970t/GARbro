@@ -32,33 +32,33 @@ namespace GameRes.Formats.CrossNet
     [Export(typeof(AudioFormat))]
     public class AdpAudio : AudioFormat
     {
-        public override string         Tag { get { return "ADP/CROSSNET"; } }
+        public override string Tag { get { return "ADP/CROSSNET"; } }
         public override string Description { get { return "CrossNet ADPCM-compressed audio"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override SoundInput TryOpen (IBinaryStream file)
+        public override SoundInput TryOpen(IBinaryStream file)
         {
-            if (file.Signature != Wav.Signature || !file.Name.HasExtension (".adp"))
+            if (file.Signature != Wav.Signature || !file.Name.HasExtension(".adp"))
                 return null;
 
-            var header = file.ReadHeader (0x24);
-            if (!header.AsciiEqual (8, "WAVEfmt "))
+            var header = file.ReadHeader(0x24);
+            if (!header.AsciiEqual(8, "WAVEfmt "))
                 return null;
-            uint fmt_size = header.ToUInt32 (0x10);
-            int codec = header.ToUInt16 (0x14);
+            uint fmt_size = header.ToUInt32(0x10);
+            int codec = header.ToUInt16(0x14);
             if (0xFFFF != codec)
                 return null;
 
-            uint sample_rate = header.ToUInt32 (0x18);
-            ushort channels = header.ToUInt16 (0x16);
+            uint sample_rate = header.ToUInt32(0x18);
+            ushort channels = header.ToUInt16(0x16);
             if (channels != 1 && channels != 2)
                 return null;
 
             int shift = 2;
             uint section_offset = 0x14 + fmt_size;
             uint section_size;
-            for (;;)
+            for (; ; )
             {
                 file.Position = section_offset;
                 uint section_id = file.ReadUInt32();
@@ -73,43 +73,43 @@ namespace GameRes.Formats.CrossNet
             if (shift < 0)
                 shift = 2;
             var output = new byte[samples * 2 * channels];
-            var first = new AdpDecoder (shift);
+            var first = new AdpDecoder(shift);
             int dst = 0;
             if (1 == channels)
             {
                 while (samples > 0)
                 {
                     byte v = file.ReadUInt8();
-                    LittleEndian.Pack (first.DecodeSample (v), output, dst);
-                    LittleEndian.Pack (first.DecodeSample (v >> 4), output, dst+2);
+                    LittleEndian.Pack(first.DecodeSample(v), output, dst);
+                    LittleEndian.Pack(first.DecodeSample(v >> 4), output, dst + 2);
                     dst += 4;
                     samples -= 2;
                 }
             }
             else
             {
-                var second = new AdpDecoder (shift);
+                var second = new AdpDecoder(shift);
                 while (samples > 0)
                 {
                     byte v = file.ReadUInt8();
-                    LittleEndian.Pack (first.DecodeSample (v), output, dst);
-                    LittleEndian.Pack (first.DecodeSample (v >> 4), output, dst+4);
+                    LittleEndian.Pack(first.DecodeSample(v), output, dst);
+                    LittleEndian.Pack(first.DecodeSample(v >> 4), output, dst + 4);
                     v = file.ReadUInt8();
-                    LittleEndian.Pack (second.DecodeSample (v), output, dst+2);
-                    LittleEndian.Pack (second.DecodeSample (v >> 4), output, dst+6);
+                    LittleEndian.Pack(second.DecodeSample(v), output, dst + 2);
+                    LittleEndian.Pack(second.DecodeSample(v >> 4), output, dst + 6);
                     dst += 8;
                     samples -= 2;
                 }
             }
             var format = new WaveFormat();
-            format.FormatTag        = 1;
-            format.Channels         = channels;
+            format.FormatTag = 1;
+            format.Channels = channels;
             format.SamplesPerSecond = sample_rate;
             format.AverageBytesPerSecond = 2u * channels * sample_rate;
-            format.BlockAlign       = (ushort)(2 * channels);
-            format.BitsPerSample    = 0x10;
-            var pcm = new MemoryStream (output);
-            var sound = new RawPcmInput (pcm, format);
+            format.BlockAlign = (ushort)(2 * channels);
+            format.BitsPerSample = 0x10;
+            var pcm = new MemoryStream(output);
+            var sound = new RawPcmInput(pcm, format);
             file.Dispose();
             return sound;
         }
@@ -121,16 +121,16 @@ namespace GameRes.Formats.CrossNet
         int quant_idx = 0;
         int shift;
 
-        public AdpDecoder (int shift = 2)
+        public AdpDecoder(int shift = 2)
         {
             this.shift = shift;
         }
 
-        public short DecodeSample (int code)
+        public short DecodeSample(int code)
         {
             code &= 0xF;
             int sample = (ScaleTable[code] * QuantizeTable[quant_idx] << shift) + prev_sample;
-            if (sample < -32768 )
+            if (sample < -32768)
                 sample = -32768;
             else if (sample > 0x7FFF)
                 sample = 0x7FFF;

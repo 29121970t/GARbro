@@ -43,8 +43,8 @@ namespace GameRes.Formats.NScripter
     {
         public readonly byte[] Key;
 
-        public NsaEncryptedArchive (ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, byte[] key)
-            : base (arc, impl, dir)
+        public NsaEncryptedArchive(ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, byte[] key)
+            : base(arc, impl, dir)
         {
             Key = key;
         }
@@ -53,7 +53,7 @@ namespace GameRes.Formats.NScripter
     public class NsaOptions : ResourceOptions
     {
         public Compression CompressionType { get; set; }
-        public string             Password { get; set; }
+        public string Password { get; set; }
     }
 
     [Serializable]
@@ -65,10 +65,10 @@ namespace GameRes.Formats.NScripter
     public enum Compression
     {
         Unknown = 256,
-        None    = 0,
-        SPB     = 1,
-        LZSS    = 2,
-        NBZ     = 4,
+        None = 0,
+        SPB = 1,
+        LZSS = 2,
+        NBZ = 4,
     }
 
     [Export(typeof(ArchiveFormat))]
@@ -76,7 +76,7 @@ namespace GameRes.Formats.NScripter
     {
         public override string Tag { get { return "NSA"; } }
 
-        public NsaOpener ()
+        public NsaOpener()
         {
             Extensions = new string[] { "nsa", "dat" };
         }
@@ -89,51 +89,51 @@ namespace GameRes.Formats.NScripter
             set { KnownKeys = ((NsaScheme)value).KnownKeys; }
         }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
             List<Entry> dir = null;
-            bool zero_signature = 0 == file.View.ReadInt16 (0);
+            bool zero_signature = 0 == file.View.ReadInt16(0);
             try
             {
                 using (var input = file.CreateStream())
                 {
                     if (zero_signature)
-                        input.Seek (2, SeekOrigin.Begin);
-                    dir = ReadIndex (input);
+                        input.Seek(2, SeekOrigin.Begin);
+                    dir = ReadIndex(input);
                     if (null != dir)
-                        return new ArcFile (file, this, dir);
+                        return new ArcFile(file, this, dir);
                 }
             }
             catch { /* ignore parse errors */ }
-            if (zero_signature || !file.Name.HasExtension (".nsa"))
+            if (zero_signature || !file.Name.HasExtension(".nsa"))
                 return null;
-            uint signature = file.View.ReadUInt32 (0);
+            uint signature = file.View.ReadUInt32(0);
             if ((signature & 0xFFFFFF) == 0x90FBFF) // looks like mp3 file
-                return new WrapSingleFileArchive (file, Path.GetFileNameWithoutExtension (file.Name)+".mp3");
+                return new WrapSingleFileArchive(file, Path.GetFileNameWithoutExtension(file.Name) + ".mp3");
 
             var password = QueryPassword();
-            if (string.IsNullOrEmpty (password))
+            if (string.IsNullOrEmpty(password))
                 return null;
-            var key = Encoding.ASCII.GetBytes (password);
+            var key = Encoding.ASCII.GetBytes(password);
 
-            using (var input = new EncryptedViewStream (file, key))
+            using (var input = new EncryptedViewStream(file, key))
             {
-                dir = ReadIndex (input);
+                dir = ReadIndex(input);
                 if (null == dir)
                     return null;
-                return new NsaEncryptedArchive (file, this, dir, key);
+                return new NsaEncryptedArchive(file, this, dir, key);
             }
         }
 
-        protected List<Entry> ReadIndex (Stream file)
+        protected List<Entry> ReadIndex(Stream file)
         {
             long base_offset = file.Position;
-            using (var input = new ArcView.Reader (file))
+            using (var input = new ArcView.Reader(file))
             {
-                int count = Binary.BigEndian (input.ReadInt16());
-                if (!IsSaneCount (count))
+                int count = Binary.BigEndian(input.ReadInt16());
+                if (!IsSaneCount(count))
                     return null;
-                base_offset += Binary.BigEndian (input.ReadUInt32());
+                base_offset += Binary.BigEndian(input.ReadUInt32());
                 if (base_offset >= file.Length || base_offset < 15 * count)
                     return null;
 
@@ -146,58 +146,58 @@ namespace GameRes.Formats.NScripter
                     if (base_offset - file.Position < 13 || 0 == name.Length)
                         return null;
 
-                    var entry = FormatCatalog.Instance.Create<NsaEntry> (name);
+                    var entry = FormatCatalog.Instance.Create<NsaEntry>(name);
                     byte compression_type = input.ReadByte();
-                    entry.Offset = Binary.BigEndian (input.ReadUInt32()) + base_offset;
-                    entry.Size   = Binary.BigEndian (input.ReadUInt32());
-                    if (!entry.CheckPlacement (file.Length))
+                    entry.Offset = Binary.BigEndian(input.ReadUInt32()) + base_offset;
+                    entry.Size = Binary.BigEndian(input.ReadUInt32());
+                    if (!entry.CheckPlacement(file.Length))
                         return null;
-                    entry.UnpackedSize = Binary.BigEndian (input.ReadUInt32());
+                    entry.UnpackedSize = Binary.BigEndian(input.ReadUInt32());
                     entry.IsPacked = compression_type != 0;
                     switch (compression_type)
                     {
-                    case 0:  entry.CompressionType = Compression.None; break;
-                    case 1:  entry.CompressionType = Compression.SPB; break;
-                    case 2:  entry.CompressionType = Compression.LZSS; break;
-                    case 4:  entry.CompressionType = Compression.NBZ; break;
-                    default: entry.CompressionType = Compression.Unknown; break;
+                        case 0: entry.CompressionType = Compression.None; break;
+                        case 1: entry.CompressionType = Compression.SPB; break;
+                        case 2: entry.CompressionType = Compression.LZSS; break;
+                        case 4: entry.CompressionType = Compression.NBZ; break;
+                        default: entry.CompressionType = Compression.Unknown; break;
                     }
-                    if (name.HasExtension (".nbz"))
+                    if (name.HasExtension(".nbz"))
                         entry.Type = "audio";
-                    dir.Add (entry);
+                    dir.Add(entry);
                 }
                 return dir;
             }
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var nsa_arc = arc as NsaEncryptedArchive;
             if (null == nsa_arc)
             {
-                var input = arc.File.CreateStream (entry.Offset, entry.Size);
-                return UnpackEntry (input, entry as NsaEntry);
+                var input = arc.File.CreateStream(entry.Offset, entry.Size);
+                return UnpackEntry(input, entry as NsaEntry);
             }
-            var encrypted = new EncryptedViewStream (arc.File, nsa_arc.Key);
-            var stream = new StreamRegion (encrypted, entry.Offset, entry.Size);
-            return UnpackEntry (stream, entry as NsaEntry);
+            var encrypted = new EncryptedViewStream(arc.File, nsa_arc.Key);
+            var stream = new StreamRegion(encrypted, entry.Offset, entry.Size);
+            return UnpackEntry(stream, entry as NsaEntry);
         }
 
-        protected Stream UnpackEntry (Stream input, NsaEntry nsa_entry)
+        protected Stream UnpackEntry(Stream input, NsaEntry nsa_entry)
         {
             if (null == nsa_entry)
                 return input;
-            if (nsa_entry.Name.HasExtension (".nbz") || Compression.NBZ == nsa_entry.CompressionType)
+            if (nsa_entry.Name.HasExtension(".nbz") || Compression.NBZ == nsa_entry.CompressionType)
             {
                 input.Position = 4;
-                return new BZip2InputStream (input);
+                return new BZip2InputStream(input);
             }
             if (!(Compression.LZSS == nsa_entry.CompressionType ||
-                  Compression.SPB  == nsa_entry.CompressionType))
+                  Compression.SPB == nsa_entry.CompressionType))
                 return input;
             using (input)
             {
-                var decoder = new Unpacker (input, nsa_entry.UnpackedSize);
+                var decoder = new Unpacker(input, nsa_entry.UnpackedSize);
                 if (Compression.SPB == nsa_entry.CompressionType)
                     return decoder.SpbDecodedStream();
                 else
@@ -205,21 +205,22 @@ namespace GameRes.Formats.NScripter
             }
         }
 
-        private string QueryPassword ()
+        private string QueryPassword()
         {
-            var options = Query<NsaOptions> (arcStrings.ArcEncryptedNotice);
+            var options = Query<NsaOptions>(arcStrings.ArcEncryptedNotice);
             return options.Password;
         }
 
-        public override ResourceOptions GetDefaultOptions ()
+        public override ResourceOptions GetDefaultOptions()
         {
-            return new NsaOptions {
+            return new NsaOptions
+            {
                 CompressionType = Properties.Settings.Default.ONSCompression,
-                Password        = Properties.Settings.Default.NSAPassword,
+                Password = Properties.Settings.Default.NSAPassword,
             };
         }
 
-        public override ResourceOptions GetOptions (object widget)
+        public override ResourceOptions GetOptions(object widget)
         {
             var w = widget as GUI.WidgetNSA;
             if (null != w)
@@ -227,20 +228,20 @@ namespace GameRes.Formats.NScripter
             return GetDefaultOptions();
         }
 
-        public override object GetAccessWidget ()
+        public override object GetAccessWidget()
         {
-            return new GUI.WidgetNSA (KnownKeys);
+            return new GUI.WidgetNSA(KnownKeys);
         }
 
-        public override object GetCreationWidget ()
+        public override object GetCreationWidget()
         {
             return new GUI.CreateONSWidget();
         }
 
-        public override void Create (Stream output, IEnumerable<Entry> list, ResourceOptions options,
+        public override void Create(Stream output, IEnumerable<Entry> list, ResourceOptions options,
                                      EntryCallback callback)
         {
-            var ons_options = GetOptions<NsaOptions> (options);
+            var ons_options = GetOptions<NsaOptions>(options);
             var encoding = Encodings.cp932.WithFatalFallback();
             int callback_count = 0;
 
@@ -249,136 +250,136 @@ namespace GameRes.Formats.NScripter
             int index_size = 0;
             foreach (var entry in list)
             {
-                if (!used_names.Add (entry.Name)) // duplicate name
+                if (!used_names.Add(entry.Name)) // duplicate name
                     continue;
                 try
                 {
-                    index_size += encoding.GetByteCount (entry.Name) + 1;
+                    index_size += encoding.GetByteCount(entry.Name) + 1;
                 }
                 catch (EncoderFallbackException X)
                 {
-                    throw new InvalidFileName (entry.Name, arcStrings.MsgIllegalCharacters, X);
+                    throw new InvalidFileName(entry.Name, arcStrings.MsgIllegalCharacters, X);
                 }
                 var header_entry = new NsaEntry { Name = entry.Name };
                 if (Compression.None != ons_options.CompressionType)
                 {
-                    if (entry.Name.HasExtension (".bmp"))
+                    if (entry.Name.HasExtension(".bmp"))
                         header_entry.CompressionType = ons_options.CompressionType;
                 }
                 index_size += 13;
-                real_entry_list.Add (header_entry);
+                real_entry_list.Add(header_entry);
             }
 
             long start_offset = output.Position;
-            long base_offset = 6+index_size;
-            output.Seek (base_offset, SeekOrigin.Current);
+            long base_offset = 6 + index_size;
+            output.Seek(base_offset, SeekOrigin.Current);
             foreach (var entry in real_entry_list)
             {
-                using (var input = File.OpenRead (entry.Name))
+                using (var input = File.OpenRead(entry.Name))
                 {
                     var file_size = input.Length;
                     if (file_size > uint.MaxValue)
                         throw new FileSizeException();
                     long file_offset = output.Position - base_offset;
-                    if (file_offset+file_size > uint.MaxValue)
+                    if (file_offset + file_size > uint.MaxValue)
                         throw new FileSizeException();
                     if (null != callback)
-                        callback (callback_count++, entry, arcStrings.MsgAddingFile);
+                        callback(callback_count++, entry, arcStrings.MsgAddingFile);
                     entry.Offset = file_offset;
                     entry.UnpackedSize = (uint)file_size;
                     if (Compression.LZSS == entry.CompressionType)
                     {
-                        var packer = new Packer (input, output);
+                        var packer = new Packer(input, output);
                         entry.Size = packer.EncodeLZSS();
                     }
                     else
                     {
-                        entry.Size            = entry.UnpackedSize;
+                        entry.Size = entry.UnpackedSize;
                         entry.CompressionType = Compression.None;
-                        input.CopyTo (output);
+                        input.CopyTo(output);
                     }
                 }
             }
 
             if (null != callback)
-                callback (callback_count++, null, arcStrings.MsgWritingIndex);
+                callback(callback_count++, null, arcStrings.MsgWritingIndex);
             output.Position = start_offset;
-            using (var writer = new BinaryWriter (output, encoding, true))
+            using (var writer = new BinaryWriter(output, encoding, true))
             {
-                writer.Write (Binary.BigEndian ((short)real_entry_list.Count));
-                writer.Write (Binary.BigEndian ((uint)base_offset));
+                writer.Write(Binary.BigEndian((short)real_entry_list.Count));
+                writer.Write(Binary.BigEndian((uint)base_offset));
                 foreach (var entry in real_entry_list)
                 {
-                    writer.Write (encoding.GetBytes (entry.Name));
-                    writer.Write ((byte)0);
-                    writer.Write ((byte)entry.CompressionType);
-                    writer.Write (Binary.BigEndian ((uint)entry.Offset));
-                    writer.Write (Binary.BigEndian ((uint)entry.Size));
-                    writer.Write (Binary.BigEndian ((uint)entry.UnpackedSize));
+                    writer.Write(encoding.GetBytes(entry.Name));
+                    writer.Write((byte)0);
+                    writer.Write((byte)entry.CompressionType);
+                    writer.Write(Binary.BigEndian((uint)entry.Offset));
+                    writer.Write(Binary.BigEndian((uint)entry.Size));
+                    writer.Write(Binary.BigEndian((uint)entry.UnpackedSize));
                 }
             }
         }
     }
 
-   /*
-    *  ONScripter-EN decompression routines.
-    *
-    *  Copyright (c) 2001-2010 Ogapee. All rights reserved.
-    *  (original ONScripter, of which this is a fork).
-    *
-    *  ogapee@aqua.dti2.ne.jp
-    *
-    *  Copyright (c) 2007-2010 "Uncle" Mion Sonozaki
-    *
-    *  UncleMion@gmail.com
-    *
-    */
+    /*
+     *  ONScripter-EN decompression routines.
+     *
+     *  Copyright (c) 2001-2010 Ogapee. All rights reserved.
+     *  (original ONScripter, of which this is a fork).
+     *
+     *  ogapee@aqua.dti2.ne.jp
+     *
+     *  Copyright (c) 2007-2010 "Uncle" Mion Sonozaki
+     *
+     *  UncleMion@gmail.com
+     *
+     */
     /* LZSS encoder-decoder  (c) Haruhiko Okumura */
 
     internal static class LZSS
     {
         public const int EI = 8;
         public const int EJ = 4;
-        public const int P  = 1;  /* If match length <= P then output one character */
-        public const int N  = (1 << EI);  /* buffer size */
-        public const int F  = ((1 << EJ) + P);  /* lookahead buffer size */
+        public const int P = 1;  /* If match length <= P then output one character */
+        public const int N = (1 << EI);  /* buffer size */
+        public const int F = ((1 << EJ) + P);  /* lookahead buffer size */
     }
 
     internal class Unpacker : MsbBitStream
     {
-        private byte[]          m_output;
+        private byte[] m_output;
 
         public byte[] Output { get { return m_output; } }
 
-        public Unpacker (Stream input, uint unpacked_size) : base (input, true)
+        public Unpacker(Stream input, uint unpacked_size) : base(input, true)
         {
             m_output = new byte[unpacked_size];
         }
 
-        public Stream LzssDecodedStream ()
+        public Stream LzssDecodedStream()
         {
             DecodeLZSS();
-            return new MemoryStream (m_output);
+            return new MemoryStream(m_output);
         }
 
-        public Stream SpbDecodedStream ()
+        public Stream SpbDecodedStream()
         {
             DecodeSPB();
-            return new MemoryStream (m_output);
+            return new MemoryStream(m_output);
         }
 
-        uint DecodeLZSS ()
+        uint DecodeLZSS()
         {
             uint count = 0;
 
-            byte[] decomp_buffer = new byte[LZSS.N*2];
+            byte[] decomp_buffer = new byte[LZSS.N * 2];
             int r = LZSS.N - LZSS.F;
             int c;
             while (count < m_output.Length)
             {
-                if (0 != GetBits (1))
+                if (0 != GetBits(1))
                 {
-                    c = GetBits (8);
+                    c = GetBits(8);
                     if (-1 == c)
                         break;
                     m_output[count++] = (byte)c;
@@ -387,10 +388,10 @@ namespace GameRes.Formats.NScripter
                 }
                 else
                 {
-                    int i = GetBits (LZSS.EI);
+                    int i = GetBits(LZSS.EI);
                     if (-1 == i)
                         break;
-                    int j = GetBits (LZSS.EJ);
+                    int j = GetBits(LZSS.EJ);
                     if (-1 == j)
                         break;
                     for (int k = 0; k <= j + 1; k++)
@@ -405,14 +406,14 @@ namespace GameRes.Formats.NScripter
             return count;
         }
 
-        uint DecodeSPB ()
+        uint DecodeSPB()
         {
-            uint width   = (uint)Input.ReadByte() << 8;
-            width       |= (uint)Input.ReadByte();
-            uint height  = (uint)Input.ReadByte() << 8;
-            height      |= (uint)Input.ReadByte();
+            uint width = (uint)Input.ReadByte() << 8;
+            width |= (uint)Input.ReadByte();
+            uint height = (uint)Input.ReadByte() << 8;
+            height |= (uint)Input.ReadByte();
 
-            uint width_pad  = (4 - width * 3 % 4) % 4;
+            uint width_pad = (4 - width * 3 % 4) % 4;
             int stride = (int)(width * 3 + width_pad);
             uint total_size = (uint)stride * height + 54;
 
@@ -423,26 +424,26 @@ namespace GameRes.Formats.NScripter
             /* Write header */
             m_output[0] = (byte)'B';
             m_output[1] = (byte)'M';
-            LittleEndian.Pack (total_size, m_output, 2);
+            LittleEndian.Pack(total_size, m_output, 2);
             m_output[10] = 54; // offset to the body
             m_output[14] = 40; // header size
-            LittleEndian.Pack (width,  m_output, 18);
-            LittleEndian.Pack (height, m_output, 22);
+            LittleEndian.Pack(width, m_output, 18);
+            LittleEndian.Pack(height, m_output, 22);
             m_output[26] = 1; // the number of the plane
             m_output[28] = 24; // bpp
 
-            byte[] decomp_buffer = new byte[width*height*4];
-            
+            byte[] decomp_buffer = new byte[width * height * 4];
+
             for (int i = 0; i < 3; i++)
             {
                 uint count = 0;
-                int c = GetBits (8);
+                int c = GetBits(8);
                 if (-1 == c)
                     break;
                 decomp_buffer[count++] = (byte)c;
                 while (count < width * height)
                 {
-                    int n = GetBits (3);
+                    int n = GetBits(3);
                     if (0 == n)
                     {
                         decomp_buffer[count++] = (byte)c;
@@ -453,7 +454,7 @@ namespace GameRes.Formats.NScripter
                     }
                     int m;
                     if (7 == n)
-                        m = GetBits (1) + 1;
+                        m = GetBits(1) + 1;
                     else
                         m = n + 2;
 
@@ -461,21 +462,21 @@ namespace GameRes.Formats.NScripter
                     {
                         if (8 == m)
                         {
-                            c = GetBits (8);
+                            c = GetBits(8);
                         }
                         else
                         {
-                            int k = GetBits (m);
+                            int k = GetBits(m);
                             if (0 != (k & 1))
-                                c += (k>>1) + 1;
+                                c += (k >> 1) + 1;
                             else
-                                c -= (k>>1);
+                                c -= (k >> 1);
                         }
                         decomp_buffer[count++] = (byte)c;
                     }
                 }
 
-                int pbuf  = stride * (int)(height-1) + i + 54; // in m_output
+                int pbuf = stride * (int)(height - 1) + i + 54; // in m_output
                 int psbuf = 0; // in decomp_buffer
 
                 for (uint j = 0; j < height; j++)
@@ -500,21 +501,21 @@ namespace GameRes.Formats.NScripter
 
     internal class Packer
     {
-        private Stream  m_input;
-        private Stream  m_output;
-        private uint    m_code_count = 0;
+        private Stream m_input;
+        private Stream m_output;
+        private uint m_code_count = 0;
 
         public uint PackedSize { get { return m_code_count; } }
 
-        public Packer (Stream input, Stream output)
+        public Packer(Stream input, Stream output)
         {
             m_input = input;
             m_output = output;
         }
 
-        public uint EncodeLZSS ()
+        public uint EncodeLZSS()
         {
-            byte[] comp_buffer = new byte[LZSS.N*2];
+            byte[] comp_buffer = new byte[LZSS.N * 2];
 
             int i;
             for (i = LZSS.N - LZSS.F; i < LZSS.N * 2; i++)
@@ -549,9 +550,9 @@ namespace GameRes.Formats.NScripter
                     }
                 }
                 if (y <= LZSS.P)
-                    Output1 (c);
+                    Output1(c);
                 else
-                    Output2 (x & (LZSS.N - 1), y - 2);
+                    Output2(x & (LZSS.N - 1), y - 2);
                 r += y;
                 s += y;
                 if (r >= LZSS.N * 2 - LZSS.F)
@@ -577,39 +578,39 @@ namespace GameRes.Formats.NScripter
         int m_bit_buffer = 0;
         int m_bit_mask = 128;
 
-        void PutBit1 ()
+        void PutBit1()
         {
             m_bit_buffer |= m_bit_mask;
             if ((m_bit_mask >>= 1) == 0)
             {
-                m_output.WriteByte ((byte)m_bit_buffer);
+                m_output.WriteByte((byte)m_bit_buffer);
                 m_bit_buffer = 0;
                 m_bit_mask = 128;
                 m_code_count++;
             }
         }
 
-        void PutBit0 ()
+        void PutBit0()
         {
             if ((m_bit_mask >>= 1) == 0)
             {
-                m_output.WriteByte ((byte)m_bit_buffer);
+                m_output.WriteByte((byte)m_bit_buffer);
                 m_bit_buffer = 0;
                 m_bit_mask = 128;
                 m_code_count++;
             }
         }
 
-        void FlushBitBuffer ()
+        void FlushBitBuffer()
         {
             if (m_bit_mask != 128)
             {
-                m_output.WriteByte ((byte)m_bit_buffer);
+                m_output.WriteByte((byte)m_bit_buffer);
                 m_code_count++;
             }
         }
 
-        void Output1 (int c)
+        void Output1(int c)
         {
             PutBit1();
             int mask = 256;
@@ -620,7 +621,7 @@ namespace GameRes.Formats.NScripter
             }
         }
 
-        void Output2 (int x, int y)
+        void Output2(int x, int y)
         {
             PutBit0();
             int mask = LZSS.N;

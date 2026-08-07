@@ -36,24 +36,24 @@ namespace GameRes.Formats.Bishop
 {
     internal class GsaMetaData : ImageMetaData
     {
-        public int  Type;
+        public int Type;
     }
 
     [Export(typeof(ImageFormat))]
     public class GsaFormat : ImageFormat
     {
-        public override string         Tag { get { return "GSA"; } }
+        public override string Tag { get { return "GSA"; } }
         public override string Description { get { return "Bishop image format"; } }
-        public override uint     Signature { get { return 0x4D428E8C; } }
+        public override uint Signature { get { return 0x4D428E8C; } }
 
-        public GsaFormat ()
+        public GsaFormat()
         {
-            var ext_list = Enumerable.Range (1, 12).Select (x => string.Format ("g{0:D2}", x))
-                    .Concat (Enumerable.Range (1, 9).Select (x => string.Format ("gs{0}", x)));
-            Extensions = Extensions.Concat (ext_list).ToArray();
+            var ext_list = Enumerable.Range(1, 12).Select(x => string.Format("g{0:D2}", x))
+                    .Concat(Enumerable.Range(1, 9).Select(x => string.Format("gs{0}", x)));
+            Extensions = Extensions.Concat(ext_list).ToArray();
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
             file.Position = 0xC0;
             int type = file.ReadInt32();
@@ -61,7 +61,8 @@ namespace GameRes.Formats.Bishop
             uint h = file.ReadUInt32();
             int x = file.ReadInt32();
             int y = file.ReadInt32();
-            return new GsaMetaData {
+            return new GsaMetaData
+            {
                 Width = w,
                 Height = h,
                 OffsetX = x,
@@ -71,32 +72,32 @@ namespace GameRes.Formats.Bishop
             };
         }
 
-        static readonly Regex PartFileNameRe = new Regex (@"\.G[01S]\d$", RegexOptions.IgnoreCase);
+        static readonly Regex PartFileNameRe = new Regex(@"\.G[01S]\d$", RegexOptions.IgnoreCase);
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            using (var reader = new GsaReader (file, (GsaMetaData)info))
+            using (var reader = new GsaReader(file, (GsaMetaData)info))
             {
                 var pixels = reader.Unpack();
-                if (PartFileNameRe.IsMatch (file.Name))
+                if (PartFileNameRe.IsMatch(file.Name))
                 {
-                    var base_name = Path.ChangeExtension (file.Name, "GSA");
-                    if (VFS.FileExists (base_name))
+                    var base_name = Path.ChangeExtension(file.Name, "GSA");
+                    if (VFS.FileExists(base_name))
                     {
                         try
                         {
-                            var image = TryBlendImage (base_name, reader, info);
+                            var image = TryBlendImage(base_name, reader, info);
                             if (image != null)
                                 return image;
                         }
                         catch { /* ignore failed blending attempt */ }
                     }
                 }
-                return ImageData.CreateFlipped (info, reader.Format, null, pixels, reader.Stride);
+                return ImageData.CreateFlipped(info, reader.Format, null, pixels, reader.Stride);
             }
         }
 
-        ImageData TryBlendImage (string base_name, GsaReader overlay, ImageMetaData overlay_info)
+        ImageData TryBlendImage(string base_name, GsaReader overlay, ImageMetaData overlay_info)
         {
             int ovl_x = overlay_info.OffsetX;
             int ovl_y = overlay_info.OffsetY;
@@ -112,9 +113,9 @@ namespace GameRes.Formats.Bishop
                 ovl_height += ovl_y;
                 ovl_y = 0;
             }
-            using (var input = VFS.OpenBinaryStream (base_name))
+            using (var input = VFS.OpenBinaryStream(base_name))
             {
-                var base_info = ReadMetaData (input) as GsaMetaData;
+                var base_info = ReadMetaData(input) as GsaMetaData;
                 if (null == base_info)
                     return null;
                 int base_width = (int)base_info.Width;
@@ -127,7 +128,7 @@ namespace GameRes.Formats.Bishop
                     return null;
 
                 input.Position = 0;
-                var reader = new GsaReader (input, base_info);
+                var reader = new GsaReader(input, base_info);
                 var base_pixels = reader.Unpack();
 
                 int src_pixel_size = overlay.PixelSize;
@@ -140,21 +141,21 @@ namespace GameRes.Formats.Bishop
                     int dst_pixel = dst;
                     for (int x = 0; x < ovl_width; ++x)
                     {
-                        int src_alpha = overlay.Data[src_pixel+3];
+                        int src_alpha = overlay.Data[src_pixel + 3];
                         if (src_alpha > 0)
                         {
                             if (0xFF == src_alpha)
                             {
-                                Buffer.BlockCopy (overlay.Data, src_pixel, base_pixels, dst_pixel, dst_pixel_size);
+                                Buffer.BlockCopy(overlay.Data, src_pixel, base_pixels, dst_pixel, dst_pixel_size);
                             }
                             else // assume destination has no alpha channel
                             {
-                                base_pixels[dst_pixel+0] = (byte)((overlay.Data[src_pixel+0] * src_alpha
-                                                         + base_pixels[dst_pixel+0] * (0xFF - src_alpha)) / 0xFF);
-                                base_pixels[dst_pixel+1] = (byte)((overlay.Data[src_pixel+1] * src_alpha
-                                                         + base_pixels[dst_pixel+1] * (0xFF - src_alpha)) / 0xFF);
-                                base_pixels[dst_pixel+2] = (byte)((overlay.Data[src_pixel+2] * src_alpha
-                                                         + base_pixels[dst_pixel+2] * (0xFF - src_alpha)) / 0xFF);
+                                base_pixels[dst_pixel + 0] = (byte)((overlay.Data[src_pixel + 0] * src_alpha
+                                                         + base_pixels[dst_pixel + 0] * (0xFF - src_alpha)) / 0xFF);
+                                base_pixels[dst_pixel + 1] = (byte)((overlay.Data[src_pixel + 1] * src_alpha
+                                                         + base_pixels[dst_pixel + 1] * (0xFF - src_alpha)) / 0xFF);
+                                base_pixels[dst_pixel + 2] = (byte)((overlay.Data[src_pixel + 2] * src_alpha
+                                                         + base_pixels[dst_pixel + 2] * (0xFF - src_alpha)) / 0xFF);
                             }
                         }
                         src_pixel += src_pixel_size;
@@ -163,40 +164,40 @@ namespace GameRes.Formats.Bishop
                     src += overlay.Stride;
                     dst += reader.Stride;
                 }
-                return ImageData.CreateFlipped (base_info, reader.Format, null, base_pixels, reader.Stride);
+                return ImageData.CreateFlipped(base_info, reader.Format, null, base_pixels, reader.Stride);
             }
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("GsaFormat.Write not implemented");
+            throw new System.NotImplementedException("GsaFormat.Write not implemented");
         }
     }
 
     internal sealed class GsaReader : IDisposable
     {
-        LsbBitStream    m_input;
-        readonly int    m_type;
-        readonly int    m_width;
-        readonly int    m_height;
-        int             m_stride;
-        int             m_bpp;      // bytes per pixel
-        byte[]          m_output;
+        LsbBitStream m_input;
+        readonly int m_type;
+        readonly int m_width;
+        readonly int m_height;
+        int m_stride;
+        int m_bpp;      // bytes per pixel
+        byte[] m_output;
 
         public PixelFormat Format { get; private set; }
-        public int         Stride { get { return m_stride; } }
-        public byte[]        Data { get { return m_output; } }
-        public int      PixelSize { get { return m_bpp; } }
+        public int Stride { get { return m_stride; } }
+        public byte[] Data { get { return m_output; } }
+        public int PixelSize { get { return m_bpp; } }
 
-        public GsaReader (IBinaryStream file, GsaMetaData info)
+        public GsaReader(IBinaryStream file, GsaMetaData info)
         {
-            m_input = new LsbBitStream (file.AsStream, true);
+            m_input = new LsbBitStream(file.AsStream, true);
             m_type = info.Type;
             m_width = (int)info.Width;
             m_height = (int)info.Height;
         }
 
-        public byte[] Unpack ()
+        public byte[] Unpack()
         {
             m_input.Input.Position = 0xD8;
             if (3 == m_type || 0x83 == m_type)
@@ -206,7 +207,7 @@ namespace GameRes.Formats.Bishop
             return m_output;
         }
 
-        void UnpackV3 ()
+        void UnpackV3()
         {
             Format = PixelFormats.Bgr24;
             m_bpp = 3;
@@ -216,22 +217,22 @@ namespace GameRes.Formats.Bishop
             UnpackRgb();
         }
 
-        void UnpackV4 ()
+        void UnpackV4()
         {
             Format = PixelFormats.Bgra32;
             m_bpp = 4;
             m_stride = m_width * 4;
             int reserved_lines = (m_height + 1) & ~1;
             m_output = new byte[m_stride * reserved_lines];
-            ReadPlane (3);
+            ReadPlane(3);
             UnpackRgb();
         }
 
-        void UnpackRgb ()
+        void UnpackRgb()
         {
             for (int plane = 0; plane < 3; ++plane)
             {
-                ReadPlane (plane);
+                ReadPlane(plane);
             }
             if (0 != (m_type & 0x80))
             {
@@ -242,16 +243,16 @@ namespace GameRes.Formats.Bishop
                     dst_row += m_stride;
                     for (int x = 0; x < m_width; ++x)
                     {
-                        m_output[dst  ] <<= 3;
-                        m_output[dst+1] <<= 2;
-                        m_output[dst+2] <<= 2;
+                        m_output[dst] <<= 3;
+                        m_output[dst + 1] <<= 2;
+                        m_output[dst + 2] <<= 2;
                         dst += m_bpp;
                     }
                 }
             }
         }
 
-        void ReadPlane (int dst_row)
+        void ReadPlane(int dst_row)
         {
             for (int y = 0; y < m_height; y += 2)
             {
@@ -259,58 +260,58 @@ namespace GameRes.Formats.Bishop
                 dst_row += 2 * m_stride;
                 for (int x = 0; x < m_width; x += 2)
                 {
-                    switch (m_input.GetBits (3))
+                    switch (m_input.GetBits(3))
                     {
-                    case 0: CopyBits0 (dst); break;
-                    case 1: ReadBits1 (dst, 1, 0); break;
-                    case 2: ReadBits1 (dst, 2, 0xFF); break;
-                    case 3: ReadBits1 (dst, 3, 0xFD); break;
-                    case 4: ReadBits4 (dst, 4, 0xF9); break;
-                    case 5: ReadBits5 (dst, 6); break;
-                    case 6: ReadBits5 (dst, 7); break;
-                    case 7: ReadBits5 (dst, 8); break;
-                    case -1: throw new EndOfStreamException();
+                        case 0: CopyBits0(dst); break;
+                        case 1: ReadBits1(dst, 1, 0); break;
+                        case 2: ReadBits1(dst, 2, 0xFF); break;
+                        case 3: ReadBits1(dst, 3, 0xFD); break;
+                        case 4: ReadBits4(dst, 4, 0xF9); break;
+                        case 5: ReadBits5(dst, 6); break;
+                        case 6: ReadBits5(dst, 7); break;
+                        case 7: ReadBits5(dst, 8); break;
+                        case -1: throw new EndOfStreamException();
                     }
                     dst += m_bpp * 2;
                 }
             }
         }
 
-        void CopyBits0 (int dst)
+        void CopyBits0(int dst)
         {
-            m_output[dst]                = m_output[dst-m_bpp*2];
-            m_output[dst+m_bpp]          = m_output[dst-m_bpp];
-            m_output[dst+m_stride]       = m_output[dst+m_stride-m_bpp*2];
-            m_output[dst+m_stride+m_bpp] = m_output[dst+m_stride-m_bpp];
+            m_output[dst] = m_output[dst - m_bpp * 2];
+            m_output[dst + m_bpp] = m_output[dst - m_bpp];
+            m_output[dst + m_stride] = m_output[dst + m_stride - m_bpp * 2];
+            m_output[dst + m_stride + m_bpp] = m_output[dst + m_stride - m_bpp];
         }
 
-        void ReadBits1 (int dst, int count, byte n)
+        void ReadBits1(int dst, int count, byte n)
         {
-            m_output[dst]                = (byte)(n + m_input.GetBits (count) + m_output[dst-m_bpp*2]);
-            m_output[dst+m_bpp]          = (byte)(n + m_input.GetBits (count) + m_output[dst-m_bpp]);
-            m_output[dst+m_stride]       = (byte)(n + m_input.GetBits (count) + m_output[dst+m_stride-m_bpp*2]);
-            m_output[dst+m_stride+m_bpp] = (byte)(n + m_input.GetBits (count) + m_output[dst+m_stride-m_bpp]);
+            m_output[dst] = (byte)(n + m_input.GetBits(count) + m_output[dst - m_bpp * 2]);
+            m_output[dst + m_bpp] = (byte)(n + m_input.GetBits(count) + m_output[dst - m_bpp]);
+            m_output[dst + m_stride] = (byte)(n + m_input.GetBits(count) + m_output[dst + m_stride - m_bpp * 2]);
+            m_output[dst + m_stride + m_bpp] = (byte)(n + m_input.GetBits(count) + m_output[dst + m_stride - m_bpp]);
         }
 
-        void ReadBits4 (int dst, int count, byte n)
+        void ReadBits4(int dst, int count, byte n)
         {
             int prev = dst - 2 * m_stride;
-            m_output[dst]                = (byte)(n + m_input.GetBits (count) + m_output[prev]);
-            m_output[dst+m_bpp]          = (byte)(n + m_input.GetBits (count) + m_output[prev+m_bpp]);
-            m_output[dst+m_stride]       = (byte)(n + m_input.GetBits (count) + m_output[dst-m_stride]);
-            m_output[dst+m_stride+m_bpp] = (byte)(n + m_input.GetBits (count) + m_output[dst-m_stride+m_bpp]);
+            m_output[dst] = (byte)(n + m_input.GetBits(count) + m_output[prev]);
+            m_output[dst + m_bpp] = (byte)(n + m_input.GetBits(count) + m_output[prev + m_bpp]);
+            m_output[dst + m_stride] = (byte)(n + m_input.GetBits(count) + m_output[dst - m_stride]);
+            m_output[dst + m_stride + m_bpp] = (byte)(n + m_input.GetBits(count) + m_output[dst - m_stride + m_bpp]);
         }
 
-        void ReadBits5 (int dst, int count)
+        void ReadBits5(int dst, int count)
         {
-            m_output[dst]                = (byte)m_input.GetBits (count);
-            m_output[dst+m_bpp]          = (byte)m_input.GetBits (count);
-            m_output[dst+m_stride]       = (byte)m_input.GetBits (count);
-            m_output[dst+m_stride+m_bpp] = (byte)m_input.GetBits (count);
+            m_output[dst] = (byte)m_input.GetBits(count);
+            m_output[dst + m_bpp] = (byte)m_input.GetBits(count);
+            m_output[dst + m_stride] = (byte)m_input.GetBits(count);
+            m_output[dst + m_stride + m_bpp] = (byte)m_input.GetBits(count);
         }
 
         bool m_disposed = false;
-        public void Dispose ()
+        public void Dispose()
         {
             if (!m_disposed)
             {

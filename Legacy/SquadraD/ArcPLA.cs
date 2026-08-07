@@ -32,10 +32,10 @@ namespace GameRes.Formats.SquadraD
 {
     internal class PlaEntry : PackedEntry
     {
-        public  int Id;
-        public  int n1;
+        public int Id;
+        public int n1;
         public uint SampleRate;
-        public  int Channels;
+        public int Channels;
         public byte n2;
         public byte n3;
         public int[] Data;
@@ -44,35 +44,36 @@ namespace GameRes.Formats.SquadraD
     [Export(typeof(ArchiveFormat))]
     public class PlaOpener : ArchiveFormat
     {
-        public override string         Tag => "PLA";
+        public override string Tag => "PLA";
         public override string Description => "Squadra D audio archive";
-        public override uint     Signature => 0x2E616C50; // 'Pla.'
-        public override bool  IsHierarchic => false;
-        public override bool      CanWrite => false;
+        public override uint Signature => 0x2E616C50; // 'Pla.'
+        public override bool IsHierarchic => false;
+        public override bool CanWrite => false;
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            uint arc_size = file.View.ReadUInt32 (4);
-            if (arc_size != file.MaxOffset || file.View.ReadUInt32 (0x10) != 2)
+            uint arc_size = file.View.ReadUInt32(4);
+            if (arc_size != file.MaxOffset || file.View.ReadUInt32(0x10) != 2)
                 return null;
             uint check = (arc_size & 0xD5555555u) << 1 | arc_size & 0xAAAAAAAAu;
-            if (check != file.View.ReadUInt32 (8))
+            if (check != file.View.ReadUInt32(8))
                 return null;
-            int count = file.View.ReadUInt16 (0xE);
-            if (!IsSaneCount (count))
+            int count = file.View.ReadUInt16(0xE);
+            if (!IsSaneCount(count))
                 return null;
 
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             using (var index = file.CreateStream())
             {
                 index.Position = 0x14;
                 for (int i = 0; i < count; ++i)
                 {
-                    var entry = new PlaEntry {
+                    var entry = new PlaEntry
+                    {
                         Id = index.ReadInt32()
                     };
-                    entry.Name = entry.Id.ToString ("D5");
-                    dir.Add (entry);
+                    entry.Name = entry.Id.ToString("D5");
+                    dir.Add(entry);
                 }
                 foreach (PlaEntry entry in dir)
                 {
@@ -101,7 +102,7 @@ namespace GameRes.Formats.SquadraD
                 dir[i].Size = (uint)(last_offset - dir[i].Offset);
                 last_offset = dir[i].Offset;
             }
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
 
         /*

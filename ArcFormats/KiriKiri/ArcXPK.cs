@@ -33,57 +33,57 @@ namespace GameRes.Formats.KiriKiri
     [Export(typeof(ArchiveFormat))]
     public class XpkOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "XPK"; } }
+        public override string Tag { get { return "XPK"; } }
         public override string Description { get { return "KAG System resource archive"; } }
-        public override uint     Signature { get { return 0x314B5058; } } // 'XPK1'
-        public override bool  IsHierarchic { get { return true; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x314B5058; } } // 'XPK1'
+        public override bool IsHierarchic { get { return true; } }
+        public override bool CanWrite { get { return false; } }
 
-        public XpkOpener ()
+        public XpkOpener()
         {
             Signatures = new uint[] { 0x314B5058, 0 };
         }
 
-        static readonly byte[] SignatureBytes = Encoding.ASCII.GetBytes ("XPK1\x1A");
+        static readonly byte[] SignatureBytes = Encoding.ASCII.GetBytes("XPK1\x1A");
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
             long base_offset = 0;
-            if (0x5A4D == file.View.ReadUInt16 (0)) // 'MZ'
-                base_offset = Xp3Opener.SkipExeHeader (file, SignatureBytes);
-            if (!file.View.BytesEqual (base_offset, SignatureBytes))
+            if (0x5A4D == file.View.ReadUInt16(0)) // 'MZ'
+                base_offset = Xp3Opener.SkipExeHeader(file, SignatureBytes);
+            if (!file.View.BytesEqual(base_offset, SignatureBytes))
                 return null;
             using (var index = file.CreateStream())
             {
-                index.Position = base_offset+10;
-                int count = (int)ReadUInt (index);
-                if (!IsSaneCount (count))
+                index.Position = base_offset + 10;
+                int count = (int)ReadUInt(index);
+                if (!IsSaneCount(count))
                     return null;
-                var dir = new List<Entry> (count);
+                var dir = new List<Entry>(count);
                 for (int i = 0; i < count; ++i)
                 {
-                    long offset = ReadUInt (index) + base_offset;
-                    uint size = ReadUInt (index);
-                    uint unpacked_size = ReadUInt (index);
+                    long offset = ReadUInt(index) + base_offset;
+                    uint size = ReadUInt(index);
+                    uint unpacked_size = ReadUInt(index);
                     index.ReadInt16();
                     var name = index.ReadCString();
-                    var entry = FormatCatalog.Instance.Create<PackedEntry> (name);
+                    var entry = FormatCatalog.Instance.Create<PackedEntry>(name);
                     entry.Offset = offset;
-                    entry.Size   = size;
+                    entry.Size = size;
                     entry.UnpackedSize = unpacked_size;
-                    if (!entry.CheckPlacement (file.MaxOffset) && !(offset == file.MaxOffset && size == 0))
+                    if (!entry.CheckPlacement(file.MaxOffset) && !(offset == file.MaxOffset && size == 0))
                         return null;
-                    dir.Add (entry);
+                    dir.Add(entry);
                 }
-                return new ArcFile (file, this, dir);
+                return new ArcFile(file, this, dir);
             }
         }
 
-        internal static uint ReadUInt (IBinaryStream input)
+        internal static uint ReadUInt(IBinaryStream input)
         {
             if (input.ReadByte() != 4)
                 throw new InvalidFormatException();
-            return Binary.BigEndian (input.ReadUInt32());
+            return Binary.BigEndian(input.ReadUInt32());
         }
     }
 }

@@ -42,10 +42,10 @@ namespace GameRes.Formats.GUI
     /// </summary>
     public partial class WidgetINT : StackPanel
     {
-        public WidgetINT ()
+        public WidgetINT()
         {
             InitializeComponent();
-            ViewModel = new IntEncryptionViewModel (GameRes.Formats.Properties.Settings.Default.INTEncryption);
+            ViewModel = new IntEncryptionViewModel(GameRes.Formats.Properties.Settings.Default.INTEncryption);
             this.DataContext = ViewModel;
         }
 
@@ -53,29 +53,30 @@ namespace GameRes.Formats.GUI
 
         public IntEncryptionInfo Info { get { return ViewModel.Source; } }
 
-        private void Check_Click (object sender, System.Windows.RoutedEventArgs e)
+        private void Check_Click(object sender, System.Windows.RoutedEventArgs e)
         {
-            var dlg = new OpenFileDialog {
+            var dlg = new OpenFileDialog
+            {
                 CheckFileExists = true,
                 CheckPathExists = true,
                 Multiselect = false,
                 Title = arcStrings.INTChooseExe,
-                Filter = arcStrings.INTExeFiles+"|*.exe;*.bin",
+                Filter = arcStrings.INTExeFiles + "|*.exe;*.bin",
                 FilterIndex = 1,
                 InitialDirectory = Directory.GetCurrentDirectory(),
             };
-            if (!dlg.ShowDialog (Window.GetWindow (this)).Value)
+            if (!dlg.ShowDialog(Window.GetWindow(this)).Value)
                 return;
             try
             {
-                var pass = IntOpener.GetPassFromExe (dlg.FileName);
+                var pass = IntOpener.GetPassFromExe(dlg.FileName);
                 if (null != pass)
                 {
                     ViewModel.ExeMessage = arcStrings.INTMessage1;
                     ViewModel.Password = pass;
                 }
                 else
-                    ViewModel.ExeMessage = string.Format (arcStrings.INTKeyNotFound, Path.GetFileName (dlg.FileName));
+                    ViewModel.ExeMessage = string.Format(arcStrings.INTKeyNotFound, Path.GetFileName(dlg.FileName));
             }
             catch (Exception X)
             {
@@ -87,18 +88,18 @@ namespace GameRes.Formats.GUI
     [ValueConversion(typeof(uint?), typeof(string))]
     public class KeyConverter : IValueConverter
     {
-        public object Convert (object value, Type targetType, object parameter, CultureInfo culture)
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             uint? key = (uint?)value;
-            return null != key ? key.Value.ToString ("X8") : "";
+            return null != key ? key.Value.ToString("X8") : "";
         }
 
-        public object ConvertBack (object value, Type targetType, object parameter, CultureInfo culture)
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
             string strValue = value as string;
             uint result_key;
             if (uint.TryParse(strValue, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out result_key))
-                return new uint? (result_key);
+                return new uint?(result_key);
             else
                 return null;
         }
@@ -110,25 +111,25 @@ namespace GameRes.Formats.GUI
         {
         }
 
-        public override ValidationResult Validate (object value, CultureInfo cultureInfo)
+        public override ValidationResult Validate(object value, CultureInfo cultureInfo)
         {
             uint key = 0;
             try
             {
                 if (((string)value).Length > 0)
-                    key = UInt32.Parse ((string)value, NumberStyles.HexNumber);
+                    key = UInt32.Parse((string)value, NumberStyles.HexNumber);
             }
             catch
             {
-                return new ValidationResult (false, Strings.arcStrings.INTKeyRequirement);
+                return new ValidationResult(false, Strings.arcStrings.INTKeyRequirement);
             }
-            return new ValidationResult (true, null);
+            return new ValidationResult(true, null);
         }
     }
 
     internal class IntEncryptionViewModel : INotifyPropertyChanged
     {
-        public IntEncryptionViewModel (IntEncryptionInfo src)
+        public IntEncryptionViewModel(IntEncryptionInfo src)
         {
             Source = src ?? new IntEncryptionInfo();
             KnownKeys = IntOpener.KnownSchemes;
@@ -138,40 +139,46 @@ namespace GameRes.Formats.GUI
         public IntEncryptionInfo Source { get; set; }
         public Dictionary<string, KeyData> KnownKeys { get; private set; }
 
-        public string Scheme {
+        public string Scheme
+        {
             get { return Source.Scheme; }
-            set {
+            set
+            {
                 if (Source.Scheme != value)
                 {
                     Source.Scheme = value;
                     NotifyPropertyChanged();
                     KeyData keydata;
-                    if (!string.IsNullOrEmpty (value)
-                        && KnownKeys.TryGetValue (value, out keydata))
+                    if (!string.IsNullOrEmpty(value)
+                        && KnownKeys.TryGetValue(value, out keydata))
                     {
                         Source.Password = keydata.Passphrase;
-                        NotifyPropertyChanged ("Password");
+                        NotifyPropertyChanged("Password");
                         Key = keydata.Key;
                     }
                 }
             }
         }
-        public string Password {
+        public string Password
+        {
             get { return Source.Password; }
-            set {
+            set
+            {
                 if (Source.Password != value)
                 {
                     Source.Password = value;
                     NotifyPropertyChanged();
-                    var scheme = KnownKeys.FirstOrDefault (s => s.Value.Passphrase == value);
+                    var scheme = KnownKeys.FirstOrDefault(s => s.Value.Passphrase == value);
                     Scheme = scheme.Key;
-                    Key = KeyData.EncodePassPhrase (value);
+                    Key = KeyData.EncodePassPhrase(value);
                 }
             }
         }
-        public uint? Key {
+        public uint? Key
+        {
             get { return Source.Key; }
-            set {
+            set
+            {
                 if (Source.Key != value)
                 {
                     Source.Key = value;
@@ -179,10 +186,12 @@ namespace GameRes.Formats.GUI
                 }
             }
         }
-        string  m_message;
-        public string ExeMessage {
+        string m_message;
+        public string ExeMessage
+        {
             get { return m_message; }
-            set {
+            set
+            {
                 if (m_message != value)
                 {
                     m_message = value;
@@ -193,10 +202,10 @@ namespace GameRes.Formats.GUI
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private void NotifyPropertyChanged ([CallerMemberName] string propertyName = "")
+        private void NotifyPropertyChanged([CallerMemberName] string propertyName = "")
         {
             if (PropertyChanged != null)
-                PropertyChanged (this, new PropertyChangedEventArgs (propertyName));
+                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }

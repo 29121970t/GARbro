@@ -12,26 +12,27 @@ namespace GameRes.Formats.GUI
     /// </summary>
     public partial class CreateAMIWidget : Grid
     {
-        public CreateAMIWidget ()
+        public CreateAMIWidget()
         {
-            InitializeComponent ();
+            InitializeComponent();
         }
 
-        private void Browse_Click (object sender, RoutedEventArgs e)
+        private void Browse_Click(object sender, RoutedEventArgs e)
         {
             string initial = BaseArchive.Text;
             string dir = ".";
-            if (!string.IsNullOrEmpty (initial))
+            if (!string.IsNullOrEmpty(initial))
             {
-                var parent = Directory.GetParent (initial);
+                var parent = Directory.GetParent(initial);
                 if (null != parent)
                 {
                     dir = parent.FullName;
-                    initial = Path.GetFileName (initial);
+                    initial = Path.GetFileName(initial);
                 }
             }
-            dir = Path.GetFullPath (dir);
-            var dlg = new OpenFileDialog {
+            dir = Path.GetFullPath(dir);
+            var dlg = new OpenFileDialog
+            {
                 CheckFileExists = true,
                 CheckPathExists = true,
                 FileName = initial,
@@ -39,19 +40,19 @@ namespace GameRes.Formats.GUI
                 Multiselect = false,
                 Title = arcStrings.AMIChooseBase,
             };
-            var owner = FindVisualParent<Window> (this);
-            if (dlg.ShowDialog (owner).Value && !string.IsNullOrEmpty (dlg.FileName))
+            var owner = FindVisualParent<Window>(this);
+            if (dlg.ShowDialog(owner).Value && !string.IsNullOrEmpty(dlg.FileName))
                 BaseArchive.Text = dlg.FileName;
         }
 
-        static parentItem FindVisualParent<parentItem> (DependencyObject obj) where parentItem : DependencyObject
+        static parentItem FindVisualParent<parentItem>(DependencyObject obj) where parentItem : DependencyObject
         {
             if (null == obj)
                 return null;
-            DependencyObject parent = VisualTreeHelper.GetParent (obj);
+            DependencyObject parent = VisualTreeHelper.GetParent(obj);
             while (parent != null && !(parent is parentItem))
             {
-                parent = VisualTreeHelper.GetParent (parent);
+                parent = VisualTreeHelper.GetParent(parent);
             }
             return parent as parentItem;
         }

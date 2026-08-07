@@ -12,20 +12,20 @@ namespace GameRes.Formats.GUI
     /// </summary>
     public partial class WidgetKCAP : Grid
     {
-        public WidgetKCAP ()
+        public WidgetKCAP()
         {
-            InitializeComponent ();
+            InitializeComponent();
             var keys = new[] { arcStrings.ArcDefault };
-            EncScheme.ItemsSource = keys.Concat (PackOpener.KnownSchemes.Keys);
+            EncScheme.ItemsSource = keys.Concat(PackOpener.KnownSchemes.Keys);
             if (-1 == EncScheme.SelectedIndex)
                 EncScheme.SelectedIndex = 0;
             EncScheme.SelectionChanged += OnSchemeChanged;
         }
 
-        void OnSchemeChanged (object sender, SelectionChangedEventArgs e)
+        void OnSchemeChanged(object sender, SelectionChangedEventArgs e)
         {
             var widget = sender as ComboBox;
-            var pass = PackOpener.GetPassPhrase (widget.SelectedItem as string);
+            var pass = PackOpener.GetPassPhrase(widget.SelectedItem as string);
             Passphrase.Text = pass;
             Settings.Default.KCAPPassPhrase = pass;
         }

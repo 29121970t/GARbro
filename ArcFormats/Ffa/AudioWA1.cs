@@ -35,11 +35,11 @@ namespace GameRes.Formats.Ffa
     [Export(typeof(AudioFormat))]
     public class Wa1Audio : AudioFormat
     {
-        public override string         Tag { get { return "WA1"; } }
+        public override string Tag { get { return "WA1"; } }
         public override string Description { get { return "FFA System wave audio format"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public override SoundInput TryOpen (IBinaryStream file)
+        public override SoundInput TryOpen(IBinaryStream file)
         {
             int packed = file.ReadInt32();
             if (packed < 0)
@@ -52,12 +52,12 @@ namespace GameRes.Formats.Ffa
                 int unpacked = file.ReadInt32();
                 if (unpacked <= 0)
                     return null;
-                using (var reader = new LzssReader (file.AsStream, packed, unpacked))
+                using (var reader = new LzssReader(file.AsStream, packed, unpacked))
                 {
                     reader.Unpack();
-                    if (Binary.AsciiEqual (reader.Data, 0, "RIFF"))
+                    if (Binary.AsciiEqual(reader.Data, 0, "RIFF"))
                     {
-                        var sound = new WaveInput (new MemoryStream (reader.Data));
+                        var sound = new WaveInput(new MemoryStream(reader.Data));
                         file.Dispose();
                         return sound;
                     }
@@ -70,11 +70,11 @@ namespace GameRes.Formats.Ffa
                     return null;
                 file.Position = 0;
                 input = new byte[file.Length];
-                file.Read (input, 0, input.Length);
+                file.Read(input, 0, input.Length);
             }
-            var wa1 = new Wa1Reader (input);
+            var wa1 = new Wa1Reader(input);
             wa1.Unpack();
-            var wav = new WaveInput (new MemoryStream (wa1.Data));
+            var wav = new WaveInput(new MemoryStream(wa1.Data));
             file.Dispose();
             return wav;
         }
@@ -82,24 +82,24 @@ namespace GameRes.Formats.Ffa
 
     internal class Wa1Reader
     {
-        byte[]  m_input;
-        byte[]  m_output;
-        int     m_type;
-        int     m_data_size;
+        byte[] m_input;
+        byte[] m_output;
+        int m_type;
+        int m_data_size;
 
-        public int    Type { get { return m_type; } }
+        public int Type { get { return m_type; } }
         public byte[] Data { get { return m_output; } }
 
-        public Wa1Reader (byte[] input)
+        public Wa1Reader(byte[] input)
         {
             m_input = input;
-            m_type = LittleEndian.ToInt32 (m_input, 0);
-            if (!Binary.AsciiEqual (m_input, 4, "RIFF") || !Binary.AsciiEqual (m_input, 0x28, "data"))
+            m_type = LittleEndian.ToInt32(m_input, 0);
+            if (!Binary.AsciiEqual(m_input, 4, "RIFF") || !Binary.AsciiEqual(m_input, 0x28, "data"))
                 throw new InvalidFormatException();
-            m_data_size = LittleEndian.ToInt32 (m_input, 0x2c);
-            m_output = new byte[m_data_size+0x2c];
-            Buffer.BlockCopy (m_input, 4, m_output, 0, 0x2c);
-            LittleEndian.Pack (m_output.Length-8, m_output, 4);
+            m_data_size = LittleEndian.ToInt32(m_input, 0x2c);
+            m_output = new byte[m_data_size + 0x2c];
+            Buffer.BlockCopy(m_input, 4, m_output, 0, 0x2c);
+            LittleEndian.Pack(m_output.Length - 8, m_output, 4);
         }
 
         internal static readonly ushort[] SampleTable = {
@@ -107,20 +107,20 @@ namespace GameRes.Formats.Ffa
             0x39, 0x39, 0x39, 0x39, 0x4D, 0x66, 0x80, 0x99,
         };
 
-        public byte[] Unpack ()
+        public byte[] Unpack()
         {
             switch (Type)
             {
-            case 0: UnpackV0(); break;
-            case 4: UnpackV4(); break;
-            case 8: UnpackV8(); break;
-            case 12: UnpackV12(); break;
-            default: throw new InvalidFormatException();
+                case 0: UnpackV0(); break;
+                case 4: UnpackV4(); break;
+                case 8: UnpackV8(); break;
+                case 12: UnpackV12(); break;
+                default: throw new InvalidFormatException();
             }
             return m_output;
         }
 
-        void UnpackV4 ()
+        void UnpackV4()
         {
             int src = 0x30;
             int dst = 0x2c;
@@ -158,13 +158,13 @@ namespace GameRes.Formats.Ffa
                         v77 = (v77 - 3) & 0xff;
                         v81 = 1;
                     }
-                    else if ( (v76 & 7) == 1 )
+                    else if ((v76 & 7) == 1)
                     {
                         v80 = v76 >> 3;
                         v77 = (v77 - 3) & 0xff;
                         v81 = 9;
                     }
-                    else if ( (v76 & 0xF) == 11 )
+                    else if ((v76 & 0xF) == 11)
                     {
                         v80 = v76 >> 4;
                         v77 = (v77 - 4) & 0xff;
@@ -216,10 +216,10 @@ namespace GameRes.Formats.Ffa
                     {
                         switch (v76 & 0xff)
                         {
-                        case 0x7F:  v81 = 6;  break;
-                        case 0xFF:  v81 = 14; break;
-                        case 0xBF:  v81 = 7;  break;
-                        default:    v81 = 15; break;
+                            case 0x7F: v81 = 6; break;
+                            case 0xFF: v81 = 14; break;
+                            case 0xBF: v81 = 7; break;
+                            default: v81 = 15; break;
                         }
                         v80 = v76 >> 8;
                         v77 = (v77 - 8) & 0xff;
@@ -269,12 +269,12 @@ namespace GameRes.Formats.Ffa
                     v72 = 0x7f;
                 else if (v72 > 0x6000u)
                     v72 = 0x6000;
-                LittleEndian.Pack ((ushort)v73, m_output, dst);
+                LittleEndian.Pack((ushort)v73, m_output, dst);
                 dst += 2;
             }
         }
 
-        void UnpackV0 ()
+        void UnpackV0()
         {
             int src = 0x30;
             int dst = 0x2c;
@@ -305,7 +305,7 @@ namespace GameRes.Formats.Ffa
                     dword -= (int)v18;
                     v13 = dword & 0xffff;
                     v14 = dword >> 16;
-                    if ( v14 < 0 && v13 < 0x8000u )
+                    if (v14 < 0 && v13 < 0x8000u)
                     {
                         v13 = -32768;
                         v14 = -1;
@@ -317,7 +317,7 @@ namespace GameRes.Formats.Ffa
                     dword += (int)v18;
                     v13 = dword & 0xffff;
                     v14 = dword >> 16;
-                    if ( v14 >= 0 && v13 >= 0x8000u )
+                    if (v14 >= 0 && v13 >= 0x8000u)
                     {
                         v13 = 32767;
                         v14 = 0;
@@ -329,12 +329,12 @@ namespace GameRes.Formats.Ffa
                     v12 = 127;
                 else if (v12 > 0x6000u)
                     v12 = 0x6000;
-                LittleEndian.Pack ((ushort)v13, m_output, dst);
+                LittleEndian.Pack((ushort)v13, m_output, dst);
                 dst += 2;
             }
         }
 
-        void UnpackV8 ()
+        void UnpackV8()
         {
             int src = 0x30;
             int dst = 0x2c;
@@ -368,7 +368,7 @@ namespace GameRes.Formats.Ffa
                         dword -= (int)v102;
                         v97 = dword & 0xffff;
                         v98 = dword >> 16;
-                        if ( v98 < 0 && v97 < 0x8000u )
+                        if (v98 < 0 && v97 < 0x8000u)
                         {
                             v97 = -32768;
                             v98 = -1;
@@ -380,7 +380,7 @@ namespace GameRes.Formats.Ffa
                         dword += (int)v102;
                         v97 = dword & 0xffff;
                         v98 = dword >> 16;
-                        if ( v98 >= 0 && v97 >= 0x8000u )
+                        if (v98 >= 0 && v97 >= 0x8000u)
                         {
                             v97 = 32767;
                             v98 = 0;
@@ -393,14 +393,14 @@ namespace GameRes.Formats.Ffa
                         v96 = 127;
                     else if (v96 > 0x6000u)
                         v96 = 0x6000;
-                    LittleEndian.Pack ((ushort)v97, m_output, dst);
+                    LittleEndian.Pack((ushort)v97, m_output, dst);
                     dst += 4;
                 }
                 dst = v172 + 2;
             }
         }
 
-        void UnpackV12 ()
+        void UnpackV12()
         {
             int src = 0x30;
             int dst = 0x2c;
@@ -503,10 +503,10 @@ namespace GameRes.Formats.Ffa
                     {
                         switch (v130 & 0xFF)
                         {
-                        case 0x7F:  v135 = 6;  break;
-                        case 0xFF:  v135 = 14; break;
-                        case 0xBF:  v135 = 7;  break;
-                        default:    v135 = 15; break;
+                            case 0x7F: v135 = 6; break;
+                            case 0xFF: v135 = 14; break;
+                            case 0xBF: v135 = 7; break;
+                            default: v135 = 15; break;
                         }
                         v134 = v130 >> 8;
                         v131 = (v131 - 8) & 0xFF;
@@ -523,7 +523,7 @@ namespace GameRes.Formats.Ffa
                         dword -= v139;
                         v127 = dword & 0xffff;
                         v128 = dword >> 16;
-                        if ( v128 < 0 && v127 < 0x8000u )
+                        if (v128 < 0 && v127 < 0x8000u)
                         {
                             v127 = -32768;
                             v128 = -1;
@@ -535,7 +535,7 @@ namespace GameRes.Formats.Ffa
                         dword += v139;
                         v127 = dword & 0xffff;
                         v128 = dword >> 16;
-                        if ( v128 >= 0 && v127 >= 0x8000u )
+                        if (v128 >= 0 && v127 >= 0x8000u)
                         {
                             v127 = 32767;
                             v128 = 0;
@@ -548,7 +548,7 @@ namespace GameRes.Formats.Ffa
                         v126 = 0x7F;
                     else if (v126 > 0x6000)
                         v126 = 0x6000;
-                    LittleEndian.Pack ((ushort)v127, m_output, dst);
+                    LittleEndian.Pack((ushort)v127, m_output, dst);
                     dst += 4;
                 }
                 dst = output_begin + 2;

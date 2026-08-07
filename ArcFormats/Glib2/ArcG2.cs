@@ -32,40 +32,40 @@ using GameRes.Utility;
 
 namespace GameRes.Formats.Glib2
 {
-    public delegate int PermutationDelegate (int offset, int value);
+    public delegate int PermutationDelegate(int offset, int value);
 
     public class G2Scheme
     {
-        public byte[]   SrcOrder;
-        public byte[]   DstOrder;
+        public byte[] SrcOrder;
+        public byte[] DstOrder;
 
         public PermutationDelegate FirstPermutation;
         public PermutationDelegate SecondPermutation;
 
-        public void Decrypt (byte[] input, int input_origin, byte[] output, int output_origin, int length)
+        public void Decrypt(byte[] input, int input_origin, byte[] output, int output_origin, int length)
         {
             int i;
             for (i = 0; i < (length & ~3); ++i)
             {
-                int src = input_origin  + (i & ~3) + SrcOrder[i & 3];
+                int src = input_origin + (i & ~3) + SrcOrder[i & 3];
                 int dst = output_origin + (i & ~3) + DstOrder[i & 3];
-                output[dst] = (byte)SecondPermutation (i, FirstPermutation (i, input[src]));
+                output[dst] = (byte)SecondPermutation(i, FirstPermutation(i, input[src]));
             }
             for (; i < length; ++i)
             {
-                output[output_origin+i] = (byte)SecondPermutation (i, FirstPermutation (i, input[input_origin+i]));
+                output[output_origin + i] = (byte)SecondPermutation(i, FirstPermutation(i, input[input_origin + i]));
             }
         }
 
-        public void Decrypt (byte[] input, byte[] output)
+        public void Decrypt(byte[] input, byte[] output)
         {
-            Decrypt (input, 0, output, 0, input.Length);
+            Decrypt(input, 0, output, 0, input.Length);
         }
 
-        public byte[] Decrypt (byte[] encrypted)
+        public byte[] Decrypt(byte[] encrypted)
         {
             var data = new byte[encrypted.Length];
-            Decrypt (encrypted, data);
+            Decrypt(encrypted, data);
             return data;
         }
     }
@@ -78,34 +78,34 @@ namespace GameRes.Formats.Glib2
     [Export(typeof(ArchiveFormat))]
     public class G2Opener : ArchiveFormat
     {
-        public override string         Tag { get { return "G2"; } }
+        public override string Tag { get { return "G2"; } }
         public override string Description { get { return "Glib2 engine resource archive"; } }
-        public override uint     Signature { get { return 0x47D33310; } }
-        public override bool  IsHierarchic { get { return true; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x47D33310; } }
+        public override bool IsHierarchic { get { return true; } }
+        public override bool CanWrite { get { return false; } }
 
-        public G2Opener ()
+        public G2Opener()
         {
             Extensions = new string[] { "g2", "stx" };
         }
 
-        static readonly G2Scheme HeaderEncryption = G2MetaScheme.CreateInstance (0x8465B49B);
+        static readonly G2Scheme HeaderEncryption = G2MetaScheme.CreateInstance(0x8465B49B);
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            var header = file.View.ReadBytes (0, 0x5C);
+            var header = file.View.ReadBytes(0, 0x5C);
             if (header.Length != 0x5C)
                 return null;
-            header = HeaderEncryption.Decrypt (header);
-            if (!Binary.AsciiEqual (header, "GLibArchiveData2.") || header[0x12] != 0)
+            header = HeaderEncryption.Decrypt(header);
+            if (!Binary.AsciiEqual(header, "GLibArchiveData2.") || header[0x12] != 0)
                 return null;
             int version = header[0x11] - '0';
             if (version != 0 && version != 1)
                 return null;
-            uint index_offset = LittleEndian.ToUInt32 (header, 0x54);
-            uint index_size   = LittleEndian.ToUInt32 (header, 0x58);
+            uint index_offset = LittleEndian.ToUInt32(header, 0x54);
+            uint index_size = LittleEndian.ToUInt32(header, 0x58);
             byte[][] encrypted_index = new byte[2][];
-            encrypted_index[0] = file.View.ReadBytes (index_offset, index_size);
+            encrypted_index[0] = file.View.ReadBytes(index_offset, index_size);
             if (encrypted_index[0].Length != index_size)
                 return null;
             encrypted_index[1] = new byte[index_size];
@@ -118,59 +118,59 @@ namespace GameRes.Formats.Glib2
             int i = 0;
             foreach (var key in keys)
             {
-                var decoder = G2MetaScheme.CreateInstance (key);
-                decoder.Decrypt (encrypted_index[i], encrypted_index[i^1]);
+                var decoder = G2MetaScheme.CreateInstance(key);
+                decoder.Decrypt(encrypted_index[i], encrypted_index[i ^ 1]);
                 i ^= 1;
             }
             byte[] index = encrypted_index[i];
-            if (!Binary.AsciiEqual (index, "CDBD"))
+            if (!Binary.AsciiEqual(index, "CDBD"))
                 return null;
-            int count = LittleEndian.ToInt32 (index, 4);
+            int count = LittleEndian.ToInt32(index, 4);
             int current_offset = 0x10;
-            int info_base = current_offset + LittleEndian.ToInt32 (index, 8);
+            int info_base = current_offset + LittleEndian.ToInt32(index, 8);
             int names_base = current_offset + count * 0x18;
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             for (i = 0; i < count; ++i)
             {
-                int name_offset = names_base + LittleEndian.ToInt32 (index, current_offset);
-                int parent_dir = LittleEndian.ToInt32 (index, current_offset+8);
-                int attr = LittleEndian.ToInt32 (index, current_offset+0xC);
-                var name = Binary.GetCString (index, name_offset, info_base-name_offset);
+                int name_offset = names_base + LittleEndian.ToInt32(index, current_offset);
+                int parent_dir = LittleEndian.ToInt32(index, current_offset + 8);
+                int attr = LittleEndian.ToInt32(index, current_offset + 0xC);
+                var name = Binary.GetCString(index, name_offset, info_base - name_offset);
                 if (parent_dir != -1)
-                    name = Path.Combine (dir[parent_dir].Name, name);
+                    name = Path.Combine(dir[parent_dir].Name, name);
                 var entry = new G2Entry { Name = name };
                 if (0x100 == attr)
                 {
-                    int info_offset = info_base + LittleEndian.ToInt32 (index, current_offset+0x10);
-                    entry.Size   = LittleEndian.ToUInt32 (index, info_offset+8);
-                    entry.Offset = LittleEndian.ToUInt32 (index, info_offset+0xC);
-                    entry.Type   = FormatCatalog.Instance.GetTypeFromName (name);
+                    int info_offset = info_base + LittleEndian.ToInt32(index, current_offset + 0x10);
+                    entry.Size = LittleEndian.ToUInt32(index, info_offset + 8);
+                    entry.Offset = LittleEndian.ToUInt32(index, info_offset + 0xC);
+                    entry.Type = FormatCatalog.Instance.GetTypeFromName(name);
                     for (int j = 0; j < 4; ++j)
                     {
                         info_offset += 0x10;
-                        entry.Keys[j] = LittleEndian.ToUInt32 (index, info_offset);
+                        entry.Keys[j] = LittleEndian.ToUInt32(index, info_offset);
                     }
                 }
-                dir.Add (entry);
+                dir.Add(entry);
                 current_offset += 0x18;
             }
-            return new ArcFile (file, this, dir.Where (e => e.Offset != -1).ToList());
+            return new ArcFile(file, this, dir.Where(e => e.Offset != -1).ToList());
         }
 
         const int EntryChunkSize = 0x20000;
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var g2ent = entry as G2Entry;
             if (null == g2ent)
-                return base.OpenEntry (arc, entry);
+                return base.OpenEntry(arc, entry);
 
             int entry_size = (int)g2ent.Size;
             int offset = 0;
             var decoders = new G2Scheme[4];
             for (int i = 0; i < 4 && offset < entry_size; ++i)
             {
-                decoders[i] = G2MetaScheme.CreateInstance (g2ent.Keys[i]);
+                decoders[i] = G2MetaScheme.CreateInstance(g2ent.Keys[i]);
                 if (null != decoders[i])
                     offset += EntryChunkSize;
             }
@@ -180,29 +180,29 @@ namespace GameRes.Formats.Glib2
             offset = 0;
             while (offset < entry_size)
             {
-                int current_chunk_size = Math.Min (EntryChunkSize, entry_size - offset);
+                int current_chunk_size = Math.Min(EntryChunkSize, entry_size - offset);
                 if (null != decoders[current_decoder])
                 {
-                    arc.File.View.Read (g2ent.Offset+offset, input, 0, (uint)current_chunk_size);
-                    decoders[current_decoder].Decrypt (input, 0, output, offset, current_chunk_size);
+                    arc.File.View.Read(g2ent.Offset + offset, input, 0, (uint)current_chunk_size);
+                    decoders[current_decoder].Decrypt(input, 0, output, offset, current_chunk_size);
                 }
                 else
                 {
-                    arc.File.View.Read (g2ent.Offset+offset, output, offset, (uint)current_chunk_size);
+                    arc.File.View.Read(g2ent.Offset + offset, output, offset, (uint)current_chunk_size);
                 }
                 current_decoder = (current_decoder + 1) & 3;
                 offset += current_chunk_size;
             }
-            return new BinMemoryStream (output, entry.Name);
+            return new BinMemoryStream(output, entry.Name);
         }
     }
 
     public class G2MetaScheme
     {
-        public static G2Scheme CreateInstance (uint key)
+        public static G2Scheme CreateInstance(uint key)
         {
             ushort hash = (ushort)((key * 0x5F) >> 13);
-            int i = Array.IndexOf (PermutationHashes, hash);
+            int i = Array.IndexOf(PermutationHashes, hash);
             if (-1 == i)
                 return null;
             int src_order = i / 150;
@@ -217,7 +217,7 @@ namespace GameRes.Formats.Glib2
             {
                 SrcOrder = MutationOrder[src_order],
                 DstOrder = MutationOrder[dst_order],
-                FirstPermutation  = Permutations[first_action],
+                FirstPermutation = Permutations[first_action],
                 SecondPermutation = Permutations[second_action],
             };
         }

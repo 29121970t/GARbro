@@ -35,23 +35,23 @@ namespace GameRes.Formats.Musica
 {
     internal class PazEntry : PackedEntry
     {
-        public uint     AlignedSize;
-        public byte[]   Key;
+        public uint AlignedSize;
+        public byte[] Key;
     }
 
     internal abstract class PazArchiveBase : MultiFileArchive
     {
-        public readonly int         Version;
-        public readonly byte        XorKey;
+        public readonly int Version;
+        public readonly byte XorKey;
 
-        public PazArchiveBase (ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, int version, byte key, IReadOnlyList<ArcView> parts = null)
-            : base (arc, impl, dir, parts)
+        public PazArchiveBase(ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, int version, byte key, IReadOnlyList<ArcView> parts = null)
+            : base(arc, impl, dir, parts)
         {
             Version = version;
             XorKey = key;
         }
 
-        protected override uint GetEntrySize (Entry entry)
+        protected override uint GetEntrySize(Entry entry)
         {
             var pent = entry as PazEntry;
             if (pent != null)
@@ -60,82 +60,82 @@ namespace GameRes.Formats.Musica
                 return entry.Size;
         }
 
-        internal abstract Stream DecryptEntry (Stream input, PazEntry entry);
+        internal abstract Stream DecryptEntry(Stream input, PazEntry entry);
     }
 
     internal class PazArchive : PazArchiveBase
     {
-        public readonly Blowfish    Encryption;
+        public readonly Blowfish Encryption;
 
-        public PazArchive (ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, int version, byte key, byte[] data_key, IReadOnlyList<ArcView> parts = null)
-            : base (arc, impl, dir, version, key, parts)
+        public PazArchive(ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, int version, byte key, byte[] data_key, IReadOnlyList<ArcView> parts = null)
+            : base(arc, impl, dir, version, key, parts)
         {
-            Encryption = new Blowfish (data_key);
+            Encryption = new Blowfish(data_key);
         }
 
-        internal override Stream DecryptEntry (Stream input, PazEntry entry)
+        internal override Stream DecryptEntry(Stream input, PazEntry entry)
         {
-            input = new InputCryptoStream (input, Encryption.CreateDecryptor());
+            input = new InputCryptoStream(input, Encryption.CreateDecryptor());
             var key = entry.Key;
             if (null == key)
                 return input;
-            var rc4 = new Rc4Transform (key);
+            var rc4 = new Rc4Transform(key);
             if (Version >= 2)
             {
-                uint crc = Crc32.Compute (key, 0, key.Length);
-                int skip_rounds = (int)(crc >> 12) & 0xFF; 
+                uint crc = Crc32.Compute(key, 0, key.Length);
+                int skip_rounds = (int)(crc >> 12) & 0xFF;
                 for (int i = 0; i < skip_rounds; ++i)
                 {
                     rc4.NextByte();
                 }
             }
-            return new InputCryptoStream (input, rc4);
+            return new InputCryptoStream(input, rc4);
         }
     }
 
     internal class MovPazArchive : PazArchiveBase
     {
-        public readonly byte[]  MovKey;
+        public readonly byte[] MovKey;
 
-        public MovPazArchive (ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, int version, byte key, byte[] mov_key, IReadOnlyList<ArcView> parts = null)
-            : base (arc, impl, dir, version, key, parts)
+        public MovPazArchive(ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, int version, byte key, byte[] mov_key, IReadOnlyList<ArcView> parts = null)
+            : base(arc, impl, dir, version, key, parts)
         {
             MovKey = mov_key;
         }
 
-        internal override Stream DecryptEntry (Stream input, PazEntry entry)
+        internal override Stream DecryptEntry(Stream input, PazEntry entry)
         {
             if (Version < 1)
             {
                 using (input)
                 {
                     var data = new byte[entry.AlignedSize];
-                    input.Read (data, 0, data.Length);
+                    input.ReadExactly(data);
                     for (int i = 0; i < data.Length; ++i)
                         data[i] = MovKey[data[i]];
-                    return new BinMemoryStream (data, entry.Name);
+                    return new BinMemoryStream(data, entry.Name);
                 }
             }
             var key = new byte[0x100];
             for (int i = 0; i < 0x100; ++i)
                 key[i] = (byte)(MovKey[i] ^ entry.Key[i % entry.Key.Length]);
 
-            var rc4 = new Rc4Transform (key);
-            var block = rc4.GenerateBlock ((int)Math.Min (0x10000, input.Length));
-            return new ByteStringEncryptedStream (input, block);
+            var rc4 = new Rc4Transform(key);
+            var block = rc4.GenerateBlock((int)Math.Min(0x10000, input.Length));
+            return new ByteStringEncryptedStream(input, block);
         }
     }
 
     [Export(typeof(ArchiveFormat))]
     public class PazOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "PAZ"; } }
+        public override string Tag { get { return "PAZ"; } }
         public override string Description { get { return "Musica engine resource archive"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool  IsHierarchic { get { return true; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool IsHierarchic { get { return true; } }
+        public override bool CanWrite { get { return false; } }
 
-        public PazOpener ()
+        public PazOpener()
         {
             Extensions = new string[] { "paz", "dat" };
             Signatures = new uint[] {
@@ -150,14 +150,14 @@ namespace GameRes.Formats.Musica
         };
         static readonly ISet<string> VideoPazNames = new HashSet<string> { "mov" };
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            uint signature = file.View.ReadUInt32 (0);
-            var scheme = QueryEncryption (file.Name, signature);
+            uint signature = file.View.ReadUInt32(0);
+            var scheme = QueryEncryption(file.Name, signature);
             if (null == scheme)
                 return null;
             uint start_offset = scheme.Version > 0 ? 0x20u : 0u;
-            uint index_size = file.View.ReadUInt32 (start_offset);
+            uint index_size = file.View.ReadUInt32(start_offset);
             start_offset += 4;
             byte xor_key = (byte)(index_size >> 24);
             if (xor_key != 0)
@@ -166,50 +166,50 @@ namespace GameRes.Formats.Musica
                 return null;
 
             var arc_list = new List<Entry>();
-            var arc_dir = VFS.GetDirectoryName (file.Name);
+            var arc_dir = VFS.GetDirectoryName(file.Name);
             long max_offset = file.MaxOffset;
             for (char suffix = 'A'; suffix <= 'Z'; ++suffix)
             {
-                var part_name = VFS.CombinePath (arc_dir, file.Name + suffix);
-                if (!VFS.FileExists (part_name))
+                var part_name = VFS.CombinePath(arc_dir, file.Name + suffix);
+                if (!VFS.FileExists(part_name))
                     break;
-                var part = VFS.FindFile (part_name);
-                arc_list.Add (part);
+                var part = VFS.FindFile(part_name);
+                arc_list.Add(part);
                 max_offset += part.Size;
             }
-            var arc_name = Path.GetFileNameWithoutExtension (file.Name).ToLowerInvariant();
-            bool is_audio = AudioPazNames.Contains (arc_name);
-            bool is_video = VideoPazNames.Contains (arc_name);
-            Stream input = file.CreateStream (start_offset, index_size);
+            var arc_name = Path.GetFileNameWithoutExtension(file.Name).ToLowerInvariant();
+            bool is_audio = AudioPazNames.Contains(arc_name);
+            bool is_video = VideoPazNames.Contains(arc_name);
+            Stream input = file.CreateStream(start_offset, index_size);
             byte[] video_key = null;
             List<Entry> dir;
             try
             {
                 if (xor_key != 0)
-                    input = new XoredStream (input, xor_key);
-                var enc = new Blowfish (scheme.ArcKeys[arc_name].IndexKey);
-                input = new InputCryptoStream (input, enc.CreateDecryptor());
-                using (var index = new ArcView.Reader (input))
+                    input = new XoredStream(input, xor_key);
+                var enc = new Blowfish(scheme.ArcKeys[arc_name].IndexKey);
+                input = new InputCryptoStream(input, enc.CreateDecryptor());
+                using (var index = new ArcView.Reader(input))
                 {
                     int count = index.ReadInt32();
-                    if (!IsSaneCount (count))
+                    if (!IsSaneCount(count))
                         return null;
                     if (is_video)
-                        video_key = index.ReadBytes (0x100);
+                        video_key = index.ReadBytes(0x100);
 
-                    dir = new List<Entry> (count);
+                    dir = new List<Entry>(count);
                     for (int i = 0; i < count; ++i)
                     {
                         var name = index.BaseStream.ReadCString();
-                        var entry = FormatCatalog.Instance.Create<PazEntry> (name);
-                        entry.Offset    = index.ReadInt64();
+                        var entry = FormatCatalog.Instance.Create<PazEntry>(name);
+                        entry.Offset = index.ReadInt64();
                         entry.UnpackedSize = index.ReadUInt32();
-                        entry.Size        = index.ReadUInt32();
+                        entry.Size = index.ReadUInt32();
                         entry.AlignedSize = index.ReadUInt32();
-                        if (!entry.CheckPlacement (max_offset))
+                        if (!entry.CheckPlacement(max_offset))
                             return null;
-                        entry.IsPacked = index.ReadInt32 () != 0;
-                        if (string.IsNullOrEmpty (entry.Type) && is_audio)
+                        entry.IsPacked = index.ReadInt32() != 0;
+                        if (string.IsNullOrEmpty(entry.Type) && is_audio)
                         {
                             entry.Type = "audio";
                         }
@@ -218,15 +218,15 @@ namespace GameRes.Formats.Musica
                             string password = "";
                             if (!entry.IsPacked && scheme.TypeKeys != null)
                             {
-                                password = scheme.GetTypePassword (name, is_audio);
+                                password = scheme.GetTypePassword(name, is_audio);
                             }
-                            if (!string.IsNullOrEmpty (password) || is_video)
+                            if (!string.IsNullOrEmpty(password) || is_video)
                             {
-                                password = string.Format ("{0} {1:X08} {2}", name.ToLowerInvariant(), entry.UnpackedSize, password);
-                                entry.Key = Encodings.cp932.GetBytes (password);
+                                password = string.Format("{0} {1:X08} {2}", name.ToLowerInvariant(), entry.UnpackedSize, password);
+                                entry.Key = Encodings.cp932.GetBytes(password);
                             }
                         }
-                        dir.Add (entry);
+                        dir.Add(entry);
                     }
                 }
             }
@@ -237,13 +237,13 @@ namespace GameRes.Formats.Musica
             List<ArcView> parts = null;
             if (arc_list.Count > 0)
             {
-                parts = new List<ArcView> (arc_list.Count);
+                parts = new List<ArcView>(arc_list.Count);
                 try
                 {
                     foreach (var arc_entry in arc_list)
                     {
-                        var arc_file = VFS.OpenView (arc_entry);
-                        parts.Add (arc_file);
+                        var arc_file = VFS.OpenView(arc_entry);
+                        parts.Add(arc_file);
                     }
                 }
                 catch
@@ -262,30 +262,30 @@ namespace GameRes.Formats.Musica
                         table[video_key[i]] = (byte)i;
                     video_key = table;
                 }
-                return new MovPazArchive (file, this, dir, scheme.Version, xor_key, video_key, parts);
+                return new MovPazArchive(file, this, dir, scheme.Version, xor_key, video_key, parts);
             }
-            return new PazArchive (file, this, dir, scheme.Version, xor_key, scheme.ArcKeys[arc_name].DataKey, parts);
+            return new PazArchive(file, this, dir, scheme.Version, xor_key, scheme.ArcKeys[arc_name].DataKey, parts);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var parc = arc as PazArchiveBase;
             var pent = entry as PazEntry;
             if (null == parc || null == pent)
-                return base.OpenEntry (arc, entry);
+                return base.OpenEntry(arc, entry);
 
-            Stream input = parc.OpenStream (entry);
+            Stream input = parc.OpenStream(entry);
             try
             {
                 if (parc.XorKey != 0)
-                    input = new XoredStream (input, parc.XorKey);
+                    input = new XoredStream(input, parc.XorKey);
 
-                input = parc.DecryptEntry (input, pent);
+                input = parc.DecryptEntry(input, pent);
 
                 if (pent.Size < pent.AlignedSize)
-                    input = new LimitStream (input, pent.Size);
+                    input = new LimitStream(input, pent.Size);
                 if (pent.IsPacked)
-                    input = new ZLibStream (input, CompressionMode.Decompress);
+                    input = new ZLibStream(input, CompressionMode.Decompress);
                 return input;
             }
             catch
@@ -296,41 +296,41 @@ namespace GameRes.Formats.Musica
             }
         }
 
-        PazScheme QueryEncryption (string arc_name, uint signature)
+        PazScheme QueryEncryption(string arc_name, uint signature)
         {
             PazScheme scheme = null;
-            if (!KnownSchemes.TryGetValue (signature, out scheme) && KnownTitles.Count > 1)
+            if (!KnownSchemes.TryGetValue(signature, out scheme) && KnownTitles.Count > 1)
             {
-                var title = FormatCatalog.Instance.LookupGame (arc_name);
-                scheme = GetScheme (title);
+                var title = FormatCatalog.Instance.LookupGame(arc_name);
+                scheme = GetScheme(title);
                 if (null == scheme)
                 {
-                    if (!arc_name.HasExtension (".paz"))
+                    if (!arc_name.HasExtension(".paz"))
                         return null;
-                    var options = Query<PazOptions> (arcStrings.ArcEncryptedNotice);
+                    var options = Query<PazOptions>(arcStrings.ArcEncryptedNotice);
                     scheme = options.Scheme;
                 }
             }
-            arc_name = Path.GetFileNameWithoutExtension (arc_name).ToLowerInvariant();
-            if (null == scheme || !scheme.ArcKeys.ContainsKey (arc_name))
+            arc_name = Path.GetFileNameWithoutExtension(arc_name).ToLowerInvariant();
+            if (null == scheme || !scheme.ArcKeys.ContainsKey(arc_name))
                 throw new UnknownEncryptionScheme();
             return scheme;
         }
 
-        public override ResourceOptions GetDefaultOptions ()
+        public override ResourceOptions GetDefaultOptions()
         {
-            return new PazOptions { Scheme = GetScheme (Properties.Settings.Default.PAZTitle) };
+            return new PazOptions { Scheme = GetScheme(Properties.Settings.Default.PAZTitle) };
         }
 
-        public override object GetAccessWidget ()
+        public override object GetAccessWidget()
         {
-            return new GUI.WidgetPAZ (this);
+            return new GUI.WidgetPAZ(this);
         }
 
-        PazScheme GetScheme (string title)
+        PazScheme GetScheme(string title)
         {
             PazScheme scheme;
-            if (string.IsNullOrEmpty (title) || !KnownTitles.TryGetValue (title, out scheme))
+            if (string.IsNullOrEmpty(title) || !KnownTitles.TryGetValue(title, out scheme))
                 return null;
             return scheme;
         }
@@ -347,40 +347,40 @@ namespace GameRes.Formats.Musica
             KnownTitles = new Dictionary<string, PazScheme>()
         };
 
-        public IDictionary<uint, PazScheme>  KnownSchemes { get { return m_scheme.KnownSchemes; } }
+        public IDictionary<uint, PazScheme> KnownSchemes { get { return m_scheme.KnownSchemes; } }
         public IDictionary<string, PazScheme> KnownTitles { get { return m_scheme.KnownTitles; } }
     }
 
     [Serializable]
     public class PazKey
     {
-        public byte[]   IndexKey;
-        public byte[]   DataKey;
+        public byte[] IndexKey;
+        public byte[] DataKey;
     }
 
     [Serializable]
     public class PazScheme
     {
-        public int                          Version;
-        public IDictionary<string, PazKey>  ArcKeys;
-        public IDictionary<string, string>  TypeKeys;
+        public int Version;
+        public IDictionary<string, PazKey> ArcKeys;
+        public IDictionary<string, string> TypeKeys;
 
-        public string GetTypePassword (string name, bool is_audio)
+        public string GetTypePassword(string name, bool is_audio)
         {
             string password = null;
-            if (name.Contains ('.'))
+            if (name.Contains('.'))
             {
-                if (name.EndsWith (".png"))
-                    TypeKeys.TryGetValue ("png", out password);
-                else if (name.EndsWith (".ogg") || is_audio)
-                    TypeKeys.TryGetValue ("ogg", out password);
-                else if (name.EndsWith (".sc"))
-                    TypeKeys.TryGetValue ("sc", out password);
-                else if (name.EndsWith (".avi") || name.EndsWith (".mpg") || name.EndsWith (".mpeg"))
-                    TypeKeys.TryGetValue ("avi", out password);
+                if (name.EndsWith(".png"))
+                    TypeKeys.TryGetValue("png", out password);
+                else if (name.EndsWith(".ogg") || is_audio)
+                    TypeKeys.TryGetValue("ogg", out password);
+                else if (name.EndsWith(".sc"))
+                    TypeKeys.TryGetValue("sc", out password);
+                else if (name.EndsWith(".avi") || name.EndsWith(".mpg") || name.EndsWith(".mpeg"))
+                    TypeKeys.TryGetValue("avi", out password);
             }
             else if (is_audio)
-                TypeKeys.TryGetValue ("ogg", out password);
+                TypeKeys.TryGetValue("ogg", out password);
             return password ?? "";
         }
     }
@@ -388,12 +388,12 @@ namespace GameRes.Formats.Musica
     [Serializable]
     public class MusicaScheme : ResourceScheme
     {
-        public IDictionary<uint, PazScheme>     KnownSchemes;
-        public IDictionary<string, PazScheme>   KnownTitles;
+        public IDictionary<uint, PazScheme> KnownSchemes;
+        public IDictionary<string, PazScheme> KnownTitles;
     }
 
     public class PazOptions : ResourceOptions
     {
-        public PazScheme    Scheme;
+        public PazScheme Scheme;
     }
 }

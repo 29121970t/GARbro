@@ -34,11 +34,11 @@ namespace GameRes.Formats.Circus
     [Export(typeof(AudioFormat))]
     public class PcmAudio : AudioFormat
     {
-        public override string         Tag { get { return "PCM"; } }
+        public override string Tag { get { return "PCM"; } }
         public override string Description { get { return "Circus PCM audio"; } }
-        public override uint     Signature { get { return 0x4d435058; } } // 'XPCM'
+        public override uint Signature { get { return 0x4d435058; } } // 'XPCM'
 
-        public override SoundInput TryOpen (IBinaryStream file)
+        public override SoundInput TryOpen(IBinaryStream file)
         {
             file.Position = 4;
             int src_size = file.ReadInt32();
@@ -50,31 +50,31 @@ namespace GameRes.Formats.Circus
             if (5 == mode)
             {
                 uint ogg_size = file.ReadUInt32();
-                var ogg = new StreamRegion (file.AsStream, 0x10, ogg_size);
-                return new OggInput (ogg);
+                var ogg = new StreamRegion(file.AsStream, 0x10, ogg_size);
+                return new OggInput(ogg);
             }
             var format = new WaveFormat();
-            format.FormatTag                = file.ReadUInt16();
-            format.Channels                 = file.ReadUInt16();
-            format.SamplesPerSecond         = file.ReadUInt32();
-            format.AverageBytesPerSecond    = file.ReadUInt32();
-            format.BlockAlign               = file.ReadUInt16();
-            format.BitsPerSample            = file.ReadUInt16();
+            format.FormatTag = file.ReadUInt16();
+            format.Channels = file.ReadUInt16();
+            format.SamplesPerSecond = file.ReadUInt32();
+            format.AverageBytesPerSecond = file.ReadUInt32();
+            format.BlockAlign = file.ReadUInt16();
+            format.BitsPerSample = file.ReadUInt16();
             Stream pcm;
             if (0 == mode)
             {
-                pcm = new StreamRegion (file.AsStream, file.Position, src_size);
+                pcm = new StreamRegion(file.AsStream, file.Position, src_size);
             }
             else if (1 == mode || 3 == mode)
             {
-                var decoder = new PcmDecoder (file, src_size, extra, (XpcmCompression)mode);
-                pcm = new MemoryStream (decoder.Unpack(), 0, src_size);
+                var decoder = new PcmDecoder(file, src_size, extra, (XpcmCompression)mode);
+                pcm = new MemoryStream(decoder.Unpack(), 0, src_size);
                 file.Dispose();
             }
             else
-                throw new NotSupportedException ("Not supported Circus PCM audio compression");
+                throw new NotSupportedException("Not supported Circus PCM audio compression");
 
-            return new RawPcmInput (pcm, format);
+            return new RawPcmInput(pcm, format);
         }
     }
 
@@ -87,14 +87,14 @@ namespace GameRes.Formats.Circus
 
     internal class PcmDecoder
     {
-        byte[]      m_pcm_data;
-        byte[]      m_encoded;
-        int         m_pcm_size;
-        int         m_extra;
+        byte[] m_pcm_data;
+        byte[] m_encoded;
+        int m_pcm_size;
+        int m_extra;
 
         public byte[] Data { get { return m_pcm_data; } }
 
-        public PcmDecoder (IBinaryStream input, int pcm_size, int extra, XpcmCompression mode)
+        public PcmDecoder(IBinaryStream input, int pcm_size, int extra, XpcmCompression mode)
         {
             if (extra < 0 || extra > 3)
                 throw new InvalidFormatException();
@@ -105,27 +105,27 @@ namespace GameRes.Formats.Circus
             m_encoded = new byte[(pcm_size / 0xFE0 << 12) + 16386];
             if (XpcmCompression.Lzss == mode)
             {
-                if (packed_size != input.Read (m_pcm_data, 0, packed_size))
-                    throw new InvalidFormatException ("Unexpected end of file");
-                UnpackV1 (m_pcm_data, packed_size, m_encoded);
+                if (packed_size != input.Read(m_pcm_data, 0, packed_size))
+                    throw new InvalidFormatException("Unexpected end of file");
+                UnpackV1(m_pcm_data, packed_size, m_encoded);
             }
             else if (XpcmCompression.Zlib == mode)
             {
-                using (var z = new ZLibStream (input.AsStream, CompressionMode.Decompress, true))
-                    z.Read (m_encoded, 0, m_encoded.Length);
+                using (var z = new ZLibStream(input.AsStream, CompressionMode.Decompress, true))
+                    z.ReadExactly(m_encoded);
             }
             else
-                throw new InvalidFormatException ("Unknown PCM compression mode");
+                throw new InvalidFormatException("Unknown PCM compression mode");
         }
 
-        public byte[] Unpack ()
+        public byte[] Unpack()
         {
-            Buffer.BlockCopy (unk_43A254, m_extra*0x40, dword_43A214, 0, 0x40);
-            DecodeV1 (m_pcm_data, m_encoded, m_pcm_size);
+            Buffer.BlockCopy(unk_43A254, m_extra * 0x40, dword_43A214, 0, 0x40);
+            DecodeV1(m_pcm_data, m_encoded, m_pcm_size);
             return m_pcm_data;
         }
 
-        void UnpackV1 (byte[] input, int packed_size, byte[] output) // sub_412070
+        void UnpackV1(byte[] input, int packed_size, byte[] output) // sub_412070
         {
             int flag = 0;
             int dst = 0;
@@ -163,18 +163,18 @@ namespace GameRes.Formats.Circus
                     }
                     else if (0x7f == ctl)
                     {
-                        count = 2 + LittleEndian.ToUInt16 (input, src);
-                        offset = LittleEndian.ToUInt16 (input, src+2);
+                        count = 2 + LittleEndian.ToUInt16(input, src);
+                        offset = LittleEndian.ToUInt16(input, src + 2);
                         src += 4;
                     }
                     else
                     {
-                        offset = LittleEndian.ToUInt16 (input, src);
+                        offset = LittleEndian.ToUInt16(input, src);
                         src += 2;
                         count = ctl + 4;
                     }
                     offset = dst - offset;
-                    Binary.CopyOverlapped (output, offset, dst, count);
+                    Binary.CopyOverlapped(output, offset, dst, count);
                     dst += count;
                 }
             }
@@ -185,16 +185,16 @@ namespace GameRes.Formats.Circus
         int[] dword_6996C8 = new int[0x1000];
         int[] dword_69D6C8 = new int[0x1000];
 
-        void DecodeV1 (byte[] output, byte[] input, int output_size) // sub_4122B0
+        void DecodeV1(byte[] output, byte[] input, int output_size) // sub_4122B0
         {
             int v14 = output_size / 2;
             int v5 = 0; // within input
             int decoded = 0;
             for (int dst_sizea = 0; dst_sizea < v14; dst_sizea += 4064)
             {
-                sub_4121C0 (input, v5);
+                sub_4121C0(input, v5);
                 v5 += 8192;
-                sub_411AB0 (12, dword_6996C8, dword_69D6C8);
+                sub_411AB0(12, dword_6996C8, dword_69D6C8);
                 int v6 = decoded; // within output
                 int v7 = 0;
                 int v8 = 0; // within dword_6996C8;
@@ -205,7 +205,7 @@ namespace GameRes.Formats.Circus
                         int v11;
                         if (v9 > 0 && 0 != dst_sizea)
                         {
-                            long v10 = (v7 * (uint)dword_6996C8[v8]) + (long)(v9 * LittleEndian.ToInt16 (output, v6));
+                            long v10 = (v7 * (uint)dword_6996C8[v8]) + (long)(v9 * LittleEndian.ToInt16(output, v6));
                             v11 = ((int)((v10 >> 32) & 0x1F) + (int)v10) >> 5;
                         }
                         else
@@ -216,7 +216,7 @@ namespace GameRes.Formats.Circus
                             v11 = 32767;
                         else if (v11 < -32768)
                             v11 = -32768;
-                        LittleEndian.Pack ((short)v11, output, v6); // *(int16_t*)v6 = v11;
+                        LittleEndian.Pack((short)v11, output, v6); // *(int16_t*)v6 = v11;
                     }
                     ++v7;
                     v6 += 2;
@@ -226,7 +226,7 @@ namespace GameRes.Formats.Circus
             }
         }
 
-        void sub_4121C0 (byte[] input, int a1)
+        void sub_4121C0(byte[] input, int a1)
         {
             int v1 = a1;
             int v5 = 1; // within unk_6A16C8;
@@ -238,10 +238,10 @@ namespace GameRes.Formats.Circus
             v5 = 0; // within unk_6A16C8;
             for (int v6 = 0; v6 < 0x800; ++v6)
             {
-                byte v7 = input[v1+0x800];
+                byte v7 = input[v1 + 0x800];
                 byte v8 = input[v1];
-                unk_6A16C8[v5]   = (byte)((v7 >> 4) | (v8 & 0xF0));
-                unk_6A16C8[v5+2] = (byte)((v8 << 4) | (v7 & 0x0F));
+                unk_6A16C8[v5] = (byte)((v7 >> 4) | (v8 & 0xF0));
+                unk_6A16C8[v5 + 2] = (byte)((v8 << 4) | (v7 & 0x0F));
                 v5 += 4;
                 v1++;
             }
@@ -250,9 +250,9 @@ namespace GameRes.Formats.Circus
             for (int v11 = 0; v11 < 32768; v11 += 16)
             {
                 int result = dword_43A214[v11 / 0x1000];
-                int i1 = LittleEndian.ToUInt16 (unk_6A16C8, v5);
-                int i2 = LittleEndian.ToUInt16 (unk_6A16C8, v5+2); 
-                dword_6996C8[v9]   = result * word_6A56C8[i1];
+                int i1 = LittleEndian.ToUInt16(unk_6A16C8, v5);
+                int i2 = LittleEndian.ToUInt16(unk_6A16C8, v5 + 2);
+                dword_6996C8[v9] = result * word_6A56C8[i1];
                 dword_69D6C8[v9++] = result * word_6A56C8[i2];
                 v5 += 4;
             }
@@ -263,7 +263,7 @@ namespace GameRes.Formats.Circus
             }
         }
 
-        void sub_411AB0 (int a1, int[] a2, int[] a3)
+        void sub_411AB0(int a1, int[] a2, int[] a3)
         {
             int v4 = 1 << a1;
             int v5 = 1;
@@ -274,7 +274,7 @@ namespace GameRes.Formats.Circus
             {
                 int v7 = v4 >> 1;
                 int v59 = a1 - 2;
-                for (;;)
+                for (; ; )
                 {
                     int v63 = v4;
                     int v82 = dword_43A358[2 * v5];
@@ -465,12 +465,12 @@ namespace GameRes.Formats.Circus
             int result = v6 / 2;
             int v67 = v6 / 2;
             int v90 = 1;
-            if ( v6 - 1 > 1 )
+            if (v6 - 1 > 1)
             {
                 int v54 = 1; // within a3
-                for (;;)
+                for (; ; )
                 {
-                    for ( ; result <= v51; result /= 2)
+                    for (; result <= v51; result /= 2)
                         v51 -= result;
                     v51 += result;
                     if (v90 < v51)
@@ -503,12 +503,12 @@ namespace GameRes.Formats.Circus
 
         static readonly short[] word_6A56C8 = InitTable();
 
-        static short[] InitTable ()
+        static short[] InitTable()
         {
             var table = new short[0x10000];
             short cx = 0;
             short dx = 0;
-            for (int i = 0; i < table.Length; )
+            for (int i = 0; i < table.Length;)
             {
                 table[i++] = dx--;
                 table[i++] = ++cx;

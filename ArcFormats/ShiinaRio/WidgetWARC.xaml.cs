@@ -11,12 +11,12 @@ namespace GameRes.Formats.GUI
     /// </summary>
     public partial class WidgetWARC : Grid
     {
-        public WidgetWARC ()
+        public WidgetWARC()
         {
             InitializeComponent();
             // select the most recent scheme as default
             if (-1 == Scheme.SelectedIndex)
-                Scheme.SelectedIndex = Scheme.ItemsSource.Cast<object>().Count()-1;
+                Scheme.SelectedIndex = Scheme.ItemsSource.Cast<object>().Count() - 1;
         }
     }
 }

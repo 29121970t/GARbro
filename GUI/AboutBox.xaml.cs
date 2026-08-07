@@ -42,7 +42,7 @@ namespace GARbro.GUI
         public AboutBox()
         {
             InitializeComponent();
-            LicenseTabText.Document = GetResourceDoc ("GARbro.GUI.LICENSE");
+            LicenseTabText.Document = GetResourceDoc("GARbro.GUI.LICENSE");
         }
 
         private void Button_Click(object sender, RoutedEventArgs e)
@@ -52,27 +52,27 @@ namespace GARbro.GUI
 
         #region License text backend
 
-        static FlowDocument GetResourceDoc (string resource)
+        static FlowDocument GetResourceDoc(string resource)
         {
             var assembly = Assembly.GetExecutingAssembly();
-            using (var stream = assembly.GetManifestResourceStream (resource))
+            using (var stream = assembly.GetManifestResourceStream(resource))
             {
                 if (null == stream)
                     return new FlowDocument();
-                return ReadPlainText (stream);
+                return ReadPlainText(stream);
             }
         }
 
         /// <summary>
         /// Read plain text from stream and return it as FlowDocument.
         /// </summary>
-        static FlowDocument ReadPlainText (Stream stream)
+        static FlowDocument ReadPlainText(Stream stream)
         {
-            using (var reader = new StreamReader (stream))
+            using (var reader = new StreamReader(stream))
             {
                 var doc = new FlowDocument();
                 var para = new Paragraph();
-                for (;;)
+                for (; ; )
                 {
                     var line = reader.ReadLine();
                     if (null == line)
@@ -80,19 +80,19 @@ namespace GARbro.GUI
                     if (line.Length > 0)
                     {
                         if (para.Inlines.Count > 0)
-                            para.Inlines.Add (" ");
-                        para.Inlines.Add (line);
+                            para.Inlines.Add(" ");
+                        para.Inlines.Add(line);
                     }
                     else
                     {
                         if (0 == para.Inlines.Count)
-                            para.Inlines.Add (new LineBreak());
-                        doc.Blocks.Add (para);
+                            para.Inlines.Add(new LineBreak());
+                        doc.Blocks.Add(para);
                         para = new Paragraph();
                     }
                 }
                 if (para.Inlines.Count > 0)
-                    doc.Blocks.Add (para);
+                    doc.Blocks.Add(para);
                 return doc;
             }
         }
@@ -122,7 +122,7 @@ namespace GARbro.GUI
         {
             get
             {
-                return string.Format (guiStrings.MsgVersion, AssemblyVersion);
+                return string.Format(guiStrings.MsgVersion, AssemblyVersion);
             }
         }
 
@@ -187,9 +187,9 @@ namespace GARbro.GUI
         }
         #endregion
 
-        private void Hyperlink_RequestNavigate (object sender, RequestNavigateEventArgs e)
+        private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
         {
-            if (App.NavigateUri (e.Uri))
+            if (App.NavigateUri(e.Uri))
                 e.Handled = true;
         }
     }
@@ -197,12 +197,12 @@ namespace GARbro.GUI
     public class BooleanToVisibiltyConverter : IValueConverter
     {
         /// <summary>Convert a boolean value to a Visibility value</summary>
-        public object Convert (object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
         {
             bool isVisible = (bool)value;
 
             // If visibility is inverted by the converter parameter, then invert our value
-            if (IsVisibilityInverted (parameter))
+            if (IsVisibilityInverted(parameter))
                 isVisible = !isVisible;
 
             return (isVisible ? Visibility.Visible : Visibility.Collapsed);
@@ -239,11 +239,11 @@ namespace GARbro.GUI
                     }
                 }
             }
-        
+
             // Return the detected mode
             return mode;
         }
-        
+
         /// <summary>
         /// Determine whether or not visibility is inverted based on a converter parameter.
         /// When the parameter is specified as Collapsed, that means that when the boolean value
@@ -260,11 +260,11 @@ namespace GARbro.GUI
         public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
         {
             bool isVisible = ((Visibility)value == Visibility.Visible);
-        
+
             // If visibility is inverted by the converter parameter, then invert our value
             if (IsVisibilityInverted(parameter))
                 isVisible = !isVisible;
-        
+
             return isVisible;
         }
     }

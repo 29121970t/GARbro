@@ -32,10 +32,10 @@ namespace GameRes.Formats
     /// </summary>
     public class ProxyStream : Stream
     {
-        Stream      m_stream;
-        bool        m_should_dispose;
+        Stream m_stream;
+        bool m_should_dispose;
 
-        public ProxyStream (Stream input, bool leave_open = false)
+        public ProxyStream(Stream input, bool leave_open = false)
         {
             m_stream = input;
             m_should_dispose = !leave_open;
@@ -43,19 +43,19 @@ namespace GameRes.Formats
 
         public Stream BaseStream { get { return m_stream; } }
 
-        public override bool CanRead  { get { return m_stream.CanRead; } }
-        public override bool CanSeek  { get { return m_stream.CanSeek; } }
+        public override bool CanRead { get { return m_stream.CanRead; } }
+        public override bool CanSeek { get { return m_stream.CanSeek; } }
         public override bool CanWrite { get { return m_stream.CanWrite; } }
-        public override long Length   { get { return m_stream.Length; } }
+        public override long Length { get { return m_stream.Length; } }
         public override long Position
         {
             get { return m_stream.Position; }
             set { m_stream.Position = value; }
         }
 
-        public override int Read (byte[] buffer, int offset, int count)
+        public override int Read(byte[] buffer, int offset, int count)
         {
-            return m_stream.Read (buffer, offset, count);
+            return m_stream.Read(buffer, offset, count);
         }
 
         public override void Flush()
@@ -63,82 +63,82 @@ namespace GameRes.Formats
             m_stream.Flush();
         }
 
-        public override long Seek (long offset, SeekOrigin origin)
+        public override long Seek(long offset, SeekOrigin origin)
         {
-            return m_stream.Seek (offset, origin);
+            return m_stream.Seek(offset, origin);
         }
 
-        public override void SetLength (long length)
+        public override void SetLength(long length)
         {
-            m_stream.SetLength (length);
+            m_stream.SetLength(length);
         }
 
-        public override void Write (byte[] buffer, int offset, int count)
+        public override void Write(byte[] buffer, int offset, int count)
         {
-            m_stream.Write (buffer, offset, count);
+            m_stream.Write(buffer, offset, count);
         }
 
         bool _proxy_disposed = false;
-        protected override void Dispose (bool disposing)
+        protected override void Dispose(bool disposing)
         {
             if (!_proxy_disposed)
             {
                 if (m_should_dispose && disposing)
                     m_stream.Dispose();
                 _proxy_disposed = true;
-                base.Dispose (disposing);
+                base.Dispose(disposing);
             }
         }
     }
 
     public class InputProxyStream : ProxyStream
     {
-        public InputProxyStream (Stream input, bool leave_open = false) : base (input, leave_open)
+        public InputProxyStream(Stream input, bool leave_open = false) : base(input, leave_open)
         {
         }
 
         public override bool CanWrite { get { return false; } }
 
-        public override void Write (byte[] buffer, int offset, int count)
+        public override void Write(byte[] buffer, int offset, int count)
         {
-            throw new NotSupportedException ("Stream.Write method is not supported");
+            throw new NotSupportedException("Stream.Write method is not supported");
         }
 
-        public override void SetLength (long length)
+        public override void SetLength(long length)
         {
-            throw new NotSupportedException ("Stream.SetLength method is not supported");
+            throw new NotSupportedException("Stream.SetLength method is not supported");
         }
     }
 
     public class PrefixStream : InputProxyStream
     {
-        byte[]  m_header;
-        long    m_position = 0;
+        byte[] m_header;
+        long m_position = 0;
 
-        public PrefixStream (byte[] header, Stream main, bool leave_open = false)
-            : base (main, leave_open)
+        public PrefixStream(byte[] header, Stream main, bool leave_open = false)
+            : base(main, leave_open)
         {
             m_header = header;
         }
 
-        public override long Length   { get { return BaseStream.Length + m_header.Length; } }
+        public override long Length { get { return BaseStream.Length + m_header.Length; } }
         public override long Position
         {
             get { return m_position; }
             set
             {
                 if (!BaseStream.CanSeek)
-                    throw new NotSupportedException ("Underlying stream does not support Stream.Position property");
-                m_position = Math.Max (value, 0);
+                    throw new NotSupportedException("Underlying stream does not support Stream.Position property");
+                m_position = Math.Max(value, 0);
                 if (m_position > m_header.Length)
                 {
-                    long stream_pos = BaseStream.Seek (m_position - m_header.Length, SeekOrigin.Begin);
+                    long stream_pos = BaseStream.Seek(m_position - m_header.Length, SeekOrigin.Begin);
                     m_position = m_header.Length + stream_pos;
                 }
             }
         }
 
-        public override long Seek (long offset, SeekOrigin origin)
+        public override long Seek(long offset, SeekOrigin origin)
         {
             if (SeekOrigin.Begin == origin)
                 Position = offset;
@@ -150,13 +150,13 @@ namespace GameRes.Formats
             return m_position;
         }
 
-        public override int Read (byte[] buffer, int offset, int count)
+        public override int Read(byte[] buffer, int offset, int count)
         {
             int read = 0;
             if (m_position < m_header.Length)
             {
-                int header_count = Math.Min (count, m_header.Length - (int)m_position);
-                Buffer.BlockCopy (m_header, (int)m_position, buffer, offset, header_count);
+                int header_count = Math.Min(count, m_header.Length - (int)m_position);
+                Buffer.BlockCopy(m_header, (int)m_position, buffer, offset, header_count);
                 m_position += header_count;
                 read += header_count;
                 offset += header_count;
@@ -166,14 +166,14 @@ namespace GameRes.Formats
             {
                 if (m_header.Length == m_position && BaseStream.CanSeek)
                     BaseStream.Position = 0;
-                int stream_read = BaseStream.Read (buffer, offset, count);
+                int stream_read = BaseStream.Read(buffer, offset, count);
                 m_position += stream_read;
                 read += stream_read;
             }
             return read;
         }
 
-        public override int ReadByte ()
+        public override int ReadByte()
         {
             if (m_position < m_header.Length)
                 return m_header[m_position++];
@@ -192,31 +192,31 @@ namespace GameRes.Formats
     /// </summary>
     public class StreamRegion : InputProxyStream
     {
-        private long    m_begin;
-        private long    m_end;
+        private long m_begin;
+        private long m_end;
 
-        public StreamRegion (Stream main, long offset, long length, bool leave_open = false)
-            : base (main, leave_open)
+        public StreamRegion(Stream main, long offset, long length, bool leave_open = false)
+            : base(main, leave_open)
         {
             m_begin = offset;
-            m_end = Math.Min (offset + length, BaseStream.Length);
+            m_end = Math.Min(offset + length, BaseStream.Length);
             BaseStream.Position = m_begin;
         }
 
-        public StreamRegion (Stream main, long offset, bool leave_open = false)
-            : this (main, offset, main.Length-offset, leave_open)
+        public StreamRegion(Stream main, long offset, bool leave_open = false)
+            : this(main, offset, main.Length - offset, leave_open)
         {
         }
 
-        public override bool CanSeek  { get { return true; } }
-        public override long Length   { get { return m_end - m_begin; } }
+        public override bool CanSeek { get { return true; } }
+        public override long Length { get { return m_end - m_begin; } }
         public override long Position
         {
             get { return BaseStream.Position - m_begin; }
-            set { BaseStream.Position = Math.Max (m_begin + value, m_begin); }
+            set { BaseStream.Position = Math.Max(m_begin + value, m_begin); }
         }
 
-        public override long Seek (long offset, SeekOrigin origin)
+        public override long Seek(long offset, SeekOrigin origin)
         {
             if (SeekOrigin.Begin == origin)
                 offset += m_begin;
@@ -224,23 +224,23 @@ namespace GameRes.Formats
                 offset += BaseStream.Position;
             else
                 offset += m_end;
-            offset = Math.Max (offset, m_begin);
+            offset = Math.Max(offset, m_begin);
             BaseStream.Position = offset;
             return offset - m_begin;
         }
 
-        public override int Read (byte[] buffer, int offset, int count)
+        public override int Read(byte[] buffer, int offset, int count)
         {
             int read = 0;
             long available = m_end - BaseStream.Position;
             if (available > 0)
             {
-                read = BaseStream.Read (buffer, offset, (int)Math.Min (count, available));
+                read = BaseStream.Read(buffer, offset, (int)Math.Min(count, available));
             }
             return read;
         }
 
-        public override int ReadByte ()
+        public override int ReadByte()
         {
             if (BaseStream.Position < m_end)
                 return BaseStream.ReadByte();
@@ -260,20 +260,20 @@ namespace GameRes.Formats
     /// </summary>
     public class LimitStream : InputProxyStream
     {
-        bool    m_can_seek;
-        long    m_position;
-        long    m_last;
-        bool    m_fill;
+        bool m_can_seek;
+        long m_position;
+        long m_last;
+        bool m_fill;
 
-        public LimitStream (Stream input, long last, bool leave_open = false) : base (input, leave_open)
+        public LimitStream(Stream input, long last, bool leave_open = false) : base(input, leave_open)
         {
             m_can_seek = input.CanSeek;
             m_position = 0;
             m_last = last;
         }
 
-        public LimitStream (Stream input, long last, StreamOption option, bool leave_open = false)
-            : this (input, last, leave_open)
+        public LimitStream(Stream input, long last, StreamOption option, bool leave_open = false)
+            : this(input, last, leave_open)
         {
             if (StreamOption.Fill == option)
             {
@@ -286,17 +286,17 @@ namespace GameRes.Formats
             }
         }
 
-        public override bool CanSeek  { get { return m_can_seek; } }
-        public override long Length   { get { return m_last; } }
+        public override bool CanSeek { get { return m_can_seek; } }
+        public override long Length { get { return m_last; } }
 
-        public override int Read (byte[] buffer, int offset, int count)
+        public override int Read(byte[] buffer, int offset, int count)
         {
             if (m_can_seek)
                 m_position = Position;
             if (m_position >= m_last)
                 return 0;
-            count = (int)Math.Min (count, m_last - m_position);
-            int read = BaseStream.Read (buffer, offset, count);
+            count = (int)Math.Min(count, m_last - m_position);
+            int read = BaseStream.Read(buffer, offset, count);
             if (m_fill)
             {
                 while (read < count)
@@ -308,7 +308,7 @@ namespace GameRes.Formats
             return read;
         }
 
-        public override int ReadByte ()
+        public override int ReadByte()
         {
             if (m_can_seek)
                 m_position = Position;
@@ -326,13 +326,13 @@ namespace GameRes.Formats
     /// </summary>
     public class SeekableStream : Stream
     {
-        Stream      m_source;
-        Stream      m_buffer;
-        bool        m_should_dispose;
-        bool        m_source_depleted;
-        long        m_read_pos;
+        Stream m_source;
+        Stream m_buffer;
+        bool m_should_dispose;
+        bool m_source_depleted;
+        long m_read_pos;
 
-        public SeekableStream (Stream input, bool leave_open = false)
+        public SeekableStream(Stream input, bool leave_open = false)
         {
             m_source = input;
             m_should_dispose = !leave_open;
@@ -350,8 +350,8 @@ namespace GameRes.Formats
         }
 
         #region IO.Stream Members
-        public override bool CanRead  { get { return m_buffer.CanRead; } }
-        public override bool CanSeek  { get { return true; } }
+        public override bool CanRead { get { return m_buffer.CanRead; } }
+        public override bool CanSeek { get { return true; } }
         public override bool CanWrite { get { return false; } }
         public override long Length
         {
@@ -359,8 +359,8 @@ namespace GameRes.Formats
             {
                 if (!m_source_depleted)
                 {
-                    m_buffer.Seek (0, SeekOrigin.End);
-                    m_source.CopyTo (m_buffer);
+                    m_buffer.Seek(0, SeekOrigin.End);
+                    m_source.CopyTo(m_buffer);
                     m_source_depleted = true;
                 }
                 return m_buffer.Length;
@@ -372,21 +372,21 @@ namespace GameRes.Formats
             set { m_read_pos = value; }
         }
 
-        public override int Read (byte[] buffer, int offset, int count)
+        public override int Read(byte[] buffer, int offset, int count)
         {
             int read, total_read = 0;
             if (m_source_depleted)
             {
                 m_buffer.Position = m_read_pos;
-                total_read = m_buffer.Read (buffer, offset, count);
+                total_read = m_buffer.Read(buffer, offset, count);
                 m_read_pos += total_read;
                 return total_read;
             }
             if (m_read_pos < m_buffer.Length)
             {
-                int available = (int)Math.Min (m_buffer.Length-m_read_pos, count);
+                int available = (int)Math.Min(m_buffer.Length - m_read_pos, count);
                 m_buffer.Position = m_read_pos;
-                total_read = m_buffer.Read (buffer, offset, available);
+                total_read = m_buffer.Read(buffer, offset, available);
                 m_read_pos += total_read;
                 count -= total_read;
                 if (0 == count)
@@ -395,22 +395,22 @@ namespace GameRes.Formats
             }
             else if (count > 0)
             {
-                m_buffer.Seek (0, SeekOrigin.End);
+                m_buffer.Seek(0, SeekOrigin.End);
                 while (m_read_pos > m_buffer.Length)
                 {
-                    int available = (int)Math.Min (m_read_pos - m_buffer.Length, count);
-                    read = m_source.Read (buffer, offset, available);
+                    int available = (int)Math.Min(m_read_pos - m_buffer.Length, count);
+                    read = m_source.Read(buffer, offset, available);
                     if (0 == read)
                     {
                         m_source_depleted = true;
                         return 0;
                     }
-                    m_buffer.Write (buffer, offset, read);
+                    m_buffer.Write(buffer, offset, read);
                 }
             }
-            read = m_source.Read (buffer, offset, count);
+            read = m_source.Read(buffer, offset, count);
             m_read_pos += read;
-            m_buffer.Write (buffer, offset, read);
+            m_buffer.Write(buffer, offset, read);
             return total_read + read;
         }
 
@@ -418,7 +418,7 @@ namespace GameRes.Formats
         {
         }
 
-        public override long Seek (long offset, SeekOrigin origin)
+        public override long Seek(long offset, SeekOrigin origin)
         {
             if (SeekOrigin.Begin == origin)
                 m_read_pos = offset;
@@ -430,25 +430,25 @@ namespace GameRes.Formats
             return m_read_pos;
         }
 
-        public override void SetLength (long length)
+        public override void SetLength(long length)
         {
-            throw new NotSupportedException ("SeekableStream.SetLength method is not supported");
+            throw new NotSupportedException("SeekableStream.SetLength method is not supported");
         }
 
-        public override void Write (byte[] buffer, int offset, int count)
+        public override void Write(byte[] buffer, int offset, int count)
         {
-            throw new NotSupportedException ("SeekableStream.Write method is not supported");
+            throw new NotSupportedException("SeekableStream.Write method is not supported");
         }
 
-        public override void WriteByte (byte value)
+        public override void WriteByte(byte value)
         {
-            throw new NotSupportedException ("SeekableStream.WriteByte method is not supported");
+            throw new NotSupportedException("SeekableStream.WriteByte method is not supported");
         }
         #endregion
 
         #region IDisposable Members
         bool _disposed = false;
-        protected override void Dispose (bool disposing)
+        protected override void Dispose(bool disposing)
         {
             if (_disposed)
                 return;
@@ -461,7 +461,7 @@ namespace GameRes.Formats
                     m_buffer.Dispose();
             }
             _disposed = true;
-            base.Dispose (disposing);
+            base.Dispose(disposing);
         }
         #endregion
     }
@@ -471,29 +471,29 @@ namespace GameRes.Formats
     /// </summary>
     public class ConcatStream : InputProxyStream
     {
-        Stream      m_second;
-        long        m_position;
-        Stream      m_active;
+        Stream m_second;
+        long m_position;
+        Stream m_active;
 
-        public ConcatStream (Stream first, Stream second) : base (first)
+        public ConcatStream(Stream first, Stream second) : base(first)
         {
             m_second = second;
             m_position = 0;
             m_active = first;
         }
 
-        internal Stream  First { get { return BaseStream; } }
+        internal Stream First { get { return BaseStream; } }
         internal Stream Second { get { return m_second; } }
 
-        public override bool CanSeek  { get { return First.CanSeek && Second.CanSeek; } }
-        public override long Length   { get { return First.Length + Second.Length; } }
+        public override bool CanSeek { get { return First.CanSeek && Second.CanSeek; } }
+        public override long Length { get { return First.Length + Second.Length; } }
         public override long Position
         {
             get { return m_position; }
             set { m_position = value; }
         }
 
-        public override int Read (byte[] buffer, int offset, int count)
+        public override int Read(byte[] buffer, int offset, int count)
         {
             if (First.CanSeek)
             {
@@ -511,7 +511,7 @@ namespace GameRes.Formats
             int total_read = 0;
             while (count > 0)
             {
-                int read = m_active.Read (buffer, offset, count);
+                int read = m_active.Read(buffer, offset, count);
                 if (0 == read)
                     break;
                 total_read += read;
@@ -524,14 +524,14 @@ namespace GameRes.Formats
                 m_active = Second;
                 if (m_active.CanSeek)
                     m_active.Position = 0;
-                int read = m_active.Read (buffer, offset, count);
+                int read = m_active.Read(buffer, offset, count);
                 m_position += read;
                 total_read += read;
             }
             return total_read;
         }
 
-        public override long Seek (long offset, SeekOrigin origin)
+        public override long Seek(long offset, SeekOrigin origin)
         {
             if (SeekOrigin.Begin == origin)
                 Position = offset;
@@ -544,40 +544,40 @@ namespace GameRes.Formats
         }
 
         bool _disposed = false;
-        protected override void Dispose (bool disposing)
+        protected override void Dispose(bool disposing)
         {
             if (!_disposed)
             {
                 if (disposing)
                     m_second.Dispose();
                 _disposed = true;
-                base.Dispose (disposing);
+                base.Dispose(disposing);
             }
         }
     }
 
     public class XoredStream : ProxyStream
     {
-        private byte        m_key;
+        private byte m_key;
 
-        public XoredStream (Stream stream, byte key, bool leave_open = false)
-            : base (stream, leave_open)
+        public XoredStream(Stream stream, byte key, bool leave_open = false)
+            : base(stream, leave_open)
         {
             m_key = key;
         }
 
         #region System.IO.Stream methods
-        public override int Read (byte[] buffer, int offset, int count)
+        public override int Read(byte[] buffer, int offset, int count)
         {
-            int read = BaseStream.Read (buffer, offset, count);
+            int read = BaseStream.Read(buffer, offset, count);
             for (int i = 0; i < read; ++i)
             {
-                buffer[offset+i] ^= m_key;
+                buffer[offset + i] ^= m_key;
             }
             return read;
         }
 
-        public override int ReadByte ()
+        public override int ReadByte()
         {
             int b = BaseStream.ReadByte();
             if (-1 != b)
@@ -589,26 +589,26 @@ namespace GameRes.Formats
 
         byte[] write_buf;
 
-        public override void Write (byte[] buffer, int offset, int count)
+        public override void Write(byte[] buffer, int offset, int count)
         {
             if (null == write_buf)
                 write_buf = new byte[81920];
             while (count > 0)
             {
-                int chunk = Math.Min (write_buf.Length, count);
+                int chunk = Math.Min(write_buf.Length, count);
                 for (int i = 0; i < chunk; ++i)
                 {
-                    write_buf[i] = (byte)(buffer[offset+i] ^ m_key);
+                    write_buf[i] = (byte)(buffer[offset + i] ^ m_key);
                 }
-                BaseStream.Write (write_buf, 0, chunk);
+                BaseStream.Write(write_buf, 0, chunk);
                 offset += chunk;
                 count -= chunk;
             }
         }
 
-        public override void WriteByte (byte value)
+        public override void WriteByte(byte value)
         {
-            BaseStream.WriteByte ((byte)(value ^ m_key));
+            BaseStream.WriteByte((byte)(value ^ m_key));
         }
         #endregion
     }

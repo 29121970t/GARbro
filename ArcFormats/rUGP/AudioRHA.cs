@@ -32,14 +32,14 @@ namespace GameRes.Formats.Rugp
     [Export(typeof(AudioFormat))]
     public class RhaAudio : AudioFormat
     {
-        public override string         Tag { get { return "RHA"; } }
+        public override string Tag { get { return "RHA"; } }
         public override string Description { get { return "rUGP engine compressed audio (MP3)"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override SoundInput TryOpen (IBinaryStream file)
+        public override SoundInput TryOpen(IBinaryStream file)
         {
-            ushort schema = Binary.BigEndian (file.ReadUInt16());
+            ushort schema = Binary.BigEndian(file.ReadUInt16());
             if (4 == (schema & 0x10F))
             {
                 file.Position = 0;
@@ -50,13 +50,13 @@ namespace GameRes.Formats.Rugp
             var mp3 = new MemoryStream();
             try
             {
-                if (!ConvertToMp3 (file, mp3, schema))
+                if (!ConvertToMp3(file, mp3, schema))
                 {
                     mp3.Dispose();
                     return null;
                 }
                 mp3.Position = 0;
-                var sound = new Mp3Input (mp3);
+                var sound = new Mp3Input(mp3);
                 file.Dispose();
                 return sound;
             }
@@ -67,14 +67,14 @@ namespace GameRes.Formats.Rugp
             }
         }
 
-        bool ConvertToMp3 (IBinaryStream input, Stream mp3, ushort schema)
+        bool ConvertToMp3(IBinaryStream input, Stream mp3, ushort schema)
         {
             byte[] frame_buffer = null;
-            using (var output = new BinaryWriter (mp3, System.Text.Encoding.Default, true))
+            using (var output = new BinaryWriter(mp3, System.Text.Encoding.Default, true))
             {
                 while (input.PeekByte() != -1)
                 {
-                    ushort rha_header = Binary.BigEndian (input.ReadUInt16());
+                    ushort rha_header = Binary.BigEndian(input.ReadUInt16());
                     uint header;
                     int add_len = 0;
                     byte add_value = 0;
@@ -94,47 +94,47 @@ namespace GameRes.Formats.Rugp
                             add_len = input.ReadUInt16();
                             add_value = 0xFF;
                         }
-                        header = RhaToMp3Header (rha_header);
+                        header = RhaToMp3Header(rha_header);
                     }
-                    int frame_length = GetFrameLength (header);
+                    int frame_length = GetFrameLength(header);
                     if (0 == frame_length || add_len > frame_length)
                         return false;
                     if (null == frame_buffer || frame_length > frame_buffer.Length)
                         frame_buffer = new byte[frame_length];
 
                     int read_length = frame_length - add_len;
-                    if (read_length != input.Read (frame_buffer, 0, read_length))
+                    if (read_length != input.Read(frame_buffer, 0, read_length))
                         break;
                     for (int i = 0; i < add_len; ++i)
-                        frame_buffer[read_length+i] = add_value;
+                        frame_buffer[read_length + i] = add_value;
 
-                    output.Write (Binary.BigEndian (header));
-                    output.Write (frame_buffer, 0, frame_length);
+                    output.Write(Binary.BigEndian(header));
+                    output.Write(frame_buffer, 0, frame_length);
 
                     if (0 == (header & (1 << 16))) // CRC bit
-                        output.Write (input.ReadUInt16());
+                        output.Write(input.ReadUInt16());
                 }
             }
             return mp3.Length > 0;
         }
 
-        internal static uint RhaToMp3Header (uint header)
+        internal static uint RhaToMp3Header(uint header)
         {
-		    return (header & 0xF) << 4 | (header & 0x7F0) << 5 | (header & 0x800) << 8 | 0xFFF30004;
+            return (header & 0xF) << 4 | (header & 0x7F0) << 5 | (header & 0x800) << 8 | 0xFFF30004;
         }
 
-        internal static int GetFrameLength (uint header)
+        internal static int GetFrameLength(uint header)
         {
             int lsf, freq;
             if (0 == (header & (1 << 20)))
             {
                 lsf = 1;
-                freq = (int)((header >> 10 ) & 3) + 6;
+                freq = (int)((header >> 10) & 3) + 6;
             }
             else
             {
                 lsf = (int)~(header >> 19) & 1;
-                freq = (int)((header >> 10 ) & 3) + (lsf * 3);
+                freq = (int)((header >> 10) & 3) + (lsf * 3);
             }
             int bitrate_index = (int)((header >> 12) & 0xF);
             if (0 == bitrate_index || 0xF == bitrate_index)

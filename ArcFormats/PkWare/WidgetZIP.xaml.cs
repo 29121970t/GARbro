@@ -8,7 +8,7 @@ namespace GameRes.Formats.GUI
     /// </summary>
     public partial class WidgetZIP : StackPanel
     {
-        public WidgetZIP (IEnumerable titles)
+        public WidgetZIP(IEnumerable titles)
         {
             InitializeComponent();
             this.DataContext = titles;

@@ -34,91 +34,92 @@ namespace GameRes.Formats.NeXAS
 {
     internal class GrpMetaData : ImageMetaData
     {
-        public int  Version;
-        public int  UnpackedSize;
+        public int Version;
+        public int UnpackedSize;
     }
 
     [Export(typeof(ImageFormat))]
     public class GrpFormat : ImageFormat
     {
-        public override string         Tag { get { return "GR3"; } }
+        public override string Tag { get { return "GR3"; } }
         public override string Description { get { return "NeXAS engine image format"; } }
-        public override uint     Signature { get { return 0x18335247; } }
+        public override uint Signature { get { return 0x18335247; } }
 
-        public GrpFormat ()
+        public GrpFormat()
         {
             Signatures = new uint[] { 0x18335247, 0x08325247, 0x10325247, 0x18325247, 0 };
             Extensions = new string[] { "grp" };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
-            var header = stream.ReadHeader (0x11);
+            var header = stream.ReadHeader(0x11);
             int version = header[2] - '0';
-            if (!header.AsciiEqual ("GR") || version < 1 || version > 3)
+            if (!header.AsciiEqual("GR") || version < 1 || version > 3)
                 return null;
-            var info = new GrpMetaData {
-                Width   = header.ToUInt32 (5),
-                Height  = header.ToUInt32 (9),
-                BPP     = header.ToUInt16 (3),
+            var info = new GrpMetaData
+            {
+                Width = header.ToUInt32(5),
+                Height = header.ToUInt32(9),
+                BPP = header.ToUInt16(3),
                 Version = version
             };
             if (version > 1)
-                info.UnpackedSize = header.ToInt32 (0xD);
+                info.UnpackedSize = header.ToInt32(0xD);
             else
                 info.UnpackedSize = (int)info.Width * (int)info.Height * info.BPP / 8
                                   + (info.BPP == 8 ? 0x300 : 0);
             return info;
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
-            var reader = new GrpReader (stream, (GrpMetaData)info);
+            var reader = new GrpReader(stream, (GrpMetaData)info);
             var pixels = reader.Unpack();
-            return ImageData.Create (info, reader.Format, reader.Palette, reader.Data);
+            return ImageData.Create(info, reader.Format, reader.Palette, reader.Data);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("GrpFormat.Write not implemented");
+            throw new System.NotImplementedException("GrpFormat.Write not implemented");
         }
     }
 
     internal sealed class GrpReader
     {
-        IBinaryStream   m_input;
-        byte[]          m_output;
-        GrpMetaData     m_info;
-        readonly int    m_count_bits;
-        readonly int    m_count_mask;
+        IBinaryStream m_input;
+        byte[] m_output;
+        GrpMetaData m_info;
+        readonly int m_count_bits;
+        readonly int m_count_mask;
 
-        public byte[]           Data { get { return m_output; } }
-        public PixelFormat    Format { get; private set; }
+        public byte[] Data { get { return m_output; } }
+        public PixelFormat Format { get; private set; }
         public BitmapPalette Palette { get; private set; }
 
-        public GrpReader (IBinaryStream input, GrpMetaData info)
+        public GrpReader(IBinaryStream input, GrpMetaData info)
         {
             m_input = input;
             m_output = new byte[info.UnpackedSize];
             m_info = info;
             switch (info.BPP)
             {
-            case 8:  Format = PixelFormats.Indexed8; break;
-            case 16: Format = PixelFormats.Bgr555; break;
-            case 24: Format = PixelFormats.Bgr24; break;
-            case 32: Format = PixelFormats.Bgr32; break;
-            default: throw new NotSupportedException ("Not supported GRP image color depth");
+                case 8: Format = PixelFormats.Indexed8; break;
+                case 16: Format = PixelFormats.Bgr555; break;
+                case 24: Format = PixelFormats.Bgr24; break;
+                case 32: Format = PixelFormats.Bgr32; break;
+                default: throw new NotSupportedException("Not supported GRP image color depth");
             }
             m_count_bits = info.Version > 2 ? 3 : 5;
             m_count_mask = ~(-1 << m_count_bits);
         }
 
-        public byte[] Unpack ()
+        public byte[] Unpack()
         {
             if (m_info.Version < 2)
             {
                 m_input.Position = 0xD;
-                m_input.Read (m_output, 0, m_output.Length);
+                m_input.Read(m_output, 0, m_output.Length);
             }
             else
             {
@@ -126,20 +127,20 @@ namespace GameRes.Formats.NeXAS
             }
             if (8 == m_info.BPP)
             {
-                using (var input = new MemoryStream (m_output, m_output.Length-0x300, 0x300))
-                    Palette = ImageFormat.ReadPalette (input, 0x100, PaletteFormat.Rgb);
+                using (var input = new MemoryStream(m_output, m_output.Length - 0x300, 0x300))
+                    Palette = ImageFormat.ReadPalette(input, 0x100, PaletteFormat.Rgb);
             }
             return m_output;
         }
 
-        void Decompress ()
+        void Decompress()
         {
             m_input.Position = 0x11;
             int ctl_length = (m_input.ReadInt32() + 7) / 8;
-            var ctl_bytes = m_input.ReadBytes (ctl_length);
+            var ctl_bytes = m_input.ReadBytes(ctl_length);
             m_input.ReadInt32();
-            using (var ctl_mem = new MemoryStream (ctl_bytes))
-            using (var bits = new LsbBitStream (ctl_mem))
+            using (var ctl_mem = new MemoryStream(ctl_bytes))
+            using (var bits = new LsbBitStream(ctl_mem))
             {
                 int dst = 0;
                 while (dst < m_output.Length)
@@ -156,7 +157,7 @@ namespace GameRes.Formats.NeXAS
                         int offset = m_input.ReadUInt16();
                         int count = (offset & m_count_mask) + 1;
                         offset = (offset >> m_count_bits) + 1;
-                        Binary.CopyOverlapped (m_output, dst - offset, dst, count);
+                        Binary.CopyOverlapped(m_output, dst - offset, dst, count);
                         dst += count;
                     }
                 }

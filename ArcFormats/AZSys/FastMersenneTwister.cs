@@ -42,46 +42,46 @@ namespace GameRes.Utility
 {
     public class FastMersenneTwister
     {
-        const int MEXP  = 19937;
-        const int N     = MEXP / 128 + 1;
-        const int N32   = N * 4;
-        const int POS1	= 122;
-        const int SL1	= 18;
-        const int SL2	= 1;
-        const int SR1	= 11;
-        const int SR2	= 1;
-        const uint MSK1	= 0xdfffffefU;
-        const uint MSK2	= 0xddfecb7fU;
-        const uint MSK3	= 0xbffaffffU;
-        const uint MSK4	= 0xbffffff6U;
-        const uint PARITY1	= 0x00000001U;
-        const uint PARITY2	= 0x00000000U;
-        const uint PARITY3	= 0x00000000U;
-        const uint PARITY4	= 0x13c9e684U;
+        const int MEXP = 19937;
+        const int N = MEXP / 128 + 1;
+        const int N32 = N * 4;
+        const int POS1 = 122;
+        const int SL1 = 18;
+        const int SL2 = 1;
+        const int SR1 = 11;
+        const int SR2 = 1;
+        const uint MSK1 = 0xdfffffefU;
+        const uint MSK2 = 0xddfecb7fU;
+        const uint MSK3 = 0xbffaffffU;
+        const uint MSK4 = 0xbffffff6U;
+        const uint PARITY1 = 0x00000001U;
+        const uint PARITY2 = 0x00000000U;
+        const uint PARITY3 = 0x00000000U;
+        const uint PARITY4 = 0x13c9e684U;
 
-        uint[,]     m_state = new uint[N,4];
-        int         m_idx;
+        uint[,] m_state = new uint[N, 4];
+        int m_idx;
 
-        public FastMersenneTwister (uint seed)
+        public FastMersenneTwister(uint seed)
         {
-            SRand (seed);
+            SRand(seed);
         }
 
-        public void SRand (uint seed)
+        public void SRand(uint seed)
         {
-            uint prev = m_state[0,0] = seed;
+            uint prev = m_state[0, 0] = seed;
             for (int i = 1; i < N32; i++)
             {
                 int p = i >> 2;
                 int k = i & 3;
                 prev = (uint)(1812433253UL * (prev ^ (prev >> 30)) + (uint)i);
-                m_state[p,k] = prev;
+                m_state[p, k] = prev;
             }
             m_idx = N32;
             period_certification();
         }
 
-        public uint GetRand32 ()
+        public uint GetRand32()
         {
             if (m_idx >= N32)
             {
@@ -96,20 +96,20 @@ namespace GameRes.Utility
         /// <summary>
         /// This function fills the internal state array with pseudorandom integers.
         /// </summary>
-        void sfmt_gen_rand_all ()
+        void sfmt_gen_rand_all()
         {
             int i;
             int r1 = N - 2;
             int r2 = N - 1;
             for (i = 0; i < N - POS1; i++)
             {
-                do_recursion (i, i, i + POS1, r1, r2);
+                do_recursion(i, i, i + POS1, r1, r2);
                 r1 = r2;
                 r2 = i;
             }
             for (; i < N; i++)
             {
-                do_recursion (i, i, i + POS1 - N, r1, r2);
+                do_recursion(i, i, i + POS1 - N, r1, r2);
                 r1 = r2;
                 r2 = i;
             }
@@ -118,34 +118,34 @@ namespace GameRes.Utility
         /// <summary>
         /// This function represents the recursion formula.
         /// </summary>
-        void do_recursion (int r, int a, int b, int c, int d)
+        void do_recursion(int r, int a, int b, int c, int d)
         {
             var x = new uint[4];
             var y = new uint[4];
-            lshift128 (x, a, SL2);
-            rshift128 (y, c, SR2);
-            m_state[r,0] = m_state[a,0] ^ x[0] ^ ((m_state[b,0] >> SR1) & MSK1)
-                                        ^ y[0] ^ (m_state[d,0] << SL1);
-            m_state[r,1] = m_state[a,1] ^ x[1] ^ ((m_state[b,1] >> SR1) & MSK2)
-                                        ^ y[1] ^ (m_state[d,1] << SL1);
-            m_state[r,2] = m_state[a,2] ^ x[2] ^ ((m_state[b,2] >> SR1) & MSK3)
-                                        ^ y[2] ^ (m_state[d,2] << SL1);
-            m_state[r,3] = m_state[a,3] ^ x[3] ^ ((m_state[b,3] >> SR1) & MSK4)
-                                        ^ y[3] ^ (m_state[d,3] << SL1);
+            lshift128(x, a, SL2);
+            rshift128(y, c, SR2);
+            m_state[r, 0] = m_state[a, 0] ^ x[0] ^ ((m_state[b, 0] >> SR1) & MSK1)
+                                        ^ y[0] ^ (m_state[d, 0] << SL1);
+            m_state[r, 1] = m_state[a, 1] ^ x[1] ^ ((m_state[b, 1] >> SR1) & MSK2)
+                                        ^ y[1] ^ (m_state[d, 1] << SL1);
+            m_state[r, 2] = m_state[a, 2] ^ x[2] ^ ((m_state[b, 2] >> SR1) & MSK3)
+                                        ^ y[2] ^ (m_state[d, 2] << SL1);
+            m_state[r, 3] = m_state[a, 3] ^ x[3] ^ ((m_state[b, 3] >> SR1) & MSK4)
+                                        ^ y[3] ^ (m_state[d, 3] << SL1);
         }
 
-        static readonly uint[] s_parity = { PARITY1, PARITY2, PARITY3, PARITY4 }; 
+        static readonly uint[] s_parity = { PARITY1, PARITY2, PARITY3, PARITY4 };
 
         /// <summary>
         /// This function certificate the period of 2^{MEXP}
         /// </summary>
-        void period_certification ()
+        void period_certification()
         {
             uint inner = 0;
             int i;
 
             for (i = 0; i < 4; i++)
-                inner ^= m_state[0,i] & s_parity[i];
+                inner ^= m_state[0, i] & s_parity[i];
             for (i = 16; i > 0; i >>= 1)
                 inner ^= inner >> i;
             inner &= 1;
@@ -161,7 +161,7 @@ namespace GameRes.Utility
                 {
                     if ((work & s_parity[i]) != 0)
                     {
-                        m_state[0,i] ^= work;
+                        m_state[0, i] ^= work;
                         return;
                     }
                     work = work << 1;
@@ -177,10 +177,10 @@ namespace GameRes.Utility
         /// <param name="result">the output of this function</param>
         /// <param name="idx">index within state array of the 128-bit data to be shifted</param>
         /// <param name="shift">the shift value</param>
-        void lshift128 (uint[] result, int idx, int shift)
+        void lshift128(uint[] result, int idx, int shift)
         {
-            ulong th = ((ulong)m_state[idx,3] << 32) | ((ulong)m_state[idx,2]);
-            ulong tl = ((ulong)m_state[idx,1] << 32) | ((ulong)m_state[idx,0]);
+            ulong th = ((ulong)m_state[idx, 3] << 32) | ((ulong)m_state[idx, 2]);
+            ulong tl = ((ulong)m_state[idx, 1] << 32) | ((ulong)m_state[idx, 0]);
 
             ulong oh = th << (shift * 8);
             ulong ol = tl << (shift * 8);
@@ -191,10 +191,10 @@ namespace GameRes.Utility
             result[2] = (uint)oh;
         }
 
-        void rshift128 (uint[] result, int idx, int shift)
+        void rshift128(uint[] result, int idx, int shift)
         {
-            ulong th = ((ulong)m_state[idx,3] << 32) | ((ulong)m_state[idx,2]);
-            ulong tl = ((ulong)m_state[idx,1] << 32) | ((ulong)m_state[idx,0]);
+            ulong th = ((ulong)m_state[idx, 3] << 32) | ((ulong)m_state[idx, 2]);
+            ulong tl = ((ulong)m_state[idx, 1] << 32) | ((ulong)m_state[idx, 0]);
 
             ulong oh = th >> (shift * 8);
             ulong ol = tl >> (shift * 8);

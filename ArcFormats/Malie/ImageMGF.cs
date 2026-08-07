@@ -34,41 +34,41 @@ namespace GameRes.Formats.Malie
     [Export(typeof(ImageFormat))]
     public class MgfFormat : PngFormat
     {
-        public override string         Tag { get { return "MGF"; } }
+        public override string Tag { get { return "MGF"; } }
         public override string Description { get { return "Malie engine image format"; } }
-        public override uint     Signature { get { return 0x696C614D; } } // 'Mali'
-        public override bool      CanWrite { get { return true; } }
+        public override uint Signature { get { return 0x696C614D; } } // 'Mali'
+        public override bool CanWrite { get { return true; } }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
-            var header = stream.ReadHeader (8).ToArray();
-            if (!Binary.AsciiEqual (header, "MalieGF"))
+            var header = stream.ReadHeader(8).ToArray();
+            if (!Binary.AsciiEqual(header, "MalieGF"))
                 return null;
-            Buffer.BlockCopy (HeaderBytes, 0, header, 0, 8);
+            Buffer.BlockCopy(HeaderBytes, 0, header, 0, 8);
 
-            using (var data = new StreamRegion (stream.AsStream, 8, true))
-            using (var pre = new PrefixStream (header, data))
-            using (var png = new BinaryStream (pre, stream.Name))
-                return base.ReadMetaData (png);
+            using (var data = new StreamRegion(stream.AsStream, 8, true))
+            using (var pre = new PrefixStream(header, data))
+            using (var png = new BinaryStream(pre, stream.Name))
+                return base.ReadMetaData(png);
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
             var header = HeaderBytes.Clone() as byte[];
-            using (var data = new StreamRegion (stream.AsStream, 8, true))
-            using (var pre = new PrefixStream (header, data))
-            using (var png = new BinaryStream (pre, stream.Name))
-                return base.Read (png, info);
+            using (var data = new StreamRegion(stream.AsStream, 8, true))
+            using (var pre = new PrefixStream(header, data))
+            using (var png = new BinaryStream(pre, stream.Name))
+                return base.Read(png, info);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
             using (var png = new MemoryStream())
             {
-                base.Write (png, image);
+                base.Write(png, image);
                 var buffer = png.GetBuffer();
-                Encoding.ASCII.GetBytes ("MalieGF\0", 0, 8, buffer, 0);
-                file.Write (buffer, 0, (int)png.Length);
+                Encoding.ASCII.GetBytes("MalieGF\0", 0, 8, buffer, 0);
+                file.Write(buffer, 0, (int)png.Length);
             }
         }
     }

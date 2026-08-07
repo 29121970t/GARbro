@@ -39,32 +39,32 @@ namespace GARbro.GUI
     /// </summary>
     public partial class CreateArchiveDialog : Window
     {
-        public CreateArchiveDialog (string initial_name = "")
+        public CreateArchiveDialog(string initial_name = "")
         {
-            InitializeComponent ();
+            InitializeComponent();
 
-            if (!string.IsNullOrEmpty (initial_name))
+            if (!string.IsNullOrEmpty(initial_name))
             {
                 var format = this.ArchiveFormat.SelectedItem as ArchiveFormat;
                 if (null != format)
-                    initial_name = Path.ChangeExtension (initial_name, format.Extensions.FirstOrDefault());
+                    initial_name = Path.ChangeExtension(initial_name, format.Extensions.FirstOrDefault());
             }
             ArchiveName.Text = initial_name;
         }
 
-        private readonly IEnumerable<ArchiveFormat> m_formats = FormatCatalog.Instance.ArcFormats.Where (f => f.CanWrite).OrderBy (f => f.Tag);
+        private readonly IEnumerable<ArchiveFormat> m_formats = FormatCatalog.Instance.ArcFormats.Where(f => f.CanWrite).OrderBy(f => f.Tag);
 
         public IEnumerable<ArchiveFormat> ArcFormats { get { return m_formats; } }
 
         public ResourceOptions ArchiveOptions { get; private set; }
 
-        void Button_Click (object sender, RoutedEventArgs e)
+        void Button_Click(object sender, RoutedEventArgs e)
         {
-            string arc_name = Path.GetFullPath (ArchiveName.Text);
-            if (File.Exists (arc_name))
+            string arc_name = Path.GetFullPath(ArchiveName.Text);
+            if (File.Exists(arc_name))
             {
-                string text = string.Format (guiStrings.MsgOverwrite, arc_name);
-                var rc = MessageBox.Show (this, text, guiStrings.TextConfirmOverwrite, MessageBoxButton.YesNo,
+                string text = string.Format(guiStrings.MsgOverwrite, arc_name);
+                var rc = MessageBox.Show(this, text, guiStrings.TextConfirmOverwrite, MessageBoxButton.YesNo,
                                           MessageBoxImage.Question);
                 if (MessageBoxResult.Yes != rc)
                     return;
@@ -72,50 +72,51 @@ namespace GARbro.GUI
             var format = this.ArchiveFormat.SelectedItem as ArchiveFormat;
             if (null != format)
             {
-                ArchiveOptions = format.GetOptions (OptionsWidget.Content);
+                ArchiveOptions = format.GetOptions(OptionsWidget.Content);
             }
             DialogResult = true;
         }
 
-        void BrowseExec (object sender, ExecutedRoutedEventArgs e)
+        void BrowseExec(object sender, ExecutedRoutedEventArgs e)
         {
-            string file = ChooseFile (guiStrings.TextChooseArchive, ArchiveName.Text);
-            if (!string.IsNullOrEmpty (file))
+            string file = ChooseFile(guiStrings.TextChooseArchive, ArchiveName.Text);
+            if (!string.IsNullOrEmpty(file))
                 ArchiveName.Text = file;
         }
 
-        string GetFilters ()
+        string GetFilters()
         {
             var filters = new StringBuilder();
 
             var format = this.ArchiveFormat.SelectedItem as ArchiveFormat;
             if (null != format && format.Extensions.Any())
             {
-                var patterns = format.Extensions.Select (ext => "*."+ext);
-                filters.Append (format.Description);
-                filters.Append (" (");
-                filters.Append (string.Join (", ", patterns));
-                filters.Append (")|");
-                filters.Append (string.Join (";", patterns));
+                var patterns = format.Extensions.Select(ext => "*." + ext);
+                filters.Append(format.Description);
+                filters.Append(" (");
+                filters.Append(string.Join(", ", patterns));
+                filters.Append(")|");
+                filters.Append(string.Join(";", patterns));
             }
 
             if (filters.Length > 0)
-                filters.Append ('|');
-            filters.Append (string.Format ("{0} (*.*)|*.*", guiStrings.TextAllFiles));
+                filters.Append('|');
+            filters.Append(string.Format("{0} (*.*)|*.*", guiStrings.TextAllFiles));
             return filters.ToString();
         }
 
-        public string ChooseFile (string title, string initial)
+        public string ChooseFile(string title, string initial)
         {
             string dir = ".";
-            if (!string.IsNullOrEmpty (initial))
+            if (!string.IsNullOrEmpty(initial))
             {
-                var parent = Directory.GetParent (initial);
+                var parent = Directory.GetParent(initial);
                 if (null != parent)
                     dir = parent.FullName;
             }
-            dir = Path.GetFullPath (dir);
-            var dlg = new OpenFileDialog {
+            dir = Path.GetFullPath(dir);
+            var dlg = new OpenFileDialog
+            {
                 AddExtension = true,
                 CheckFileExists = false,
                 CheckPathExists = true,
@@ -125,29 +126,29 @@ namespace GARbro.GUI
                 Multiselect = false,
                 Title = guiStrings.TextChooseArchive,
             };
-            return dlg.ShowDialog (this).Value ? dlg.FileName : null;
+            return dlg.ShowDialog(this).Value ? dlg.FileName : null;
         }
 
-        void OnFormatSelect (object sender, SelectionChangedEventArgs e)
+        void OnFormatSelect(object sender, SelectionChangedEventArgs e)
         {
             var format = this.ArchiveFormat.SelectedItem as ArchiveFormat;
             object widget = null;
             if (null != format)
             {
                 widget = format.GetCreationWidget();
-                if (!string.IsNullOrEmpty (ArchiveName.Text))
-                    ArchiveName.Text = Path.ChangeExtension (ArchiveName.Text, format.Extensions.FirstOrDefault());
+                if (!string.IsNullOrEmpty(ArchiveName.Text))
+                    ArchiveName.Text = Path.ChangeExtension(ArchiveName.Text, format.Extensions.FirstOrDefault());
             }
             OptionsWidget.Content = widget;
             OptionsWidget.Visibility = null != widget ? Visibility.Visible : Visibility.Hidden;
         }
 
-        void CanExecuteAlways (object sender, CanExecuteRoutedEventArgs e)
+        void CanExecuteAlways(object sender, CanExecuteRoutedEventArgs e)
         {
             e.CanExecute = true;
         }
 
-        private void ArchiveName_TextChanged (object sender, RoutedEventArgs e)
+        private void ArchiveName_TextChanged(object sender, RoutedEventArgs e)
         {
             this.ButtonOk.IsEnabled = ArchiveName.Text.Length > 0;
         }

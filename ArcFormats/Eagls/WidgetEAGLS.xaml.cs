@@ -10,11 +10,11 @@ namespace GameRes.Formats.GUI
     /// </summary>
     public partial class WidgetEAGLS : StackPanel
     {
-        public WidgetEAGLS ()
+        public WidgetEAGLS()
         {
-            InitializeComponent ();
+            InitializeComponent();
             var schemes = new string[] { arcStrings.ArcIgnoreEncryption };
-            Scheme.ItemsSource = schemes.Concat (PakOpener.KnownSchemes.Keys);
+            Scheme.ItemsSource = schemes.Concat(PakOpener.KnownSchemes.Keys);
             if (-1 == Scheme.SelectedIndex)
                 Scheme.SelectedValue = PakOpener.KnownSchemes.First().Key;
         }

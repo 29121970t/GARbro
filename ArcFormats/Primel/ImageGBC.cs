@@ -33,54 +33,54 @@ namespace GameRes.Formats.Primel
 {
     internal class GbcMetaData : ImageMetaData
     {
-        public int  Flags;
+        public int Flags;
     }
 
     [Export(typeof(ImageFormat))]
     public class GbcFormat : ImageFormat
     {
-        public override string         Tag { get { return "GBC"; } }
+        public override string Tag { get { return "GBC"; } }
         public override string Description { get { return "Primel Adventure System image format"; } }
-        public override uint     Signature { get { return 0x46434247; } } // 'GBCF'
+        public override uint Signature { get { return 0x46434247; } } // 'GBCF'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
-            var header = stream.ReadHeader (0x14);
+            var header = stream.ReadHeader(0x14);
             return new GbcMetaData
             {
-                Width   = header.ToUInt32 (8),
-                Height  = header.ToUInt32 (0xC),
-                BPP     = header.ToUInt16 (0x10),
-                Flags   = header.ToUInt16 (0x12),
+                Width = header.ToUInt32(8),
+                Height = header.ToUInt32(0xC),
+                BPP = header.ToUInt16(0x10),
+                Flags = header.ToUInt16(0x12),
             };
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
-            using (var reader = new GbcReader (stream.AsStream, (GbcMetaData)info))
+            using (var reader = new GbcReader(stream.AsStream, (GbcMetaData)info))
             {
                 reader.Unpack();
-                return ImageData.Create (info, reader.Format, null, reader.Pixels);
+                return ImageData.Create(info, reader.Format, null, reader.Pixels);
             }
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("GbcFormat.Write not implemented");
+            throw new System.NotImplementedException("GbcFormat.Write not implemented");
         }
     }
 
     internal sealed class GbcReader : IDisposable
     {
-        MsbBitStream    m_input;
-        byte[]          m_output;
-        GbcMetaData     m_info;
-        int             m_stride;
+        MsbBitStream m_input;
+        byte[] m_output;
+        GbcMetaData m_info;
+        int m_stride;
 
-        public byte[]      Pixels { get { return m_output; } }
+        public byte[] Pixels { get { return m_output; } }
         public PixelFormat Format { get; private set; }
 
-        public GbcReader (Stream input, GbcMetaData info)
+        public GbcReader(Stream input, GbcMetaData info)
         {
             if (32 == info.BPP)
                 Format = PixelFormats.Bgra32;
@@ -90,13 +90,13 @@ namespace GameRes.Formats.Primel
                 Format = PixelFormats.Gray8;
             else
                 throw new InvalidFormatException();
-            m_input = new MsbBitStream (input, true);
+            m_input = new MsbBitStream(input, true);
             m_info = info;
             m_stride = (int)m_info.Width * m_info.BPP / 8;
             m_output = new byte[m_stride * (int)m_info.Height];
         }
 
-        public void Unpack ()
+        public void Unpack()
         {
             if (0x800 == (m_info.Flags & 0xFF00))
                 UnpackV2();
@@ -104,7 +104,7 @@ namespace GameRes.Formats.Primel
                 UnpackV1();
         }
 
-        void UnpackV1 ()
+        void UnpackV1()
         {
             m_input.Input.Position = 0x30;
             int pixel_size = m_info.BPP / 8;
@@ -129,7 +129,7 @@ namespace GameRes.Formats.Primel
                     {
                         for (int i = 0; i < 64; ++i)
                             block[j, ZigzagOrder[i]] = (short)GetInt();
-                        RestoreBlock (block, j);
+                        RestoreBlock(block, j);
                     }
 
                     for (int y = 0; y < 8; ++y)
@@ -156,7 +156,7 @@ namespace GameRes.Formats.Primel
             }
         }
 
-        void UnpackV2 ()
+        void UnpackV2()
         {
             m_input.Input.Position = 0x30;
             int pixel_size = m_info.BPP / 8;
@@ -174,8 +174,8 @@ namespace GameRes.Formats.Primel
                     for (int i = 0; i < pixel_size; ++i)
                     {
                         for (int j = 0; j < 64; ++j)
-                            block[i,j] = 0;
-                        RestoreBlockV2 (block, i);
+                            block[i, j] = 0;
+                        RestoreBlockV2(block, i);
                     }
 
                     for (int y = 0; y < 8; ++y)
@@ -191,20 +191,20 @@ namespace GameRes.Formats.Primel
                                 break;
                             if (4 == pixel_size)
                             {
-                                m_output[dst + x * 4 + 2] = (byte)block[0, src+x];
-                                m_output[dst + x * 4 + 1] = (byte)block[1, src+x];
-                                m_output[dst + x * 4]     = (byte)block[2, src+x];
-                                m_output[dst + x * 4 + 3] = (byte)block[3, src+x];
+                                m_output[dst + x * 4 + 2] = (byte)block[0, src + x];
+                                m_output[dst + x * 4 + 1] = (byte)block[1, src + x];
+                                m_output[dst + x * 4] = (byte)block[2, src + x];
+                                m_output[dst + x * 4 + 3] = (byte)block[3, src + x];
                             }
                             else if (3 == pixel_size)
                             {
-                                m_output[dst + x * 3 + 2] = (byte)block[0, src+x];
-                                m_output[dst + x * 3 + 1] = (byte)block[1, src+x];
-                                m_output[dst + x * 3]     = (byte)block[2, src+x];
+                                m_output[dst + x * 3 + 2] = (byte)block[0, src + x];
+                                m_output[dst + x * 3 + 1] = (byte)block[1, src + x];
+                                m_output[dst + x * 3] = (byte)block[2, src + x];
                             }
                             else
                             {
-                                var val = block[0, src+x];
+                                var val = block[0, src + x];
                                 m_output[dst + x] = (byte)val;
                             }
                         }
@@ -213,7 +213,7 @@ namespace GameRes.Formats.Primel
             }
         }
 
-        void RestoreBlock (short[,] block, int n)
+        void RestoreBlock(short[,] block, int n)
         {
             int row = 8;
             for (int col = 1; col < 8; ++col)
@@ -233,12 +233,12 @@ namespace GameRes.Formats.Primel
             }
         }
 
-        void RestoreBlockV2 (short[,] block, int plane)
+        void RestoreBlockV2(short[,] block, int plane)
         {
-            int skip;      
+            int skip;
             for (int i = 0; i < 64; ++i)
             {
-                int n = GetIntV2 (out skip);
+                int n = GetIntV2(out skip);
                 if (n != 0)
                     block[plane, ZigzagOrder[i]] = (short)n;
                 else if (0 == skip)
@@ -247,79 +247,79 @@ namespace GameRes.Formats.Primel
                     i += skip - 1;
             }
             for (int row = 0; row < 64; row += 8)
-            for (int x = 1; x < 8; ++x)
-            {
-                block[plane, row+x] += block[plane, row+x-1];
-            }
+                for (int x = 1; x < 8; ++x)
+                {
+                    block[plane, row + x] += block[plane, row + x - 1];
+                }
             for (int row = 8; row < 64; row += 8)
-            for (int x = 0; x < 8; ++x)
-            {
-                block[plane, row+x] += block[plane, row-8+x];
-            }
+                for (int x = 0; x < 8; ++x)
+                {
+                    block[plane, row + x] += block[plane, row - 8 + x];
+                }
         }
 
-        int GetInt ()
+        int GetInt()
         {
-            int count = m_input.GetBits (4);
+            int count = m_input.GetBits(4);
             switch (count)
             {
-            case 0: return 0;
-            case 1: return 1;
+                case 0: return 0;
+                case 1: return 1;
 
-            case 2:
-            case 3:
-            case 4:
-            case 5:
-            case 6:
-            case 7:
-                return m_input.GetBits (count - 1) + (1 << (count - 1));
+                case 2:
+                case 3:
+                case 4:
+                case 5:
+                case 6:
+                case 7:
+                    return m_input.GetBits(count - 1) + (1 << (count - 1));
 
-            case 8: return -1;
-            case 9: return -2;
+                case 8: return -1;
+                case 9: return -2;
 
-            default:
-                return m_input.GetBits (count - 9) - (2 << (count - 9));
+                default:
+                    return m_input.GetBits(count - 9) - (2 << (count - 9));
 
-            case -1: throw new EndOfStreamException();
+                case -1: throw new EndOfStreamException();
             }
         }
 
-        int GetIntV2 (out int repeat)
+        int GetIntV2(out int repeat)
         {
-            int count = m_input.GetBits (4);
+            int count = m_input.GetBits(4);
             repeat = 0;
             switch (count)
             {
-            case 0:
-                repeat = 1;
-                while (repeat < 16 && 1 == m_input.GetNextBit())
-                    ++repeat;
-                if (16 == repeat)
-                    repeat = 0;
-                return 0;
-                
-            case 1: return 1;
+                case 0:
+                    repeat = 1;
+                    while (repeat < 16 && 1 == m_input.GetNextBit())
+                        ++repeat;
+                    if (16 == repeat)
+                        repeat = 0;
+                    return 0;
 
-            case 2:
-            case 3:
-            case 4:
-            case 5:
-            case 6:
-            case 7:
-                return m_input.GetBits (count - 1) + (1 << (count - 1));
+                case 1: return 1;
 
-            case 8: return -1;
-            case 9: return -2;
+                case 2:
+                case 3:
+                case 4:
+                case 5:
+                case 6:
+                case 7:
+                    return m_input.GetBits(count - 1) + (1 << (count - 1));
 
-            default:
-                return m_input.GetBits (count - 9) - (2 << (count - 9));
+                case 8: return -1;
+                case 9: return -2;
 
-            case -1: throw new EndOfStreamException();
+                default:
+                    return m_input.GetBits(count - 9) - (2 << (count - 9));
+
+                case -1: throw new EndOfStreamException();
             }
         }
 
         bool _disposed = false;
-        public void Dispose ()
+        public void Dispose()
         {
             if (!_disposed)
             {

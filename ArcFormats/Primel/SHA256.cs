@@ -16,26 +16,26 @@ namespace GameRes.Formats.Primel
     /// </summary>
     public class SHA256
     {
-        uint[]  m_state;
-        uint[]  m_data;
+        uint[] m_state;
+        uint[] m_data;
 
         const int BlockSize = 64;
 
-        public SHA256 ()
+        public SHA256()
         {
-	        m_state = new uint[] {
+            m_state = new uint[] {
                 0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A,
                 0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19
             };
             m_data = new uint[BlockSize / sizeof(uint)];
         }
 
-        public byte[] ComputeHash (byte[] data)
+        public byte[] ComputeHash(byte[] data)
         {
             if (data.Length > 55)
-                throw new ApplicationException ("[SHA256] message is too long");
-            CopyBigEndian (data, 0, data.Length);
-            m_data[m_data.Length-1] = (uint)(data.Length * 8);
+                throw new ApplicationException("[SHA256] message is too long");
+            CopyBigEndian(data, 0, data.Length);
+            m_data[m_data.Length - 1] = (uint)(data.Length * 8);
             TransformBlock();
 
             var hash = new byte[32];
@@ -50,13 +50,13 @@ namespace GameRes.Formats.Primel
             return hash;
         }
 
-        void CopyBigEndian (byte[] data, int src, int size)
+        void CopyBigEndian(byte[] data, int src, int size)
         {
             int word_count = size / 4;
             int i;
             for (i = 0; i < word_count; ++i)
             {
-                m_data[i] = BigEndian.ToUInt32 (data, src);
+                m_data[i] = BigEndian.ToUInt32(data, src);
                 src += 4;
             }
             if (size < BlockSize)
@@ -74,7 +74,7 @@ namespace GameRes.Formats.Primel
             }
         }
 
-        void TransformBlock ()
+        void TransformBlock()
         {
             uint a = m_state[0];
             uint b = m_state[1];
@@ -85,31 +85,31 @@ namespace GameRes.Formats.Primel
             uint g = m_state[6];
             uint h = m_state[7];
             for (int j = 0; j < 64; j += 16)
-            for (int i = 0; i < 16; ++i)
-            {
-                if (j > 0)
+                for (int i = 0; i < 16; ++i)
                 {
-                    uint x = m_data[(i - 15) & 15];
-                    uint y = m_data[(i - 2) & 15];
-                    x = Binary.RotL (x, 7)  ^ Binary.RotL (x, 18) ^ (x >> 3);
-                    y = Binary.RotL (y, 17) ^ Binary.RotL (y, 19) ^ (y >> 10);
-                    m_data[i] += x + y + m_data[(i-7)&15];
+                    if (j > 0)
+                    {
+                        uint x = m_data[(i - 15) & 15];
+                        uint y = m_data[(i - 2) & 15];
+                        x = Binary.RotL(x, 7) ^ Binary.RotL(x, 18) ^ (x >> 3);
+                        y = Binary.RotL(y, 17) ^ Binary.RotL(y, 19) ^ (y >> 10);
+                        m_data[i] += x + y + m_data[(i - 7) & 15];
+                    }
+                    uint s0 = Binary.RotL(a, 2) ^ Binary.RotL(a, 13) ^ Binary.RotR(a, 10);
+                    uint maj = (a & b) ^ (b & c) ^ (c & a);
+                    uint t0 = s0 + maj;
+                    uint s1 = Binary.RotL(e, 6) ^ Binary.RotL(e, 11) ^ Binary.RotR(e, 7);
+                    uint ch = (e & f) ^ (~e & g);
+                    uint t1 = h + s1 + ch + SHA256_K[i + j] + m_data[i];
+                    h = g;
+                    g = f;
+                    f = e;
+                    e = d + t1;
+                    d = c;
+                    c = b;
+                    b = a;
+                    a = t0 + t1;
                 }
-                uint s0 = Binary.RotL (a, 2) ^ Binary.RotL (a, 13) ^ Binary.RotR (a, 10);
-                uint maj = (a & b) ^ (b & c) ^ (c & a);
-                uint t0 = s0 + maj;
-                uint s1 = Binary.RotL (e, 6) ^ Binary.RotL (e, 11) ^ Binary.RotR (e, 7);
-                uint ch = (e & f) ^ (~e & g);
-                uint t1 = h + s1 + ch + SHA256_K[i+j] + m_data[i];
-                h = g;
-                g = f;
-                f = e;
-                e = d + t1;
-                d = c;
-                c = b;
-                b = a;
-                a = t0 + t1;
-            }
             m_state[0] += a;
             m_state[1] += b;
             m_state[2] += c;

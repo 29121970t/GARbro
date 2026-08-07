@@ -38,24 +38,25 @@ namespace GameRes.Formats.Sceplayer
     [Export(typeof(ImageFormat))]
     public class G24AFormat : ImageFormat
     {
-        public override string         Tag { get { return "G24A"; } }
+        public override string Tag { get { return "G24A"; } }
         public override string Description { get { return "Sceplayer image format"; } }
-        public override uint     Signature { get { return 0x61343267; } } // 'g24a'
+        public override uint Signature { get { return 0x61343267; } } // 'g24a'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x10);
-            return new ImageMetaData { 
-                Width = header.ToUInt32 (8),
-                Height = header.ToUInt32 (0xC),
+            var header = file.ReadHeader(0x10);
+            return new ImageMetaData
+            {
+                Width = header.ToUInt32(8),
+                Height = header.ToUInt32(0xC),
                 BPP = 24,
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
             file.Position = 0x2C;
-            var reader = new G24Reader (file);
+            var reader = new G24Reader(file);
             var pixels = reader.Unpack();
 
             byte b = pixels[0];
@@ -63,107 +64,108 @@ namespace GameRes.Formats.Sceplayer
             byte r = pixels[2];
             for (int i = 3; i < pixels.Length; i += 3)
             {
-                pixels[i  ] += b;
-                pixels[i+1] += g;
-                pixels[i+2] += r;
-                b = pixels[i  ];
-                g = pixels[i+1];
-                r = pixels[i+2];
+                pixels[i] += b;
+                pixels[i + 1] += g;
+                pixels[i + 2] += r;
+                b = pixels[i];
+                g = pixels[i + 1];
+                r = pixels[i + 2];
             }
-            return ImageData.CreateFlipped (info, PixelFormats.Bgr24, null, pixels, (int)info.Width * 3);
+            return ImageData.CreateFlipped(info, PixelFormats.Bgr24, null, pixels, (int)info.Width * 3);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("G24AFormat.Write not implemented");
+            throw new System.NotImplementedException("G24AFormat.Write not implemented");
         }
     }
 
     [Export(typeof(ImageFormat))]
     public class G2408Format : ImageFormat
     {
-        public override string         Tag { get { return "G2408A"; } }
+        public override string Tag { get { return "G2408A"; } }
         public override string Description { get { return "Sceplayer bitmap format"; } }
-        public override uint     Signature { get { return 0x30343267; } } // 'g240'
+        public override uint Signature { get { return 0x30343267; } } // 'g240'
 
-        public G2408Format ()
+        public G2408Format()
         {
             Extensions = new string[] { "g2408a", "g2408b" };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x14);
+            var header = file.ReadHeader(0x14);
             byte type = header[5];
-            if (!header.AsciiEqual ("g2408") || (type != 'a' && type != 'b'))
+            if (!header.AsciiEqual("g2408") || (type != 'a' && type != 'b'))
                 return null;
-            return new G24MetaData { 
-                Width = header.ToUInt32 (0xC),
-                Height = header.ToUInt32 (0x10),
+            return new G24MetaData
+            {
+                Width = header.ToUInt32(0xC),
+                Height = header.ToUInt32(0x10),
                 BPP = 8,
                 Type = type
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
             var meta = (G24MetaData)info;
             file.Position = 0x30;
-            var reader = new G24Reader (file);
+            var reader = new G24Reader(file);
             var pixels = reader.Unpack();
             if ('a' == meta.Type)
             {
-                byte p = pixels[pixels.Length-1];
-                for (int i = pixels.Length-2; i >= 0; --i)
+                byte p = pixels[pixels.Length - 1];
+                for (int i = pixels.Length - 2; i >= 0; --i)
                 {
                     p += pixels[i];
                     pixels[i] = p;
                 }
             }
-            return ImageData.CreateFlipped (info, PixelFormats.Gray8, null, pixels, (int)info.Width);
+            return ImageData.CreateFlipped(info, PixelFormats.Gray8, null, pixels, (int)info.Width);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("G2408BFormat.Write not implemented");
+            throw new System.NotImplementedException("G2408BFormat.Write not implemented");
         }
     }
 
     internal class G24Reader
     {
-        IBinaryStream       m_input;
+        IBinaryStream m_input;
 
-        public G24Reader (IBinaryStream input)
+        public G24Reader(IBinaryStream input)
         {
             m_input = input;
         }
 
-        public byte[] Unpack ()
+        public byte[] Unpack()
         {
             int signature = m_input.ReadInt32();
             int unpacked_size = m_input.ReadInt32();
             var output = new byte[unpacked_size];
             switch (signature)
             {
-            case 0x6572: // 're'
-                UnpackRle (output);
-                break;
-            case 0x656C: // 'le'
-                UnpackLzss (output);
-                break;
-            default:
-                throw new InvalidFormatException();
+                case 0x6572: // 're'
+                    UnpackRle(output);
+                    break;
+                case 0x656C: // 'le'
+                    UnpackLzss(output);
+                    break;
+                default:
+                    throw new InvalidFormatException();
             }
             return output;
         }
 
-        void UnpackLzss (byte[] output)
+        void UnpackLzss(byte[] output)
         {
-            using (var input = new LzssStream (m_input.AsStream, LzssMode.Decompress, true))
-                input.Read (output, 0, output.Length);
+            using (var input = new LzssStream(m_input.AsStream, LzssMode.Decompress, true))
+                input.ReadExactly(output);
         }
 
-        void UnpackRle (byte[] output)
+        void UnpackRle(byte[] output)
         {
             int dst = 0;
             while (m_input.PeekByte() != -1 && dst < output.Length)
@@ -192,7 +194,7 @@ namespace GameRes.Formats.Sceplayer
                     else
                     {
                         byte v = m_input.ReadUInt8();
-                        while (count --> 0)
+                        while (count-- > 0)
                             output[dst++] = v;
                     }
                 }

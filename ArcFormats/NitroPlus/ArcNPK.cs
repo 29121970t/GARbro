@@ -58,15 +58,15 @@ namespace GameRes.Formats.NitroPlus
     {
         public readonly Aes Encryption;
 
-        public NpkArchive (ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, Aes enc)
-            : base (arc, impl, dir)
+        public NpkArchive(ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, Aes enc)
+            : base(arc, impl, dir)
         {
             Encryption = enc;
         }
 
         #region IDisposable Members
         bool _npk_disposed = false;
-        protected override void Dispose (bool disposing)
+        protected override void Dispose(bool disposing)
         {
             if (_npk_disposed)
                 return;
@@ -74,7 +74,7 @@ namespace GameRes.Formats.NitroPlus
             if (disposing)
                 Encryption.Dispose();
             _npk_disposed = true;
-            base.Dispose (disposing);
+            base.Dispose(disposing);
         }
         #endregion
     }
@@ -82,11 +82,11 @@ namespace GameRes.Formats.NitroPlus
     [Export(typeof(ArchiveFormat))]
     public class NpkOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "NPK"; } }
+        public override string Tag { get { return "NPK"; } }
         public override string Description { get { return "Mware engine resource archive"; } }
-        public override uint     Signature { get { return 0x324B504E; } } // 'NPK2'
-        public override bool  IsHierarchic { get { return true; } }
-        public override bool      CanWrite { get { return true; } }
+        public override uint Signature { get { return 0x324B504E; } } // 'NPK2'
+        public override bool IsHierarchic { get { return true; } }
+        public override bool CanWrite { get { return true; } }
 
         static Npk2Scheme DefaultScheme = new Npk2Scheme { KnownKeys = new Dictionary<string, byte[]>() };
         internal Dictionary<string, byte[]> KnownKeys { get { return DefaultScheme.KnownKeys; } }
@@ -100,12 +100,12 @@ namespace GameRes.Formats.NitroPlus
             set { DefaultScheme = (Npk2Scheme)value; }
         }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            int count = file.View.ReadInt32 (0x18);
-            if (!IsSaneCount (count))
+            int count = file.View.ReadInt32(0x18);
+            if (!IsSaneCount(count))
                 return null;
-            var key = QueryEncryption (file.Name);
+            var key = QueryEncryption(file.Name);
             if (null == key)
                 return null;
             var aes = Aes.Create();
@@ -114,17 +114,17 @@ namespace GameRes.Formats.NitroPlus
                 aes.Mode = CipherMode.CBC;
                 aes.Padding = PaddingMode.PKCS7;
                 aes.Key = key;
-                aes.IV = file.View.ReadBytes (8, 0x10);
-                uint index_size = file.View.ReadUInt32 (0x1C);
+                aes.IV = file.View.ReadBytes(8, 0x10);
+                uint index_size = file.View.ReadUInt32(0x1C);
                 using (var decryptor = aes.CreateDecryptor())
-                using (var enc_index = file.CreateStream (0x20, index_size))
-                using (var dec_index = new CryptoStream (enc_index, decryptor, CryptoStreamMode.Read))
-                using (var index = new ArcView.Reader (dec_index))
+                using (var enc_index = file.CreateStream(0x20, index_size))
+                using (var dec_index = new CryptoStream(enc_index, decryptor, CryptoStreamMode.Read))
+                using (var index = new ArcView.Reader(dec_index))
                 {
-                    var dir = ReadIndex (index, count, file.MaxOffset);
+                    var dir = ReadIndex(index, count, file.MaxOffset);
                     if (null == dir)
                         return null;
-                    var arc = new NpkArchive (file, this, dir, aes);
+                    var arc = new NpkArchive(file, this, dir, aes);
                     aes = null; // object ownership passed to NpkArchive, don't dispose
                     return arc;
                 }
@@ -136,28 +136,28 @@ namespace GameRes.Formats.NitroPlus
             }
         }
 
-        List<Entry> ReadIndex (BinaryReader index, int count, long max_offset)
+        List<Entry> ReadIndex(BinaryReader index, int count, long max_offset)
         {
             var name_buffer = new byte[0x104];
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
                 index.ReadByte();
                 int name_length = index.ReadUInt16();
                 if (0 == name_length || name_length > name_buffer.Length)
                     return null;
-                index.Read (name_buffer, 0, name_length);
-                var name = DefaultEncoding.GetString (name_buffer, 0, name_length);
-                var entry = FormatCatalog.Instance.Create<NpkEntry> (name);
+                index.Read(name_buffer, 0, name_length);
+                var name = DefaultEncoding.GetString(name_buffer, 0, name_length);
+                var entry = FormatCatalog.Instance.Create<NpkEntry>(name);
                 entry.UnpackedSize = index.ReadUInt32();
-                index.Read (name_buffer, 0, 0x20); // skip
+                index.Read(name_buffer, 0, 0x20); // skip
                 int segment_count = index.ReadInt32();
                 if (segment_count < 0)
                     return null;
                 if (0 == segment_count)
                 {
                     entry.Offset = 0;
-                    dir.Add (entry);
+                    dir.Add(entry);
                     continue;
                 }
                 entry.Segments.Capacity = segment_count;
@@ -170,78 +170,78 @@ namespace GameRes.Formats.NitroPlus
                     segment.AlignedSize = index.ReadUInt32();
                     segment.Size = index.ReadUInt32();
                     segment.UnpackedSize = index.ReadUInt32();
-                    entry.Segments.Add (segment);
+                    entry.Segments.Add(segment);
                     packed_size += segment.AlignedSize;
                     is_packed = is_packed || segment.IsCompressed;
                 }
                 entry.Offset = entry.Segments[0].Offset;
-                entry.Size   = packed_size;
+                entry.Size = packed_size;
                 entry.IsPacked = is_packed;
-                if (!entry.CheckPlacement (max_offset))
+                if (!entry.CheckPlacement(max_offset))
                     return null;
-                dir.Add (entry);
+                dir.Add(entry);
             }
             return dir;
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             if (0 == entry.Size)
                 return Stream.Null;
             var narc = arc as NpkArchive;
             var nent = entry as NpkEntry;
             if (null == narc || null == nent)
-                return base.OpenEntry (arc, entry);
+                return base.OpenEntry(arc, entry);
 
             if (1 == nent.Segments.Count && !nent.IsPacked)
             {
-                var input = narc.File.CreateStream (nent.Segments[0].Offset, nent.Segments[0].AlignedSize);
+                var input = narc.File.CreateStream(nent.Segments[0].Offset, nent.Segments[0].AlignedSize);
                 var decryptor = narc.Encryption.CreateDecryptor();
-                return new InputCryptoStream (input, decryptor);
+                return new InputCryptoStream(input, decryptor);
             }
-            return new NpkStream (narc, nent);
+            return new NpkStream(narc, nent);
         }
 
-        public override ResourceOptions GetDefaultOptions ()
+        public override ResourceOptions GetDefaultOptions()
         {
-            return new Npk2Options { Key = GetKey (Properties.Settings.Default.NPKScheme) };
+            return new Npk2Options { Key = GetKey(Properties.Settings.Default.NPKScheme) };
         }
 
-        public override object GetAccessWidget ()
+        public override object GetAccessWidget()
         {
-            return new GUI.WidgetNPK (KnownKeys.Keys);
+            return new GUI.WidgetNPK(KnownKeys.Keys);
         }
 
-        public override object GetCreationWidget ()
+        public override object GetCreationWidget()
         {
-            return new GUI.WidgetNPK (KnownKeys.Keys);
+            return new GUI.WidgetNPK(KnownKeys.Keys);
         }
 
-        byte[] QueryEncryption (string arc_name)
+        byte[] QueryEncryption(string arc_name)
         {
             byte[] key = null;
-            var title = FormatCatalog.Instance.LookupGame (arc_name);
-            if (!string.IsNullOrEmpty (title))
-                key = GetKey (title);
+            var title = FormatCatalog.Instance.LookupGame(arc_name);
+            if (!string.IsNullOrEmpty(title))
+                key = GetKey(title);
             if (null == key)
             {
-                var options = Query<Npk2Options> (arcStrings.ArcEncryptedNotice);
+                var options = Query<Npk2Options>(arcStrings.ArcEncryptedNotice);
                 key = options.Key;
             }
             return key;
         }
 
-        byte[] GetKey (string title)
+        byte[] GetKey(string title)
         {
             byte[] key;
-            KnownKeys.TryGetValue (title, out key);
+            KnownKeys.TryGetValue(title, out key);
             return key;
         }
 
-        public override void Create (Stream output, IEnumerable<Entry> list, ResourceOptions options,
+        public override void Create(Stream output, IEnumerable<Entry> list, ResourceOptions options,
                                      EntryCallback callback)
         {
-            var npk_options = GetOptions<Npk2Options> (options);
+            var npk_options = GetOptions<Npk2Options>(options);
             if (null == npk_options.Key)
                 throw new InvalidEncryptionScheme();
 
@@ -250,19 +250,19 @@ namespace GameRes.Formats.NitroPlus
             var dir = new List<NpkStoredEntry>();
             foreach (var entry in list)
             {
-                var ext = Path.GetExtension (entry.Name).ToLowerInvariant();
+                var ext = Path.GetExtension(entry.Name).ToLowerInvariant();
                 var npk_entry = new NpkStoredEntry
                 {
                     Name = entry.Name,
-                    RawName = enc.GetBytes (entry.Name.Replace ('\\', '/')),
-                    IsSolid = SolidFiles.Contains (ext),
-                    IsPacked = !DisableCompression.Contains (ext),
+                    RawName = enc.GetBytes(entry.Name.Replace('\\', '/')),
+                    IsSolid = SolidFiles.Contains(ext),
+                    IsPacked = !DisableCompression.Contains(ext),
                 };
                 int segment_count = 1;
                 if (!npk_entry.IsSolid)
-                    segment_count = (int)(((long)entry.Size + DefaultSegmentSize-1) / DefaultSegmentSize);
+                    segment_count = (int)(((long)entry.Size + DefaultSegmentSize - 1) / DefaultSegmentSize);
                 index_length += 3 + npk_entry.RawName.Length + 0x28 + segment_count * 0x14;
-                dir.Add (npk_entry);
+                dir.Add(npk_entry);
             }
             index_length = (index_length + 0xF) & ~0xF;
 
@@ -277,52 +277,52 @@ namespace GameRes.Formats.NitroPlus
                 foreach (var entry in dir)
                 {
                     if (null != callback)
-                        callback (callback_count++, entry, arcStrings.MsgAddingFile);
+                        callback(callback_count++, entry, arcStrings.MsgAddingFile);
 
-                    using (var writer = new NpkWriter (entry, output, aes))
-                        writer.Write (DefaultSegmentSize);
+                    using (var writer = new NpkWriter(entry, output, aes))
+                        writer.Write(DefaultSegmentSize);
                 }
                 output.Position = 0;
                 var buffer = new byte[] { (byte)'N', (byte)'P', (byte)'K', (byte)'2', 1, 0, 0, 0 };
-                output.Write (buffer, 0, 8);
-                output.Write (aes.IV, 0, 0x10);
-                LittleEndian.Pack (dir.Count, buffer, 0);
-                LittleEndian.Pack (index_length, buffer, 4);
-                output.Write (buffer, 0, 8);
+                output.Write(buffer, 0, 8);
+                output.Write(aes.IV, 0, 0x10);
+                LittleEndian.Pack(dir.Count, buffer, 0);
+                LittleEndian.Pack(index_length, buffer, 4);
+                output.Write(buffer, 0, 8);
 
                 using (var encryptor = aes.CreateEncryptor())
-                using (var proxy = new ProxyStream (output, true))
-                using (var index_stream = new CryptoStream (proxy, encryptor, CryptoStreamMode.Write))
-                using (var index = new BinaryWriter (index_stream))
+                using (var proxy = new ProxyStream(output, true))
+                using (var index_stream = new CryptoStream(proxy, encryptor, CryptoStreamMode.Write))
+                using (var index = new BinaryWriter(index_stream))
                 {
                     if (null != callback)
-                        callback (callback_count++, null, arcStrings.MsgWritingIndex);
+                        callback(callback_count++, null, arcStrings.MsgWritingIndex);
                     foreach (var entry in dir)
                     {
-                        index.Write (entry.IsSolid); // 0 -> segmentation enabled, 1 -> no segmentation
-                        index.Write ((short)entry.RawName.Length);
-                        index.Write (entry.RawName);
-                        index.Write (entry.UnpackedSize);
-                        index.Write (entry.CheckSum);
-                        index.Write (entry.Segments.Count);
+                        index.Write(entry.IsSolid); // 0 -> segmentation enabled, 1 -> no segmentation
+                        index.Write((short)entry.RawName.Length);
+                        index.Write(entry.RawName);
+                        index.Write(entry.UnpackedSize);
+                        index.Write(entry.CheckSum);
+                        index.Write(entry.Segments.Count);
                         foreach (var segment in entry.Segments)
                         {
-                            index.Write (segment.Offset);
-                            index.Write (segment.AlignedSize);
-                            index.Write (segment.Size);
-                            index.Write (segment.UnpackedSize);
+                            index.Write(segment.Offset);
+                            index.Write(segment.AlignedSize);
+                            index.Write(segment.Size);
+                            index.Write(segment.UnpackedSize);
                         }
                     }
                 }
             }
         }
 
-        byte[] GenerateAesIV ()
+        byte[] GenerateAesIV()
         {
             using (var rng = new RNGCryptoServiceProvider())
             {
                 var iv = new byte[0x10];
-                rng.GetBytes (iv);
+                rng.GetBytes(iv);
                 return iv;
             }
         }
@@ -333,24 +333,24 @@ namespace GameRes.Formats.NitroPlus
 
     internal class NpkStoredEntry : NpkEntry
     {
-        public byte[]   RawName;
-        public byte[]   CheckSum;
-        public bool     IsSolid;
+        public byte[] RawName;
+        public byte[] CheckSum;
+        public bool IsSolid;
     }
 
     internal sealed class NpkWriter : IDisposable
     {
-        NpkStoredEntry  m_entry;
-        FileStream      m_input;
-        Stream          m_archive;
-        CryptoStream    m_checksum_stream;
-        Aes             m_aes;
-        long            m_remaining;
-        byte[]          m_buffer;
+        NpkStoredEntry m_entry;
+        FileStream m_input;
+        Stream m_archive;
+        CryptoStream m_checksum_stream;
+        Aes m_aes;
+        long m_remaining;
+        byte[] m_buffer;
 
-        public NpkWriter (NpkStoredEntry entry, Stream archive, Aes aes)
+        public NpkWriter(NpkStoredEntry entry, Stream archive, Aes aes)
         {
-            m_input = File.OpenRead (entry.Name);
+            m_input = File.OpenRead(entry.Name);
             m_archive = archive;
             m_entry = entry;
             m_aes = aes;
@@ -359,7 +359,7 @@ namespace GameRes.Formats.NitroPlus
 
         static readonly byte[] EmptyFileHash = GetDefaultHash();
 
-        public void Write (uint segment_size)
+        public void Write(uint segment_size)
         {
             long input_size = m_input.Length;
             if (input_size > uint.MaxValue)
@@ -377,7 +377,7 @@ namespace GameRes.Formats.NitroPlus
                 segment_size = (uint)input_size;
 
             using (var sha256 = SHA256.Create())
-            using (m_checksum_stream = new CryptoStream (Stream.Null, sha256, CryptoStreamMode.Write))
+            using (m_checksum_stream = new CryptoStream(Stream.Null, sha256, CryptoStreamMode.Write))
             {
                 m_remaining = input_size;
                 int segment_count = (int)((input_size + segment_size - 1) / segment_size);
@@ -385,19 +385,19 @@ namespace GameRes.Formats.NitroPlus
                 m_entry.Segments.Capacity = segment_count;
                 for (int i = 0; i < segment_count; ++i)
                 {
-                    int chunk_size = (int)Math.Min (m_remaining, segment_size);
+                    int chunk_size = (int)Math.Min(m_remaining, segment_size);
                     bool should_compress = m_entry.IsPacked && chunk_size > 2;
                     var file_pos = m_input.Position;
-                    var segment = WriteSegment (chunk_size, should_compress);
+                    var segment = WriteSegment(chunk_size, should_compress);
                     if (should_compress && !segment.IsCompressed)
                     {
                         // compressed segment is larger than uncompressed, rewrite
                         m_input.Position = file_pos;
                         m_archive.Position = segment.Offset;
-                        RewriteSegment (segment, chunk_size);
-                        m_archive.SetLength (m_archive.Position);
+                        RewriteSegment(segment, chunk_size);
+                        m_archive.SetLength(m_archive.Position);
                     }
-                    m_entry.Segments.Add (segment);
+                    m_entry.Segments.Add(segment);
                     m_remaining -= segment.UnpackedSize;
                 }
                 m_checksum_stream.FlushFinalBlock();
@@ -405,31 +405,31 @@ namespace GameRes.Formats.NitroPlus
             }
         }
 
-        NpkSegment WriteSegment (int chunk_size, bool compress)
+        NpkSegment WriteSegment(int chunk_size, bool compress)
         {
             var segment = new NpkSegment { Offset = m_archive.Position };
-            using (var proxy = new ProxyStream (m_archive, true))
+            using (var proxy = new ProxyStream(m_archive, true))
             using (var encryptor = m_aes.CreateEncryptor())
             {
-                Stream output = new CryptoStream (proxy, encryptor, CryptoStreamMode.Write);
-                var measure = new CountedStream (output);
+                Stream output = new CryptoStream(proxy, encryptor, CryptoStreamMode.Write);
+                var measure = new CountedStream(output);
                 output = measure;
                 if (compress)
-                    output = new DeflateStream (output, CompressionLevel.Optimal);
+                    output = new DeflateStream(output, CompressionLevel.Optimal);
                 using (output)
                 {
                     if (m_remaining == chunk_size)
                     {
                         var file_pos = m_input.Position;
-                        m_input.CopyTo (output);
+                        m_input.CopyTo(output);
                         m_input.Position = file_pos;
-                        m_input.CopyTo (m_checksum_stream);
+                        m_input.CopyTo(m_checksum_stream);
                     }
                     else
                     {
-                        chunk_size = m_input.Read (m_buffer, 0, chunk_size);
-                        output.Write (m_buffer, 0, chunk_size);
-                        m_checksum_stream.Write (m_buffer, 0, chunk_size);
+                        chunk_size = m_input.Read(m_buffer, 0, chunk_size);
+                        output.Write(m_buffer, 0, chunk_size);
+                        m_checksum_stream.Write(m_buffer, 0, chunk_size);
                     }
                 }
                 segment.UnpackedSize = (uint)chunk_size;
@@ -439,57 +439,57 @@ namespace GameRes.Formats.NitroPlus
             }
         }
 
-        void RewriteSegment (NpkSegment segment, int chunk_size)
+        void RewriteSegment(NpkSegment segment, int chunk_size)
         {
-            using (var proxy = new ProxyStream (m_archive, true))
+            using (var proxy = new ProxyStream(m_archive, true))
             using (var encryptor = m_aes.CreateEncryptor())
-            using (var output = new CryptoStream (proxy, encryptor, CryptoStreamMode.Write))
+            using (var output = new CryptoStream(proxy, encryptor, CryptoStreamMode.Write))
             {
                 if (m_remaining == chunk_size)
                 {
-                    m_input.CopyTo (output);
+                    m_input.CopyTo(output);
                 }
                 else
                 {
-                    chunk_size = m_input.Read (m_buffer, 0, chunk_size);
-                    output.Write (m_buffer, 0, chunk_size);
+                    chunk_size = m_input.Read(m_buffer, 0, chunk_size);
+                    output.Write(m_buffer, 0, chunk_size);
                 }
             }
             segment.UnpackedSize = segment.Size = (uint)chunk_size;
             segment.AlignedSize = (uint)(m_archive.Position - segment.Offset);
         }
 
-        static byte[] GetDefaultHash ()
+        static byte[] GetDefaultHash()
         {
             using (var sha256 = SHA256.Create())
-                return sha256.ComputeHash (new byte[0]);
+                return sha256.ComputeHash(new byte[0]);
         }
 
         bool _disposed = false;
-        public void Dispose ()
+        public void Dispose()
         {
             if (!_disposed)
             {
                 m_input.Dispose();
                 _disposed = true;
             }
-            GC.SuppressFinalize (this);
+            GC.SuppressFinalize(this);
         }
     }
 
     internal class NpkStream : Stream
     {
-        ArcView     m_file;
-        Aes         m_encryption;
+        ArcView m_file;
+        Aes m_encryption;
         IEnumerator<NpkSegment> m_segment;
-        Stream      m_stream;
-        bool        m_eof = false;
+        Stream m_stream;
+        bool m_eof = false;
 
-        public override bool CanRead  { get { return m_stream != null && m_stream.CanRead; } }
-        public override bool CanSeek  { get { return false; } }
+        public override bool CanRead { get { return m_stream != null && m_stream.CanRead; } }
+        public override bool CanSeek { get { return false; } }
         public override bool CanWrite { get { return false; } }
 
-        public NpkStream (NpkArchive arc, NpkEntry entry)
+        public NpkStream(NpkArchive arc, NpkEntry entry)
         {
             m_file = arc.File;
             m_encryption = arc.Encryption;
@@ -497,7 +497,7 @@ namespace GameRes.Formats.NitroPlus
             NextSegment();
         }
 
-        private void NextSegment ()
+        private void NextSegment()
         {
             if (!m_segment.MoveNext())
             {
@@ -507,19 +507,19 @@ namespace GameRes.Formats.NitroPlus
             if (null != m_stream)
                 m_stream.Dispose();
             var segment = m_segment.Current;
-            m_stream = m_file.CreateStream (segment.Offset, segment.AlignedSize);
+            m_stream = m_file.CreateStream(segment.Offset, segment.AlignedSize);
             var decryptor = m_encryption.CreateDecryptor();
-            m_stream = new InputCryptoStream (m_stream, decryptor);
+            m_stream = new InputCryptoStream(m_stream, decryptor);
             if (segment.IsCompressed)
-                m_stream = new DeflateStream (m_stream, CompressionMode.Decompress);
+                m_stream = new DeflateStream(m_stream, CompressionMode.Decompress);
         }
 
-        public override int Read (byte[] buffer, int offset, int count)
+        public override int Read(byte[] buffer, int offset, int count)
         {
             int total = 0;
             while (!m_eof && count > 0)
             {
-                int read = m_stream.Read (buffer, offset, count);
+                int read = m_stream.Read(buffer, offset, count);
                 if (0 != read)
                 {
                     total += read;
@@ -532,7 +532,7 @@ namespace GameRes.Formats.NitroPlus
             return total;
         }
 
-        public override int ReadByte ()
+        public override int ReadByte()
         {
             int b = -1;
             while (!m_eof)
@@ -548,34 +548,34 @@ namespace GameRes.Formats.NitroPlus
         #region IO.Stream members
         public override long Length
         {
-            get { throw new NotSupportedException ("NpkStream.Length not supported"); }
+            get { throw new NotSupportedException("NpkStream.Length not supported"); }
         }
         public override long Position
         {
-            get { throw new NotSupportedException ("NpkStream.Position not supported."); }
-            set { throw new NotSupportedException ("NpkStream.Position not supported."); }
+            get { throw new NotSupportedException("NpkStream.Position not supported."); }
+            set { throw new NotSupportedException("NpkStream.Position not supported."); }
         }
 
-        public override void Flush ()
+        public override void Flush()
         {
         }
 
-        public override long Seek (long offset, SeekOrigin origin)
+        public override long Seek(long offset, SeekOrigin origin)
         {
-            throw new NotSupportedException ("NpkStream.Seek method is not supported");
+            throw new NotSupportedException("NpkStream.Seek method is not supported");
         }
 
-        public override void SetLength (long length)
+        public override void SetLength(long length)
         {
-            throw new NotSupportedException ("NpkStream.SetLength method is not supported");
+            throw new NotSupportedException("NpkStream.SetLength method is not supported");
         }
 
-        public override void Write (byte[] buffer, int offset, int count)
+        public override void Write(byte[] buffer, int offset, int count)
         {
-            throw new NotSupportedException ("NpkStream.Write method is not supported");
+            throw new NotSupportedException("NpkStream.Write method is not supported");
         }
 
-        public override void WriteByte (byte value)
+        public override void WriteByte(byte value)
         {
             throw new NotSupportedException("NpkStream.WriteByte method is not supported");
         }
@@ -583,7 +583,7 @@ namespace GameRes.Formats.NitroPlus
 
         #region IDisposable Members
         bool _disposed = false;
-        protected override void Dispose (bool disposing)
+        protected override void Dispose(bool disposing)
         {
             if (!_disposed)
             {
@@ -594,7 +594,7 @@ namespace GameRes.Formats.NitroPlus
                     m_segment.Dispose();
                 }
                 _disposed = true;
-                base.Dispose (disposing);
+                base.Dispose(disposing);
             }
         }
         #endregion
@@ -611,23 +611,23 @@ namespace GameRes.Formats.NitroPlus
     /// </summary>
     public class CountedStream : ProxyStream
     {
-        long    m_count;
+        long m_count;
 
         public long Count { get { return m_count; } }
 
-        public CountedStream (Stream source, bool leave_open = false) : base (source, leave_open)
+        public CountedStream(Stream source, bool leave_open = false) : base(source, leave_open)
         {
             m_count = 0;
         }
 
-        public override int Read (byte[] buffer, int offset, int count)
+        public override int Read(byte[] buffer, int offset, int count)
         {
-            int read = BaseStream.Read (buffer, offset, count); 
+            int read = BaseStream.Read(buffer, offset, count);
             m_count += read;
             return read;
         }
 
-        public override int ReadByte ()
+        public override int ReadByte()
         {
             int b = BaseStream.ReadByte();
             if (b != -1)
@@ -635,15 +635,15 @@ namespace GameRes.Formats.NitroPlus
             return b;
         }
 
-        public override void Write (byte[] buffer, int offset, int count)
+        public override void Write(byte[] buffer, int offset, int count)
         {
-            BaseStream.Write (buffer, offset, count);
+            BaseStream.Write(buffer, offset, count);
             m_count += count;
         }
 
-        public override void WriteByte (byte b)
+        public override void WriteByte(byte b)
         {
-            BaseStream.WriteByte (b);
+            BaseStream.WriteByte(b);
             ++m_count;
         }
     }

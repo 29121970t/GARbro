@@ -37,36 +37,39 @@ namespace GameRes.Formats.HillField
     [Export(typeof(ImageFormat))]
     public class ImaFormat : ImageFormat
     {
-        public override string         Tag { get { return "IMA"; } }
+        public override string Tag { get { return "IMA"; } }
         public override string Description { get { return "Hill Field script system image format"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x10);
-            if (header.ToInt32 (0) != 0)
+            var header = file.ReadHeader(0x10);
+            if (header.ToInt32(0) != 0)
                 return null;
-            uint rgb_size = header.ToUInt32 (4);
-            uint width = header.ToUInt32 (8);
-            uint height = header.ToUInt32 (12);
+            uint rgb_size = header.ToUInt32(4);
+            uint width = header.ToUInt32(8);
+            uint height = header.ToUInt32(12);
             uint plane_size = width * height;
             uint bitmap_size = plane_size * 3;
             if (plane_size == 0 || bitmap_size > rgb_size || file.Length - rgb_size - 8 < plane_size)
                 return null;
-            return new ImaMetaData {
-                Width = width, Height = height, BPP = 32,
+            return new ImaMetaData
+            {
+                Width = width,
+                Height = height,
+                BPP = 32,
                 AlphaOffset = 8 + rgb_size,
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
             var meta = (ImaMetaData)info;
             file.Position = 0x10;
             int plane_size = meta.iWidth * meta.iHeight;
-            var rgb = file.ReadBytes (plane_size * 3);
+            var rgb = file.ReadBytes(plane_size * 3);
             file.Position = meta.AlphaOffset;
-            var alpha = file.ReadBytes (plane_size);
+            var alpha = file.ReadBytes(plane_size);
 
             int stride = meta.iWidth * 4;
             var pixels = new byte[stride * meta.iHeight];
@@ -80,12 +83,12 @@ namespace GameRes.Formats.HillField
                 pixels[dst++] = rgb[src++];
                 pixels[dst++] = (byte)~alpha[asrc++];
             }
-            return ImageData.CreateFlipped (info, PixelFormats.Bgra32, null, pixels, stride);
+            return ImageData.CreateFlipped(info, PixelFormats.Bgra32, null, pixels, stride);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("ImaFormat.Write not implemented");
+            throw new System.NotImplementedException("ImaFormat.Write not implemented");
         }
     }
 }

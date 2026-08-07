@@ -31,54 +31,55 @@ namespace GameRes.Formats.Nonono
 {
     internal class ImgXDecoder : IImageDecoder
     {
-        LsbBitStream        m_input;
-        uint                m_unpacked_size;
-        ImageMetaData       m_info;
-        ImageData           m_image;
+        LsbBitStream m_input;
+        uint m_unpacked_size;
+        ImageMetaData m_info;
+        ImageData m_image;
 
-        public Stream            Source { get { return m_input.Input; } }
+        public Stream Source { get { return m_input.Input; } }
         public ImageFormat SourceFormat { get { return null; } }
-        public ImageMetaData       Info { get { return m_info ?? GetImageInfo(); } }
-        public ImageData          Image { get { return m_image ?? (m_image = GetImage()); } }
+        public ImageMetaData Info { get { return m_info ?? GetImageInfo(); } }
+        public ImageData Image { get { return m_image ?? (m_image = GetImage()); } }
 
-        public ImgXDecoder (IBinaryStream input)
+        public ImgXDecoder(IBinaryStream input)
         {
             input.Position = 4;
             uint unpacked_size = ~input.ReadUInt32();
             m_unpacked_size = unpacked_size >> 16 | unpacked_size << 16;
-            m_input = new LsbBitStream (input.AsStream);
+            m_input = new LsbBitStream(input.AsStream);
         }
 
-        ImageData GetImage ()
+        ImageData GetImage()
         {
             var bitmap = Unpack();
-            m_info = new ImageMetaData {
-                Width  = bitmap.ToUInt32 (4),
-                Height = bitmap.ToUInt32 (8),
-                BPP = bitmap.ToUInt16 (0xE),
+            m_info = new ImageMetaData
+            {
+                Width = bitmap.ToUInt32(4),
+                Height = bitmap.ToUInt32(8),
+                BPP = bitmap.ToUInt16(0xE),
             };
-            int header_size = bitmap.ToInt32 (0);
+            int header_size = bitmap.ToInt32(0);
             BitmapPalette palette = null;
             int stride = m_info.iWidth * m_info.BPP / 8;
             var pixels = new byte[stride * m_info.iHeight];
-            using (var input = new MemoryStream (bitmap, header_size, bitmap.Length - header_size))
+            using (var input = new MemoryStream(bitmap, header_size, bitmap.Length - header_size))
             {
                 if (8 == m_info.BPP)
                 {
-                    int num_colors = bitmap.ToInt32 (0x20);
+                    int num_colors = bitmap.ToInt32(0x20);
                     if (0 == num_colors)
                         num_colors = 0x100;
-                    palette = ImageFormat.ReadPalette (input, num_colors);
+                    palette = ImageFormat.ReadPalette(input, num_colors);
                 }
-                input.Read (pixels, 0, pixels.Length);
+                input.Read(pixels, 0, pixels.Length);
             }
             PixelFormat format = 8 == m_info.BPP ? PixelFormats.Indexed8
                                : 24 == m_info.BPP ? PixelFormats.Bgr24
                                : PixelFormats.Bgr32;
-            return ImageData.Create (m_info, format, palette, pixels, stride);
+            return ImageData.Create(m_info, format, palette, pixels, stride);
         }
 
-        ImageMetaData GetImageInfo ()
+        ImageMetaData GetImageInfo()
         {
             GetImage();
             return m_info;
@@ -86,11 +87,11 @@ namespace GameRes.Formats.Nonono
 
         struct Node
         {
-            public int  Child;
+            public int Child;
             public byte Value;
         }
 
-        public byte[] Unpack ()
+        public byte[] Unpack()
         {
             var output = new byte[m_unpacked_size];
             m_input.Input.Position = 8;
@@ -100,16 +101,16 @@ namespace GameRes.Formats.Nonono
 
             int root_node = 259;
             int code_length = 9;
-            int last_code = m_input.GetBits (code_length);
+            int last_code = m_input.GetBits(code_length);
             if (-1 == last_code || 256 == last_code)
                 return output;
             byte last_symbol = output[out_pos++] = (byte)last_code;
             while (out_pos < output.Length)
             {
                 int code;
-                for (;;)
+                for (; ; )
                 {
-                    code = m_input.GetBits (code_length);
+                    code = m_input.GetBits(code_length);
                     if (-1 == code)
                         return output;
                     if (code != 257)
@@ -122,7 +123,7 @@ namespace GameRes.Formats.Nonono
                 {
                     root_node = 259;
                     code_length = 9;
-                    last_code = m_input.GetBits (code_length);
+                    last_code = m_input.GetBits(code_length);
                     if (-1 == last_code || 256 == last_code)
                         return output;
                     last_symbol = output[out_pos++] = (byte)last_code;
@@ -154,7 +155,7 @@ namespace GameRes.Formats.Nonono
         }
 
         bool m_disposed = false;
-        public void Dispose ()
+        public void Dispose()
         {
             if (!m_disposed)
             {

@@ -36,8 +36,8 @@ namespace GameRes.Formats.AdvScripter
     {
         public readonly int Version;
 
-        public MdArchive (ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, int version)
-            : base (arc, impl, dir)
+        public MdArchive(ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, int version)
+            : base(arc, impl, dir)
         {
             Version = version;
         }
@@ -46,53 +46,53 @@ namespace GameRes.Formats.AdvScripter
     [Export(typeof(ArchiveFormat))]
     public class PakOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "PAK/MD002"; } }
+        public override string Tag { get { return "PAK/MD002"; } }
         public override string Description { get { return "ADVScripter engine resource archive"; } }
-        public override uint     Signature { get { return 0x3030444D; } } // 'MD002'
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x3030444D; } } // 'MD002'
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            if (file.View.ReadByte (4) != '2' || !file.View.AsciiEqual (0x21, "00V"))
+            if (file.View.ReadByte(4) != '2' || !file.View.AsciiEqual(0x21, "00V"))
                 return null;
-            int count = file.View.ReadInt32 (0x24);
-            if (!IsSaneCount (count))
+            int count = file.View.ReadInt32(0x24);
+            if (!IsSaneCount(count))
                 return null;
-            int version = file.View.ReadByte (0x20) - '0';
+            int version = file.View.ReadByte(0x20) - '0';
             if (version < 1 || version > 9)
                 return null;
-            var index_entry = new IndexReader (file, version);
+            var index_entry = new IndexReader(file, version);
             var buffer = new byte[0x30];
             uint index_offset = 0x28;
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
-                file.View.Read (index_offset, buffer, 0, 0x30);
-                index_entry.Decrypt (buffer);
-                var name = Binary.GetCString (buffer, 0, 0x20);
-                var entry = FormatCatalog.Instance.Create<PackedEntry> (name);
-                entry.Offset       = index_entry.Offset;
+                file.View.Read(index_offset, buffer, 0, 0x30);
+                index_entry.Decrypt(buffer);
+                var name = Binary.GetCString(buffer, 0, 0x20);
+                var entry = FormatCatalog.Instance.Create<PackedEntry>(name);
+                entry.Offset = index_entry.Offset;
                 entry.UnpackedSize = index_entry.UnpackedSize;
-                entry.Size         = index_entry.PackedSize;
-                entry.IsPacked     = buffer.ToInt32 (0x20) != 0;
-                if (!entry.CheckPlacement (file.MaxOffset))
+                entry.Size = index_entry.PackedSize;
+                entry.IsPacked = buffer.ToInt32(0x20) != 0;
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
-                dir.Add (entry);
+                dir.Add(entry);
                 index_offset += 0x30;
             }
-            return new MdArchive (file, this, dir, version);
+            return new MdArchive(file, this, dir, version);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var mdarc = arc as MdArchive;
-            Stream input = arc.File.CreateStream (entry.Offset, entry.Size);
+            Stream input = arc.File.CreateStream(entry.Offset, entry.Size);
             if (mdarc != null && (mdarc.Version >= 5 && mdarc.Version <= 8))
-                input = new XoredStream (input, 0xFF);
+                input = new XoredStream(input, 0xFF);
             var pent = entry as PackedEntry;
             if (pent != null && pent.IsPacked)
-                input = new LzssStream (input);
+                input = new LzssStream(input);
             return input;
         }
 
@@ -106,42 +106,46 @@ namespace GameRes.Formats.AdvScripter
 
             private uint m_key;
 
-            public IndexReader (ArcView file, int version)
+            public IndexReader(ArcView file, int version)
             {
                 if (1 == version || 5 == version)
                 {
-                    Decrypt = buffer => {
-                        Offset       = buffer.ToUInt32 (0x24);
-                        UnpackedSize = buffer.ToUInt32 (0x28);
-                        PackedSize   = buffer.ToUInt32 (0x2C);
+                    Decrypt = buffer =>
+                    {
+                        Offset = buffer.ToUInt32(0x24);
+                        UnpackedSize = buffer.ToUInt32(0x28);
+                        PackedSize = buffer.ToUInt32(0x2C);
                     };
                     return;
                 }
                 else if (2 == version || 6 == version)
                     m_key = uint.MaxValue;
                 else
-                    m_key = file.View.ReadUInt32 (0x1C);
+                    m_key = file.View.ReadUInt32(0x1C);
 
-                Action<byte[]> read = buffer => {
-                    Offset       = buffer.ToUInt32 (0x24) ^ m_key;
-                    UnpackedSize = buffer.ToUInt32 (0x28) ^ m_key;
-                    PackedSize   = buffer.ToUInt32 (0x2C) ^ m_key;
+                Action<byte[]> read = buffer =>
+                {
+                    Offset = buffer.ToUInt32(0x24) ^ m_key;
+                    UnpackedSize = buffer.ToUInt32(0x28) ^ m_key;
+                    PackedSize = buffer.ToUInt32(0x2C) ^ m_key;
                 };
                 Action transform;
                 if (9 == version)
                 {
-                    transform = () => {
-                        Offset       = (Offset       & 0xFFFF) << 15 | Offset       >> 17;
+                    transform = () =>
+                    {
+                        Offset = (Offset & 0xFFFF) << 15 | Offset >> 17;
                         UnpackedSize = (UnpackedSize & 0xFFFF) << 14 | UnpackedSize >> 18;
-                        PackedSize   = (PackedSize   & 0xFFFF) << 13 | PackedSize   >> 19;
+                        PackedSize = (PackedSize & 0xFFFF) << 13 | PackedSize >> 19;
                     };
                 }
                 else
                 {
-                    transform = () => {
-                        Offset       >>= 1;
+                    transform = () =>
+                    {
+                        Offset >>= 1;
                         UnpackedSize >>= 2;
-                        PackedSize   >>= 3;
+                        PackedSize >>= 3;
                     };
                 }
 
@@ -149,16 +153,18 @@ namespace GameRes.Formats.AdvScripter
                 if (9 == version || 4 == version || 8 == version)
                 {
                     var key_bytes = new byte[4];
-                    LittleEndian.Pack (m_key, key_bytes, 0);
-                    decrypt_name = buffer => {
+                    LittleEndian.Pack(m_key, key_bytes, 0);
+                    decrypt_name = buffer =>
+                    {
                         for (int i = 0; i < 28; ++i)
                             buffer[i] ^= key_bytes[i & 3];
                     };
                 }
-                Decrypt = buffer => {
-                    read (buffer);
-                    transform ();
-                    decrypt_name (buffer);
+                Decrypt = buffer =>
+                {
+                    read(buffer);
+                    transform();
+                    decrypt_name(buffer);
                 };
             }
         }

@@ -16,67 +16,67 @@ namespace GARbro.GUI
     /// </summary>
     public partial class TroubleShootingDialog : Window
     {
-        public TroubleShootingDialog ()
+        public TroubleShootingDialog()
         {
             InitializeComponent();
 
             this.EnvironmentInfo.Text = GetEnvironmentReportText();
         }
 
-        private void Hyperlink_RequestNavigate (object sender, RequestNavigateEventArgs e)
+        private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
         {
-            if (App.NavigateUri (e.Uri))
+            if (App.NavigateUri(e.Uri))
                 e.Handled = true;
         }
 
-        private void Button_Copy (object sender, RoutedEventArgs e)
+        private void Button_Copy(object sender, RoutedEventArgs e)
         {
             try
             {
-                Clipboard.SetText (this.EnvironmentInfo.Text);
+                Clipboard.SetText(this.EnvironmentInfo.Text);
             }
             catch (Exception X)
             {
-                System.Diagnostics.Trace.WriteLine (X.Message, "Clipboard error");
+                System.Diagnostics.Trace.WriteLine(X.Message, "Clipboard error");
             }
         }
 
-        internal static string GetEnvironmentReportText ()
+        internal static string GetEnvironmentReportText()
         {
             var gui = Assembly.GetExecutingAssembly();
-            var gui_path = Path.GetDirectoryName (gui.Location);
+            var gui_path = Path.GetDirectoryName(gui.Location);
             var report = new StringBuilder();
-            report.AppendFormat ("OS: {0}\n", GetOSVersion());
-            report.AppendFormat ("Framework version: {0}\n", Environment.Version);
-            report.AppendFormat ("Framework release: {0}\n", GetFrameWorkReleaseInfo());
-            report.AppendFormat ("{0}: {1}\n", App.Name, gui.GetName().Version);
-            report.AppendFormat ("Formats database version: {0}\n", FormatCatalog.Instance.CurrentSchemeVersion);
+            report.AppendFormat("OS: {0}\n", GetOSVersion());
+            report.AppendFormat("Framework version: {0}\n", Environment.Version);
+            report.AppendFormat("Framework release: {0}\n", GetFrameWorkReleaseInfo());
+            report.AppendFormat("{0}: {1}\n", App.Name, gui.GetName().Version);
+            report.AppendFormat("Formats database version: {0}\n", FormatCatalog.Instance.CurrentSchemeVersion);
             try
             {
-                report.Append ("\nLoaded assemblies:\n");
-                var local_assemblies = AppDomain.CurrentDomain.GetAssemblies().Where (a => !a.IsDynamic && a.Location.StartsWith (gui_path));
-                foreach (var assembly in local_assemblies.Select (a => a.GetName()))
+                report.Append("\nLoaded assemblies:\n");
+                var local_assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(a => !a.IsDynamic && a.Location.StartsWith(gui_path));
+                foreach (var assembly in local_assemblies.Select(a => a.GetName()))
                 {
-                    report.AppendFormat ("{0} {1}\n", assembly.Name, assembly.Version);
+                    report.AppendFormat("{0} {1}\n", assembly.Name, assembly.Version);
                 }
             }
             catch (Exception X)
             {
-                report.AppendFormat ("Assemblies enumeration failed:\n{0}", X.Message);
+                report.AppendFormat("Assemblies enumeration failed:\n{0}", X.Message);
             }
             return report.ToString();
         }
 
-        internal static string GetOSVersion ()
+        internal static string GetOSVersion()
         {
-            string id = Registry.GetValue (@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion", "ProductName", "").ToString();
-            if (string.IsNullOrEmpty (id))
+            string id = Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion", "ProductName", "").ToString();
+            if (string.IsNullOrEmpty(id))
                 id = Environment.OSVersion.VersionString;
             else
             {
                 string sp = Environment.OSVersion.ServicePack;
-                if (!string.IsNullOrEmpty (sp))
-                    id += ' '+sp;
+                if (!string.IsNullOrEmpty(sp))
+                    id += ' ' + sp;
             }
             return id;
         }
@@ -98,16 +98,16 @@ namespace GARbro.GUI
             { 461310, "4.7.1+" },
         };
 
-        internal static string GetFrameWorkReleaseInfo ()
+        internal static string GetFrameWorkReleaseInfo()
         {
-            int release = Convert.ToInt32 (Registry.GetValue (@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full", "Release", 0));
+            int release = Convert.ToInt32(Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full", "Release", 0));
             if (0 == release)
                 return "Unknown";
-            var version = FrameworkReleases.Reverse().Where (r => release >= r.Key).Select (r => r.Value).FirstOrDefault();
-            if (string.IsNullOrEmpty (version))
+            var version = FrameworkReleases.Reverse().Where(r => release >= r.Key).Select(r => r.Value).FirstOrDefault();
+            if (string.IsNullOrEmpty(version))
                 version = release.ToString();
             else
-                version = string.Format ("{0} ({1})", release, version);
+                version = string.Format("{0} ({1})", release, version);
             return version;
         }
     }

@@ -9,24 +9,24 @@ namespace GameRes.Formats.GUI
     /// </summary>
     public partial class CreateRPAWidget : Grid
     {
-        public CreateRPAWidget ()
+        public CreateRPAWidget()
         {
-            InitializeComponent ();
+            InitializeComponent();
         }
     }
 
     [ValueConversion(typeof(uint), typeof(string))]
     public class UInt32Converter : IValueConverter
     {
-        public object Convert (object value, System.Type targetType, object parameter, CultureInfo culture)
+        public object Convert(object value, System.Type targetType, object parameter, CultureInfo culture)
         {
             if (null == value)
                 return "";
             uint key = (uint)value;
-            return key.ToString ("x");
+            return key.ToString("x");
         }
 
-        public object ConvertBack (object value, System.Type targetType, object parameter, CultureInfo culture)
+        public object ConvertBack(object value, System.Type targetType, object parameter, CultureInfo culture)
         {
             string strValue = value as string;
             uint result_key;

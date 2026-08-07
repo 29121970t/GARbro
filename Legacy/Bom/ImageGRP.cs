@@ -34,64 +34,65 @@ namespace GameRes.Formats.Bom
 {
     internal class GrpMetaData : ImageMetaData
     {
-        public int  Stride;
-        public int  Type;
+        public int Stride;
+        public int Type;
         public uint DataOffset;
     }
 
     [Export(typeof(ImageFormat))]
     public class GrpFormat : ImageFormat
     {
-        public override string         Tag { get { return "GRP/RG"; } }
+        public override string Tag { get { return "GRP/RG"; } }
         public override string Description { get { return "BOM image format"; } }
-        public override uint     Signature { get { return 0x01004752; } } // 'RG'
+        public override uint Signature { get { return 0x01004752; } } // 'RG'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x24);
+            var header = file.ReadHeader(0x24);
             if ((header[6] & 0x80) == 0)
                 return null;
             int bpp;
             switch (header[4])
             {
-            case 5: bpp = 4; break;
-            case 4: bpp = 8; break;
-            case 3: bpp = 16; break;
-            case 2: bpp = 24; break;
-            case 1: bpp = 32; break;
-            default: return null;
+                case 5: bpp = 4; break;
+                case 4: bpp = 8; break;
+                case 3: bpp = 16; break;
+                case 2: bpp = 24; break;
+                case 1: bpp = 32; break;
+                default: return null;
             }
-            return new GrpMetaData {
-                Width   = header.ToUInt16 (8),
-                Height  = header.ToUInt16 (10),
-                BPP     = bpp,
-                Stride  = header.ToInt32 (0x18),
-                Type    = header[4],
-                DataOffset = header.ToUInt16 (0x22),
+            return new GrpMetaData
+            {
+                Width = header.ToUInt16(8),
+                Height = header.ToUInt16(10),
+                BPP = bpp,
+                Stride = header.ToInt32(0x18),
+                Type = header[4],
+                DataOffset = header.ToUInt16(0x22),
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new GrpReader (file, (GrpMetaData)info);
+            var reader = new GrpReader(file, (GrpMetaData)info);
             return reader.Unpack();
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("GrpFormat.Write not implemented");
+            throw new System.NotImplementedException("GrpFormat.Write not implemented");
         }
     }
 
     internal class GrpReader
     {
-        IBinaryStream   m_input;
-        GrpMetaData     m_info;
-        byte[]          m_output;
+        IBinaryStream m_input;
+        GrpMetaData m_info;
+        byte[] m_output;
 
         public PixelFormat Format { get; private set; }
 
-        public GrpReader (IBinaryStream file, GrpMetaData info)
+        public GrpReader(IBinaryStream file, GrpMetaData info)
         {
             m_input = file;
             m_info = info;
@@ -102,24 +103,24 @@ namespace GameRes.Formats.Bom
                                     : PixelFormats.Gray8;
         }
 
-        int     m_dst;
+        int m_dst;
 
-        public ImageData Unpack ()
+        public ImageData Unpack()
         {
             m_input.Position = m_info.DataOffset;
             uint size = m_input.ReadUInt32();
             if ((size & 0x80000000) != 0)
             {
-                m_input.Read (m_output, 0, m_output.Length);
+                m_input.Read(m_output, 0, m_output.Length);
             }
             else
             {
                 UnpackLz();
             }
-            return ImageData.Create (m_info, Format, null, m_output, m_info.Stride);
+            return ImageData.Create(m_info, Format, null, m_output, m_info.Stride);
         }
 
-        void UnpackLz ()
+        void UnpackLz()
         {
             Init();
             var frame = new byte[0x1000];
@@ -137,27 +138,27 @@ namespace GameRes.Formats.Bom
                     for (int i = 0; i < count; ++i)
                     {
                         byte v = frame[(offset + i) & 0xFFF];
-                        PutByte (v);
+                        PutByte(v);
                         frame[frame_pos++ & 0xFFF] = v;
                     }
                 }
                 else
                 {
-                    PutByte (ctl);
+                    PutByte(ctl);
                     frame[frame_pos++ & 0xFFF] = (byte)ctl;
                 }
             }
         }
 
-        int     dword_6FF460;
-        int     dword_6FFE54;
-        int     dword_709868;
+        int dword_6FF460;
+        int dword_6FFE54;
+        int dword_709868;
 
-        int[]   dword_6FF464 = new int[636];
-        int[]   dword_703E68 = new int[635];
-        int[]   dword_70986C = new int[953];
+        int[] dword_6FF464 = new int[636];
+        int[] dword_703E68 = new int[635];
+        int[] dword_70986C = new int[953];
 
-        void Init ()
+        void Init()
         {
             dword_6FFE54 = -1;
             dword_6FF460 = 0;
@@ -187,22 +188,22 @@ namespace GameRes.Formats.Bom
             dword_6FF464[635] = 0xFFFF;
         }
 
-        int GetControlWord ()
+        int GetControlWord()
         {
             int ctl;
             for (ctl = dword_703E68[634]; ctl < 635; ctl = dword_703E68[GetNextBit() + ctl])
                 ;
             ctl -= 635;
-            sub_408C80 (ctl);
+            sub_408C80(ctl);
             return ctl;
         }
 
-        int GetOffset ()
+        int GetOffset()
         {
             int v0 = GetByte();
             int v1 = byte_438D10[v0] - 2;
             int v2 = byte_438C10[v0] << 6;
-            int bits = GetBits (v1);
+            int bits = GetBits(v1);
             return v2 | (((v0 << v1) & 0xFF) | (bits & 0xFF)) & 0x3F;
         }
 
@@ -231,10 +232,10 @@ namespace GameRes.Formats.Bom
             7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
         };
 
-        int     m_bits;
-        int     m_cached_bits;
+        int m_bits;
+        int m_cached_bits;
 
-        int GetNextBit ()
+        int GetNextBit()
         {
             FillBitCache();
             m_bits <<= 1;
@@ -251,7 +252,7 @@ namespace GameRes.Formats.Bom
             return result & 0xFF;
         }
 
-        int GetBits (int n)
+        int GetBits(int n)
         {
             FillBitCache();
             int bits = m_bits << n;
@@ -261,7 +262,7 @@ namespace GameRes.Formats.Bom
             return result & BitMaskTable[n];
         }
 
-        void FillBitCache ()
+        void FillBitCache()
         {
             if (m_cached_bits <= 8)
             {
@@ -280,7 +281,7 @@ namespace GameRes.Formats.Bom
             0x10, 0x0F, 0x0E, 0x0D, 0x0C, 0x0B, 0x0A, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0
         };
 
-        void sub_408C80 (int a1)
+        void sub_408C80(int a1)
         {
             if (dword_6FF464[634] == 0x8000)
                 sub_408D50();
@@ -315,7 +316,7 @@ namespace GameRes.Formats.Bom
             while (v1 != 0);
         }
 
-        void sub_408D50 ()
+        void sub_408D50()
         {
             int v2 = 0;
             for (int i = 0; i < 635; ++i)
@@ -373,7 +374,7 @@ namespace GameRes.Formats.Bom
             }
         }
 
-        void PutByte (int a1)
+        void PutByte(int a1)
         {
             if (dword_6FF460 != 0)
             {
@@ -387,7 +388,7 @@ namespace GameRes.Formats.Bom
                 {
                     int count = dword_709868;
                     dword_6FF460 = 0;
-                    while (count --> 0 && m_dst < m_output.Length)
+                    while (count-- > 0 && m_dst < m_output.Length)
                     {
                         m_output[m_dst++] = (byte)dword_6FFE54;
                     }

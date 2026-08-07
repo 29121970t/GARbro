@@ -37,95 +37,95 @@ namespace GameRes.Formats.Aaru
     [Export(typeof(ArchiveFormat))]
     public class Fl4Opener : ArchiveFormat
     {
-        public override string         Tag { get { return "FL4/AARU"; } }
+        public override string Tag { get { return "FL4/AARU"; } }
         public override string Description { get { return "Aaru resource archive"; } }
-        public override uint     Signature { get { return 0x2E344C46; } } // 'FL4.0'
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x2E344C46; } } // 'FL4.0'
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            if (file.View.ReadByte (4) != '0')
+            if (file.View.ReadByte(4) != '0')
                 return null;
-            uint data_offset  = file.View.ReadUInt16 (8);
-            uint index_size   = file.View.ReadUInt32 (0xA);
-            long index_offset = file.View.ReadUInt32 (0xE);
+            uint data_offset = file.View.ReadUInt16(8);
+            uint index_size = file.View.ReadUInt32(0xA);
+            long index_offset = file.View.ReadUInt32(0xE);
             if (index_offset + index_size > file.MaxOffset)
                 return null;
-            ushort key   = file.View.ReadUInt16 (0x16);
-            ushort flags = file.View.ReadUInt16 (0x18);
-            var index = file.View.ReadBytes (index_offset, index_size);
-            int pos = index.ToInt32 (0);
+            ushort key = file.View.ReadUInt16(0x16);
+            ushort flags = file.View.ReadUInt16(0x18);
+            var index = file.View.ReadBytes(index_offset, index_size);
+            int pos = index.ToInt32(0);
             if (pos <= 0)
                 return null;
             var dir = new List<Entry>();
             while (pos < index.Length)
             {
-                uint offset = index.ToUInt32 (pos);
+                uint offset = index.ToUInt32(pos);
                 if (uint.MaxValue == offset)
                     break;
-                uint size = index.ToUInt32 (pos+4);
-                int name_length = index[pos+8];
+                uint size = index.ToUInt32(pos + 4);
+                int name_length = index[pos + 8];
                 pos += 9;
-                var name = Encodings.cp932.GetString (index, pos, name_length);
-                var entry = FormatCatalog.Instance.Create<PackedEntry> (name);
+                var name = Encodings.cp932.GetString(index, pos, name_length);
+                var entry = FormatCatalog.Instance.Create<PackedEntry>(name);
                 entry.Offset = offset + data_offset;
-                entry.Size   = size;
-                if (!entry.CheckPlacement (file.MaxOffset))
+                entry.Size = size;
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
-                dir.Add (entry);
+                dir.Add(entry);
                 pos += name_length;
             }
             if (0 == dir.Count)
                 return null;
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var pent = entry as PackedEntry;
             if (null == pent || !pent.IsPacked)
             {
-                if (arc.File.View.AsciiEqual (entry.Offset, "PD2A"))
+                if (arc.File.View.AsciiEqual(entry.Offset, "PD2A"))
                 {
                     pent.IsPacked = true;
-                    pent.UnpackedSize = arc.File.View.ReadUInt32 (entry.Offset+12);
+                    pent.UnpackedSize = arc.File.View.ReadUInt32(entry.Offset + 12);
                 }
-                else if (arc.File.View.AsciiEqual (entry.Offset, "PD"))
+                else if (arc.File.View.AsciiEqual(entry.Offset, "PD"))
                 {
                     pent.IsPacked = true;
-                    pent.UnpackedSize = arc.File.View.ReadUInt32 (entry.Offset+6);
+                    pent.UnpackedSize = arc.File.View.ReadUInt32(entry.Offset + 6);
                 }
-                else if (arc.File.View.AsciiEqual (entry.Offset, "RD1.0"))
+                else if (arc.File.View.AsciiEqual(entry.Offset, "RD1.0"))
                 {
                     pent.IsPacked = true;
                 }
                 if (!pent.IsPacked)
-                    return base.OpenEntry (arc, entry);
+                    return base.OpenEntry(arc, entry);
             }
-            if (arc.File.View.AsciiEqual (entry.Offset, "PD2A"))
+            if (arc.File.View.AsciiEqual(entry.Offset, "PD2A"))
             {
-                var input = arc.File.CreateStream (entry.Offset+16, entry.Size-16);
-                return new LzssStream (input);
+                var input = arc.File.CreateStream(entry.Offset + 16, entry.Size - 16);
+                return new LzssStream(input);
             }
-            else if (arc.File.View.AsciiEqual (entry.Offset, "PD"))
+            else if (arc.File.View.AsciiEqual(entry.Offset, "PD"))
             {
-                var input = arc.File.CreateStream (entry.Offset+10, entry.Size-10);
-                return new LzssStream (input);
+                var input = arc.File.CreateStream(entry.Offset + 10, entry.Size - 10);
+                return new LzssStream(input);
             }
             else
             {
-                uint offset = arc.File.View.ReadUInt16 (entry.Offset+6);
-                var input = arc.File.CreateStream (entry.Offset+offset, entry.Size-offset);
-                int rle_chunks = arc.File.View.ReadInt32 (entry.Offset+0xA);
-                return new RlePackedStream (input, rle_chunks);
+                uint offset = arc.File.View.ReadUInt16(entry.Offset + 6);
+                var input = arc.File.CreateStream(entry.Offset + offset, entry.Size - offset);
+                int rle_chunks = arc.File.View.ReadInt32(entry.Offset + 0xA);
+                return new RlePackedStream(input, rle_chunks);
             }
         }
     }
 
     internal class RlePackedStream : PackedStream<RleDecompressor>
     {
-        public RlePackedStream (Stream input, int rle_chunks) : base (input)
+        public RlePackedStream(Stream input, int rle_chunks) : base(input)
         {
             Reader.Chunks = rle_chunks;
         }
@@ -133,16 +133,16 @@ namespace GameRes.Formats.Aaru
 
     internal class RleDecompressor : Decompressor
     {
-        IBinaryStream   m_input;
+        IBinaryStream m_input;
 
         public int Chunks { get; set; }
 
-        public override void Initialize (Stream input)
+        public override void Initialize(Stream input)
         {
-            m_input = BinaryStream.FromStream (input, "");
+            m_input = BinaryStream.FromStream(input, "");
         }
 
-        protected override IEnumerator<int> Unpack ()
+        protected override IEnumerator<int> Unpack()
         {
             for (int i = 0; i < Chunks; ++i)
             {
@@ -158,8 +158,8 @@ namespace GameRes.Formats.Aaru
                         count = 0x100;
                     while (count > 0)
                     {
-                        int avail = Math.Min (count, m_length);
-                        int read = m_input.Read (m_buffer, m_pos, avail);
+                        int avail = Math.Min(count, m_length);
+                        int read = m_input.Read(m_buffer, m_pos, avail);
                         if (0 == read)
                             yield break;
                         count -= read;
@@ -176,7 +176,7 @@ namespace GameRes.Formats.Aaru
                     else
                         count = ctl;
                     byte v = m_input.ReadUInt8();
-                    while (count --> 0)
+                    while (count-- > 0)
                     {
                         m_buffer[m_pos++] = v;
                         if (0 == --m_length)

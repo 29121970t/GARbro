@@ -33,85 +33,85 @@ namespace GameRes.Formats.Silky
 {
     internal class ZitMetaData : ImageMetaData
     {
-        public ushort   Type;
-        public int      Colors;
+        public ushort Type;
+        public int Colors;
     }
 
     [Export(typeof(ImageFormat))]
     public class ZitFormat : ImageFormat
     {
-        public override string         Tag { get { return "ZIT"; } }
+        public override string Tag { get { return "ZIT"; } }
         public override string Description { get { return "Silky's image format"; } }
-        public override uint     Signature { get { return 0x1803545A; } } // 'ZT'
+        public override uint Signature { get { return 0x1803545A; } } // 'ZT'
 
-        public ZitFormat ()
+        public ZitFormat()
         {
             Signatures = new uint[] { 0x1803545A, 0x2084545A, 0x8803545A };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
-            var header = stream.ReadHeader (0x10);
+            var header = stream.ReadHeader(0x10);
             return new ZitMetaData
             {
-                Type = header.ToUInt16 (2),
-                Width = header.ToUInt16 (8),
-                Height = header.ToUInt16 (10),
+                Type = header.ToUInt16(2),
+                Width = header.ToUInt16(8),
+                Height = header.ToUInt16(10),
                 BPP = 32,
-                Colors = header.ToUInt16 (4),
+                Colors = header.ToUInt16(4),
             };
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
-            using (var reader = new ZitReader (stream, (ZitMetaData)info))
+            using (var reader = new ZitReader(stream, (ZitMetaData)info))
             {
                 reader.Unpack();
-                return ImageData.Create (info, PixelFormats.Bgra32, null, reader.Data);
+                return ImageData.Create(info, PixelFormats.Bgra32, null, reader.Data);
             }
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("ZitFormat.Write not implemented");
+            throw new System.NotImplementedException("ZitFormat.Write not implemented");
         }
     }
 
     internal class ZitReader : IDisposable
     {
-        IBinaryStream   m_input;
-        byte[]          m_output;
-        int             m_width;
-        int             m_height;
-        ushort          m_type;
-        int             m_colors;
+        IBinaryStream m_input;
+        byte[] m_output;
+        int m_width;
+        int m_height;
+        ushort m_type;
+        int m_colors;
 
         public byte[] Data { get { return m_output; } }
 
-        public ZitReader (IBinaryStream input, ZitMetaData info)
+        public ZitReader(IBinaryStream input, ZitMetaData info)
         {
             m_input = input;
             m_width = (int)info.Width;
             m_height = (int)info.Height;
             m_type = info.Type;
             m_colors = info.Colors;
-            m_output = new byte[m_width*m_height*4];
+            m_output = new byte[m_width * m_height * 4];
         }
 
-        public void Unpack ()
+        public void Unpack()
         {
             m_input.Position = 0x10;
             switch (m_type)
             {
-            case 0x1803: Unpack1(); break;
-            case 0x2084: Unpack2(); break;
-            case 0x8803: Unpack3(); break;
-            default:
-                throw new InvalidFormatException();
+                case 0x1803: Unpack1(); break;
+                case 0x2084: Unpack2(); break;
+                case 0x8803: Unpack3(); break;
+                default:
+                    throw new InvalidFormatException();
             }
         }
 
-        void Unpack1 ()
+        void Unpack1()
         {
             int dst = 0;
             while (dst < m_output.Length)
@@ -128,27 +128,27 @@ namespace GameRes.Formats.Silky
                 }
                 else
                 {
-                    LittleEndian.Pack (0xFFFFu, m_output, dst);
+                    LittleEndian.Pack(0xFFFFu, m_output, dst);
                     dst += 4;
                 }
             }
         }
 
-        void Unpack2 ()
+        void Unpack2()
         {
-            m_input.Read (m_output, 0, m_output.Length);
+            m_input.Read(m_output, 0, m_output.Length);
         }
 
-        void Unpack3 ()
+        void Unpack3()
         {
-            var palette = m_input.ReadBytes (m_colors * 3);
+            var palette = m_input.ReadBytes(m_colors * 3);
             int dst = 0;
             while (dst < m_output.Length)
             {
                 int index = m_input.ReadByte() * 3;
                 byte b = palette[index];
-                byte g = palette[index+1];
-                byte r = palette[index+2];
+                byte g = palette[index + 1];
+                byte r = palette[index + 2];
                 if (b != 0 || g != 0xFF || r != 0)
                 {
                     m_output[dst++] = b;
@@ -158,14 +158,14 @@ namespace GameRes.Formats.Silky
                 }
                 else
                 {
-                    LittleEndian.Pack (0xFF00u, m_output, dst);
+                    LittleEndian.Pack(0xFF00u, m_output, dst);
                     dst += 4;
                 }
             }
         }
 
         #region IDisposable Members
-        public void Dispose ()
+        public void Dispose()
         {
         }
         #endregion

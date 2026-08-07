@@ -34,12 +34,12 @@ namespace GameRes.Formats.Jikkenshitsu
 {
     internal class GrcMetaData : ImageMetaData
     {
-        public int  BitsOffset;
-        public int  BitsLength;
-        public int  DataOffset;
-        public int  DataLength;
-        public int  AlphaOffset;
-        public int  AlphaLength;
+        public int BitsOffset;
+        public int BitsLength;
+        public int DataOffset;
+        public int DataLength;
+        public int AlphaOffset;
+        public int AlphaLength;
         public bool IsEncrypted;
         public byte[] Key;
     }
@@ -47,42 +47,43 @@ namespace GameRes.Formats.Jikkenshitsu
     [Export(typeof(ImageFormat))]
     public class GrcFormat : ImageFormat
     {
-        public override string         Tag { get { return "GRC"; } }
+        public override string Tag { get { return "GRC"; } }
         public override string Description { get { return "Studio Jikkenshitsu image format"; } }
-        public override uint     Signature { get { return 0x08; } }
+        public override uint Signature { get { return 0x08; } }
 
-        public GrcFormat ()
+        public GrcFormat()
         {
             Signatures = new[] { 0x08u, 0x8008u };
         }
 
-        static readonly ResourceInstance<SpDatFormat> SpeedFormat = new ResourceInstance<SpDatFormat> ("DAT/SPEED");
+        static readonly ResourceInstance<SpDatFormat> SpeedFormat = new ResourceInstance<SpDatFormat>("DAT/SPEED");
 
         byte[] DefaultKey = null;
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            if (!file.Name.HasExtension (".grc"))
+            if (!file.Name.HasExtension(".grc"))
                 return null;
-            var header = file.ReadHeader (0x20);
+            var header = file.ReadHeader(0x20);
             int bpp = header[0];
             if (bpp != 8)
                 return null;
-            var info = new GrcMetaData {
-                Width  = header.ToUInt16 (4),
-                Height = header.ToUInt16 (6),
+            var info = new GrcMetaData
+            {
+                Width = header.ToUInt16(4),
+                Height = header.ToUInt16(6),
                 BPP = bpp,
-                BitsOffset = header.ToInt32 (8),
-                BitsLength = header.ToInt32 (12),
-                DataOffset = header.ToInt32 (16),
-                DataLength = header.ToInt32 (20),
-                AlphaOffset = header.ToInt32 (24),
-                AlphaLength = header.ToInt32 (28),
+                BitsOffset = header.ToInt32(8),
+                BitsLength = header.ToInt32(12),
+                DataOffset = header.ToInt32(16),
+                DataLength = header.ToInt32(20),
+                AlphaOffset = header.ToInt32(24),
+                AlphaLength = header.ToInt32(28),
                 IsEncrypted = (header[1] & 0x80) != 0,
             };
             if (info.IsEncrypted)
             {
-                DefaultKey = DefaultKey ?? SpeedFormat.Value.QueryKey (file.Name);
+                DefaultKey = DefaultKey ?? SpeedFormat.Value.QueryKey(file.Name);
                 if (null == DefaultKey)
                     return null;
                 info.Key = DefaultKey;
@@ -90,29 +91,29 @@ namespace GameRes.Formats.Jikkenshitsu
             return info;
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new GrcReader (file, (GrcMetaData)info);
+            var reader = new GrcReader(file, (GrcMetaData)info);
             return reader.Unpack();
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("GrcFormat.Write not implemented");
+            throw new System.NotImplementedException("GrcFormat.Write not implemented");
         }
     }
 
     internal class GrcReader
     {
-        IBinaryStream       m_input;
-        GrcMetaData         m_info;
-        int                 m_stride;
-        byte[]              m_output;
+        IBinaryStream m_input;
+        GrcMetaData m_info;
+        int m_stride;
+        byte[] m_output;
 
         public BitmapPalette Palette { get; private set; }
-        public PixelFormat    Format { get; private set; }
+        public PixelFormat Format { get; private set; }
 
-        public GrcReader (IBinaryStream input, GrcMetaData info)
+        public GrcReader(IBinaryStream input, GrcMetaData info)
         {
             m_input = input;
             m_info = info;
@@ -121,34 +122,34 @@ namespace GameRes.Formats.Jikkenshitsu
             Format = PixelFormats.Indexed8;
         }
 
-        public ImageData Unpack ()
+        public ImageData Unpack()
         {
             if (m_info.IsEncrypted)
             {
                 int packed_size = (int)(m_input.Length - 0x20);
                 m_input.Position = 0x20;
-                using (var enc = new InputProxyStream (m_input.AsStream, true))
-                using (var dec = new InputCryptoStream (enc, new SjTransform (m_info.Key)))
+                using (var enc = new InputProxyStream(m_input.AsStream, true))
+                using (var dec = new InputCryptoStream(enc, new SjTransform(m_info.Key)))
                 {
                     var data = new byte[m_input.Length];
-                    dec.Read (data, 0x20, packed_size);
+                    dec.ReadExactly(data, 0x20, packed_size);
                     // memory stream is not disposed, not a big deal
-                    m_input = new BinMemoryStream (data, m_input.Name);
+                    m_input = new BinMemoryStream(data, m_input.Name);
                 }
             }
             m_input.Position = 0x20;
 
             if (8 == m_info.BPP)
-                Palette = ImageFormat.ReadPalette (m_input.AsStream);
+                Palette = ImageFormat.ReadPalette(m_input.AsStream);
 
-            var rowsCtl = m_input.ReadBytes (m_info.iHeight);
+            var rowsCtl = m_input.ReadBytes(m_info.iHeight);
             m_input.Position = m_info.BitsOffset;
-            var ctlBits = m_input.ReadBytes (m_info.BitsLength);
+            var ctlBits = m_input.ReadBytes(m_info.BitsLength);
             m_input.Position = m_info.DataOffset;
 
             int src1 = 0;
             int dst = 0;
-            var coord = new int[4,4] {
+            var coord = new int[4, 4] {
                 { 0, -1, -m_stride, -m_stride - 1 },
                 { 0, -1, -2, -3 },
                 { 0, -m_stride, -2 * m_stride, -3 * m_stride },
@@ -168,14 +169,14 @@ namespace GameRes.Formats.Jikkenshitsu
                         int p = (bits >> i) & 3;
                         byte px;
                         if (p != 0)
-                            px = m_output[dst + coord[ctl,p]];
+                            px = m_output[dst + coord[ctl, p]];
                         else
                             px = m_input.ReadUInt8();
                         m_output[dst++] = px;
                     }
                 }
             }
-            return ImageData.CreateFlipped (m_info, Format, Palette, m_output, m_stride);
+            return ImageData.CreateFlipped(m_info, Format, Palette, m_output, m_stride);
         }
     }
 }

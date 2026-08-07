@@ -34,22 +34,22 @@ namespace GameRes.Formats.Leaf
     [Export(typeof(ArchiveFormat))]
     public class AmOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "AM/Leaf"; } }
+        public override string Tag { get { return "AM/Leaf"; } }
         public override string Description { get { return "Leaf video resources archive"; } }
-        public override uint     Signature { get { return 0x30306D61; } } // 'am00'
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x30306D61; } } // 'am00'
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public AmOpener ()
+        public AmOpener()
         {
             Extensions = new string[] { "am" };
         }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            uint index_size = file.View.ReadUInt32 (4);
-            byte key = file.View.ReadByte (8);
-            var index = file.View.ReadBytes (9, index_size);
+            uint index_size = file.View.ReadUInt32(4);
+            byte key = file.View.ReadByte(8);
+            var index = file.View.ReadBytes(9, index_size);
             if (index.Length != index_size)
                 return null;
             for (int i = 0; i < index.Length; ++i)
@@ -60,28 +60,28 @@ namespace GameRes.Formats.Leaf
             var dir = new List<Entry>();
             while (index_offset < index.Length)
             {
-                int name_end = Array.IndexOf<byte> (index, 0, index_offset);
+                int name_end = Array.IndexOf<byte>(index, 0, index_offset);
                 if (-1 == name_end || name_end == index_offset)
                     return null;
-                var name = Encodings.cp932.GetString (index, index_offset, name_end-index_offset);
-                index_offset = name_end+1;
-                var entry = FormatCatalog.Instance.Create<Entry> (name);
-                entry.Offset = base_offset + LittleEndian.ToUInt32 (index, index_offset);
-                entry.Size = LittleEndian.ToUInt32 (index, index_offset+4);
-                if (!entry.CheckPlacement (file.MaxOffset))
+                var name = Encodings.cp932.GetString(index, index_offset, name_end - index_offset);
+                index_offset = name_end + 1;
+                var entry = FormatCatalog.Instance.Create<Entry>(name);
+                entry.Offset = base_offset + LittleEndian.ToUInt32(index, index_offset);
+                entry.Size = LittleEndian.ToUInt32(index, index_offset + 4);
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
-                dir.Add (entry);
+                dir.Add(entry);
                 index_offset += 8;
             }
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
-            var input = arc.File.CreateStream (entry.Offset, entry.Size);
+            var input = arc.File.CreateStream(entry.Offset, entry.Size);
             if (null == DecryptTable)
                 return input;
-            return new AmStream (input, DecryptTable);
+            return new AmStream(input, DecryptTable);
         }
 
         static byte[] DecryptTable = null;
@@ -95,29 +95,29 @@ namespace GameRes.Formats.Leaf
 
     internal class AmStream : InputProxyStream
     {
-        byte[]  m_table;
+        byte[] m_table;
 
-        public AmStream (Stream input, byte[] table) : base (input)
+        public AmStream(Stream input, byte[] table) : base(input)
         {
             m_table = table;
         }
 
-        public override int Read (byte[] buffer, int offset, int count)
+        public override int Read(byte[] buffer, int offset, int count)
         {
             int pos = (int)Position;
-            int read = BaseStream.Read (buffer, offset, count);
+            int read = BaseStream.Read(buffer, offset, count);
             for (int i = 0; i < read; ++i)
             {
-                buffer[offset+i] ^= m_table[(pos+i) & 0xFFFF];
+                buffer[offset + i] ^= m_table[(pos + i) & 0xFFFF];
             }
             return read;
         }
 
-        public override int ReadByte ()
+        public override int ReadByte()
         {
             int b = BaseStream.ReadByte();
             if (-1 != b)
-                b ^= m_table[(Position-1) & 0xFFFF];
+                b ^= m_table[(Position - 1) & 0xFFFF];
             return b;
         }
     }
@@ -125,6 +125,6 @@ namespace GameRes.Formats.Leaf
     [Serializable]
     public class AmScheme : ResourceScheme
     {
-        public byte[]   DecryptTable;
+        public byte[] DecryptTable;
     }
 }

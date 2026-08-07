@@ -34,48 +34,50 @@ namespace GameRes.Formats.Interheart
 {
     internal class CandyMetaData : ImageMetaData
     {
-        public int  Colors;
-        public int  HeaderSize;
-        public int  Version;
+        public int Colors;
+        public int HeaderSize;
+        public int Version;
     }
 
     [Export(typeof(ImageFormat))]
     public class CandyFormat : ImageFormat
     {
-        public override string         Tag { get { return "EPF"; } }
+        public override string Tag { get { return "EPF"; } }
         public override string Description { get { return "Candy Soft image format"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public CandyFormat ()
+        public CandyFormat()
         {
             Signatures = new uint[] { 0x0E00, 0x80020A00, 0 };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (14);
-            int header_size = BigEndian.ToUInt16 (header, 0);
+            var header = file.ReadHeader(14);
+            int header_size = BigEndian.ToUInt16(header, 0);
             CandyMetaData info;
             if (14 == header_size)
             {
-                info = new CandyMetaData {
-                    OffsetX = BigEndian.ToInt16 (header, 2),
-                    OffsetY = BigEndian.ToInt16 (header, 4),
-                    Width   = BigEndian.ToUInt16 (header, 6),
-                    Height  = BigEndian.ToUInt16 (header, 8),
-                    BPP     = header[0xA],
-                    Colors  = BigEndian.ToUInt16 (header, 0xC),
+                info = new CandyMetaData
+                {
+                    OffsetX = BigEndian.ToInt16(header, 2),
+                    OffsetY = BigEndian.ToInt16(header, 4),
+                    Width = BigEndian.ToUInt16(header, 6),
+                    Height = BigEndian.ToUInt16(header, 8),
+                    BPP = header[0xA],
+                    Colors = BigEndian.ToUInt16(header, 0xC),
                     Version = header[0xB],
                     HeaderSize = header_size,
                 };
             }
             else if (10 == header_size)
             {
-                info = new CandyMetaData {
-                    Width   = BigEndian.ToUInt16 (header, 2),
-                    Height  = BigEndian.ToUInt16 (header, 4),
-                    BPP     = header[6],
-                    Colors  = BigEndian.ToUInt16 (header, 8),
+                info = new CandyMetaData
+                {
+                    Width = BigEndian.ToUInt16(header, 2),
+                    Height = BigEndian.ToUInt16(header, 4),
+                    BPP = header[6],
+                    Colors = BigEndian.ToUInt16(header, 8),
                     Version = header[7],
                     HeaderSize = header_size,
                 };
@@ -87,35 +89,35 @@ namespace GameRes.Formats.Interheart
             return info;
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new CandyDecoder (file, (CandyMetaData)info);
+            var reader = new CandyDecoder(file, (CandyMetaData)info);
             var pixels = reader.Unpack();
-            return ImageData.Create (info, reader.Format, reader.Palette, pixels, reader.Stride);
+            return ImageData.Create(info, reader.Format, reader.Palette, pixels, reader.Stride);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("CandyFormat.Write not implemented");
+            throw new System.NotImplementedException("CandyFormat.Write not implemented");
         }
     }
 
     internal class CandyDecoder
     {
-        IBinaryStream   m_input;
-        CandyMetaData   m_info;
-        byte[]          m_output;
-        int             m_width;
-        int             m_height;
-        int             m_stride;
-        int             m_colors;
-        int             m_pixel_size;
+        IBinaryStream m_input;
+        CandyMetaData m_info;
+        byte[] m_output;
+        int m_width;
+        int m_height;
+        int m_stride;
+        int m_colors;
+        int m_pixel_size;
 
-        public PixelFormat    Format { get; private set; }
+        public PixelFormat Format { get; private set; }
         public BitmapPalette Palette { get; private set; }
-        public int            Stride { get { return m_stride; } }
+        public int Stride { get { return m_stride; } }
 
-        public CandyDecoder (IBinaryStream input, CandyMetaData info)
+        public CandyDecoder(IBinaryStream input, CandyMetaData info)
         {
             m_input = input;
             m_info = info;
@@ -149,7 +151,7 @@ namespace GameRes.Formats.Interheart
             m_output = new byte[m_stride * m_height];
         }
 
-        public byte[] Unpack ()
+        public byte[] Unpack()
         {
             m_input.Position = m_info.HeaderSize;
             if (m_colors > 0)
@@ -160,49 +162,49 @@ namespace GameRes.Formats.Interheart
             return RestorePixels();
         }
 
-        byte[] RestorePixels ()
+        byte[] RestorePixels()
         {
             var pixels = new byte[m_output.Length];
             int src = 0;
             int block_size = m_info.BPP == 8 ? 144 : 80;
             for (int block_y = 0; block_y < m_height; block_y += block_size)
-            for (int block_x = 0; block_x < m_width; block_x += block_size)
-            {
-                int dst_col = block_y * m_stride + block_x * m_pixel_size;
-                int block_height = Math.Min (block_size, m_height - block_y);
-                int block_width  = Math.Min (block_size, m_width - block_x);
-                for (int x = 0; x < block_width; ++x)
+                for (int block_x = 0; block_x < m_width; block_x += block_size)
                 {
-                    int dst = dst_col;
-                    for (int y = 0; y < block_height; ++y)
+                    int dst_col = block_y * m_stride + block_x * m_pixel_size;
+                    int block_height = Math.Min(block_size, m_height - block_y);
+                    int block_width = Math.Min(block_size, m_width - block_x);
+                    for (int x = 0; x < block_width; ++x)
                     {
-                        if (m_pixel_size > 3)
+                        int dst = dst_col;
+                        for (int y = 0; y < block_height; ++y)
                         {
-                            pixels[dst+3] = m_output[src ];
-                            pixels[dst+2] = m_output[src+1];
-                            pixels[dst+1] = m_output[src+2];
-                            pixels[dst  ] = m_output[src+3];
+                            if (m_pixel_size > 3)
+                            {
+                                pixels[dst + 3] = m_output[src];
+                                pixels[dst + 2] = m_output[src + 1];
+                                pixels[dst + 1] = m_output[src + 2];
+                                pixels[dst] = m_output[src + 3];
+                            }
+                            else if (1 == m_pixel_size)
+                            {
+                                pixels[dst] = m_output[src];
+                            }
+                            else
+                            {
+                                pixels[dst + 2] = m_output[src];
+                                pixels[dst + 1] = m_output[src + 1];
+                                pixels[dst] = m_output[src + 2];
+                            }
+                            dst += m_stride;
+                            src += m_pixel_size;
                         }
-                        else if (1 == m_pixel_size)
-                        {
-                            pixels[dst] = m_output[src];
-                        }
-                        else
-                        {
-                            pixels[dst+2] = m_output[src ];
-                            pixels[dst+1] = m_output[src+1];
-                            pixels[dst  ] = m_output[src+2];
-                        }
-                        dst += m_stride;
-                        src += m_pixel_size;
+                        dst_col += m_pixel_size;
                     }
-                    dst_col += m_pixel_size;
                 }
-            }
             return pixels;
         }
 
-        void LzUnpack ()
+        void LzUnpack()
         {
             var bits = new byte[16];
             var frame = new byte[0x1000];
@@ -219,20 +221,20 @@ namespace GameRes.Formats.Interheart
                 for (int i = 1; i < 8; ++i)
                 {
                     ctl >>= 1;
-                    if (bits[2*count] == (ctl & 1))
+                    if (bits[2 * count] == (ctl & 1))
                     {
-                        ++bits[2*count + 1];
+                        ++bits[2 * count + 1];
                     }
                     else
                     {
                         ++count;
-                        bits[2*count] = (byte)(ctl & 1);
-                        bits[2*count + 1] = 1;
+                        bits[2 * count] = (byte)(ctl & 1);
+                        bits[2 * count + 1] = 1;
                     }
                 }
                 for (int i = 0; i <= count && dst < m_output.Length; ++i)
                 {
-                    int bpos = 2*i;
+                    int bpos = 2 * i;
                     if (bits[bpos++] != 0)
                     {
                         while (bits[bpos] > 0)
@@ -247,7 +249,7 @@ namespace GameRes.Formats.Interheart
                         while (bits[bpos] > 0 && dst < m_output.Length)
                         {
                             int offset = m_input.ReadUInt16();
-                            int zcount = Math.Min ((offset & 0xF) + 3, m_output.Length - dst);
+                            int zcount = Math.Min((offset & 0xF) + 3, m_output.Length - dst);
                             offset >>= 4;
                             for (int j = 0; j < zcount; ++j)
                             {
@@ -261,19 +263,19 @@ namespace GameRes.Formats.Interheart
             }
         }
 
-        BitmapPalette ReadPalette ()
+        BitmapPalette ReadPalette()
         {
             var palette_data = new byte[4 * m_colors];
-            if (palette_data.Length != m_input.Read (palette_data, 0, palette_data.Length))
+            if (palette_data.Length != m_input.Read(palette_data, 0, palette_data.Length))
                 throw new EndOfStreamException();
             int src = 0;
             var color_map = new Color[m_colors];
             for (int i = 0; i < m_colors; ++i)
             {
-                color_map[i] = Color.FromRgb (palette_data[src+1], palette_data[src+2], palette_data[src+3]);
+                color_map[i] = Color.FromRgb(palette_data[src + 1], palette_data[src + 2], palette_data[src + 3]);
                 src += 4;
             }
-            return new BitmapPalette (color_map);
+            return new BitmapPalette(color_map);
         }
     }
 }

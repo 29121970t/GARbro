@@ -9,9 +9,9 @@ namespace GameRes.Formats.GUI
     /// </summary>
     public partial class WidgetRCT : Grid
     {
-        public WidgetRCT ()
+        public WidgetRCT()
         {
-            InitializeComponent ();
+            InitializeComponent();
             this.Password.Text = Settings.Default.RCTPassword;
             if (null != this.Title.SelectedItem)
             {
@@ -21,7 +21,7 @@ namespace GameRes.Formats.GUI
             }
         }
 
-        private void Title_SelectionChanged (object sender, SelectionChangedEventArgs e)
+        private void Title_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (null != this.Title.SelectedItem && null != this.Password)
             {

@@ -15,16 +15,16 @@ namespace GameRes.Formats.Entis
 {
     internal class MioInfoHeader
     {
-        public int      Version;
-        public CvType   Transformation;
-        public EriCode  Architecture;
-        public int      ChannelCount;
-        public uint     SamplesPerSec;
-        public uint     BlocksetCount;
-        public int      SubbandDegree;
-        public uint     AllSampleCount;
-        public uint     LappedDegree;
-        public uint     BitsPerSample;
+        public int Version;
+        public CvType Transformation;
+        public EriCode Architecture;
+        public int ChannelCount;
+        public uint SamplesPerSec;
+        public uint BlocksetCount;
+        public int SubbandDegree;
+        public uint AllSampleCount;
+        public uint LappedDegree;
+        public uint BitsPerSample;
     }
 
     internal class MioDataHeader
@@ -42,36 +42,36 @@ namespace GameRes.Formats.Entis
 
     internal class MioDecoder
     {
-        MioInfoHeader       m_mioih;
+        MioInfoHeader m_mioih;
 
-        uint                m_nBufLength = 0;
-        int[]               m_ptrBuffer1;
-        int[]               m_ptrBuffer2;
-        sbyte[]             m_ptrBuffer3;
-        byte[]              m_ptrBuffer4;
-        byte[]              m_ptrDivisionTable;
-        byte[]              m_ptrRevolveCode;
-        int[]               m_ptrWeightCode;
-        int[]               m_ptrCoefficient;
+        uint m_nBufLength = 0;
+        int[] m_ptrBuffer1;
+        int[] m_ptrBuffer2;
+        sbyte[] m_ptrBuffer3;
+        byte[] m_ptrBuffer4;
+        byte[] m_ptrDivisionTable;
+        byte[] m_ptrRevolveCode;
+        int[] m_ptrWeightCode;
+        int[] m_ptrCoefficient;
 
-        float[]             m_ptrMatrixBuf;
-        float[]             m_ptrInternalBuf;
-        float[]             m_ptrWorkBuf;
-        float[]             m_ptrWeightTable;
-        float[]             m_ptrLastDCT;
+        float[] m_ptrMatrixBuf;
+        float[] m_ptrInternalBuf;
+        float[] m_ptrWorkBuf;
+        float[] m_ptrWeightTable;
+        float[] m_ptrLastDCT;
 
-        int                 m_ptrNextDivision;
-        int                 m_ptrNextRevCode;
-        int                 m_ptrNextWeight;
-        int                 m_ptrNextCoefficient;
-        int                 m_ptrNextSource;
-        int                 m_ptrLastDCTBuf;
-        int                 m_nSubbandDegree;
-        int                 m_nDegreeNum;
-        EriSinCos[]         m_pRevolveParam;
-        readonly int[]      m_nFrequencyPoint = new int[7];
+        int m_ptrNextDivision;
+        int m_ptrNextRevCode;
+        int m_ptrNextWeight;
+        int m_ptrNextCoefficient;
+        int m_ptrNextSource;
+        int m_ptrLastDCTBuf;
+        int m_nSubbandDegree;
+        int m_nDegreeNum;
+        EriSinCos[] m_pRevolveParam;
+        readonly int[] m_nFrequencyPoint = new int[7];
 
-        public MioDecoder (MioInfoHeader info)
+        public MioDecoder(MioInfoHeader info)
         {
             m_nBufLength = 0;
             m_mioih = info;
@@ -80,7 +80,7 @@ namespace GameRes.Formats.Entis
                 throw new InvalidFormatException();
         }
 
-        bool Initialize ()
+        bool Initialize()
         {
             if ((m_mioih.ChannelCount != 1) && (m_mioih.ChannelCount != 2))
             {
@@ -134,7 +134,7 @@ namespace GameRes.Formats.Entis
                 {
                     m_ptrLastDCT = new float[nLappedSamples];
                 }
-                InitializeWithDegree (m_mioih.SubbandDegree);
+                InitializeWithDegree(m_mioih.SubbandDegree);
             }
             else
             {
@@ -143,7 +143,7 @@ namespace GameRes.Formats.Entis
             return true;
         }
 
-        public bool DecodeSound (ERISADecodeContext context, MioDataHeader datahdr, byte[] ptrWaveBuf, int wave_pos)
+        public bool DecodeSound(ERISADecodeContext context, MioDataHeader datahdr, byte[] ptrWaveBuf, int wave_pos)
         {
             context.FlushBuffer();
 
@@ -151,11 +151,11 @@ namespace GameRes.Formats.Entis
             {
                 if (m_mioih.BitsPerSample == 8)
                 {
-                    return DecodeSoundPCM8 (context, datahdr, ptrWaveBuf, wave_pos);
+                    return DecodeSoundPCM8(context, datahdr, ptrWaveBuf, wave_pos);
                 }
                 else if (m_mioih.BitsPerSample == 16)
                 {
-                    return DecodeSoundPCM16 (context, datahdr, ptrWaveBuf, wave_pos);
+                    return DecodeSoundPCM16(context, datahdr, ptrWaveBuf, wave_pos);
                 }
             }
             else if ((m_mioih.Transformation == CvType.LOT_ERI)
@@ -163,22 +163,22 @@ namespace GameRes.Formats.Entis
             {
                 if ((m_mioih.ChannelCount != 2) || (m_mioih.Transformation == CvType.LOT_ERI))
                 {
-                    return DecodeSoundDCT (context, datahdr, ptrWaveBuf, wave_pos);
+                    return DecodeSoundDCT(context, datahdr, ptrWaveBuf, wave_pos);
                 }
                 else
                 {
-                    return DecodeSoundDCT_MSS (context, datahdr, ptrWaveBuf, wave_pos);
+                    return DecodeSoundDCT_MSS(context, datahdr, ptrWaveBuf, wave_pos);
                 }
             }
             return false;
         }
 
-        bool DecodeSoundPCM8 (ERISADecodeContext context, MioDataHeader datahdr, byte[] ptrWaveBuf, int wave_pos)
+        bool DecodeSoundPCM8(ERISADecodeContext context, MioDataHeader datahdr, byte[] ptrWaveBuf, int wave_pos)
         {
             uint nSampleCount = datahdr.SampleCount;
             if (nSampleCount > m_nBufLength)
             {
-                m_ptrBuffer3 = new sbyte [nSampleCount * m_mioih.ChannelCount];
+                m_ptrBuffer3 = new sbyte[nSampleCount * m_mioih.ChannelCount];
                 m_nBufLength = nSampleCount;
             }
             if (0 != (datahdr.Flags & MIO_LEAD_BLOCK))
@@ -186,13 +186,13 @@ namespace GameRes.Formats.Entis
                 (context as HuffmanDecodeContext).PrepareToDecodeERINACode();
             }
             uint nBytes = nSampleCount * (uint)m_mioih.ChannelCount;
-            if (context.DecodeBytes (m_ptrBuffer3, nBytes) < nBytes)
+            if (context.DecodeBytes(m_ptrBuffer3, nBytes) < nBytes)
             {
                 return false;
             }
             int ptrSrcBuf = 0; // (PBYTE) m_ptrBuffer3;
             int nStep = m_mioih.ChannelCount;
-            for (int i = 0; i < m_mioih.ChannelCount; i ++ )
+            for (int i = 0; i < m_mioih.ChannelCount; i++)
             {
                 int ptrDstBuf = wave_pos + i;
                 sbyte bytValue = 0;
@@ -206,7 +206,7 @@ namespace GameRes.Formats.Entis
             return true;
         }
 
-        bool DecodeSoundPCM16 (ERISADecodeContext context, MioDataHeader datahdr, byte[] ptrWaveBuf, int wave_pos)
+        bool DecodeSoundPCM16(ERISADecodeContext context, MioDataHeader datahdr, byte[] ptrWaveBuf, int wave_pos)
         {
             uint nSampleCount = datahdr.SampleCount;
             uint nChannelCount = (uint)m_mioih.ChannelCount;
@@ -226,7 +226,7 @@ namespace GameRes.Formats.Entis
             {
                 (context as HuffmanDecodeContext).PrepareToDecodeERINACode();
             }
-            if (context.DecodeBytes (m_ptrBuffer3, nBytes) < nBytes)
+            if (context.DecodeBytes(m_ptrBuffer3, nBytes) < nBytes)
             {
                 return false;
             }
@@ -238,9 +238,9 @@ namespace GameRes.Formats.Entis
                 pbytSrcBuf2 = pbytSrcBuf1 + (int)nSampleCount; // pbytSrcBuf1 + nSampleCount;
                 pbytDstBuf = nOffset; // ((PBYTE) m_ptrBuffer4) + nOffset;
 
-                for (uint j = 0; j < nSampleCount; j ++)
+                for (uint j = 0; j < nSampleCount; j++)
                 {
-                    sbyte bytLow  = m_ptrBuffer3[pbytSrcBuf2 + j];
+                    sbyte bytLow = m_ptrBuffer3[pbytSrcBuf2 + j];
                     sbyte bytHigh = m_ptrBuffer3[pbytSrcBuf1 + j];
                     m_ptrBuffer4[pbytDstBuf + j * sizeof(short) + 0] = (byte)bytLow;
                     m_ptrBuffer4[pbytDstBuf + j * sizeof(short) + 1] = (byte)(bytHigh ^ (bytLow >> 7));
@@ -274,10 +274,10 @@ namespace GameRes.Formats.Entis
 
         static readonly int[] FreqWidth = new int[7] { -6, -6, -5, -4, -3, -2, -1 };
 
-        void InitializeWithDegree (int nSubbandDegree)
+        void InitializeWithDegree(int nSubbandDegree)
         {
-            m_pRevolveParam = Erisa.CreateRevolveParameter (nSubbandDegree);
-            for (int i = 0, j = 0; i < 7; i ++)
+            m_pRevolveParam = Erisa.CreateRevolveParameter(nSubbandDegree);
+            for (int i = 0, j = 0; i < 7; i++)
             {
                 int nFrequencyWidth = 1 << (nSubbandDegree + FreqWidth[i]);
                 m_nFrequencyPoint[i] = j + (nFrequencyWidth / 2);
@@ -289,7 +289,7 @@ namespace GameRes.Formats.Entis
 
         const uint MIO_LEAD_BLOCK = 0x01;
 
-        bool DecodeSoundDCT (ERISADecodeContext context, MioDataHeader datahdr, byte[] ptrWaveBuf, int wave_pos)
+        bool DecodeSoundDCT(ERISADecodeContext context, MioDataHeader datahdr, byte[] ptrWaveBuf, int wave_pos)
         {
             uint i, j, k;
             uint nDegreeWidth = 1u << m_mioih.SubbandDegree;
@@ -310,9 +310,9 @@ namespace GameRes.Formats.Entis
             }
             if (context.GetABit() != 0)
             {
-                return  false;
+                return false;
             }
-            int[] pLastDivision = new int [nChannelCount];
+            int[] pLastDivision = new int[nChannelCount];
             m_ptrNextDivision = 0; // within m_ptrDivisionTable;
             m_ptrNextWeight = 0; // within m_ptrWeightCode;
             m_ptrNextCoefficient = 0; // within m_ptrCoefficient;
@@ -332,17 +332,17 @@ namespace GameRes.Formats.Entis
                     {
                         if (i != 0)
                         {
-                            m_ptrWeightCode[m_ptrNextWeight++] = (int)context.GetNBits (32);
-                            m_ptrCoefficient[m_ptrNextCoefficient++] = (int)context.GetNBits (16);
+                            m_ptrWeightCode[m_ptrNextWeight++] = (int)context.GetNBits(32);
+                            m_ptrCoefficient[m_ptrNextCoefficient++] = (int)context.GetNBits(16);
                         }
                         pLastDivision[j] = nDivisionCode;
                     }
 
                     uint nDivisionCount = 1u << nDivisionCode;
-                    for (k = 0; k < nDivisionCount; k ++)
+                    for (k = 0; k < nDivisionCount; k++)
                     {
-                        m_ptrWeightCode[m_ptrNextWeight++] = (int)context.GetNBits (32);
-                        m_ptrCoefficient[m_ptrNextCoefficient++] = (int)context.GetNBits (16);
+                        m_ptrWeightCode[m_ptrNextWeight++] = (int)context.GetNBits(32);
+                        m_ptrCoefficient[m_ptrNextCoefficient++] = (int)context.GetNBits(16);
                     }
                 }
             }
@@ -350,14 +350,14 @@ namespace GameRes.Formats.Entis
             {
                 for (i = 0; i < nChannelCount; i++)
                 {
-                    m_ptrWeightCode[m_ptrNextWeight++] = (int)context.GetNBits (32);
-                    m_ptrCoefficient[m_ptrNextCoefficient++] = (int)context.GetNBits (16);
+                    m_ptrWeightCode[m_ptrNextWeight++] = (int)context.GetNBits(32);
+                    m_ptrCoefficient[m_ptrNextCoefficient++] = (int)context.GetNBits(16);
                 }
             }
 
             if (context.GetABit() != 0)
             {
-                return  false;
+                return false;
             }
             if (0 != (datahdr.Flags & MIO_LEAD_BLOCK))
             {
@@ -367,18 +367,18 @@ namespace GameRes.Formats.Entis
                 }
                 else
                 {
-                    throw new NotImplementedException ("Nemesis encoding not implemented");
-//                    context.PrepareToDecodeERISACode();
+                    throw new NotImplementedException("Nemesis encoding not implemented");
+                    //                    context.PrepareToDecodeERISACode();
                 }
             }
             else if (m_mioih.Architecture == EriCode.Nemesis)
             {
-                throw new NotImplementedException ("Nemesis encoding not implemented");
-//                context.InitializeERISACode();
+                throw new NotImplementedException("Nemesis encoding not implemented");
+                //                context.InitializeERISACode();
             }
             if (m_mioih.Architecture != EriCode.Nemesis)
             {
-                if (context.DecodeBytes (m_ptrBuffer3, nAllSampleCount * 2 ) < nAllSampleCount * 2)
+                if (context.DecodeBytes(m_ptrBuffer3, nAllSampleCount * 2) < nAllSampleCount * 2)
                 {
                     return false;
                 }
@@ -390,7 +390,7 @@ namespace GameRes.Formats.Entis
                     int ptrQuantumized = (int)i; // within (PINT) m_ptrBuffer2
                     for (j = 0; j < nAllSubbandCount; j++)
                     {
-                        int nLow  = m_ptrBuffer3[ptrLBuf++];
+                        int nLow = m_ptrBuffer3[ptrLBuf++];
                         int nHigh = m_ptrBuffer3[ptrHBuf++] ^ (nLow >> 8);
                         m_ptrBuffer2[ptrQuantumized] = (nLow & 0xFF) | (nHigh << 8);
                         ptrQuantumized += (int)nDegreeWidth;
@@ -399,7 +399,7 @@ namespace GameRes.Formats.Entis
             }
             else
             {
-                throw new NotImplementedException ("Nemesis encoding not implemented");
+                throw new NotImplementedException("Nemesis encoding not implemented");
                 /*
                 if (context.DecodeERISACodeWords (m_ptrBuffer3, nAllSampleCount) < nAllSampleCount)
                 {
@@ -412,8 +412,8 @@ namespace GameRes.Formats.Entis
                 */
             }
             uint nSamples;
-            uint[] pRestSamples = new uint [nChannelCount];
-            int[] ptrDstBuf = new int [nChannelCount]; // indices within ptrWaveBuf
+            uint[] pRestSamples = new uint[nChannelCount];
+            int[] ptrDstBuf = new int[nChannelCount]; // indices within ptrWaveBuf
 
             m_ptrNextDivision = 0; // within m_ptrDivisionTable;
             m_ptrNextWeight = 0; // within m_ptrWeightCode;
@@ -424,7 +424,7 @@ namespace GameRes.Formats.Entis
             {
                 pLastDivision[i] = -1;
                 pRestSamples[i] = datahdr.SampleCount;
-                ptrDstBuf[i] = wave_pos + (int)i*sizeof(short);
+                ptrDstBuf[i] = wave_pos + (int)i * sizeof(short);
             }
             int nCurrentDivision = -1;
 
@@ -444,7 +444,7 @@ namespace GameRes.Formats.Entis
                         {
                             if (nCurrentDivision != pLastDivision[j])
                             {
-                                InitializeWithDegree (m_mioih.SubbandDegree - pLastDivision[j]);
+                                InitializeWithDegree(m_mioih.SubbandDegree - pLastDivision[j]);
                                 nCurrentDivision = pLastDivision[j];
                             }
                             nSamples = pRestSamples[j];
@@ -452,7 +452,7 @@ namespace GameRes.Formats.Entis
                             {
                                 nSamples = (uint)m_nDegreeNum;
                             }
-                            DecodePostBlock (ptrWaveBuf, ptrDstBuf[j], nSamples);
+                            DecodePostBlock(ptrWaveBuf, ptrDstBuf[j], nSamples);
                             pRestSamples[j] -= nSamples;
                             ptrDstBuf[j] += (int)(nSamples * nChannelCount * sizeof(short));
                         }
@@ -461,7 +461,7 @@ namespace GameRes.Formats.Entis
                     }
                     if (nCurrentDivision != nDivisionCode)
                     {
-                        InitializeWithDegree (m_mioih.SubbandDegree - nDivisionCode);
+                        InitializeWithDegree(m_mioih.SubbandDegree - nDivisionCode);
                         nCurrentDivision = nDivisionCode;
                     }
                     for (k = 0; k < nDivisionCount; k++)
@@ -478,7 +478,7 @@ namespace GameRes.Formats.Entis
                             {
                                 nSamples = (uint)m_nDegreeNum;
                             }
-                            DecodeInternalBlock (ptrWaveBuf, ptrDstBuf[j], nSamples);
+                            DecodeInternalBlock(ptrWaveBuf, ptrDstBuf[j], nSamples);
                             pRestSamples[j] -= nSamples;
                             ptrDstBuf[j] += (int)(nSamples * nChannelCount * sizeof(short));
                         }
@@ -487,14 +487,14 @@ namespace GameRes.Formats.Entis
             }
             if (nSubbandCount > 0)
             {
-                for (i = 0; i < nChannelCount; i ++)
+                for (i = 0; i < nChannelCount; i++)
                 {
                     int nChannelStep = (int)(nDegreeWidth * m_mioih.LappedDegree * i);
                     m_ptrLastDCTBuf = nChannelStep; // within m_ptrLastDCT
 
                     if (nCurrentDivision != pLastDivision[i])
                     {
-                        InitializeWithDegree (m_mioih.SubbandDegree - pLastDivision[i]);
+                        InitializeWithDegree(m_mioih.SubbandDegree - pLastDivision[i]);
                         nCurrentDivision = pLastDivision[i];
                     }
                     nSamples = pRestSamples[i];
@@ -502,7 +502,7 @@ namespace GameRes.Formats.Entis
                     {
                         nSamples = (uint)m_nDegreeNum;
                     }
-                    DecodePostBlock (ptrWaveBuf, ptrDstBuf[i], nSamples);
+                    DecodePostBlock(ptrWaveBuf, ptrDstBuf[i], nSamples);
                     pRestSamples[i] -= nSamples;
                     ptrDstBuf[i] += (int)(nSamples * nChannelCount * sizeof(short));
                 }
@@ -510,48 +510,28 @@ namespace GameRes.Formats.Entis
             return true;
         }
 
-        void DecodeInternalBlock (byte[] ptrDst, int iDst, uint nSamples)
+        void DecodeInternalBlock(byte[] ptrDst, int iDst, uint nSamples)
         {
             int nWeightCode = m_ptrWeightCode[m_ptrNextWeight++];
             int nCoefficient = m_ptrCoefficient[m_ptrNextCoefficient++];
-            IQuantumize (m_ptrMatrixBuf, 0, m_ptrBuffer2, m_ptrNextSource, m_nDegreeNum, nWeightCode, nCoefficient);
+            IQuantumize(m_ptrMatrixBuf, 0, m_ptrBuffer2, m_ptrNextSource, m_nDegreeNum, nWeightCode, nCoefficient);
             m_ptrNextSource += (int)m_nDegreeNum;
 
-            Erisa.OddGivensInverseMatrix (m_ptrMatrixBuf, 0, m_pRevolveParam, m_nSubbandDegree);
-            Erisa.FastIPLOT (m_ptrMatrixBuf, 0, m_nSubbandDegree);
-            Erisa.FastILOT (m_ptrWorkBuf, m_ptrLastDCT, m_ptrLastDCTBuf, m_ptrMatrixBuf, 0, m_nSubbandDegree);
+            Erisa.OddGivensInverseMatrix(m_ptrMatrixBuf, 0, m_pRevolveParam, m_nSubbandDegree);
+            Erisa.FastIPLOT(m_ptrMatrixBuf, 0, m_nSubbandDegree);
+            Erisa.FastILOT(m_ptrWorkBuf, m_ptrLastDCT, m_ptrLastDCTBuf, m_ptrMatrixBuf, 0, m_nSubbandDegree);
 
-            Array.Copy (m_ptrMatrixBuf, 0, m_ptrLastDCT,   m_ptrLastDCTBuf, m_nDegreeNum);
-            Array.Copy (m_ptrWorkBuf,   0, m_ptrMatrixBuf, 0,               m_nDegreeNum);
+            Array.Copy(m_ptrMatrixBuf, 0, m_ptrLastDCT, m_ptrLastDCTBuf, m_nDegreeNum);
+            Array.Copy(m_ptrWorkBuf, 0, m_ptrMatrixBuf, 0, m_nDegreeNum);
 
-            Erisa.FastIDCT (m_ptrInternalBuf, m_ptrMatrixBuf, 0, 1, m_ptrWorkBuf, m_nSubbandDegree);
+            Erisa.FastIDCT(m_ptrInternalBuf, m_ptrMatrixBuf, 0, 1, m_ptrWorkBuf, m_nSubbandDegree);
             if (nSamples != 0)
             {
-                Erisa.RoundR32ToWordArray (ptrDst, iDst, m_mioih.ChannelCount, m_ptrInternalBuf, (int)nSamples);
+                Erisa.RoundR32ToWordArray(ptrDst, iDst, m_mioih.ChannelCount, m_ptrInternalBuf, (int)nSamples);
             }
         }
 
-        void DecodeLeadBlock ()
-        {
-            int nWeightCode = m_ptrWeightCode[m_ptrNextWeight++];
-            int nCoefficient = m_ptrCoefficient[m_ptrNextCoefficient++];
-            uint i;
-            uint nHalfDegree = (uint)m_nDegreeNum / 2;
-            for (i = 0; i < nHalfDegree; i++)
-            {
-                m_ptrBuffer1[i * 2]   = 0;
-                m_ptrBuffer1[i * 2 + 1] = m_ptrBuffer2[m_ptrNextSource++];
-            }
-            IQuantumize (m_ptrLastDCT, m_ptrLastDCTBuf, m_ptrBuffer1, 0, m_nDegreeNum, nWeightCode, nCoefficient);
-            Erisa.OddGivensInverseMatrix (m_ptrLastDCT, m_ptrLastDCTBuf, m_pRevolveParam, m_nSubbandDegree);
-            for (i = 0; i < m_nDegreeNum; i += 2)
-            {
-                m_ptrLastDCT[m_ptrLastDCTBuf + i] = m_ptrLastDCT[m_ptrLastDCTBuf + i + 1];
-            }
-            Erisa.FastIPLOT (m_ptrLastDCT, m_ptrLastDCTBuf, m_nSubbandDegree);
-        }
-
-        void DecodePostBlock (byte[] ptrDst, int iDst, uint nSamples)
+        void DecodeLeadBlock()
         {
             int nWeightCode = m_ptrWeightCode[m_ptrNextWeight++];
             int nCoefficient = m_ptrCoefficient[m_ptrNextCoefficient++];
@@ -562,27 +542,47 @@ namespace GameRes.Formats.Entis
                 m_ptrBuffer1[i * 2] = 0;
                 m_ptrBuffer1[i * 2 + 1] = m_ptrBuffer2[m_ptrNextSource++];
             }
-            IQuantumize (m_ptrMatrixBuf, 0, m_ptrBuffer1, 0, m_nDegreeNum, nWeightCode, nCoefficient);
-            Erisa.OddGivensInverseMatrix (m_ptrMatrixBuf, 0, m_pRevolveParam, m_nSubbandDegree);
+            IQuantumize(m_ptrLastDCT, m_ptrLastDCTBuf, m_ptrBuffer1, 0, m_nDegreeNum, nWeightCode, nCoefficient);
+            Erisa.OddGivensInverseMatrix(m_ptrLastDCT, m_ptrLastDCTBuf, m_pRevolveParam, m_nSubbandDegree);
+            for (i = 0; i < m_nDegreeNum; i += 2)
+            {
+                m_ptrLastDCT[m_ptrLastDCTBuf + i] = m_ptrLastDCT[m_ptrLastDCTBuf + i + 1];
+            }
+            Erisa.FastIPLOT(m_ptrLastDCT, m_ptrLastDCTBuf, m_nSubbandDegree);
+        }
+
+        void DecodePostBlock(byte[] ptrDst, int iDst, uint nSamples)
+        {
+            int nWeightCode = m_ptrWeightCode[m_ptrNextWeight++];
+            int nCoefficient = m_ptrCoefficient[m_ptrNextCoefficient++];
+            uint i;
+            uint nHalfDegree = (uint)m_nDegreeNum / 2;
+            for (i = 0; i < nHalfDegree; i++)
+            {
+                m_ptrBuffer1[i * 2] = 0;
+                m_ptrBuffer1[i * 2 + 1] = m_ptrBuffer2[m_ptrNextSource++];
+            }
+            IQuantumize(m_ptrMatrixBuf, 0, m_ptrBuffer1, 0, m_nDegreeNum, nWeightCode, nCoefficient);
+            Erisa.OddGivensInverseMatrix(m_ptrMatrixBuf, 0, m_pRevolveParam, m_nSubbandDegree);
 
             for (i = 0; i < m_nDegreeNum; i += 2)
             {
-                m_ptrMatrixBuf[i] = - m_ptrMatrixBuf[i + 1];
+                m_ptrMatrixBuf[i] = -m_ptrMatrixBuf[i + 1];
             }
 
-            Erisa.FastIPLOT (m_ptrMatrixBuf, 0, m_nSubbandDegree);
-            Erisa.FastILOT (m_ptrWorkBuf, m_ptrLastDCT, m_ptrLastDCTBuf, m_ptrMatrixBuf, 0, m_nSubbandDegree);
+            Erisa.FastIPLOT(m_ptrMatrixBuf, 0, m_nSubbandDegree);
+            Erisa.FastILOT(m_ptrWorkBuf, m_ptrLastDCT, m_ptrLastDCTBuf, m_ptrMatrixBuf, 0, m_nSubbandDegree);
 
-            Array.Copy (m_ptrWorkBuf, 0, m_ptrMatrixBuf, 0, m_nDegreeNum);
+            Array.Copy(m_ptrWorkBuf, 0, m_ptrMatrixBuf, 0, m_nDegreeNum);
 
-            Erisa.FastIDCT (m_ptrInternalBuf, m_ptrMatrixBuf, 0, 1, m_ptrWorkBuf, m_nSubbandDegree);
+            Erisa.FastIDCT(m_ptrInternalBuf, m_ptrMatrixBuf, 0, 1, m_ptrWorkBuf, m_nSubbandDegree);
             if (nSamples != 0)
             {
-                Erisa.RoundR32ToWordArray (ptrDst, iDst, m_mioih.ChannelCount, m_ptrInternalBuf, (int)nSamples);
+                Erisa.RoundR32ToWordArray(ptrDst, iDst, m_mioih.ChannelCount, m_ptrInternalBuf, (int)nSamples);
             }
         }
 
-        bool DecodeSoundDCT_MSS (ERISADecodeContext context, MioDataHeader datahdr, byte[] ptrWaveBuf, int wave_pos)
+        bool DecodeSoundDCT_MSS(ERISADecodeContext context, MioDataHeader datahdr, byte[] ptrWaveBuf, int wave_pos)
         {
             uint nDegreeWidth = 1u << m_mioih.SubbandDegree;
             uint nSampleCount = (datahdr.SampleCount + nDegreeWidth - 1) & ~(nDegreeWidth - 1);
@@ -613,9 +613,9 @@ namespace GameRes.Formats.Entis
             m_ptrNextCoefficient = 0; // within m_ptrCoefficient;
 
             uint i, j, k;
-            for (i = 0; i < nSubbandCount; i ++)
+            for (i = 0; i < nSubbandCount; i++)
             {
-                int nDivisionCode = (int)context.GetNBits (2);
+                int nDivisionCode = (int)context.GetNBits(2);
                 m_ptrDivisionTable[m_ptrNextDivision++] = (byte)nDivisionCode;
 
                 bool fLeadBlock = false;
@@ -623,9 +623,9 @@ namespace GameRes.Formats.Entis
                 {
                     if (i != 0)
                     {
-                        m_ptrRevolveCode[m_ptrNextRevCode++] = (byte)context.GetNBits (2);
-                        m_ptrWeightCode[m_ptrNextWeight++] = (int)context.GetNBits (32);
-                        m_ptrCoefficient[m_ptrNextCoefficient++] = (int)context.GetNBits (16);
+                        m_ptrRevolveCode[m_ptrNextRevCode++] = (byte)context.GetNBits(2);
+                        m_ptrWeightCode[m_ptrNextWeight++] = (int)context.GetNBits(32);
+                        m_ptrCoefficient[m_ptrNextCoefficient++] = (int)context.GetNBits(16);
                     }
                     fLeadBlock = true;
                     nLastDivision = nDivisionCode;
@@ -635,22 +635,22 @@ namespace GameRes.Formats.Entis
                 {
                     if (fLeadBlock)
                     {
-                        m_ptrRevolveCode[m_ptrNextRevCode++] = (byte)context.GetNBits (2);
+                        m_ptrRevolveCode[m_ptrNextRevCode++] = (byte)context.GetNBits(2);
                         fLeadBlock = false;
                     }
                     else
                     {
-                        m_ptrRevolveCode[m_ptrNextRevCode++] = (byte)context.GetNBits (4);
+                        m_ptrRevolveCode[m_ptrNextRevCode++] = (byte)context.GetNBits(4);
                     }
-                    m_ptrWeightCode[m_ptrNextWeight++] = (int)context.GetNBits (32);
-                    m_ptrCoefficient[m_ptrNextCoefficient++] = (int)context.GetNBits (16);
+                    m_ptrWeightCode[m_ptrNextWeight++] = (int)context.GetNBits(32);
+                    m_ptrCoefficient[m_ptrNextCoefficient++] = (int)context.GetNBits(16);
                 }
             }
             if (nSubbandCount > 0)
             {
-                m_ptrRevolveCode[m_ptrNextRevCode++] = (byte)context.GetNBits (2);
-                m_ptrWeightCode[m_ptrNextWeight++] = (int)context.GetNBits (32);
-                m_ptrCoefficient[m_ptrNextCoefficient++] = (int)context.GetNBits (16);
+                m_ptrRevolveCode[m_ptrNextRevCode++] = (byte)context.GetNBits(2);
+                m_ptrWeightCode[m_ptrNextWeight++] = (int)context.GetNBits(32);
+                m_ptrCoefficient[m_ptrNextCoefficient++] = (int)context.GetNBits(16);
             }
             if (context.GetABit() != 0)
             {
@@ -664,18 +664,18 @@ namespace GameRes.Formats.Entis
                 }
                 else
                 {
-                    throw new NotImplementedException ("Nemesis encoding not implemented");
-//                    context.PrepareToDecodeERISACode( );
+                    throw new NotImplementedException("Nemesis encoding not implemented");
+                    //                    context.PrepareToDecodeERISACode( );
                 }
             }
             else if (m_mioih.Architecture == EriCode.Nemesis)
             {
-                throw new NotImplementedException ("Nemesis encoding not implemented");
-//                context.InitializeERISACode( );
+                throw new NotImplementedException("Nemesis encoding not implemented");
+                //                context.InitializeERISACode( );
             }
             if (m_mioih.Architecture != EriCode.Nemesis)
             {
-                if (context.DecodeBytes (m_ptrBuffer3, nAllSampleCount * 2) < nAllSampleCount * 2)
+                if (context.DecodeBytes(m_ptrBuffer3, nAllSampleCount * 2) < nAllSampleCount * 2)
                 {
                     return false;
                 }
@@ -687,7 +687,7 @@ namespace GameRes.Formats.Entis
                     int ptrQuantumized = (int)i; // within (PINT) m_ptrBuffer2
                     for (j = 0; j < nAllSubbandCount; j++)
                     {
-                        int nLow  = m_ptrBuffer3[ptrLBuf++];
+                        int nLow = m_ptrBuffer3[ptrLBuf++];
                         int nHigh = m_ptrBuffer3[ptrHBuf++] ^ (nLow >> 8);
                         m_ptrBuffer2[ptrQuantumized] = (nLow & 0xFF) | (nHigh << 8);
                         ptrQuantumized += (int)nDegreeWidth * 2;
@@ -696,7 +696,7 @@ namespace GameRes.Formats.Entis
             }
             else
             {
-                throw new NotImplementedException ("Nemesis encoding not implemented");
+                throw new NotImplementedException("Nemesis encoding not implemented");
                 /*
                 if ( context.DecodeERISACodeWords
                         ( (SWORD*) m_ptrBuffer3, nAllSampleCount ) < nAllSampleCount )
@@ -711,7 +711,7 @@ namespace GameRes.Formats.Entis
             }
             uint nSamples;
             uint nRestSamples = datahdr.SampleCount;
-//            int ptrDstBuf = wave_pos; // within (SWORD*) ptrWaveBuf;
+            //            int ptrDstBuf = wave_pos; // within (SWORD*) ptrWaveBuf;
 
             nLastDivision = -1;
             m_ptrNextDivision = 0; // m_ptrDivisionTable;
@@ -730,12 +730,12 @@ namespace GameRes.Formats.Entis
                 {
                     if (i != 0)
                     {
-                        nSamples = Math.Min (nRestSamples, (uint)m_nDegreeNum);
-                        DecodePostBlock_MSS (ptrWaveBuf, wave_pos, nSamples);
+                        nSamples = Math.Min(nRestSamples, (uint)m_nDegreeNum);
+                        DecodePostBlock_MSS(ptrWaveBuf, wave_pos, nSamples);
                         nRestSamples -= nSamples;
                         wave_pos += (int)(nSamples * nChannelCount * sizeof(short));
                     }
-                    InitializeWithDegree (m_mioih.SubbandDegree - nDivisionCode);
+                    InitializeWithDegree(m_mioih.SubbandDegree - nDivisionCode);
                     nLastDivision = nDivisionCode;
                     fLeadBlock = true;
                 }
@@ -753,7 +753,7 @@ namespace GameRes.Formats.Entis
                         {
                             nSamples = (uint)m_nDegreeNum;
                         }
-                        DecodeInternalBlock_MSS (ptrWaveBuf, wave_pos, nSamples);
+                        DecodeInternalBlock_MSS(ptrWaveBuf, wave_pos, nSamples);
                         nRestSamples -= nSamples;
                         wave_pos += (int)(nSamples * nChannelCount * sizeof(short));
                     }
@@ -766,14 +766,14 @@ namespace GameRes.Formats.Entis
                 {
                     nSamples = (uint)m_nDegreeNum;
                 }
-                DecodePostBlock_MSS (ptrWaveBuf, wave_pos, nSamples);
+                DecodePostBlock_MSS(ptrWaveBuf, wave_pos, nSamples);
                 nRestSamples -= nSamples;
                 wave_pos += (int)(nSamples * nChannelCount) * sizeof(short);
             }
             return true;
         }
 
-        void DecodeLeadBlock_MSS ()
+        void DecodeLeadBlock_MSS()
         {
             uint i, j;
             uint nHalfDegree = (uint)m_nDegreeNum / 2;
@@ -789,7 +789,7 @@ namespace GameRes.Formats.Entis
                     m_ptrBuffer1[ptrSrcBuf + j * 2] = 0;
                     m_ptrBuffer1[ptrSrcBuf + j * 2 + 1] = m_ptrBuffer2[m_ptrNextSource++];
                 }
-                IQuantumize (m_ptrLastDCT, ptrLapBuf, m_ptrBuffer1, ptrSrcBuf, m_nDegreeNum, nWeightCode, nCoefficient);
+                IQuantumize(m_ptrLastDCT, ptrLapBuf, m_ptrBuffer1, ptrSrcBuf, m_nDegreeNum, nWeightCode, nCoefficient);
                 ptrLapBuf += (int)m_nDegreeNum;
             }
             int nRevCode = m_ptrRevolveCode[m_ptrNextRevCode++];
@@ -797,35 +797,35 @@ namespace GameRes.Formats.Entis
             int ptrLapBuf1 = 0; // m_ptrLastDCT;
             int ptrLapBuf2 = (int)m_nDegreeNum; // m_ptrLastDCT 
 
-            float rSin = (float)Math.Sin (nRevCode * Math.PI / 8);
-            float rCos = (float)Math.Cos (nRevCode * Math.PI / 8);
-            Erisa.Revolve2x2 (m_ptrLastDCT, ptrLapBuf1, m_ptrLastDCT, ptrLapBuf2, rSin, rCos, 1, m_nDegreeNum);
+            float rSin = (float)Math.Sin(nRevCode * Math.PI / 8);
+            float rCos = (float)Math.Cos(nRevCode * Math.PI / 8);
+            Erisa.Revolve2x2(m_ptrLastDCT, ptrLapBuf1, m_ptrLastDCT, ptrLapBuf2, rSin, rCos, 1, m_nDegreeNum);
 
             ptrLapBuf = 0; //m_ptrLastDCT;
             for (i = 0; i < 2; i++)
             {
-                Erisa.OddGivensInverseMatrix (m_ptrLastDCT, ptrLapBuf, m_pRevolveParam, m_nSubbandDegree);
+                Erisa.OddGivensInverseMatrix(m_ptrLastDCT, ptrLapBuf, m_pRevolveParam, m_nSubbandDegree);
 
                 for (j = 0; j < m_nDegreeNum; j += 2)
                 {
                     m_ptrLastDCT[ptrLapBuf + j] = m_ptrLastDCT[ptrLapBuf + j + 1];
                 }
-                Erisa.FastIPLOT (m_ptrLastDCT, ptrLapBuf, m_nSubbandDegree);
+                Erisa.FastIPLOT(m_ptrLastDCT, ptrLapBuf, m_nSubbandDegree);
                 ptrLapBuf += (int)m_nDegreeNum;
             }
         }
 
-        void DecodeInternalBlock_MSS (byte[] ptrDst, int iDst, uint nSamples)
+        void DecodeInternalBlock_MSS(byte[] ptrDst, int iDst, uint nSamples)
         {
             int ptrSrcBuf = 0; // m_ptrMatrixBuf;
             int ptrLapBuf = 0; // m_ptrLastDCT;
 
-            int nWeightCode  = m_ptrWeightCode[m_ptrNextWeight++];
+            int nWeightCode = m_ptrWeightCode[m_ptrNextWeight++];
             int nCoefficient = m_ptrCoefficient[m_ptrNextCoefficient++];
 
             for (int i = 0; i < 2; i++)
             {
-                IQuantumize (m_ptrMatrixBuf, ptrSrcBuf, m_ptrBuffer2, m_ptrNextSource, m_nDegreeNum, nWeightCode, nCoefficient);
+                IQuantumize(m_ptrMatrixBuf, ptrSrcBuf, m_ptrBuffer2, m_ptrNextSource, m_nDegreeNum, nWeightCode, nCoefficient);
                 m_ptrNextSource += m_nDegreeNum;
                 ptrSrcBuf += m_nDegreeNum;
             }
@@ -836,43 +836,43 @@ namespace GameRes.Formats.Entis
             int ptrSrcBuf1 = 0; // m_ptrMatrixBuf;
             int ptrSrcBuf2 = m_nDegreeNum; // m_ptrMatrixBuf + m_nDegreeNum;
 
-            float rSin = (float) Math.Sin (nRevCode1 * Math.PI / 8);
-            float rCos = (float) Math.Cos (nRevCode1 * Math.PI / 8);
-            Erisa.Revolve2x2 (m_ptrMatrixBuf, ptrSrcBuf1, m_ptrMatrixBuf, ptrSrcBuf2, rSin, rCos, 2, m_nDegreeNum / 2);
+            float rSin = (float)Math.Sin(nRevCode1 * Math.PI / 8);
+            float rCos = (float)Math.Cos(nRevCode1 * Math.PI / 8);
+            Erisa.Revolve2x2(m_ptrMatrixBuf, ptrSrcBuf1, m_ptrMatrixBuf, ptrSrcBuf2, rSin, rCos, 2, m_nDegreeNum / 2);
 
-            rSin = (float) Math.Sin (nRevCode2 * Math.PI / 8);
-            rCos = (float) Math.Cos (nRevCode2 * Math.PI / 8);
-            Erisa.Revolve2x2 (m_ptrMatrixBuf, ptrSrcBuf1 + 1, m_ptrMatrixBuf, ptrSrcBuf2 + 1, rSin, rCos, 2, m_nDegreeNum / 2);
+            rSin = (float)Math.Sin(nRevCode2 * Math.PI / 8);
+            rCos = (float)Math.Cos(nRevCode2 * Math.PI / 8);
+            Erisa.Revolve2x2(m_ptrMatrixBuf, ptrSrcBuf1 + 1, m_ptrMatrixBuf, ptrSrcBuf2 + 1, rSin, rCos, 2, m_nDegreeNum / 2);
 
             ptrSrcBuf = 0; // m_ptrMatrixBuf;
 
             for (int i = 0; i < 2; i++)
             {
-                Erisa.OddGivensInverseMatrix (m_ptrMatrixBuf, ptrSrcBuf, m_pRevolveParam, m_nSubbandDegree);
-                Erisa.FastIPLOT (m_ptrMatrixBuf, ptrSrcBuf, m_nSubbandDegree);
-                Erisa.FastILOT (m_ptrWorkBuf, m_ptrLastDCT, ptrLapBuf, m_ptrMatrixBuf, ptrSrcBuf, m_nSubbandDegree);
+                Erisa.OddGivensInverseMatrix(m_ptrMatrixBuf, ptrSrcBuf, m_pRevolveParam, m_nSubbandDegree);
+                Erisa.FastIPLOT(m_ptrMatrixBuf, ptrSrcBuf, m_nSubbandDegree);
+                Erisa.FastILOT(m_ptrWorkBuf, m_ptrLastDCT, ptrLapBuf, m_ptrMatrixBuf, ptrSrcBuf, m_nSubbandDegree);
 
-                Array.Copy (m_ptrMatrixBuf, ptrSrcBuf, m_ptrLastDCT,   ptrLapBuf, m_nDegreeNum);
-                Array.Copy (m_ptrWorkBuf,   0,         m_ptrMatrixBuf, ptrSrcBuf, m_nDegreeNum);
+                Array.Copy(m_ptrMatrixBuf, ptrSrcBuf, m_ptrLastDCT, ptrLapBuf, m_nDegreeNum);
+                Array.Copy(m_ptrWorkBuf, 0, m_ptrMatrixBuf, ptrSrcBuf, m_nDegreeNum);
 
-                Erisa.FastIDCT (m_ptrInternalBuf, m_ptrMatrixBuf, ptrSrcBuf, 1, m_ptrWorkBuf, m_nSubbandDegree);
+                Erisa.FastIDCT(m_ptrInternalBuf, m_ptrMatrixBuf, ptrSrcBuf, 1, m_ptrWorkBuf, m_nSubbandDegree);
                 if (nSamples != 0)
                 {
-                    Erisa.RoundR32ToWordArray (ptrDst, iDst + (int)i*2, 2, m_ptrInternalBuf, (int)nSamples);
+                    Erisa.RoundR32ToWordArray(ptrDst, iDst + (int)i * 2, 2, m_ptrInternalBuf, (int)nSamples);
                 }
                 ptrSrcBuf += m_nDegreeNum;
                 ptrLapBuf += m_nDegreeNum;
             }
         }
 
-        void DecodePostBlock_MSS (byte[] ptrDst, int iDst, uint nSamples)
+        void DecodePostBlock_MSS(byte[] ptrDst, int iDst, uint nSamples)
         {
             int ptrLapBuf = 0; // m_ptrLastDCT;
             int ptrSrcBuf = 0; // m_ptrMatrixBuf;
 
             int i, j;
             uint nHalfDegree = (uint)m_nDegreeNum / 2u;
-            int nWeightCode  = m_ptrWeightCode[m_ptrNextWeight++];
+            int nWeightCode = m_ptrWeightCode[m_ptrNextWeight++];
             int nCoefficient = m_ptrCoefficient[m_ptrNextCoefficient++];
 
             for (i = 0; i < 2; i++)
@@ -882,58 +882,58 @@ namespace GameRes.Formats.Entis
                     m_ptrBuffer1[j * 2] = 0;
                     m_ptrBuffer1[j * 2 + 1] = m_ptrBuffer2[m_ptrNextSource++];
                 }
-                IQuantumize (m_ptrMatrixBuf, ptrSrcBuf, m_ptrBuffer1, 0, m_nDegreeNum, nWeightCode, nCoefficient);
+                IQuantumize(m_ptrMatrixBuf, ptrSrcBuf, m_ptrBuffer1, 0, m_nDegreeNum, nWeightCode, nCoefficient);
                 ptrSrcBuf += m_nDegreeNum;
             }
             float rSin, rCos;
-            int   nRevCode = m_ptrRevolveCode[m_ptrNextRevCode++];
+            int nRevCode = m_ptrRevolveCode[m_ptrNextRevCode++];
 
             int ptrSrcBuf1 = 0; // m_ptrMatrixBuf;
             int ptrSrcBuf2 = m_nDegreeNum; // m_ptrMatrixBuf + m_nDegreeNum;
 
-            rSin = (float) Math.Sin (nRevCode * Math.PI / 8);
-            rCos = (float) Math.Cos (nRevCode * Math.PI / 8);
-            Erisa.Revolve2x2 (m_ptrMatrixBuf, ptrSrcBuf1, m_ptrMatrixBuf, ptrSrcBuf2, rSin, rCos, 1, m_nDegreeNum);
+            rSin = (float)Math.Sin(nRevCode * Math.PI / 8);
+            rCos = (float)Math.Cos(nRevCode * Math.PI / 8);
+            Erisa.Revolve2x2(m_ptrMatrixBuf, ptrSrcBuf1, m_ptrMatrixBuf, ptrSrcBuf2, rSin, rCos, 1, m_nDegreeNum);
 
             ptrSrcBuf = 0; // m_ptrMatrixBuf;
 
-            for (i = 0; i < 2; i ++)
+            for (i = 0; i < 2; i++)
             {
-                Erisa.OddGivensInverseMatrix (m_ptrMatrixBuf, ptrSrcBuf, m_pRevolveParam, m_nSubbandDegree);
+                Erisa.OddGivensInverseMatrix(m_ptrMatrixBuf, ptrSrcBuf, m_pRevolveParam, m_nSubbandDegree);
 
                 for (j = 0; j < m_nDegreeNum; j += 2)
                 {
                     m_ptrMatrixBuf[ptrSrcBuf + j] = -m_ptrMatrixBuf[ptrSrcBuf + j + 1];
                 }
-                Erisa.FastIPLOT (m_ptrMatrixBuf, ptrSrcBuf, m_nSubbandDegree);
-                Erisa.FastILOT (m_ptrWorkBuf, m_ptrLastDCT, ptrLapBuf, m_ptrMatrixBuf, ptrSrcBuf, m_nSubbandDegree);
+                Erisa.FastIPLOT(m_ptrMatrixBuf, ptrSrcBuf, m_nSubbandDegree);
+                Erisa.FastILOT(m_ptrWorkBuf, m_ptrLastDCT, ptrLapBuf, m_ptrMatrixBuf, ptrSrcBuf, m_nSubbandDegree);
 
-                Array.Copy (m_ptrWorkBuf, 0, m_ptrMatrixBuf, ptrSrcBuf, m_nDegreeNum);
+                Array.Copy(m_ptrWorkBuf, 0, m_ptrMatrixBuf, ptrSrcBuf, m_nDegreeNum);
 
-                Erisa.FastIDCT (m_ptrInternalBuf, m_ptrMatrixBuf, ptrSrcBuf, 1, m_ptrWorkBuf, m_nSubbandDegree);
+                Erisa.FastIDCT(m_ptrInternalBuf, m_ptrMatrixBuf, ptrSrcBuf, 1, m_ptrWorkBuf, m_nSubbandDegree);
                 if (nSamples != 0)
                 {
-                    Erisa.RoundR32ToWordArray (ptrDst, iDst + (int)i*2, 2, m_ptrInternalBuf, (int)nSamples);
+                    Erisa.RoundR32ToWordArray(ptrDst, iDst + (int)i * 2, 2, m_ptrInternalBuf, (int)nSamples);
                 }
                 ptrLapBuf += m_nDegreeNum;
                 ptrSrcBuf += m_nDegreeNum;
             }
         }
 
-        void IQuantumize (float[] ptrDestination, int dst, int[] ptrQuantumized, int qsrc, int nDegreeNum, int nWeightCode, int nCoefficient)
+        void IQuantumize(float[] ptrDestination, int dst, int[] ptrQuantumized, int qsrc, int nDegreeNum, int nWeightCode, int nCoefficient)
         {
             int i, j;
-            double rMatrixScale = Math.Sqrt (2.0 / nDegreeNum);
+            double rMatrixScale = Math.Sqrt(2.0 / nDegreeNum);
             double rCoefficient = rMatrixScale * nCoefficient;
             double[] rAvgRatio = new double[7];
             for (i = 0; i < 6; i++)
             {
-                rAvgRatio[i] = 1.0 / Math.Pow (2.0, (((nWeightCode >> (i * 5)) & 0x1F) - 15) * 0.5);
+                rAvgRatio[i] = 1.0 / Math.Pow(2.0, (((nWeightCode >> (i * 5)) & 0x1F) - 15) * 0.5);
             }
             rAvgRatio[6] = 1.0;
             for (i = 0; i < m_nFrequencyPoint[0]; i++)
             {
-                m_ptrWeightTable[i] = (float) rAvgRatio[0];
+                m_ptrWeightTable[i] = (float)rAvgRatio[0];
             }
             for (j = 1; j < 7; j++)
             {
@@ -954,14 +954,14 @@ namespace GameRes.Formats.Entis
             {
                 m_ptrWeightTable[i] *= rOddWeight;
             }
-            m_ptrWeightTable[nDegreeNum-1] = (float) nCoefficient;
+            m_ptrWeightTable[nDegreeNum - 1] = (float)nCoefficient;
             for (i = 0; i < nDegreeNum; i++)
             {
                 m_ptrWeightTable[i] = 1.0F / m_ptrWeightTable[i];
             }
-            for (i = 0; i < nDegreeNum; i ++)
+            for (i = 0; i < nDegreeNum; i++)
             {
-                ptrDestination[dst + i] = (float) (rCoefficient * m_ptrWeightTable[i] * ptrQuantumized[qsrc+i]);
+                ptrDestination[dst + i] = (float)(rCoefficient * m_ptrWeightTable[i] * ptrQuantumized[qsrc + i]);
             }
         }
     }

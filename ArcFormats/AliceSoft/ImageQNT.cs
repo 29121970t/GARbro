@@ -35,81 +35,81 @@ namespace GameRes.Formats.AliceSoft
     {
         public uint RGBSize;
         public uint AlphaSize;
-        public int  HeaderSize;
+        public int HeaderSize;
     }
 
     [Export(typeof(ImageFormat))]
     public class QntFormat : ImageFormat
     {
-        public override string         Tag { get { return "QNT"; } }
+        public override string Tag { get { return "QNT"; } }
         public override string Description { get { return "AliceSoft System image format"; } }
-        public override uint     Signature { get { return 0x544e51; } } // 'QNT'
+        public override uint Signature { get { return 0x544e51; } } // 'QNT'
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("QntFormat.Write not implemented");
+            throw new System.NotImplementedException("QntFormat.Write not implemented");
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
-            var header = stream.ReadHeader (0x30);
-            int version = header.ToInt32 (4);
+            var header = stream.ReadHeader(0x30);
+            int version = header.ToInt32(4);
             if (version < 0 || version > 2)
                 return null;
             if (0 == version)
             {
                 return new QntMetaData
                 {
-                    Width = header.ToUInt32 (0x10),
-                    Height = header.ToUInt32 (0x14),
-                    OffsetX = header.ToInt32 (0x08),
-                    OffsetY = header.ToInt32 (0x0C),
-                    BPP = header.ToInt32 (0x18),
-                    RGBSize = header.ToUInt32 (0x20),
-                    AlphaSize = header.ToUInt32 (0x24),
+                    Width = header.ToUInt32(0x10),
+                    Height = header.ToUInt32(0x14),
+                    OffsetX = header.ToInt32(0x08),
+                    OffsetY = header.ToInt32(0x0C),
+                    BPP = header.ToInt32(0x18),
+                    RGBSize = header.ToUInt32(0x20),
+                    AlphaSize = header.ToUInt32(0x24),
                     HeaderSize = 0x30,
                 };
             }
-            int header_size = header.ToInt32 (8);
-            uint width = header.ToUInt32 (0x14);
-            uint height = header.ToUInt32 (0x18);
+            int header_size = header.ToInt32(8);
+            uint width = header.ToUInt32(0x14);
+            uint height = header.ToUInt32(0x18);
             if (0 == width || 0 == height)
                 return null;
             return new QntMetaData
             {
                 Width = width,
                 Height = height,
-                OffsetX = header.ToInt32 (0x0c),
-                OffsetY = header.ToInt32 (0x10),
-                BPP = header.ToInt32 (0x1c),
-                RGBSize = header.ToUInt32 (0x24),
-                AlphaSize = header.ToUInt32 (0x28),
+                OffsetX = header.ToInt32(0x0c),
+                OffsetY = header.ToInt32(0x10),
+                BPP = header.ToInt32(0x1c),
+                RGBSize = header.ToUInt32(0x24),
+                AlphaSize = header.ToUInt32(0x28),
                 HeaderSize = header_size,
             };
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
-            var reader = new Reader (stream.AsStream, (QntMetaData)info);
+            var reader = new Reader(stream.AsStream, (QntMetaData)info);
             reader.Unpack();
             int stride = (int)info.Width * (reader.BPP / 8);
             PixelFormat format = 24 == reader.BPP ? PixelFormats.Bgr24 : PixelFormats.Bgra32;
-            return ImageData.Create (info, format, null, reader.Data, stride);
+            return ImageData.Create(info, format, null, reader.Data, stride);
         }
 
         internal class Reader : IBaseImageReader
         {
-            byte[]  m_input;
-            byte[]  m_alpha;
-            byte[]  m_output;
-            int     m_bpp;
-            int     m_width;
-            int     m_height;
+            byte[] m_input;
+            byte[] m_alpha;
+            byte[] m_output;
+            int m_bpp;
+            int m_width;
+            int m_height;
 
             public byte[] Data { get { return m_output; } }
-            public int     BPP { get { return m_bpp*8; } }
+            public int BPP { get { return m_bpp * 8; } }
 
-            public Reader (Stream stream, QntMetaData info)
+            public Reader(Stream stream, QntMetaData info)
             {
                 m_width = (int)info.Width;
                 m_height = (int)info.Height;
@@ -120,22 +120,22 @@ namespace GameRes.Formats.AliceSoft
                 m_input = new byte[rgb_size];
                 stream.Position = info.HeaderSize;
                 var alpha_pos = info.HeaderSize + info.RGBSize;
-                using (var zstream = new ZLibStream (stream, CompressionMode.Decompress, true))
-                    if (rgb_size != zstream.Read (m_input, 0, rgb_size))
-                        throw new InvalidFormatException ("Unexpected end of file");
+                using (var zstream = new ZLibStream(stream, CompressionMode.Decompress, true))
+                    if (rgb_size != zstream.Read(m_input, 0, rgb_size))
+                        throw new InvalidFormatException("Unexpected end of file");
                 if (info.AlphaSize != 0)
                 {
                     int alpha_size = w * m_height;
                     m_alpha = new byte[alpha_size];
                     stream.Position = alpha_pos;
-                    using (var zstream = new ZLibStream (stream, CompressionMode.Decompress, true))
-                        if (alpha_size != zstream.Read (m_alpha, 0, alpha_size))
-                            throw new InvalidFormatException ("Unexpected end of file");
+                    using (var zstream = new ZLibStream(stream, CompressionMode.Decompress, true))
+                        if (alpha_size != zstream.Read(m_alpha, 0, alpha_size))
+                            throw new InvalidFormatException("Unexpected end of file");
                 }
-                m_output = new byte[info.Width*info.Height*m_bpp];
+                m_output = new byte[info.Width * info.Height * m_bpp];
             }
 
-            public void Unpack ()
+            public void Unpack()
             {
                 int src = 0;
                 int dst;
@@ -148,7 +148,7 @@ namespace GameRes.Formats.AliceSoft
                         for (int x = 0; x < m_width; ++x)
                         {
                             m_output[dst] = m_input[src++];
-                            m_output[dst+stride] = m_input[src++];
+                            m_output[dst + stride] = m_input[src++];
                             dst += m_bpp;
                         }
                         dst += stride;
@@ -181,21 +181,21 @@ namespace GameRes.Formats.AliceSoft
                 }
                 dst = m_bpp;
                 int i;
-                for (i = stride-m_bpp; i != 0; --i)
+                for (i = stride - m_bpp; i != 0; --i)
                 {
-                    int b = m_output[dst-m_bpp] - m_output[dst];
+                    int b = m_output[dst - m_bpp] - m_output[dst];
                     m_output[dst++] = (byte)b;
                 }
                 for (int j = m_height - 1; j != 0; --j)
                 {
                     for (i = 0; i != m_bpp; ++i)
                     {
-                        m_output[dst] = (byte)(m_output[dst-stride] - m_output[dst]);
+                        m_output[dst] = (byte)(m_output[dst - stride] - m_output[dst]);
                         ++dst;
                     }
-                    for (i = stride-m_bpp; i != 0; --i)
+                    for (i = stride - m_bpp; i != 0; --i)
                     {
-                        int b = ((int)m_output[dst-stride] + m_output[dst-m_bpp]) >> 1;
+                        int b = ((int)m_output[dst - stride] + m_output[dst - m_bpp]) >> 1;
                         b -= m_output[dst];
                         m_output[dst++] = (byte)b;
                     }

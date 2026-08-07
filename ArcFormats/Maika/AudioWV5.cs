@@ -33,22 +33,22 @@ namespace GameRes.Formats.Maika
     [Export(typeof(AudioFormat))]
     public class Wv5Audio : AudioFormat
     {
-        public override string         Tag { get { return "WV5"; } }
+        public override string Tag { get { return "WV5"; } }
         public override string Description { get { return "MAIKA compressed audio format"; } }
-        public override uint     Signature { get { return 0x41355657; } } // 'WV5A'
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x41355657; } } // 'WV5A'
+        public override bool CanWrite { get { return false; } }
 
-        public Wv5Audio ()
+        public Wv5Audio()
         {
             Extensions = new string[] { "wv5", "wav" };
         }
 
-        public override SoundInput TryOpen (IBinaryStream file)
+        public override SoundInput TryOpen(IBinaryStream file)
         {
-            var decoder = new Wv5Decoder (file);
+            var decoder = new Wv5Decoder(file);
             var pcm_data = decoder.Unpack();
-            var pcm = new MemoryStream (pcm_data);
-            var sound = new RawPcmInput (pcm, decoder.Format);
+            var pcm = new MemoryStream(pcm_data);
+            var sound = new RawPcmInput(pcm, decoder.Format);
             file.Dispose();
             return sound;
         }
@@ -56,21 +56,22 @@ namespace GameRes.Formats.Maika
 
     internal class Wv5Decoder
     {
-        IBinaryStream   m_input;
-        byte[]          m_output;
-        int             m_chunk_count;
+        IBinaryStream m_input;
+        byte[] m_output;
+        int m_chunk_count;
 
         public WaveFormat Format { get; private set; }
 
-        public Wv5Decoder (IBinaryStream input)
+        public Wv5Decoder(IBinaryStream input)
         {
             m_input = input;
             m_input.Position = 4;
-            var format = new WaveFormat {
-                FormatTag           = 1,
-                Channels            = m_input.ReadUInt16(),
-                SamplesPerSecond    = m_input.ReadUInt32(),
-                BitsPerSample       = 16,
+            var format = new WaveFormat
+            {
+                FormatTag = 1,
+                Channels = m_input.ReadUInt16(),
+                SamplesPerSecond = m_input.ReadUInt32(),
+                BitsPerSample = 16,
             };
             format.BlockAlign = (ushort)(2 * format.Channels);
             format.AverageBytesPerSecond = format.BlockAlign * format.SamplesPerSecond;
@@ -80,7 +81,7 @@ namespace GameRes.Formats.Maika
             m_output = new byte[sample_count * format.BlockAlign];
         }
 
-        public byte[] Unpack ()
+        public byte[] Unpack()
         {
             int chmask = Format.Channels - 1;
             m_input.Position = 0x12;
@@ -97,12 +98,12 @@ namespace GameRes.Formats.Maika
                         count = m_input.ReadUInt8();
                     else
                         count = 256;
-                    while (count --> 0)
+                    while (count-- > 0)
                     {
                         byte s = m_input.ReadUInt8();
                         int n = chn++ & chmask;
                         sample[n] += PcmTable[s];
-                        LittleEndian.Pack (sample[n], m_output, dst);
+                        LittleEndian.Pack(sample[n], m_output, dst);
                         dst += 2;
                     }
                 }
@@ -113,11 +114,11 @@ namespace GameRes.Formats.Maika
                     else
                         count = ctl;
                     byte s = m_input.ReadUInt8();
-                    while (count --> 0)
+                    while (count-- > 0)
                     {
                         int n = chn++ & chmask;
                         sample[n] += PcmTable[s];
-                        LittleEndian.Pack (sample[n], m_output, dst);
+                        LittleEndian.Pack(sample[n], m_output, dst);
                         dst += 2;
                     }
                 }
@@ -125,10 +126,10 @@ namespace GameRes.Formats.Maika
             return m_output;
         }
 
-        static Wv5Decoder ()
+        static Wv5Decoder()
         {
             for (int i = 0; i < 128; ++i)
-                PcmTable[128+i] = (short)-PcmTable[i];
+                PcmTable[128 + i] = (short)-PcmTable[i];
         }
 
         static readonly short[] PcmTable = {

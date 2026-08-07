@@ -33,7 +33,7 @@ namespace GameRes.Formats.Eternity
     internal class SgfMetaData : ImageMetaData
     {
         public bool HasAlpha;
-        public int  BlockSize;
+        public int BlockSize;
         public uint DataOffset;
         public uint AlphaOffset;
     }
@@ -41,57 +41,58 @@ namespace GameRes.Formats.Eternity
     [Export(typeof(ImageFormat))]
     public class SgfFormat : ImageFormat
     {
-        public override string         Tag { get { return "SGF"; } }
+        public override string Tag { get { return "SGF"; } }
         public override string Description { get { return "Eternity engine image format"; } }
-        public override uint     Signature { get { return 0x644753; } } // 'SG'
+        public override uint Signature { get { return 0x644753; } } // 'SG'
 
-        public SgfFormat ()
+        public SgfFormat()
         {
             Signatures = new uint[] { 0x644753, 0 };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x20);
-            if (!header.AsciiEqual ("SG"))
+            var header = file.ReadHeader(0x20);
+            if (!header.AsciiEqual("SG"))
                 return null;
-            int version = header.ToUInt16 (2);
+            int version = header.ToUInt16(2);
             if (version != 100)
                 return null;
-            return new SgfMetaData {
-                Width  = header.ToUInt16 (4),
-                Height = header.ToUInt16 (6),
-                BPP    = 24,
-                HasAlpha   = header.ToInt32 (8) != 0,
-                BlockSize  = header.ToUInt16 (0xC),
-                DataOffset = header.ToUInt32 (0x14),
-                AlphaOffset = header.ToUInt32 (0x1C),
+            return new SgfMetaData
+            {
+                Width = header.ToUInt16(4),
+                Height = header.ToUInt16(6),
+                BPP = 24,
+                HasAlpha = header.ToInt32(8) != 0,
+                BlockSize = header.ToUInt16(0xC),
+                DataOffset = header.ToUInt32(0x14),
+                AlphaOffset = header.ToUInt32(0x1C),
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new SgfReader (file, (SgfMetaData)info);
+            var reader = new SgfReader(file, (SgfMetaData)info);
             var pixels = reader.Unpack();
-            return ImageData.Create (info, reader.Format, null, pixels);
+            return ImageData.Create(info, reader.Format, null, pixels);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("SgfFormat.Write not implemented");
+            throw new System.NotImplementedException("SgfFormat.Write not implemented");
         }
     }
 
     internal class SgfReader
     {
-        IBinaryStream   m_input;
-        SgfMetaData     m_info;
-        byte[]          m_output;
+        IBinaryStream m_input;
+        SgfMetaData m_info;
+        byte[] m_output;
 
-        public byte[]        Data { get { return m_output; } }
+        public byte[] Data { get { return m_output; } }
         public PixelFormat Format { get; private set; }
 
-        public SgfReader (IBinaryStream input, SgfMetaData info)
+        public SgfReader(IBinaryStream input, SgfMetaData info)
         {
             m_input = input;
             m_info = info;
@@ -99,7 +100,7 @@ namespace GameRes.Formats.Eternity
             Format = PixelFormats.Bgr24;
         }
 
-        public byte[] Unpack ()
+        public byte[] Unpack()
         {
             long next_pos = m_info.DataOffset;
             int height = (int)m_info.Height;
@@ -120,16 +121,16 @@ namespace GameRes.Formats.Eternity
                 }
                 for (uint x = 0; x < m_info.Width; ++x)
                 {
-                    b = GetNextByte (b);
-                    g = GetNextByte (g);
-                    r = GetNextByte (r);
+                    b = GetNextByte(b);
+                    g = GetNextByte(g);
+                    r = GetNextByte(r);
                     m_output[dst++] = b;
                     m_output[dst++] = g;
                     m_output[dst++] = r;
                 }
                 b = m_output[start_pos];
-                g = m_output[start_pos+1];
-                r = m_output[start_pos+2];
+                g = m_output[start_pos + 1];
+                r = m_output[start_pos + 2];
             }
             if (m_info.HasAlpha)
             {
@@ -154,7 +155,7 @@ namespace GameRes.Formats.Eternity
             return m_output;
         }
 
-        byte[] ReadAlpha ()
+        byte[] ReadAlpha()
         {
             m_input.Position = m_info.AlphaOffset;
             var signature = m_input.ReadUInt16();
@@ -166,7 +167,7 @@ namespace GameRes.Formats.Eternity
                 return null;
         }
 
-        byte[] ReadASection ()
+        byte[] ReadASection()
         {
             var alpha = new byte[m_info.iWidth * m_info.iHeight];
             m_input.Position = m_info.AlphaOffset + 8;
@@ -189,7 +190,7 @@ namespace GameRes.Formats.Eternity
                 }
                 for (uint x = 0; x < m_info.Width; ++x)
                 {
-                    a = GetNextByte (a);
+                    a = GetNextByte(a);
                     alpha[dst++] = a;
                 }
                 a = alpha[start_pos];
@@ -198,7 +199,7 @@ namespace GameRes.Formats.Eternity
             return alpha;
         }
 
-        byte[] ReadBmpSection ()
+        byte[] ReadBmpSection()
         {
             // throw new NotImplementedException ("ReadBmpSection not implemented.");
             return null;
@@ -215,7 +216,7 @@ namespace GameRes.Formats.Eternity
         uint in4;
         uint in5;
 
-        byte GetNextByte (byte prev)
+        byte GetNextByte(byte prev)
         {
             if (mask1 == 1)
                 in1 = m_input.ReadUInt32();
@@ -235,8 +236,8 @@ namespace GameRes.Formats.Eternity
                     else
                         prev += (byte)diff;
                     in4 >>= 4;
-                    mask3 = Binary.RotL (mask3, 1);
-                    mask4 = Binary.RotL (mask4, 4);
+                    mask3 = Binary.RotL(mask3, 1);
+                    mask4 = Binary.RotL(mask4, 4);
                 }
                 else
                 {
@@ -244,11 +245,11 @@ namespace GameRes.Formats.Eternity
                         in5 = m_input.ReadUInt32();
                     prev = (byte)in5;
                     in5 >>= 8;
-                    mask5 = Binary.RotL (mask5, 8);
+                    mask5 = Binary.RotL(mask5, 8);
                 }
-                mask2 = Binary.RotL (mask2, 1);
+                mask2 = Binary.RotL(mask2, 1);
             }
-            mask1 = Binary.RotL (mask1, 1);
+            mask1 = Binary.RotL(mask1, 1);
             return prev;
         }
     }

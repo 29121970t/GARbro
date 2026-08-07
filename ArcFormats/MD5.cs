@@ -30,8 +30,8 @@ namespace GameRes.Cryptography
 {
     public class MD5Base
     {
-        protected uint[]  m_state = new uint[4];
-        protected uint[]  m_buffer = new uint[16];
+        protected uint[] m_state = new uint[4];
+        protected uint[] m_buffer = new uint[16];
 
         static readonly byte[,] ShiftsTable = {
             { 7, 12, 17, 22 }, { 5, 9, 14, 20 }, { 4, 11, 16, 23 }, { 6, 10, 15, 21 },
@@ -48,11 +48,11 @@ namespace GameRes.Cryptography
             0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1, 0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391,
         };
 
-        protected MD5Base ()
+        protected MD5Base()
         {
         }
 
-        protected void Transform ()
+        protected void Transform()
         {
             uint a = m_state[0];
             uint b = m_state[1];
@@ -86,7 +86,7 @@ namespace GameRes.Cryptography
                 uint t = d;
                 d = c;
                 c = b;
-                b += Binary.RotL (a + f + m_buffer[g] + SineTable[i], ShiftsTable[i>>4, i&3]);
+                b += Binary.RotL(a + f + m_buffer[g] + SineTable[i], ShiftsTable[i >> 4, i & 3]);
                 a = t;
             }
 
@@ -102,17 +102,17 @@ namespace GameRes.Cryptography
     /// </summary>
     public class MD5 : MD5Base
     {
-        long    m_bit_count;
-        int     m_buf_pos;
+        long m_bit_count;
+        int m_buf_pos;
 
         public uint[] State { get { return m_state; } }
 
-        public MD5 ()
+        public MD5()
         {
             Initialize();
         }
 
-        public void Initialize ()
+        public void Initialize()
         {
             m_state[0] = 0x67452301;
             m_state[1] = 0xEFCDAB89;
@@ -122,22 +122,22 @@ namespace GameRes.Cryptography
             m_buf_pos = 0;
         }
 
-        public byte[] ComputeHash (byte[] data)
+        public byte[] ComputeHash(byte[] data)
         {
-            return ComputeHash (data, 0, data.Length);
+            return ComputeHash(data, 0, data.Length);
         }
 
-        public byte[] ComputeHash (byte[] data, int pos, int count)
+        public byte[] ComputeHash(byte[] data, int pos, int count)
         {
             Initialize();
-            Update (data, pos, count);
+            Update(data, pos, count);
             Final();
             var hash = new byte[16];
-            Buffer.BlockCopy (m_state, 0, hash, 0, 16);
+            Buffer.BlockCopy(m_state, 0, hash, 0, 16);
             return hash;
         }
 
-        public void Update (byte[] data, int pos, int count)
+        public void Update(byte[] data, int pos, int count)
         {
             m_bit_count += (long)count << 3;
 
@@ -146,11 +146,11 @@ namespace GameRes.Cryptography
                 int buf_count = 64 - m_buf_pos;
                 if (count < buf_count)
                 {
-                    Buffer.BlockCopy (data, pos, m_buffer, m_buf_pos, count);
+                    Buffer.BlockCopy(data, pos, m_buffer, m_buf_pos, count);
                     m_buf_pos += count;
                     return;
                 }
-                Buffer.BlockCopy (data, pos, m_buffer, m_buf_pos, buf_count);
+                Buffer.BlockCopy(data, pos, m_buffer, m_buf_pos, buf_count);
                 Transform();
                 pos += buf_count;
                 count -= buf_count;
@@ -159,31 +159,31 @@ namespace GameRes.Cryptography
             // data is processed in 64-byte chunks
             while (count >= 64)
             {
-                Buffer.BlockCopy (data, pos, m_buffer, 0, 64);
+                Buffer.BlockCopy(data, pos, m_buffer, 0, 64);
                 Transform();
                 pos += 64;
                 count -= 64;
             }
             if (count > 0)
             {
-                Buffer.BlockCopy (data, pos, m_buffer, 0, count);
+                Buffer.BlockCopy(data, pos, m_buffer, 0, count);
                 m_buf_pos += count;
             }
         }
 
-        public void Final ()
+        public void Final()
         {
-            Buffer.BlockCopy (Terminator, 0, m_buffer, m_buf_pos++, 1);
+            Buffer.BlockCopy(Terminator, 0, m_buffer, m_buf_pos++, 1);
             int buf_count = 64 - m_buf_pos;
-        
+
             if (buf_count < 8)
             {
-                Buffer.BlockCopy (ZeroBytes, 0, m_buffer, m_buf_pos, buf_count);
+                Buffer.BlockCopy(ZeroBytes, 0, m_buffer, m_buf_pos, buf_count);
                 Transform();
                 m_buf_pos = 0;
                 buf_count = 64;
             }
-            Buffer.BlockCopy (ZeroBytes, 0, m_buffer, m_buf_pos, buf_count-8);
+            Buffer.BlockCopy(ZeroBytes, 0, m_buffer, m_buf_pos, buf_count - 8);
             m_buffer[14] = (uint)m_bit_count;
             m_buffer[15] = (uint)(m_bit_count >> 32);
             Transform();

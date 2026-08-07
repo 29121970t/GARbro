@@ -33,8 +33,8 @@ namespace GameRes
 {
     public class ArcFile : IDisposable
     {
-        private ArcView         m_arc;
-        private ArchiveFormat   m_interface;
+        private ArcView m_arc;
+        private ArchiveFormat m_interface;
         private ICollection<Entry> m_dir;
 
         /// <summary>Tag that identifies this archive format.</summary>
@@ -52,7 +52,7 @@ namespace GameRes
         /// <summary>Archive contents.</summary>
         public ICollection<Entry> Dir { get { return m_dir; } }
 
-        public ArcFile (ArcView arc, ArchiveFormat impl, ICollection<Entry> dir)
+        public ArcFile(ArcView arc, ArchiveFormat impl, ICollection<Entry> dir)
         {
             m_arc = arc;
             m_interface = impl;
@@ -65,24 +65,24 @@ namespace GameRes
         /// <returns>
         /// ArcFile object if file is opened successfully, null otherwise.
         /// </returns>
-        public static ArcFile TryOpen (string filename)
+        public static ArcFile TryOpen(string filename)
         {
-            return TryOpen (VFS.FindFile (filename));
+            return TryOpen(VFS.FindFile(filename));
         }
 
-        public static ArcFile TryOpen (Entry entry)
+        public static ArcFile TryOpen(Entry entry)
         {
             if (entry.Size < 4)
                 return null;
-            var file = VFS.OpenView (entry);
+            var file = VFS.OpenView(entry);
             try
             {
-                uint signature = file.View.ReadUInt32 (0);
-                foreach (var impl in FormatCatalog.Instance.FindFormats<ArchiveFormat> (entry.Name, signature))
+                uint signature = file.View.ReadUInt32(0);
+                foreach (var impl in FormatCatalog.Instance.FindFormats<ArchiveFormat>(entry.Name, signature))
                 {
                     try
                     {
-                        var arc = impl.TryOpen (file);
+                        var arc = impl.TryOpen(file);
                         if (null != arc)
                         {
                             file = null; // file ownership passed to ArcFile
@@ -97,7 +97,7 @@ namespace GameRes
                     catch (Exception X)
                     {
                         // ignore failed open attmepts
-                        Trace.WriteLine (string.Format ("[{0}] {1}: {2}", impl.Tag, entry.Name, X.Message));
+                        Trace.WriteLine(string.Format("[{0}] {1}: {2}", impl.Tag, entry.Name, X.Message));
                         FormatCatalog.Instance.LastError = X;
                     }
                 }
@@ -114,16 +114,16 @@ namespace GameRes
         /// Extract all entries from the archive into current directory.
         /// <paramref name="callback"/> could be used to observe/control extraction process.
         /// </summary>
-        public void ExtractFiles (EntryCallback callback)
+        public void ExtractFiles(EntryCallback callback)
         {
             int i = 0;
-            foreach (var entry in Dir.OrderBy (e => e.Offset))
+            foreach (var entry in Dir.OrderBy(e => e.Offset))
             {
-                var action = callback (i, entry, null);
+                var action = callback(i, entry, null);
                 if (ArchiveOperation.Abort == action)
                     break;
                 if (ArchiveOperation.Skip != action)
-                    Extract (entry);
+                    Extract(entry);
                 ++i;
             }
         }
@@ -131,26 +131,26 @@ namespace GameRes
         /// <summary>
         /// Extract specified <paramref name="entry"/> into current directory.
         /// </summary>
-        public void Extract (Entry entry)
+        public void Extract(Entry entry)
         {
             if (-1 != entry.Offset)
-                m_interface.Extract (this, entry);
+                m_interface.Extract(this, entry);
         }
 
         /// <summary>
         /// Open specified <paramref name="entry"/> as Stream.
         /// </summary>
-        public Stream OpenEntry (Entry entry)
+        public Stream OpenEntry(Entry entry)
         {
-            return m_interface.OpenEntry (this, entry);
+            return m_interface.OpenEntry(this, entry);
         }
 
         /// <summary>
         /// Open specified <paramref name="entry"/> as memory-mapped view.
         /// </summary>
-        public ArcView OpenView (Entry entry)
+        public ArcView OpenView(Entry entry)
         {
-            using (var stream = OpenEntry (entry))
+            using (var stream = OpenEntry(entry))
             {
                 uint size;
                 var packed_entry = entry as PackedEntry;
@@ -163,26 +163,26 @@ namespace GameRes
                     {
                         using (var copy = new MemoryStream())
                         {
-                            stream.CopyTo (copy);
+                            stream.CopyTo(copy);
                             copy.Position = 0;
-                            return new ArcView (copy, entry.Name, (uint)copy.Length);
+                            return new ArcView(copy, entry.Name, (uint)copy.Length);
                         }
                     }
                 }
                 else
                     size = entry.Size;
                 if (0 == size)
-                    throw new FileSizeException (Strings.garStrings.MsgFileIsEmpty);
-                return new ArcView (stream, entry.Name, size);
+                    throw new FileSizeException(Strings.garStrings.MsgFileIsEmpty);
+                return new ArcView(stream, entry.Name, size);
             }
         }
 
         /// <summary>
         /// Open specified <paramref name="entry"/> as a seekable Stream.
         /// </summary>
-        public Stream OpenSeekableEntry (Entry entry)
+        public Stream OpenSeekableEntry(Entry entry)
         {
-            var input = OpenEntry (entry);
+            var input = OpenEntry(entry);
             if (input.CanSeek)
                 return input;
             using (input)
@@ -191,42 +191,42 @@ namespace GameRes
                 var packed_entry = entry as PackedEntry;
                 if (packed_entry != null && packed_entry.UnpackedSize != 0)
                     capacity = (int)packed_entry.UnpackedSize;
-                var copy = new MemoryStream (capacity);
-                input.CopyTo (copy);
+                var copy = new MemoryStream(capacity);
+                input.CopyTo(copy);
                 copy.Position = 0;
                 return copy;
             }
         }
 
-        public IBinaryStream OpenBinaryEntry (Entry entry)
+        public IBinaryStream OpenBinaryEntry(Entry entry)
         {
-            var input = OpenSeekableEntry (entry);
-            return BinaryStream.FromStream (input, entry.Name);
+            var input = OpenSeekableEntry(entry);
+            return BinaryStream.FromStream(input, entry.Name);
         }
 
-        public IImageDecoder OpenImage (Entry entry)
+        public IImageDecoder OpenImage(Entry entry)
         {
-            return m_interface.OpenImage (this, entry);
+            return m_interface.OpenImage(this, entry);
         }
 
-        public ArchiveFileSystem CreateFileSystem ()
+        public ArchiveFileSystem CreateFileSystem()
         {
             if (m_interface.IsHierarchic)
-                return new TreeArchiveFileSystem (this);
+                return new TreeArchiveFileSystem(this);
             else
-                return new FlatArchiveFileSystem (this);
+                return new FlatArchiveFileSystem(this);
         }
 
         #region IDisposable Members
         bool disposed = false;
 
-        public void Dispose ()
+        public void Dispose()
         {
-            Dispose (true);
-            GC.SuppressFinalize (this);
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
-        protected virtual void Dispose (bool disposing)
+        protected virtual void Dispose(bool disposing)
         {
             if (!disposed)
             {

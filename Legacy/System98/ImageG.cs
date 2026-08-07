@@ -36,43 +36,44 @@ namespace GameRes.Formats.System98
     [Export(typeof(ImageFormat))]
     public class GFormat : ImageFormat
     {
-        public override string         Tag => "G/SYSTEM98";
+        public override string Tag => "G/SYSTEM98";
         public override string Description => "System-98 engine image format";
-        public override uint     Signature => 0;
+        public override uint Signature => 0;
 
-        public GFormat ()
+        public GFormat()
         {
             Extensions = new[] { "g", "" };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
             if (file.Length < 61)
                 return null;
-            var header = file.ReadHeader (0xA);
-            ushort width  = Binary.BigEndian (header.ToUInt16 (6));
-            ushort height = Binary.BigEndian (header.ToUInt16 (8));
+            var header = file.ReadHeader(0xA);
+            ushort width = Binary.BigEndian(header.ToUInt16(6));
+            ushort height = Binary.BigEndian(header.ToUInt16(8));
             if (0 == width || 0 == height || (width & 7) != 0 || width > 640 || height > 400)
                 return null;
-            return new ImageMetaData {
+            return new ImageMetaData
+            {
                 Width = width,
                 Height = height,
                 BPP = 4,
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
             file.Position = 0xA;
-            var palette = ReadPalette (file.AsStream, 16, PaletteFormat.Rgb);
-            var reader = new GraBaseReader (file, info);
+            var palette = ReadPalette(file.AsStream, 16, PaletteFormat.Rgb);
+            var reader = new GraBaseReader(file, info);
             reader.UnpackBits();
-            return ImageData.Create (info, PixelFormats.Indexed4, palette, reader.Pixels, reader.Stride);
+            return ImageData.Create(info, PixelFormats.Indexed4, palette, reader.Pixels, reader.Stride);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("GFormat.Write not implemented");
+            throw new System.NotImplementedException("GFormat.Write not implemented");
         }
     }
 
@@ -83,14 +84,14 @@ namespace GameRes.Formats.System98
     {
         protected IBinaryStream m_input;
         protected ImageMetaData m_info;
-        protected int           m_output_stride;
-        protected byte[]        m_pixels;
-        protected int           m_dst;
+        protected int m_output_stride;
+        protected byte[] m_pixels;
+        protected int m_dst;
 
         public byte[] Pixels => m_pixels;
-        public int    Stride => m_output_stride;
+        public int Stride => m_output_stride;
 
-        public GraBaseReader (IBinaryStream file, ImageMetaData info)
+        public GraBaseReader(IBinaryStream file, ImageMetaData info)
         {
             m_input = file;
             m_info = info;
@@ -100,7 +101,7 @@ namespace GameRes.Formats.System98
 
         protected ushort[] m_buffer;
 
-        public void UnpackBits ()
+        public void UnpackBits()
         {
             try
             {
@@ -112,7 +113,7 @@ namespace GameRes.Formats.System98
             }
         }
 
-        void UnpackBitsInternal ()
+        void UnpackBitsInternal()
         {
             int width = m_info.iWidth;
             int wTimes2 = width << 1;
@@ -122,7 +123,7 @@ namespace GameRes.Formats.System98
             m_dst = 0;
             InitFrame();
             InitBitReader();
-            ushort p = ReadPair (0);
+            ushort p = ReadPair(0);
             for (int i = 0; i < width; ++i)
                 m_buffer[i] = p;
             int dst = wTimes2;
@@ -143,7 +144,7 @@ namespace GameRes.Formats.System98
                 else if (GetNextBit() == 0)
                 {
                     src = -4;
-                    p = m_buffer[dst/2-1];
+                    p = m_buffer[dst / 2 - 1];
                     if ((p & 0xFF) == (p >> 8))
                         same_line = src != prev_src;
                 }
@@ -163,13 +164,13 @@ namespace GameRes.Formats.System98
                         }
                         while (GetNextBit() != 0);
                         int count = 1;
-                        while (bitlength --> 0)
+                        while (bitlength-- > 0)
                             count = count << 1 | GetNextBit();
                         int remaining = (buffer_size - dst) >> 1;
                         while (count > remaining)
                         {
                             count -= remaining;
-                            MovePixels (m_buffer, src, dst, remaining);
+                            MovePixels(m_buffer, src, dst, remaining);
                             src += remaining << 1;
                             if (FlushBuffer())
                                 return;
@@ -177,7 +178,7 @@ namespace GameRes.Formats.System98
                             src -= wTimes4;
                             remaining = wTimes4 >> 1;
                         }
-                        MovePixels (m_buffer, src, dst, count);
+                        MovePixels(m_buffer, src, dst, count);
                         dst += count << 1;
                         if (dst == buffer_size)
                         {
@@ -188,7 +189,7 @@ namespace GameRes.Formats.System98
                     }
                     else
                     {
-                        MovePixels (m_buffer, src, dst, 1);
+                        MovePixels(m_buffer, src, dst, 1);
                         dst += 2;
                         if (dst == buffer_size)
                         {
@@ -200,11 +201,11 @@ namespace GameRes.Formats.System98
                 }
                 else
                 {
-                    p = m_buffer[dst/2-1];
+                    p = m_buffer[dst / 2 - 1];
                     do
                     {
                         byte prev = (byte)(p >> 8);
-                        p = ReadPair (prev);
+                        p = ReadPair(prev);
                         m_buffer[dst >> 1] = p;
                         dst += 2;
                         if (dst == buffer_size)
@@ -220,12 +221,12 @@ namespace GameRes.Formats.System98
             }
         }
 
-        bool FlushBuffer ()
+        bool FlushBuffer()
         {
-            MovePixels (m_buffer, m_info.iWidth * 4, 0, m_info.iWidth);
+            MovePixels(m_buffer, m_info.iWidth * 4, 0, m_info.iWidth);
             int src = m_info.iWidth;
-            int count = Math.Min (m_info.iWidth << 1, m_pixels.Length - m_dst);
-            while (count --> 0)
+            int count = Math.Min(m_info.iWidth << 1, m_pixels.Length - m_dst);
+            while (count-- > 0)
             {
                 ushort p = m_buffer[src++];
                 m_pixels[m_dst++] = (byte)((p & 0xF0) | p >> 12);
@@ -233,14 +234,14 @@ namespace GameRes.Formats.System98
             return m_dst == m_pixels.Length;
         }
 
-        protected ushort ReadPair (int pos)
+        protected ushort ReadPair(int pos)
         {
-            byte al = ReadPixel (pos);
-            byte ah = ReadPixel (al);
+            byte al = ReadPixel(pos);
+            byte ah = ReadPixel(al);
             return (ushort)(al | ah << 8);
         }
 
-        protected byte ReadPixel (int pos)
+        protected byte ReadPixel(int pos)
         {
             byte px = 0;
             if (GetNextBit() == 0)
@@ -257,12 +258,12 @@ namespace GameRes.Formats.System98
                 count = count << 1 | GetNextBit();
                 pos += count;
                 px = m_frame[pos--];
-                while (count --> 0)
+                while (count-- > 0)
                 {
-                    m_frame[pos+1] = m_frame[pos];
+                    m_frame[pos + 1] = m_frame[pos];
                     --pos;
                 }
-                m_frame[pos+1] = px;
+                m_frame[pos + 1] = px;
             }
             else if (GetNextBit() == 0)
             {
@@ -270,8 +271,8 @@ namespace GameRes.Formats.System98
             }
             else
             {
-                px = m_frame[pos+1];
-                m_frame[pos+1] = m_frame[pos];
+                px = m_frame[pos + 1];
+                m_frame[pos + 1] = m_frame[pos];
                 m_frame[pos] = px;
             }
             return px;
@@ -279,7 +280,7 @@ namespace GameRes.Formats.System98
 
         byte[] m_frame;
 
-        protected void InitFrame ()
+        protected void InitFrame()
         {
             m_frame = new byte[0x100];
             int p = 0;
@@ -295,34 +296,34 @@ namespace GameRes.Formats.System98
             }
         }
 
-        protected void MovePixels (ushort[] pixels, int src, int dst, int count)
+        protected void MovePixels(ushort[] pixels, int src, int dst, int count)
         {
             count <<= 1;
             if (dst > src)
             {
                 while (count > 0)
                 {
-                    int preceding = Math.Min (dst - src, count);
-                    Buffer.BlockCopy (pixels, src, pixels, dst, preceding);
+                    int preceding = Math.Min(dst - src, count);
+                    Buffer.BlockCopy(pixels, src, pixels, dst, preceding);
                     dst += preceding;
                     count -= preceding;
                 }
             }
             else
             {
-                Buffer.BlockCopy (pixels, src, pixels, dst, count);
+                Buffer.BlockCopy(pixels, src, pixels, dst, count);
             }
         }
 
         int m_bits;
         int m_bit_count;
 
-        protected void InitBitReader ()
+        protected void InitBitReader()
         {
             m_bit_count = 1;
         }
 
-        protected byte GetNextBit ()
+        protected byte GetNextBit()
         {
             if (--m_bit_count <= 0)
             {

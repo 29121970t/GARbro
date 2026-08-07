@@ -34,70 +34,70 @@ namespace GameRes.Formats.Abogado
 {
     internal class KgMetaData : ImageMetaData
     {
-        public int  PaletteOffset;
-        public int  DataOffset;
-        public int  AlphaOffset;
+        public int PaletteOffset;
+        public int DataOffset;
+        public int AlphaOffset;
     }
 
     [Export(typeof(ImageFormat))]
     public class KgFormat : ImageFormat
     {
-        public override string         Tag { get { return "KG/ABOGADO"; } }
+        public override string Tag { get { return "KG/ABOGADO"; } }
         public override string Description { get { return "AbogadoPowers image format"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public KgFormat ()
+        public KgFormat()
         {
             Signatures = new uint[] { 0x0202474B, 0x0102474B, 0x0200474B, 0x0100474B };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x30);
+            var header = file.ReadHeader(0x30);
             return new KgMetaData
             {
-                Width   = header.ToUInt16 (4),
-                Height  = header.ToUInt16 (6),
-                BPP     = header[3] == 2 ? 24 : 8,
-                PaletteOffset   = header.ToInt32 (0xC),
-                DataOffset      = header.ToInt32 (0x10),
-                AlphaOffset     = header[2] == 2 ? header.ToInt32 (0x2C) : 0,
+                Width = header.ToUInt16(4),
+                Height = header.ToUInt16(6),
+                BPP = header[3] == 2 ? 24 : 8,
+                PaletteOffset = header.ToInt32(0xC),
+                DataOffset = header.ToInt32(0x10),
+                AlphaOffset = header[2] == 2 ? header.ToInt32(0x2C) : 0,
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            using (var reader = new KgReader (file, (KgMetaData)info))
+            using (var reader = new KgReader(file, (KgMetaData)info))
             {
                 reader.Unpack();
-                return ImageData.CreateFlipped (info, reader.Format, reader.Palette, reader.Pixels, reader.Stride);
+                return ImageData.CreateFlipped(info, reader.Format, reader.Palette, reader.Pixels, reader.Stride);
             }
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("KgFormat.Write not implemented");
+            throw new System.NotImplementedException("KgFormat.Write not implemented");
         }
     }
 
     internal sealed class KgReader : IDisposable
     {
-        IBinaryStream       m_input;
-        MsbBitStream        m_bits;
-        KgMetaData          m_info;
-        byte[]              m_output;
-        int                 m_pixel_size;
-        int                 m_stride;
+        IBinaryStream m_input;
+        MsbBitStream m_bits;
+        KgMetaData m_info;
+        byte[] m_output;
+        int m_pixel_size;
+        int m_stride;
 
-        public PixelFormat    Format { get; private set; }
+        public PixelFormat Format { get; private set; }
         public BitmapPalette Palette { get; private set; }
-        public byte[]         Pixels { get { return m_output; } }
-        public int            Stride { get { return m_stride; } }
+        public byte[] Pixels { get { return m_output; } }
+        public int Stride { get { return m_stride; } }
 
-        public KgReader (IBinaryStream input, KgMetaData info)
+        public KgReader(IBinaryStream input, KgMetaData info)
         {
             m_input = input;
-            m_bits = new MsbBitStream (input.AsStream, true);
+            m_bits = new MsbBitStream(input.AsStream, true);
             m_info = info;
             m_pixel_size = m_info.BPP / 8;
             m_stride = m_pixel_size * (int)m_info.Width;
@@ -110,20 +110,20 @@ namespace GameRes.Formats.Abogado
                 Format = PixelFormats.Indexed8;
         }
 
-        public void Unpack ()
+        public void Unpack()
         {
             if (8 == m_info.BPP)
             {
                 m_input.Position = m_info.PaletteOffset;
-                Palette = ImageFormat.ReadPalette (m_input.AsStream);
+                Palette = ImageFormat.ReadPalette(m_input.AsStream);
             }
             m_bits.Input.Position = m_info.DataOffset;
             ResetDict();
-            UnpackChannel (0);
+            UnpackChannel(0);
             if (m_pixel_size > 1)
             {
-                UnpackChannel (1);
-                UnpackChannel (2);
+                UnpackChannel(1);
+                UnpackChannel(2);
             }
             if (m_info.AlphaOffset != 0)
             {
@@ -133,7 +133,7 @@ namespace GameRes.Formats.Abogado
                     m_bits.Input.Position = m_info.AlphaOffset;
                     m_bits.Reset();
                     ResetDict();
-                    UnpackChannel (3);
+                    UnpackChannel(3);
                 }
                 catch
                 {
@@ -144,13 +144,13 @@ namespace GameRes.Formats.Abogado
 
         byte[] m_dict = new byte[0x800];
 
-        void ResetDict ()
+        void ResetDict()
         {
             for (int i = 0; i < 0x800; ++i)
                 m_dict[i] = (byte)(i & 7);
         }
 
-        void ConvertToBgr32 ()
+        void ConvertToBgr32()
         {
             m_stride = (int)m_info.Width * 4;
             var pixels = new byte[m_stride * (int)m_info.Height];
@@ -161,9 +161,9 @@ namespace GameRes.Formats.Abogado
                 for (int src = 0; src < m_output.Length; ++src)
                 {
                     var pixel = colors[m_output[src]];
-                    pixels[dst]   = pixel.B;
-                    pixels[dst+1] = pixel.G;
-                    pixels[dst+2] = pixel.R;
+                    pixels[dst] = pixel.B;
+                    pixels[dst + 1] = pixel.G;
+                    pixels[dst + 2] = pixel.R;
                     dst += 4;
                 }
             }
@@ -171,9 +171,9 @@ namespace GameRes.Formats.Abogado
             {
                 for (int src = 0; src < m_output.Length; src += m_pixel_size)
                 {
-                    pixels[dst]   = m_output[src];
-                    pixels[dst+1] = m_output[src+1];
-                    pixels[dst+2] = m_output[src+2];
+                    pixels[dst] = m_output[src];
+                    pixels[dst + 1] = m_output[src + 1];
+                    pixels[dst + 2] = m_output[src + 2];
                     dst += 4;
                 }
             }
@@ -181,47 +181,47 @@ namespace GameRes.Formats.Abogado
             m_pixel_size = 4;
         }
 
-        void UnpackChannel (int dst)
+        void UnpackChannel(int dst)
         {
-            m_output[dst] = (byte)m_bits.GetBits (8);
+            m_output[dst] = (byte)m_bits.GetBits(8);
             dst += m_pixel_size;
-            m_output[dst] = (byte)m_bits.GetBits (8);
+            m_output[dst] = (byte)m_bits.GetBits(8);
             dst += m_pixel_size;
             while (dst < m_output.Length)
             {
-                int ctl = m_bits.GetBits (1);
+                int ctl = m_bits.GetBits(1);
                 if (-1 == ctl)
                     throw new EndOfStreamException();
                 if (0 == ctl)
                 {
-                    byte b = GetPixel (dst);
+                    byte b = GetPixel(dst);
                     m_output[dst] = b;
-                    UpdateDict (b, m_output[dst - m_pixel_size]);
+                    UpdateDict(b, m_output[dst - m_pixel_size]);
                     dst += m_pixel_size;
                     continue;
                 }
-                if (0 != m_bits.GetBits (1))
-                    ctl = m_bits.GetBits (2);
+                if (0 != m_bits.GetBits(1))
+                    ctl = m_bits.GetBits(2);
                 else
                     ctl = 4;
                 int offset;
                 switch (ctl)
                 {
-                case 0:
-                    offset = m_stride;
-                    break;
-                case 1:
-                    offset = m_stride - m_pixel_size;
-                    break;
-                case 2:
-                    offset = m_stride + m_pixel_size;
-                    break;
-                case 3:
-                    offset = 2 * m_pixel_size;
-                    break;
-                default:
-                    offset = m_pixel_size;
-                    break;
+                    case 0:
+                        offset = m_stride;
+                        break;
+                    case 1:
+                        offset = m_stride - m_pixel_size;
+                        break;
+                    case 2:
+                        offset = m_stride + m_pixel_size;
+                        break;
+                    case 3:
+                        offset = 2 * m_pixel_size;
+                        break;
+                    default:
+                        offset = m_pixel_size;
+                        break;
                 }
                 int count = GetCount();
                 int src = dst - offset;
@@ -234,20 +234,20 @@ namespace GameRes.Formats.Abogado
             }
         }
 
-        byte GetPixel (int dst)
+        byte GetPixel(int dst)
         {
-            if (1 == m_bits.GetBits (1))
+            if (1 == m_bits.GetBits(1))
             {
-                return (byte)m_bits.GetBits (8);
+                return (byte)m_bits.GetBits(8);
             }
             else
             {
                 int n = 8 * m_output[dst - m_pixel_size];
-                return m_dict[n + m_bits.GetBits (3)];
+                return m_dict[n + m_bits.GetBits(3)];
             }
         }
 
-        void UpdateDict (byte b, byte prev)
+        void UpdateDict(byte b, byte prev)
         {
             int s = 8 * prev;
             int i;
@@ -260,31 +260,31 @@ namespace GameRes.Formats.Abogado
             {
                 if (8 == i)
                     i = 7;
-                Buffer.BlockCopy (m_dict, s, m_dict, s+1, i);
+                Buffer.BlockCopy(m_dict, s, m_dict, s + 1, i);
                 m_dict[s] = b;
             }
         }
 
-        int GetCount ()
+        int GetCount()
         {
-            int count = m_bits.GetBits (2);
+            int count = m_bits.GetBits(2);
             if (0 == count)
             {
-                count = m_bits.GetBits (4);
+                count = m_bits.GetBits(4);
                 if (0 != count)
                 {
                     count += 3;
                 }
                 else
                 {
-                    count = m_bits.GetBits (8);
+                    count = m_bits.GetBits(8);
                     if (0 == count)
                     {
-                        count = m_bits.GetBits (16);
+                        count = m_bits.GetBits(16);
                         if (0 == count)
                         {
-                            count  = m_bits.GetBits (16) << 16;
-                            count |= m_bits.GetBits (16);
+                            count = m_bits.GetBits(16) << 16;
+                            count |= m_bits.GetBits(16);
                         }
                     }
                 }
@@ -293,7 +293,7 @@ namespace GameRes.Formats.Abogado
         }
 
         bool _disposed = false;
-        public void Dispose ()
+        public void Dispose()
         {
             if (!_disposed)
             {

@@ -13,19 +13,20 @@ namespace GameRes.Formats
 {
     internal class LocalResourceSetting : ResourceSettingBase
     {
-        public override object Value {
+        public override object Value
+        {
             get { return Properties.Settings.Default[Name]; }
             set { Properties.Settings.Default[Name] = value; }
         }
 
-        public LocalResourceSetting () { }
+        public LocalResourceSetting() { }
 
-        public LocalResourceSetting (string name) : this (name, name) { }
+        public LocalResourceSetting(string name) : this(name, name) { }
 
-        public LocalResourceSetting (string name, string text)
+        public LocalResourceSetting(string name, string text)
         {
             Name = name;
-            Text = arcStrings.ResourceManager.GetString (text, arcStrings.Culture) ?? text;
+            Text = arcStrings.ResourceManager.GetString(text, arcStrings.Culture) ?? text;
         }
     }
 
@@ -33,32 +34,34 @@ namespace GameRes.Formats
     {
         static readonly Encoding DefaultEncoding = Encodings.cp932;
 
-        public override object Value {
-            get {
+        public override object Value
+        {
+            get
+            {
                 try
                 {
-                    return Encoding.GetEncoding ((int)base.Value);
+                    return Encoding.GetEncoding((int)base.Value);
                 }
                 catch // fallback to CP932
                 {
-                    Trace.WriteLine (string.Format ("Unknown encoding code page {0}", base.Value));
+                    Trace.WriteLine(string.Format("Unknown encoding code page {0}", base.Value));
                     return DefaultEncoding;
                 }
             }
             set { base.Value = ((Encoding)value).CodePage; }
         }
 
-        public EncodingSetting () { }
+        public EncodingSetting() { }
 
-        public EncodingSetting (string name) : base (name) { }
+        public EncodingSetting(string name) : base(name) { }
 
-        public EncodingSetting (string name, string text) : base (name, text) { }
+        public EncodingSetting(string name, string text) : base(name, text) { }
     }
 
     [Export(typeof(ISettingsManager))]
     internal class SettingsManager : ISettingsManager
     {
-        public void UpgradeSettings ()
+        public void UpgradeSettings()
         {
             if (Properties.Settings.Default.UpgradeRequired)
             {
@@ -68,7 +71,7 @@ namespace GameRes.Formats
             }
         }
 
-        public void SaveSettings ()
+        public void SaveSettings()
         {
             Properties.Settings.Default.Save();
         }

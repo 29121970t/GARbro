@@ -34,69 +34,70 @@ namespace GameRes.Formats.CottonClub
 {
     public class LmgMetaData : ImageMetaData
     {
-        public byte     Method;
+        public byte Method;
     }
 
     [Export(typeof(ImageFormat))]
     public class LmgFormat : ImageFormat
     {
-        public override string         Tag { get { return "LMG"; } }
+        public override string Tag { get { return "LMG"; } }
         public override string Description { get { return "Cotton Club encrypted image"; } }
-        public override uint     Signature { get { return 0x03474D4C; } } // 'LMG'
+        public override uint Signature { get { return 0x03474D4C; } } // 'LMG'
 
-        public LmgFormat ()
+        public LmgFormat()
         {
             Signatures = new uint[] { 0x03474D4C, 0x02474D4C, 0x01474D4C };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (12);
-            return new LmgMetaData {
-                Width = header.ToUInt32 (4),
-                Height = header.ToUInt32 (8),
+            var header = file.ReadHeader(12);
+            return new LmgMetaData
+            {
+                Width = header.ToUInt32(4),
+                Height = header.ToUInt32(8),
                 BPP = header[3] == 2 ? 32 : 24,
                 Method = header[3],
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
             var meta = (LmgMetaData)info;
             var data = new byte[file.Length - 12];
             file.Position = 12;
-            file.Read (data, 0, data.Length);
-            DecryptData (data, file.Name);
+            file.Read(data, 0, data.Length);
+            DecryptData(data, file.Name);
             if (3 == meta.Method)
             {
-                using (var input = new BinMemoryStream (data))
+                using (var input = new BinMemoryStream(data))
                 {
-                    var decoder = new JpegBitmapDecoder (input, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+                    var decoder = new JpegBitmapDecoder(input, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
                     var frame = decoder.Frames[0];
                     frame.Freeze();
-                    return new ImageData (frame, info);
+                    return new ImageData(frame, info);
                 }
             }
             else if (2 == meta.Method)
             {
-                var reader = new LmgReader (info, data);
+                var reader = new LmgReader(info, data);
                 data = reader.Unpack();
-                return ImageData.Create (info, PixelFormats.Bgra32, null, data, reader.Stride);
+                return ImageData.Create(info, PixelFormats.Bgra32, null, data, reader.Stride);
             }
             else
             {
-                return ImageData.Create (info, PixelFormats.Bgr24, null, data, info.iWidth * 3);
+                return ImageData.Create(info, PixelFormats.Bgr24, null, data, info.iWidth * 3);
             }
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("LmgFormat.Write not implemented");
+            throw new System.NotImplementedException("LmgFormat.Write not implemented");
         }
 
-        internal void DecryptData (byte[] data, string filename)
+        internal void DecryptData(byte[] data, string filename)
         {
-            filename = Path.GetFileName (filename).ToLowerInvariant();
+            filename = Path.GetFileName(filename).ToLowerInvariant();
             byte key = 0;
             for (int i = 0; i < filename.Length; ++i)
             {
@@ -113,13 +114,13 @@ namespace GameRes.Formats.CottonClub
 
     internal class LmgReader
     {
-        byte[]          m_data;
-        byte[]          m_output;
-        int             m_stride;
+        byte[] m_data;
+        byte[] m_output;
+        int m_stride;
 
-        public int  Stride { get { return m_stride; } }
+        public int Stride { get { return m_stride; } }
 
-        public LmgReader (ImageMetaData info, byte[] data)
+        public LmgReader(ImageMetaData info, byte[] data)
         {
             m_data = data;
             m_stride = info.iWidth * 4;
@@ -129,11 +130,11 @@ namespace GameRes.Formats.CottonClub
         int m_src;
         int m_dst;
 
-        public byte[] Unpack ()
+        public byte[] Unpack()
         {
             m_src = 0;
             m_dst = 0;
-            while (m_src+1 < m_data.Length)
+            while (m_src + 1 < m_data.Length)
             {
                 byte alpha = m_data[m_src++];
                 if (0xFF == alpha)
@@ -154,13 +155,13 @@ namespace GameRes.Formats.CottonClub
                 }
                 else
                 {
-                    ReadARGB (alpha);
+                    ReadARGB(alpha);
                 }
             }
             return m_output;
         }
 
-        void ReadARGB (byte alpha)
+        void ReadARGB(byte alpha)
         {
             int length = GetLength8();
             m_output[m_dst++] = m_data[m_src++];
@@ -177,7 +178,7 @@ namespace GameRes.Formats.CottonClub
             }
         }
 
-        int GetLength8 ()
+        int GetLength8()
         {
             int i = 0;
             while (m_data[m_src] == 0)
@@ -188,15 +189,15 @@ namespace GameRes.Formats.CottonClub
             return i + m_data[m_src++];
         }
 
-        int GetLength16 ()
+        int GetLength16()
         {
             int i = 0;
-            while (m_data[m_src] == 0 && m_data[m_src+1] == 0)
+            while (m_data[m_src] == 0 && m_data[m_src + 1] == 0)
             {
                 i += 0xFFFF;
                 m_src += 2;
             }
-            i += m_data.ToUInt16 (m_src);
+            i += m_data.ToUInt16(m_src);
             m_src += 2;
             return i;
         }

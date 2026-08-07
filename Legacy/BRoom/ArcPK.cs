@@ -34,65 +34,65 @@ namespace GameRes.Formats.BRoom
     [Export(typeof(ArchiveFormat))]
     public class PkOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "PK/B-ROOM"; } }
+        public override string Tag { get { return "PK/B-ROOM"; } }
         public override string Description { get { return "Studio B-Room resource archive"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public PkOpener ()
+        public PkOpener()
         {
             Extensions = new[] { "pk", "cpc" };
         }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            int count = file.View.ReadInt32 (0);
-            if (!IsSaneCount (count))
+            int count = file.View.ReadInt32(0);
+            if (!IsSaneCount(count))
                 return null;
             uint index_offset = 4;
             long data_offset = count * 0x18 + index_offset;
             if (data_offset >= file.MaxOffset)
                 return null;
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
-                uint size = file.View.ReadUInt32 (index_offset+4);
-                var name = file.View.ReadString (index_offset+8, 0x10);
-                if (string.IsNullOrWhiteSpace (name))
+                uint size = file.View.ReadUInt32(index_offset + 4);
+                var name = file.View.ReadString(index_offset + 8, 0x10);
+                if (string.IsNullOrWhiteSpace(name))
                     return null;
-                var entry = Create<Entry> (name);
+                var entry = Create<Entry>(name);
                 entry.Offset = data_offset;
                 entry.Size = size;
-                if (!entry.CheckPlacement (file.MaxOffset))
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
-                dir.Add (entry);
+                dir.Add(entry);
                 data_offset += size;
                 index_offset += 0x18;
             }
             if (data_offset != file.MaxOffset)
                 return null;
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
     }
 
     [Export(typeof(ArchiveFormat))]
     public class EncryptedPkOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "PK/B-ROOM/E"; } }
+        public override string Tag { get { return "PK/B-ROOM/E"; } }
         public override string Description { get { return "Studio B-Room encrypted resource archive"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
         static readonly byte[] DefaultNameKey = {
             0xF5, 0xB2, 0xA4, 0x45, 0x59, 0x0F, 0x15, 0x22, 0x43, 0x0B, 0x99, 0x3C, 0xDD, 0xE2
         };
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            int count = (int)(file.View.ReadUInt32 (0) ^ 0xFF559977);
-            if (!IsSaneCount (count))
+            int count = (int)(file.View.ReadUInt32(0) ^ 0xFF559977);
+            if (!IsSaneCount(count))
                 return null;
             uint index_offset = 4;
             long data_offset = count * 0x18 + index_offset;
@@ -100,12 +100,12 @@ namespace GameRes.Formats.BRoom
                 return null;
             var name_key = DefaultNameKey;
             var name_buffer = new byte[0x10];
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
-                uint offset = file.View.ReadUInt32 (index_offset);
-                uint size = file.View.ReadUInt32 (index_offset+4);
-                file.View.Read (index_offset+8, name_buffer, 0, 14);
+                uint offset = file.View.ReadUInt32(index_offset);
+                uint size = file.View.ReadUInt32(index_offset + 4);
+                file.View.Read(index_offset + 8, name_buffer, 0, 14);
                 uint checksum = 0;
                 int j;
                 for (j = 0; j < 14; ++j)
@@ -116,20 +116,20 @@ namespace GameRes.Formats.BRoom
                     checksum += (uint)name_buffer[j] << ((j & 3) << 3);
                 }
                 checksum &= 0x3FF;
-                var name = Encodings.cp932.GetString (name_buffer, 0, j);
-                if (string.IsNullOrWhiteSpace (name))
+                var name = Encodings.cp932.GetString(name_buffer, 0, j);
+                if (string.IsNullOrWhiteSpace(name))
                     return null;
-                if (name.HasAnyOfExtensions ("", "e", "er"))
-                    name = Path.ChangeExtension (name, ".Erp");
-                var entry = Create<Entry> (name);
+                if (name.HasAnyOfExtensions("", "e", "er"))
+                    name = Path.ChangeExtension(name, ".Erp");
+                var entry = Create<Entry>(name);
                 entry.Offset = offset ^ checksum ^ 0x35846;
-                entry.Size   = size   ^ checksum ^ 0x57982525;
-                if (!entry.CheckPlacement (file.MaxOffset))
+                entry.Size = size ^ checksum ^ 0x57982525;
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
-                dir.Add (entry);
+                dir.Add(entry);
                 index_offset += 0x18;
             }
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
     }
 }

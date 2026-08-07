@@ -33,26 +33,26 @@ namespace GameRes.Formats.CatSystem
     [Export(typeof(ArchiveFormat))]
     public class Hg2Opener : ArchiveFormat
     {
-        public override string         Tag { get { return "HG2"; } }
+        public override string Tag { get { return "HG2"; } }
         public override string Description { get { return "CatSystem2 engine multi-image"; } }
-        public override uint     Signature { get { return 0x322d4748; } } // 'HG-2'
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x322d4748; } } // 'HG-2'
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            if (0x25 != file.View.ReadInt32 (8))
+            if (0x25 != file.View.ReadInt32(8))
                 return null;
-            var base_name = Path.GetFileNameWithoutExtension (file.Name);
+            var base_name = Path.GetFileNameWithoutExtension(file.Name);
             var dir = new List<Entry>();
             long offset = 0xC;
             int i = 0;
             while (offset < file.MaxOffset)
             {
-                uint section_size = file.View.ReadUInt32 (offset+0x40);
+                uint section_size = file.View.ReadUInt32(offset + 0x40);
                 var entry = new Entry
                 {
-                    Name = string.Format ("{0}#{1:D4}", base_name, i),
+                    Name = string.Format("{0}#{1:D4}", base_name, i),
                     Type = "image",
                     Offset = offset,
                 };
@@ -60,7 +60,7 @@ namespace GameRes.Formats.CatSystem
                     entry.Size = (uint)(file.MaxOffset - offset);
                 else
                     entry.Size = section_size;
-                dir.Add (entry);
+                dir.Add(entry);
                 if (0 == section_size)
                     break;
                 offset += section_size;
@@ -68,29 +68,29 @@ namespace GameRes.Formats.CatSystem
             }
             if (dir.Count < 1)
                 return null;
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
 
-        public override IImageDecoder OpenImage (ArcFile arc, Entry entry)
+        public override IImageDecoder OpenImage(ArcFile arc, Entry entry)
         {
             var offset = entry.Offset;
             var info = new Hg2MetaData
             {
-                HeaderSize  = 0x4C,
-                Width       = arc.File.View.ReadUInt32 (offset),
-                Height      = arc.File.View.ReadUInt32 (offset+4),
-                BPP         = arc.File.View.ReadInt32 (offset+8),
-                DataPacked  = arc.File.View.ReadInt32 (offset+0x14),
-                DataUnpacked= arc.File.View.ReadInt32 (offset+0x18),
-                CtlPacked   = arc.File.View.ReadInt32 (offset+0x1C),
-                CtlUnpacked = arc.File.View.ReadInt32 (offset+0x20),
-                CanvasWidth = arc.File.View.ReadUInt32 (offset+0x2C),
-                CanvasHeight= arc.File.View.ReadUInt32 (offset+0x30),
-                OffsetX     = arc.File.View.ReadInt32 (offset+0x34),
-                OffsetY     = arc.File.View.ReadInt32 (offset+0x38),
+                HeaderSize = 0x4C,
+                Width = arc.File.View.ReadUInt32(offset),
+                Height = arc.File.View.ReadUInt32(offset + 4),
+                BPP = arc.File.View.ReadInt32(offset + 8),
+                DataPacked = arc.File.View.ReadInt32(offset + 0x14),
+                DataUnpacked = arc.File.View.ReadInt32(offset + 0x18),
+                CtlPacked = arc.File.View.ReadInt32(offset + 0x1C),
+                CtlUnpacked = arc.File.View.ReadInt32(offset + 0x20),
+                CanvasWidth = arc.File.View.ReadUInt32(offset + 0x2C),
+                CanvasHeight = arc.File.View.ReadUInt32(offset + 0x30),
+                OffsetX = arc.File.View.ReadInt32(offset + 0x34),
+                OffsetY = arc.File.View.ReadInt32(offset + 0x38),
             };
-            var input = arc.File.CreateStream (entry.Offset, entry.Size);
-            return new Hg2Reader (input, info);
+            var input = arc.File.CreateStream(entry.Offset, entry.Size);
+            return new Hg2Reader(input, info);
         }
     }
 }

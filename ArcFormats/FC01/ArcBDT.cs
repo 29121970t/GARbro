@@ -37,52 +37,52 @@ namespace GameRes.Formats.FC01
     [Export(typeof(ArchiveFormat))]
     public partial class BdtOpener : PakOpener
     {
-        public override string         Tag => "BDT";
+        public override string Tag => "BDT";
         public override string Description => "Fairytale resource archive";
-        public override uint     Signature => 0x4B434150; // 'PACK'
-        public override bool  IsHierarchic => false;
-        public override bool      CanWrite => false;
+        public override uint Signature => 0x4B434150; // 'PACK'
+        public override bool IsHierarchic => false;
+        public override bool CanWrite => false;
 
-        public BdtOpener ()
+        public BdtOpener()
         {
             Signatures = new[] { 0x4B434150u, 0u };
         }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            uint signature = file.View.ReadUInt32 (0);
+            uint signature = file.View.ReadUInt32(0);
             if (signature != this.Signature)
-                return BogusMediaArchive (file, signature);
-            var arc_name = Path.GetFileNameWithoutExtension (file.Name).ToLowerInvariant();
-            if (!arc_name.StartsWith ("dt0"))
+                return BogusMediaArchive(file, signature);
+            var arc_name = Path.GetFileNameWithoutExtension(file.Name).ToLowerInvariant();
+            if (!arc_name.StartsWith("dt0"))
                 return null;
 
             uint index_pos = 12;
-            int count = file.View.ReadInt32 (4);
-            if (!IsSaneCount (count) || file.MaxOffset <= index_pos)
+            int count = file.View.ReadInt32(4);
+            if (!IsSaneCount(count) || file.MaxOffset <= index_pos)
                 return null;
-            int entry_size = file.View.ReadInt32 (8);
+            int entry_size = file.View.ReadInt32(8);
 
-            string arc_num_str = arc_name.Substring (3);
-            int arc_num = int.Parse (arc_num_str, NumberStyles.HexNumber);
-            var dir = ReadVomIndex (file, arc_num, count, entry_size);
+            string arc_num_str = arc_name.Substring(3);
+            int arc_num = int.Parse(arc_num_str, NumberStyles.HexNumber);
+            var dir = ReadVomIndex(file, arc_num, count, entry_size);
             if (null == dir)
                 return null;
-            var arc_key = GetKey (arc_num);
-            return new AgsiArchive (file, this, dir, arc_key);
+            var arc_key = GetKey(arc_num);
+            return new AgsiArchive(file, this, dir, arc_key);
         }
 
-        List<Entry> ReadVomIndex (ArcView file, int arc_num, int count, int record_size)
+        List<Entry> ReadVomIndex(ArcView file, int arc_num, int count, int record_size)
         {
             if (4 == arc_num) // dt004.bdt is an archive of indexes
             {
-                var reader = new IndexReader (file, count, record_size);
+                var reader = new IndexReader(file, count, record_size);
                 return reader.ReadIndex();
             }
-            var dt4name = VFS.ChangeFileName (file.Name, "dt004.bdt");
-            using (var dt4file = VFS.OpenView (dt4name))
+            var dt4name = VFS.ChangeFileName(file.Name, "dt004.bdt");
+            using (var dt4file = VFS.OpenView(dt4name))
             {
-                var dt4arc = TryOpen (dt4file);
+                var dt4arc = TryOpen(dt4file);
                 if (null == dt4arc)
                     return null;
                 using (dt4arc)
@@ -90,21 +90,21 @@ namespace GameRes.Formats.FC01
                     int vom_idx = arc_num;
                     if (arc_num > 4)
                         --vom_idx;
-                    var voms = string.Format ("vom{0:D3}.dat", vom_idx);
-                    var vom_entry = dt4arc.Dir.First (e => e.Name == voms);
-                    using (var input = dt4arc.OpenEntry (vom_entry))
-                    using (var index = BinaryStream.FromStream (input, vom_entry.Name))
+                    var voms = string.Format("vom{0:D3}.dat", vom_idx);
+                    var vom_entry = dt4arc.Dir.First(e => e.Name == voms);
+                    using (var input = dt4arc.OpenEntry(vom_entry))
+                    using (var index = BinaryStream.FromStream(input, vom_entry.Name))
                     {
-                        var reader = new IndexReader (file, count, record_size);
-                        return reader.ReadIndex (index);
+                        var reader = new IndexReader(file, count, record_size);
+                        return reader.ReadIndex(index);
                     }
                 }
             }
         }
 
-        ArcFile BogusMediaArchive (ArcView file, uint signature)
+        ArcFile BogusMediaArchive(ArcView file, uint signature)
         {
-            if (!file.Name.HasExtension (".bdt"))
+            if (!file.Name.HasExtension(".bdt"))
                 return null;
             string ext = null;
             string type = "";
@@ -113,13 +113,13 @@ namespace GameRes.Formats.FC01
                 ext = ".ogg";
                 type = "audio";
             }
-            else if (AudioFormat.Wav.Signature == signature && file.View.AsciiEqual (8, "AVI "))
+            else if (AudioFormat.Wav.Signature == signature && file.View.AsciiEqual(8, "AVI "))
             {
                 ext = ".avi";
             }
             if (null == ext)
                 return null;
-            var name = Path.GetFileNameWithoutExtension (file.Name);
+            var name = Path.GetFileNameWithoutExtension(file.Name);
             var dir = new List<Entry> {
                 new Entry {
                     Name = name + ext,
@@ -128,14 +128,14 @@ namespace GameRes.Formats.FC01
                     Size = (uint)file.MaxOffset
                 }
             };
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
 
-        byte[] GetKey (int index)
+        byte[] GetKey(int index)
         {
             int src = index * 8;
             if (src + 8 > KeyOffsetTable.Length)
-                throw new ArgumentException ("Invalid AGSI key index.");
+                throw new ArgumentException("Invalid AGSI key index.");
             var key = new byte[8];
             key[0] = KeySource[KeyOffsetTable[src++]];
             key[1] = KeySource[KeyOffsetTable[src++]];

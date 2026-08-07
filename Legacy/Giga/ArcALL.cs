@@ -34,45 +34,45 @@ namespace GameRes.Formats.Giga
     [Export(typeof(ArchiveFormat))]
     public class AllOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "ALL/GIGA"; } }
+        public override string Tag { get { return "ALL/GIGA"; } }
         public override string Description { get { return "Giga resource archive"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public AllOpener ()
+        public AllOpener()
         {
             Extensions = new[] { "273" };
             ContainedFormats = new[] { "BMP", "DAT/GENERIC" };
         }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            var base_name = Path.GetFileName (file.Name);
+            var base_name = Path.GetFileName(file.Name);
             List<Entry> dir;
-            if (!FileMap273.TryGetValue (base_name, out dir) || 0 == dir.Count)
+            if (!FileMap273.TryGetValue(base_name, out dir) || 0 == dir.Count)
                 return null;
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var pent = entry as PackedEntry;
             if (null == pent)
-                return base.OpenEntry (arc, entry);
+                return base.OpenEntry(arc, entry);
             var data = new byte[pent.UnpackedSize];
-            using (var input = arc.File.CreateStream (pent.Offset, pent.Size))
-                LzssUnpack (input, data);
-            return new BinMemoryStream (data);
+            using (var input = arc.File.CreateStream(pent.Offset, pent.Size))
+                LzssUnpack(input, data);
+            return new BinMemoryStream(data);
         }
 
-        internal static void LzssUnpack (IBinaryStream input, byte[] output)
+        internal static void LzssUnpack(IBinaryStream input, byte[] output)
         {
             int dst = 0;
             int bitcount = input.ReadInt32();
             if (0 == bitcount)
             {
-                input.Read (output, 0, output.Length);
+                input.Read(output, 0, output.Length);
                 return;
             }
             int bytecount = bitcount >> 3;
@@ -101,7 +101,7 @@ namespace GameRes.Formats.Giga
                             {
                                 count = input.ReadUInt8() + 0x12;
                             }
-                            Binary.CopyOverlapped (output, offset, dst, count);
+                            Binary.CopyOverlapped(output, offset, dst, count);
                             dst += count;
                         }
                         ctl >>= 1;
@@ -115,7 +115,7 @@ namespace GameRes.Formats.Giga
             }
         }
 
-        static readonly Dictionary<string, List<Entry>>  FileMap273 = new Dictionary<string, List<Entry>> (StringComparer.OrdinalIgnoreCase)
+        static readonly Dictionary<string, List<Entry>> FileMap273 = new Dictionary<string, List<Entry>>(StringComparer.OrdinalIgnoreCase)
         {
             {
                 "ALLCHP.273", new List<Entry>() {

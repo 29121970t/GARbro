@@ -33,32 +33,33 @@ namespace GameRes.Formats.Aaru
     [Export(typeof(AudioFormat))]
     public class Wv1Audio : AudioFormat
     {
-        public override string         Tag { get { return "WV1"; } }
+        public override string Tag { get { return "WV1"; } }
         public override string Description { get { return "Aaru compressed audio"; } }
-        public override uint     Signature { get { return 0x2E315657; } } // 'WV1.0'
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x2E315657; } } // 'WV1.0'
+        public override bool CanWrite { get { return false; } }
 
-        public Wv1Audio ()
+        public Wv1Audio()
         {
             Extensions = new string[] { "wv1", "wav" };
         }
 
-        public override SoundInput TryOpen (IBinaryStream file)
+        public override SoundInput TryOpen(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x30);
-            if (!header.AsciiEqual (0, "WV1.0\0"))
+            var header = file.ReadHeader(0x30);
+            if (!header.AsciiEqual(0, "WV1.0\0"))
                 return null;
-            var format = new WaveFormat {
+            var format = new WaveFormat
+            {
                 FormatTag = 1,
-                Channels = header.ToUInt16 (0xA),
-                SamplesPerSecond = header.ToUInt32 (0xE),
+                Channels = header.ToUInt16(0xA),
+                SamplesPerSecond = header.ToUInt32(0xE),
                 BitsPerSample = 16,
             };
             format.BlockAlign = (ushort)(format.Channels * format.BitsPerSample / 8);
             format.SetBPS();
-            int sample_count = header.ToInt32 (0x26);
-            var pcm = new MemoryStream (2 * sample_count);
-            using (var output = new BinaryWriter (pcm, Encoding.ASCII, true))
+            int sample_count = header.ToInt32(0x26);
+            var pcm = new MemoryStream(2 * sample_count);
+            using (var output = new BinaryWriter(pcm, Encoding.ASCII, true))
             {
                 var l_decoder = new Wv1Decoder();
                 var r_decoder = l_decoder;
@@ -71,31 +72,31 @@ namespace GameRes.Formats.Aaru
                     short sample;
                     if (odd_sample)
                     {
-                        sample = r_decoder.DecodeSample (input_sample >> 4);
+                        sample = r_decoder.DecodeSample(input_sample >> 4);
                     }
                     else
                     {
                         input_sample = file.ReadByte();
                         if (-1 == input_sample)
                             break;
-                        sample = l_decoder.DecodeSample (input_sample & 0xF);
+                        sample = l_decoder.DecodeSample(input_sample & 0xF);
                     }
-                    output.Write (sample);
+                    output.Write(sample);
                 }
             }
             file.Dispose();
             pcm.Position = 0;
-            return new RawPcmInput (pcm, format);
+            return new RawPcmInput(pcm, format);
         }
     }
 
     internal class Wv1Decoder
     {
-        short   last_sample = 0;
-        int     last_index = 0;
-        int[]   shift_table = new int[8];
+        short last_sample = 0;
+        int last_index = 0;
+        int[] shift_table = new int[8];
 
-        public short DecodeSample (int input)
+        public short DecodeSample(int input)
         {
             int s0 = SampleTable[last_index];
             shift_table[0] = s0 >> 3;
@@ -113,27 +114,27 @@ namespace GameRes.Formats.Aaru
                 last_sample += (short)shift_table[shift_index];
             switch (shift_index)
             {
-            case 0:
-            case 1:
-            case 2:
-            case 3:
-                if (last_index > 0)
-                    --last_index;
-                break;
-            case 4:
-                last_index = Math.Min (last_index + 2, 0x7F);
-                break;
-            case 5:
-                last_index = Math.Min (last_index + 4, 0x7F);
-                break;
-            case 6:
-                last_index = Math.Min (last_index + 6, 0x7F);
-                break;
-            case 7:
-                last_index = Math.Min (last_index + 8, 0x7F);
-                break;
-            default:
-                break;
+                case 0:
+                case 1:
+                case 2:
+                case 3:
+                    if (last_index > 0)
+                        --last_index;
+                    break;
+                case 4:
+                    last_index = Math.Min(last_index + 2, 0x7F);
+                    break;
+                case 5:
+                    last_index = Math.Min(last_index + 4, 0x7F);
+                    break;
+                case 6:
+                    last_index = Math.Min(last_index + 6, 0x7F);
+                    break;
+                case 7:
+                    last_index = Math.Min(last_index + 8, 0x7F);
+                    break;
+                default:
+                    break;
             }
             return (short)(2 * last_sample);
         }

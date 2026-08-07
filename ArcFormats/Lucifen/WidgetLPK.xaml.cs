@@ -10,7 +10,7 @@ namespace GameRes.Formats.GUI
     /// </summary>
     public partial class WidgetLPK : Grid
     {
-        public WidgetLPK ()
+        public WidgetLPK()
         {
             InitializeComponent();
             // select default scheme

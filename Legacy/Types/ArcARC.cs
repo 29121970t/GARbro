@@ -32,15 +32,15 @@ namespace GameRes.Formats.Types
     [Export(typeof(ArchiveFormat))]
     public class ArcOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "ARC/TYPES"; } }
+        public override string Tag { get { return "ARC/TYPES"; } }
         public override string Description { get { return "Types resource archive"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            if (!file.Name.HasExtension (".arc") || file.MaxOffset > uint.MaxValue)
+            if (!file.Name.HasExtension(".arc") || file.MaxOffset > uint.MaxValue)
                 return null;
             var dir = new List<Entry>();
             using (var input = file.CreateStream())
@@ -55,28 +55,29 @@ namespace GameRes.Formats.Types
                     int name_length = input.ReadUInt16();
                     if (0 == name_length || name_length > 0x100)
                         return null;
-                    var name = input.ReadCString (name_length);
-                    if (string.IsNullOrWhiteSpace (name))
+                    var name = input.ReadCString(name_length);
+                    if (string.IsNullOrWhiteSpace(name))
                         return null;
-                    var entry = new Entry {
+                    var entry = new Entry
+                    {
                         Name = name,
                         Offset = input.Position,
                         Size = size,
                     };
-                    if (!entry.CheckPlacement (file.MaxOffset))
+                    if (!entry.CheckPlacement(file.MaxOffset))
                         return null;
-                    input.Read (header, 0, header.Length);
-                    if (header.AsciiEqual (0, "RIFF"))
+                    input.ReadExactly(header);
+                    if (header.AsciiEqual(0, "RIFF"))
                         entry.Type = "audio";
-                    else if (header.AsciiEqual (4, "TPGF"))
+                    else if (header.AsciiEqual(4, "TPGF"))
                         entry.Type = "image";
-                    dir.Add (entry);
+                    dir.Add(entry);
                     input.Position = entry.Offset + entry.Size;
                 }
             }
             if (0 == dir.Count)
                 return null;
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
     }
 }

@@ -8,9 +8,9 @@ namespace GameRes.Formats.GUI
     /// </summary>
     public partial class CreateSGWidget : Grid
     {
-        public CreateSGWidget ()
+        public CreateSGWidget()
         {
-            InitializeComponent ();
+            InitializeComponent();
         }
     }
 }

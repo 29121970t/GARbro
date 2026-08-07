@@ -10,76 +10,76 @@ namespace GARbro.GUI
     /// </summary>
     public partial class FileErrorDialog : Rnd.Windows.ModalWindow
     {
-        public FileErrorDialog (string title, string error_text)
+        public FileErrorDialog(string title, string error_text)
         {
             InitializeComponent();
             this.DataContext = new ViewModel { Title = title, Text = error_text };
         }
 
-        new public FileErrorDialogResult ShowDialog ()
+        new public FileErrorDialogResult ShowDialog()
         {
             bool dialog_result = base.ShowDialog() ?? false;
             return new FileErrorDialogResult
             {
-                Continue     = dialog_result,
+                Continue = dialog_result,
                 IgnoreErrors = IgnoreErrors.IsChecked ?? false
             };
         }
 
-        private void ContinueButton_Click (object sender, RoutedEventArgs e)
+        private void ContinueButton_Click(object sender, RoutedEventArgs e)
         {
             this.DialogResult = true;
         }
 
-        private void AbortButton_Click (object sender, RoutedEventArgs e)
+        private void AbortButton_Click(object sender, RoutedEventArgs e)
         {
             this.DialogResult = false;
         }
 
         private class ViewModel
         {
-            public string         Title { get; set; }
-            public string          Text { get; set; }
+            public string Title { get; set; }
+            public string Text { get; set; }
             public ICommand CopyCommand { get; private set; }
 
-            public ViewModel ()
+            public ViewModel()
             {
-                CopyCommand = new ActionCommand (CopyText);
+                CopyCommand = new ActionCommand(CopyText);
             }
 
-            private void CopyText ()
+            private void CopyText()
             {
                 try
                 {
-                    Clipboard.SetText (Text);
+                    Clipboard.SetText(Text);
                 }
                 catch (Exception X)
                 {
-                    System.Diagnostics.Trace.WriteLine (X.Message, "Clipboard error");
+                    System.Diagnostics.Trace.WriteLine(X.Message, "Clipboard error");
                 }
             }
         }
 
         private class ActionCommand : ICommand
         {
-            readonly Action     m_action;
+            readonly Action m_action;
 
-            public ActionCommand (Action action)
+            public ActionCommand(Action action)
             {
                 m_action = action;
             }
 
-            public void Execute (object parameter)
+            public void Execute(object parameter)
             {
                 m_action();
             }
 
-            public bool CanExecute (object parameter)
+            public bool CanExecute(object parameter)
             {
                 return true;
             }
 
-            #pragma warning disable 67
+#pragma warning disable 67
             public event EventHandler CanExecuteChanged;
         }
     }

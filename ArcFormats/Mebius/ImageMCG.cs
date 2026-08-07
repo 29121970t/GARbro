@@ -41,52 +41,53 @@ namespace GameRes.Formats.Mebius
     [Export(typeof(ImageFormat))]
     public class McgFormat : ImageFormat
     {
-        public override string         Tag { get { return "MCG/MEBIUS"; } }
+        public override string Tag { get { return "MCG/MEBIUS"; } }
         public override string Description { get { return "Mebius image format"; } }
-        public override uint     Signature { get { return 0x0247434D; } } // 'MCG'
+        public override uint Signature { get { return 0x0247434D; } } // 'MCG'
 
-        public McgFormat ()
+        public McgFormat()
         {
             Extensions = new string[] { "mcg", "msk" };
             Signatures = new uint[] { 0x0247434D, 0x0347434D, 0x0447434D, 0x0547434D, 0x0047434D, 0 };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x10);
+            var header = file.ReadHeader(0x10);
             byte type = header[3];
-            if (!header.AsciiEqual (0, "MCG") || type > 7)
+            if (!header.AsciiEqual(0, "MCG") || type > 7)
                 return null;
-            return new McgMetaData {
-                Width  = BigEndian.ToUInt16 (header, 12),
-                Height = BigEndian.ToUInt16 (header, 14),
-                OffsetX = BigEndian.ToInt16 (header, 8),
-                OffsetY = BigEndian.ToInt16 (header, 10),
+            return new McgMetaData
+            {
+                Width = BigEndian.ToUInt16(header, 12),
+                Height = BigEndian.ToUInt16(header, 14),
+                OffsetX = BigEndian.ToInt16(header, 8),
+                OffsetY = BigEndian.ToInt16(header, 10),
                 BPP = 5 == type || 4 == type ? 8 : 32,
                 Method = type,
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new McgReader (file, (McgMetaData)info);
+            var reader = new McgReader(file, (McgMetaData)info);
             return reader.Unpack();
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("McgFormat.Write not implemented");
+            throw new System.NotImplementedException("McgFormat.Write not implemented");
         }
     }
 
     internal class McgReader
     {
-        IBinaryStream   m_input;
-        McgMetaData     m_info;
-        byte[]          m_output;
-        int             m_stride;
+        IBinaryStream m_input;
+        McgMetaData m_info;
+        byte[] m_output;
+        int m_stride;
 
-        public McgReader (IBinaryStream input, McgMetaData info)
+        public McgReader(IBinaryStream input, McgMetaData info)
         {
             m_input = input;
             m_info = info;
@@ -94,67 +95,67 @@ namespace GameRes.Formats.Mebius
             m_output = new byte[m_stride * (int)m_info.Height];
         }
 
-        public ImageData Unpack ()
+        public ImageData Unpack()
         {
             m_input.Position = 0x10;
             switch (m_info.Method)
             {
-            case 0: UnpackV0();  break;
-            case 4:
-            case 1: UnpackV1();  break;
-            case 2: UnpackRgbRle (3);  break;
-            case 3: UnpackRgbRle (4);  break;
-            case 5: UnpackV5(); break;
-            case 6:
-            case 7: break;
-            default: throw new InvalidFormatException();
+                case 0: UnpackV0(); break;
+                case 4:
+                case 1: UnpackV1(); break;
+                case 2: UnpackRgbRle(3); break;
+                case 3: UnpackRgbRle(4); break;
+                case 5: UnpackV5(); break;
+                case 6:
+                case 7: break;
+                default: throw new InvalidFormatException();
             }
             PixelFormat format = 8 == m_info.BPP ? PixelFormats.Gray8
                                : 3 == m_info.Method ? PixelFormats.Bgra32
                                : PixelFormats.Bgr32;
-            return ImageData.CreateFlipped (m_info, format, null, m_output, m_stride);
+            return ImageData.CreateFlipped(m_info, format, null, m_output, m_stride);
         }
 
-        void UnpackV0 ()
+        void UnpackV0()
         {
             for (int c = 0; c < 3; c++)
-            for (int dst = c; dst < m_output.Length; dst += 4)
-            {
-                m_output[dst] = m_input.ReadUInt8();
-            }
+                for (int dst = c; dst < m_output.Length; dst += 4)
+                {
+                    m_output[dst] = m_input.ReadUInt8();
+                }
         }
 
-        void UnpackV1 ()
+        void UnpackV1()
         {
-            m_input.Read (m_output, 0, m_output.Length);
+            m_input.Read(m_output, 0, m_output.Length);
         }
 
-        void UnpackRgbRle (int channels)
+        void UnpackRgbRle(int channels)
         {
             byte rle_code = m_input.ReadUInt8();
             for (int c = 0; c < channels; c++)
-            for (int dst = c; dst < m_output.Length; )
-            {
-                byte code = m_input.ReadUInt8();
-                if (code == rle_code)
+                for (int dst = c; dst < m_output.Length;)
                 {
-                    int count = m_input.ReadUInt8();
-                    byte v = m_input.ReadUInt8();
-                    for (int i = 0; i < count; ++i)
+                    byte code = m_input.ReadUInt8();
+                    if (code == rle_code)
                     {
-                        m_output[dst] = v;
+                        int count = m_input.ReadUInt8();
+                        byte v = m_input.ReadUInt8();
+                        for (int i = 0; i < count; ++i)
+                        {
+                            m_output[dst] = v;
+                            dst += 4;
+                        }
+                    }
+                    else
+                    {
+                        m_output[dst] = code;
                         dst += 4;
                     }
                 }
-                else
-                {
-                    m_output[dst] = code;
-                    dst += 4;
-                }
-            }
         }
 
-        void UnpackV5 ()
+        void UnpackV5()
         {
             byte rle_code = m_input.ReadUInt8();
             int dst = 0;

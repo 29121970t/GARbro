@@ -39,61 +39,61 @@ namespace GameRes.Formats.Unity.PMaster
     [Export(typeof(ArchiveFormat))]
     public class DatOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "DAT/PMASTER"; } }
+        public override string Tag { get { return "DAT/PMASTER"; } }
         public override string Description { get { return "Unity PMaster engine resource archive"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool  IsHierarchic { get { return true; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool IsHierarchic { get { return true; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
             int count = 0;
             for (int i = 0; i < 0x400; i += 4)
-                count += file.View.ReadInt32 (i);
-            if (!IsSaneCount (count))
+                count += file.View.ReadInt32(i);
+            if (!IsSaneCount(count))
                 return null;
             uint index_length = (uint)count * 0x10;
             if (index_length >= file.MaxOffset)
                 return null;
-            var index = file.View.ReadBytes (0x400, index_length);
-            DecryptData (index, file.View.ReadUInt32 (0xD4));
+            var index = file.View.ReadBytes(0x400, index_length);
+            DecryptData(index, file.View.ReadUInt32(0xD4));
 
-            uint first_offset = index.ToUInt32 (4);
+            uint first_offset = index.ToUInt32(4);
             if (first_offset >= file.MaxOffset || first_offset <= (0x400 + index_length))
                 return null;
             uint names_length = first_offset - (0x400 + index_length);
-            var names = file.View.ReadBytes (0x400 + index_length, names_length);
-            DecryptData (names, file.View.ReadUInt32 (0x5C));
+            var names = file.View.ReadBytes(0x400 + index_length, names_length);
+            DecryptData(names, file.View.ReadUInt32(0x5C));
 
             int index_pos = 0;
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
-                int name_pos = index.ToInt32 (index_pos);
-                var name = Binary.GetCString (names, name_pos);
-                var entry = Create<PMasterEntry> (name);
-                entry.Offset = index.ToUInt32 (index_pos+4);
-                entry.Size   = index.ToUInt32 (index_pos+8);
-                entry.Key    = index.ToUInt32 (index_pos+12);
-                if (!entry.CheckPlacement (file.MaxOffset))
+                int name_pos = index.ToInt32(index_pos);
+                var name = Binary.GetCString(names, name_pos);
+                var entry = Create<PMasterEntry>(name);
+                entry.Offset = index.ToUInt32(index_pos + 4);
+                entry.Size = index.ToUInt32(index_pos + 8);
+                entry.Key = index.ToUInt32(index_pos + 12);
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
-                dir.Add (entry);
+                dir.Add(entry);
                 index_pos += 16;
             }
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var pent = (PMasterEntry)entry;
-            var data = arc.File.View.ReadBytes (entry.Offset, entry.Size);
-            DecryptData (data, pent.Key);
-            return new BinMemoryStream (data, entry.Name);
+            var data = arc.File.View.ReadBytes(entry.Offset, entry.Size);
+            DecryptData(data, pent.Key);
+            return new BinMemoryStream(data, entry.Name);
         }
 
-        void DecryptData (byte[] data, uint seed)
+        void DecryptData(byte[] data, uint seed)
         {
-            var key = GenerateKey (seed);
+            var key = GenerateKey(seed);
             for (int i = 0; i < data.Length; i++)
             {
                 byte b = data[i];
@@ -106,7 +106,7 @@ namespace GameRes.Formats.Unity.PMaster
             }
         }
 
-        byte[] GenerateKey (uint seed)
+        byte[] GenerateKey(uint seed)
         {
             var key = new byte[256];
             uint n = seed * 2281 + 59455;

@@ -36,35 +36,36 @@ namespace GameRes.Formats.AZSys
 {
     internal class CpbMetaData : ImageMetaData
     {
-        public int      Type;
-        public int      Version;
-        public uint[]   Channel = new uint[4];
-        public uint     DataOffset;
+        public int Type;
+        public int Version;
+        public uint[] Channel = new uint[4];
+        public uint DataOffset;
     }
 
     [Export(typeof(ImageFormat))]
     public class CpbFormat : ImageFormat
     {
-        public override string         Tag { get { return "CPB"; } }
+        public override string Tag { get { return "CPB"; } }
         public override string Description { get { return "AZ system image format"; } }
-        public override uint     Signature { get { return 0x1a425043; } } // 'CPB\x1a'
+        public override uint Signature { get { return 0x1a425043; } } // 'CPB\x1a'
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("CpbFormat.Write not implemented");
+            throw new System.NotImplementedException("CpbFormat.Write not implemented");
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
             file.Position = 4;
             int type = file.ReadByte();
             int bpp = file.ReadByte();
             if (24 != bpp && 32 != bpp)
-                throw new NotSupportedException ("Not supported CPB image format");
+                throw new NotSupportedException("Not supported CPB image format");
             int version = file.ReadInt16();
             if (1 != version && 0 != version)
-                throw new NotSupportedException ("Not supported CPB image version");
-            var info = new CpbMetaData {
+                throw new NotSupportedException("Not supported CPB image version");
+            var info = new CpbMetaData
+            {
                 Type = type,
                 Version = version,
                 BPP = bpp,
@@ -72,7 +73,7 @@ namespace GameRes.Formats.AZSys
             if (1 == version)
             {
                 file.ReadUInt32();
-                info.Width  = file.ReadUInt16();
+                info.Width = file.ReadUInt16();
                 info.Height = file.ReadUInt16();
                 info.Channel[0] = file.ReadUInt32();
                 info.Channel[1] = file.ReadUInt32();
@@ -81,7 +82,7 @@ namespace GameRes.Formats.AZSys
             }
             else
             {
-                info.Width  = file.ReadUInt16();
+                info.Width = file.ReadUInt16();
                 info.Height = file.ReadUInt16();
                 file.ReadUInt32();
                 info.Channel[0] = file.ReadUInt32();
@@ -93,28 +94,28 @@ namespace GameRes.Formats.AZSys
             return info;
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
-            var reader = new Reader (stream.AsStream, (CpbMetaData)info);
+            var reader = new Reader(stream.AsStream, (CpbMetaData)info);
             reader.Unpack();
-            return ImageData.Create (info, reader.Format, reader.Palette, reader.Data);
+            return ImageData.Create(info, reader.Format, reader.Palette, reader.Data);
         }
 
         internal class Reader
         {
-            int             m_width;
-            int             m_height;
-            int             m_bpp;
-            Stream          m_input;
-            byte[]          m_output;
-            uint[]          m_channel;
-            CpbMetaData     m_info;
+            int m_width;
+            int m_height;
+            int m_bpp;
+            Stream m_input;
+            byte[] m_output;
+            uint[] m_channel;
+            CpbMetaData m_info;
 
-            public PixelFormat    Format { get; private set; }
+            public PixelFormat Format { get; private set; }
             public BitmapPalette Palette { get; private set; }
-            public byte[]           Data { get { return m_output; } }
+            public byte[] Data { get { return m_output; } }
 
-            public Reader (Stream input, CpbMetaData info)
+            public Reader(Stream input, CpbMetaData info)
             {
                 m_width = (int)info.Width;
                 m_height = (int)info.Height;
@@ -133,12 +134,12 @@ namespace GameRes.Formats.AZSys
 
                 if (1 == m_info.Version)
                 {
-                    StreamMap  = new byte[] { 0, 3, 1, 2 };
+                    StreamMap = new byte[] { 0, 3, 1, 2 };
                     ChannelMap = new byte[] { 3, 0, 1, 2 };
                 }
                 else
                 {
-                    StreamMap  = new byte[] { 0, 1, 2, 3 };
+                    StreamMap = new byte[] { 0, 1, 2, 3 };
                     ChannelMap = new byte[] { 2, 1, 0, 3 };
                 }
             }
@@ -146,7 +147,7 @@ namespace GameRes.Formats.AZSys
             byte[] StreamMap;
             byte[] ChannelMap;
 
-            public void Unpack ()
+            public void Unpack()
             {
                 if (0 == m_info.Version && 3 == m_info.Type)
                     UnpackV3();
@@ -154,18 +155,18 @@ namespace GameRes.Formats.AZSys
                     UnpackV0();
             }
 
-            void UnpackV0 ()
+            void UnpackV0()
             {
-                byte[] channel = new byte[m_width*m_height];
+                byte[] channel = new byte[m_width * m_height];
                 long start_pos = m_input.Position;
                 for (int i = 0; i < 4; ++i)
                 {
                     if (0 == m_channel[StreamMap[i]])
                         continue;
                     m_input.Position = start_pos + 4; // skip crc32
-                    using (var input = new ZLibStream (m_input, CompressionMode.Decompress, true))
+                    using (var input = new ZLibStream(m_input, CompressionMode.Decompress, true))
                     {
-                        int channel_size = input.Read (channel, 0, channel.Length);
+                        int channel_size = input.Read(channel, 0, channel.Length);
                         int dst = ChannelMap[i];
                         for (int j = 0; j < channel_size; ++j)
                         {
@@ -177,9 +178,9 @@ namespace GameRes.Formats.AZSys
                 }
             }
 
-            void UnpackV3 ()
+            void UnpackV3()
             {
-                byte[] channel = new byte[m_width*m_height];
+                byte[] channel = new byte[m_width * m_height];
                 long start_pos = m_input.Position;
                 for (int i = 0; i < 4; ++i)
                 {
@@ -187,7 +188,7 @@ namespace GameRes.Formats.AZSys
                     if (0 == packed_size)
                         continue;
                     m_input.Position = start_pos;
-                    int channel_size = Decompress (packed_size, channel);
+                    int channel_size = Decompress(packed_size, channel);
                     int dst = ChannelMap[i];
                     for (int j = 0; j < channel_size; ++j)
                     {
@@ -198,15 +199,15 @@ namespace GameRes.Formats.AZSys
                 }
             }
 
-            int Decompress (int input_size, byte[] output)
+            int Decompress(int input_size, byte[] output)
             {
                 var input = new byte[input_size];
-                if (input_size != m_input.Read (input, 0, input_size))
+                if (input_size != m_input.Read(input, 0, input_size))
                     throw new EndOfStreamException();
                 int src1 = 0x14;
-                int src2 = src1 + LittleEndian.ToInt32 (input, 4);
-                int src3 = src2 + LittleEndian.ToInt32 (input, 8);
-                int remaining = LittleEndian.ToInt32 (input, 0x10);
+                int src2 = src1 + LittleEndian.ToInt32(input, 4);
+                int src3 = src2 + LittleEndian.ToInt32(input, 8);
+                int remaining = LittleEndian.ToInt32(input, 0x10);
                 int dst = 0;
                 int mask = 0x80;
                 while (remaining > 0)
@@ -214,16 +215,16 @@ namespace GameRes.Formats.AZSys
                     int count;
                     if (0 != (mask & input[src1]))
                     {
-                        int offset = LittleEndian.ToUInt16 (input, src2);
+                        int offset = LittleEndian.ToUInt16(input, src2);
                         src2 += 2;
                         count = (offset >> 13) + 3;
                         offset = (offset & 0x1FFF) + 1;
-                        Binary.CopyOverlapped (output, dst-offset, dst, count);
+                        Binary.CopyOverlapped(output, dst - offset, dst, count);
                     }
                     else
                     {
                         count = input[src3++] + 1;
-                        Buffer.BlockCopy (input, src3, output, dst, count);
+                        Buffer.BlockCopy(input, src3, output, dst, count);
                         src3 += count;
                     }
                     dst += count;

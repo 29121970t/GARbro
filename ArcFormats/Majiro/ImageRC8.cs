@@ -35,14 +35,14 @@ namespace GameRes.Formats.Majiro
     [Export(typeof(ImageFormat))]
     public class Rc8Format : ImageFormat
     {
-        public override string         Tag { get { return "RC8"; } }
+        public override string Tag { get { return "RC8"; } }
         public override string Description { get { return "Majiro game engine indexed image format"; } }
-        public override uint     Signature { get { return 0x9A925A98; } }
+        public override uint Signature { get { return 0x9A925A98; } }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
-            var header = stream.ReadHeader (8);
-            if (!header.AsciiEqual (4, "8_00"))
+            var header = stream.ReadHeader(8);
+            if (!header.AsciiEqual(4, "8_00"))
                 return null;
             uint width = stream.ReadUInt32();
             uint height = stream.ReadUInt32();
@@ -50,50 +50,50 @@ namespace GameRes.Formats.Majiro
                 return null;
             return new ImageMetaData
             {
-                Width   = width,
-                Height  = height,
+                Width = width,
+                Height = height,
                 OffsetX = 0,
                 OffsetY = 0,
-                BPP     = 8,
+                BPP = 8,
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            using (var reader = new Reader (file, info))
+            using (var reader = new Reader(file, info))
             {
                 reader.Unpack();
-                var palette = new BitmapPalette (reader.Palette);
-                return ImageData.Create (info, PixelFormats.Indexed8, palette, reader.Data, (int)info.Width);
+                var palette = new BitmapPalette(reader.Palette);
+                return ImageData.Create(info, PixelFormats.Indexed8, palette, reader.Data, (int)info.Width);
             }
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new NotImplementedException ("Rc8Format.Write is not implemented.");
+            throw new NotImplementedException("Rc8Format.Write is not implemented.");
         }
 
         internal sealed class Reader : IDisposable
         {
-            private IBinaryStream   m_input;
-            private uint            m_width;
-            private Color[]         m_palette;
-            private byte[]          m_data;
+            private IBinaryStream m_input;
+            private uint m_width;
+            private Color[] m_palette;
+            private byte[] m_data;
 
             public Color[] Palette { get { return m_palette; } }
-            public byte[]     Data { get { return m_data; } }
+            public byte[] Data { get { return m_data; } }
 
-            public Reader (IBinaryStream file, ImageMetaData info)
+            public Reader(IBinaryStream file, ImageMetaData info)
             {
                 m_width = info.Width;
                 file.Position = 0x14;
                 var palette_data = new byte[0x300];
-                if (palette_data.Length != file.Read (palette_data, 0, palette_data.Length))
+                if (palette_data.Length != file.Read(palette_data, 0, palette_data.Length))
                     throw new InvalidFormatException();
                 m_palette = new Color[0x100];
                 for (int i = 0; i < 0x100; ++i)
                 {
-                    m_palette[i] = Color.FromRgb (palette_data[i*3], palette_data[i*3+1], palette_data[i*3+2]);
+                    m_palette[i] = Color.FromRgb(palette_data[i * 3], palette_data[i * 3 + 1], palette_data[i * 3 + 2]);
                 }
                 m_data = new byte[m_width * info.Height];
                 m_input = file;
@@ -105,7 +105,7 @@ namespace GameRes.Formats.Majiro
                 34, 18, 2, -14, -30,
             };
 
-            public void Unpack ()
+            public void Unpack()
             {
                 int data_pos = 0;
                 int eax = 0;
@@ -117,7 +117,7 @@ namespace GameRes.Formats.Majiro
                         throw new InvalidFormatException();
                     pixels_remaining -= count;
 
-                    if (count != m_input.Read (m_data, data_pos, count))
+                    if (count != m_input.Read(m_data, data_pos, count))
                         throw new InvalidFormatException();
                     data_pos += count;
 
@@ -144,16 +144,16 @@ namespace GameRes.Formats.Majiro
                         shift >>= 4;
                         shift_row *= (int)m_width;
                         shift -= shift_row;
-                        if (shift >= 0 || data_pos+shift < 0)
+                        if (shift >= 0 || data_pos + shift < 0)
                             throw new InvalidFormatException();
-                        Binary.CopyOverlapped (m_data, data_pos+shift, data_pos, count);
+                        Binary.CopyOverlapped(m_data, data_pos + shift, data_pos, count);
                         data_pos += count;
                     }
                 }
             }
 
             #region IDisposable Members
-            public void Dispose ()
+            public void Dispose()
             {
             }
             #endregion

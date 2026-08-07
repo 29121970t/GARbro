@@ -36,98 +36,98 @@ namespace GameRes.Formats.Forest
     [Export(typeof(ArchiveFormat))]
     public class War0Opener : ArchiveFormat
     {
-        public override string         Tag { get { return "WAR/1.0"; } }
+        public override string Tag { get { return "WAR/1.0"; } }
         public override string Description { get { return "Forest resource archive"; } }
-        public override uint     Signature { get { return 0x43524157; } } // 'WARC'
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x43524157; } } // 'WARC'
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            if (!file.View.AsciiEqual (4, " 1.0"))
+            if (!file.View.AsciiEqual(4, " 1.0"))
                 return null;
-            uint index_offset = file.View.ReadUInt32 (8);
+            uint index_offset = file.View.ReadUInt32(8);
             if (index_offset >= file.MaxOffset)
                 return null;
-            var index = file.View.ReadBytes (index_offset, 0xC000);
+            var index = file.View.ReadBytes(index_offset, 0xC000);
             int count = index.Length / 0x18;
-            if (!IsSaneCount (count))
+            if (!IsSaneCount(count))
                 return null;
             for (int i = 0; i < index.Length; i += 2)
             {
-                index[i  ] ^= 0xFE;
-                index[i+1] ^= 0xE5;
+                index[i] ^= 0xFE;
+                index[i + 1] ^= 0xE5;
             }
             int pos = 0;
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
-                var name = Binary.GetCString (index, pos, 0x10);
-                var entry = FormatCatalog.Instance.Create<PackedEntry> (name);
-                entry.Offset = index.ToUInt32 (pos+0x10);
-                entry.Size   = index.ToUInt32 (pos+0x14);
-                if (!entry.CheckPlacement (file.MaxOffset))
+                var name = Binary.GetCString(index, pos, 0x10);
+                var entry = FormatCatalog.Instance.Create<PackedEntry>(name);
+                entry.Offset = index.ToUInt32(pos + 0x10);
+                entry.Size = index.ToUInt32(pos + 0x14);
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
                 entry.UnpackedSize = entry.Size;
-                dir.Add (entry);
+                dir.Add(entry);
                 pos += 0x18;
             }
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var pent = entry as PackedEntry;
             if (null == pent)
-                return base.OpenEntry (arc, entry);
+                return base.OpenEntry(arc, entry);
             if (!pent.IsPacked)
             {
-                if (!arc.File.View.AsciiEqual (entry.Offset, "Ylz"))
-                    return base.OpenEntry (arc, entry);
+                if (!arc.File.View.AsciiEqual(entry.Offset, "Ylz"))
+                    return base.OpenEntry(arc, entry);
                 pent.IsPacked = true;
-                pent.UnpackedSize = arc.File.View.ReadUInt32 (entry.Offset+4);
+                pent.UnpackedSize = arc.File.View.ReadUInt32(entry.Offset + 4);
             }
-            var data = arc.File.View.ReadBytes (entry.Offset+8, entry.Size-8);
-            var reader = new Ylz16Reader (data);
-            data = reader.Unpack ((int)pent.UnpackedSize);
-            return new BinMemoryStream (data, entry.Name);
+            var data = arc.File.View.ReadBytes(entry.Offset + 8, entry.Size - 8);
+            var reader = new Ylz16Reader(data);
+            data = reader.Unpack((int)pent.UnpackedSize);
+            return new BinMemoryStream(data, entry.Name);
         }
     }
 
     internal sealed class Ylz16Reader
     {
-        byte[]      m_input;
+        byte[] m_input;
 
-        public Ylz16Reader (byte[] input)
+        public Ylz16Reader(byte[] input)
         {
             m_input = input;
             DecryptInput();
         }
 
-        void DecryptInput ()
+        void DecryptInput()
         {
             for (int i = 0; i < m_input.Length; ++i)
                 m_input[i] ^= 0xE6;
         }
 
-        int GetCtlBit ()
+        int GetCtlBit()
         {
             int bit = m_ctl & 1;
             m_ctl >>= 1;
             if (--m_bit_count <= 0)
             {
-                m_ctl = LittleEndian.ToUInt16 (m_input, m_src);
+                m_ctl = LittleEndian.ToUInt16(m_input, m_src);
                 m_src += 2;
                 m_bit_count = 16;
             }
             return bit;
         }
 
-        int     m_ctl;
-        int     m_bit_count;
-        int     m_src;
+        int m_ctl;
+        int m_bit_count;
+        int m_src;
 
-        public byte[] Unpack (int unpacked_size)
+        public byte[] Unpack(int unpacked_size)
         {
             m_src = 0;
             m_bit_count = 0;
@@ -145,7 +145,7 @@ namespace GameRes.Formats.Forest
                     int offset, count;
                     if (GetCtlBit() == 0)
                     {
-                        count  = GetCtlBit() << 1;
+                        count = GetCtlBit() << 1;
                         count |= GetCtlBit();
                         count += 2;
                         offset = m_input[m_src++] | -0x100;
@@ -168,7 +168,7 @@ namespace GameRes.Formats.Forest
                             count += 2;
                         }
                     }
-                    Binary.CopyOverlapped (output, dst + offset, dst, count);
+                    Binary.CopyOverlapped(output, dst + offset, dst, count);
                     dst += count;
                 }
             }

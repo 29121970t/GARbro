@@ -34,33 +34,33 @@ namespace GameRes.Formats.YellowPig
     internal class GecMetaData : ImageMetaData
     {
         public byte Type;
-        public int  DataOffset;
-        public int  AlphaOffset;
+        public int DataOffset;
+        public int AlphaOffset;
     }
 
     [Export(typeof(ImageFormat))]
     public class GecFormat : ImageFormat
     {
-        public override string         Tag { get { return "GEC"; } }
+        public override string Tag { get { return "GEC"; } }
         public override string Description { get { return "Yellow Pig image format"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
-            var header = stream.ReadHeader (0x11);
+            var header = stream.ReadHeader(0x11);
             byte type = header[0];
             if (type != 0 && type != 1)
                 return null;
             var info = new GecMetaData
             {
-                Type    = type,
-                OffsetX = header.ToInt16 (1),
-                OffsetY = header.ToInt16 (3),
-                Width   = header.ToUInt16 (5),
-                Height  = header.ToUInt16 (7),
-                BPP     = 0 == type ? 24 : 32,
-                AlphaOffset = header.ToInt32 (9),
-                DataOffset  = header.ToInt32 (0xD),
+                Type = type,
+                OffsetX = header.ToInt16(1),
+                OffsetY = header.ToInt16(3),
+                Width = header.ToUInt16(5),
+                Height = header.ToUInt16(7),
+                BPP = 0 == type ? 24 : 32,
+                AlphaOffset = header.ToInt32(9),
+                DataOffset = header.ToInt32(0xD),
             };
             if (info.OffsetX < 0 || info.OffsetY < 0 || info.Width <= 0 || info.Height <= 0
                 || info.DataOffset < 0 || info.DataOffset > stream.Length)
@@ -70,33 +70,33 @@ namespace GameRes.Formats.YellowPig
             return info;
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
-            var reader = new GecReader (stream.AsStream, (GecMetaData)info);
+            var reader = new GecReader(stream.AsStream, (GecMetaData)info);
             reader.Unpack();
-            return ImageData.CreateFlipped (info, reader.Format, null, reader.Data, reader.Stride);
+            return ImageData.CreateFlipped(info, reader.Format, null, reader.Data, reader.Stride);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new NotImplementedException ("GecFormat.Write not implemented");
+            throw new NotImplementedException("GecFormat.Write not implemented");
         }
     }
 
     internal sealed class GecReader
     {
-        byte[]          m_input;
-        byte[]          m_output;
-        GecMetaData     m_info;
+        byte[] m_input;
+        byte[] m_output;
+        GecMetaData m_info;
 
-        public PixelFormat  Format { get; private set; }
-        public int          Stride { get; private set; }
-        public byte[]         Data { get { return m_output; } }
+        public PixelFormat Format { get; private set; }
+        public int Stride { get; private set; }
+        public byte[] Data { get { return m_output; } }
 
-        public GecReader (Stream input, GecMetaData info)
+        public GecReader(Stream input, GecMetaData info)
         {
             m_input = new byte[input.Length];
-            input.Read (m_input, 0, m_input.Length);
+            input.ReadExactly(m_input);
             m_info = info;
         }
 
@@ -104,23 +104,23 @@ namespace GameRes.Formats.YellowPig
         int m_bits_src = 0;
         int m_bits_count = 0;
 
-        public void Unpack ()
+        public void Unpack()
         {
             if (0 == m_info.Type)
             {
-                UnpackPixels (0x11);
+                UnpackPixels(0x11);
                 Format = PixelFormats.Bgr24;
                 Stride = (int)m_info.Width * 3;
             }
             else
             {
-                UnpackPixels (0x1D);
+                UnpackPixels(0x1D);
                 int bits = 0x1D + m_info.AlphaOffset;
-                m_alpha_width  = LittleEndian.ToUInt16 (m_input, 0x15);
-                m_alpha_height = LittleEndian.ToUInt16 (m_input, 0x17);
-                int data = bits + LittleEndian.ToInt32 (m_input, 0x19);
-                var alpha = UnpackAlpha (bits, data);
-                ApplyAlpha (alpha);
+                m_alpha_width = LittleEndian.ToUInt16(m_input, 0x15);
+                m_alpha_height = LittleEndian.ToUInt16(m_input, 0x17);
+                int data = bits + LittleEndian.ToInt32(m_input, 0x19);
+                var alpha = UnpackAlpha(bits, data);
+                ApplyAlpha(alpha);
                 Format = PixelFormats.Bgra32;
                 Stride = (int)m_info.Width * 4;
             }
@@ -129,7 +129,7 @@ namespace GameRes.Formats.YellowPig
         int m_alpha_width;
         int m_alpha_height;
 
-        void ApplyAlpha (byte[] alpha)
+        void ApplyAlpha(byte[] alpha)
         {
             var image = new byte[m_info.Width * m_info.Height * 4];
             int src = 0;
@@ -143,7 +143,7 @@ namespace GameRes.Formats.YellowPig
                     image[dst++] = m_output[src++];
                     image[dst++] = m_output[src++];
                     image[dst++] = m_output[src++];
-                    image[dst++] = alpha[a_src+x];
+                    image[dst++] = alpha[a_src + x];
                 }
                 a_src += m_alpha_width;
             }
@@ -153,7 +153,7 @@ namespace GameRes.Formats.YellowPig
         int m_dst;
         byte[] m_table = new byte[0x100];
 
-        void UnpackPixels (int bits_src)
+        void UnpackPixels(int bits_src)
         {
             m_bits_src = bits_src;
             m_bits_count = 0;
@@ -166,21 +166,21 @@ namespace GameRes.Formats.YellowPig
             m_dst = 0;
             while (m_dst < m_output.Length)
             {
-                int count = Math.Min (m_output.Length - m_dst, 0xFFFF);
+                int count = Math.Min(m_output.Length - m_dst, 0xFFFF);
                 if (GetNextBit() != 0)
                 {
-                    ReadFrame (frame1, count + 2);
-                    UnpackFrame1 (frame1, frame2, count + 2);
-                    UnpackFrame2 (frame2, 2, count, LittleEndian.ToUInt16 (frame2, 0));
+                    ReadFrame(frame1, count + 2);
+                    UnpackFrame1(frame1, frame2, count + 2);
+                    UnpackFrame2(frame2, 2, count, LittleEndian.ToUInt16(frame2, 0));
                 }
                 else
                 {
-                    src = UnpackRLE (src, count);
+                    src = UnpackRLE(src, count);
                 }
             }
         }
 
-        byte[] UnpackAlpha (int bits_src, int data_src)
+        byte[] UnpackAlpha(int bits_src, int data_src)
         {
             m_bits_src = bits_src;
             m_bits_count = 0;
@@ -192,7 +192,7 @@ namespace GameRes.Formats.YellowPig
                 {
                     int count = GetInt();
                     byte v = m_input[data_src++];
-                    while (count --> 0)
+                    while (count-- > 0)
                         alpha[dst++] = v;
                 }
                 else
@@ -203,7 +203,7 @@ namespace GameRes.Formats.YellowPig
             return alpha;
         }
 
-        void ReadFrame (byte[] frame, int count) // sub_423990
+        void ReadFrame(byte[] frame, int count) // sub_423990
         {
             int j = 0;
             while (j < count)
@@ -215,17 +215,17 @@ namespace GameRes.Formats.YellowPig
                 else
                 {
                     int n = GetInt();
-                    while (n --> 0)
+                    while (n-- > 0)
                         frame[j++] = 0;
                 }
             }
         }
 
-        void UnpackFrame1 (byte[] frame, byte[] dst, int count) // sub_423670
+        void UnpackFrame1(byte[] frame, byte[] dst, int count) // sub_423670
         {
             byte prev = 1;
             int n = 0;
-            while (count --> 0)
+            while (count-- > 0)
             {
                 byte v8 = frame[n];
                 byte v9 = m_table[v8];
@@ -239,7 +239,7 @@ namespace GameRes.Formats.YellowPig
                 }
                 else if (v8 > 1)
                 {
-                    Buffer.BlockCopy (m_table, 1, m_table, 2, v8 - 1);
+                    Buffer.BlockCopy(m_table, 1, m_table, 2, v8 - 1);
                     m_table[1] = v9;
                 }
                 dst[n++] = v9;
@@ -251,12 +251,12 @@ namespace GameRes.Formats.YellowPig
         ushort[] table2 = new ushort[0x100];
         ushort[] table3 = new ushort[0x10002];
 
-        void UnpackFrame2 (byte[] frame, int src, int count, ushort first) // sub_4236F0
+        void UnpackFrame2(byte[] frame, int src, int count, ushort first) // sub_4236F0
         {
             for (int i = 0; i < 0x100; ++i)
                 table1[i] = 0;
             for (int i = 0; i < count; ++i)
-                ++table1[frame[src+i]];
+                ++table1[frame[src + i]];
             ushort v = 0;
             for (int i = 0; i < 0x100; i += 1)
             {
@@ -266,20 +266,20 @@ namespace GameRes.Formats.YellowPig
             }
             for (int i = 0; i < count; ++i)
             {
-                int d = frame[src+i];
+                int d = frame[src + i];
                 ushort a = table2[d];
                 ushort b = table1[d]++;
                 table3[a + b] = (ushort)i;
             }
             ushort next = table3[first];
-            while (count --> 0)
+            while (count-- > 0)
             {
-                m_output[m_dst++] = frame[src+next];
+                m_output[m_dst++] = frame[src + next];
                 next = table3[next];
             }
         }
 
-        int UnpackRLE (int src, int count) // sub_423A10
+        int UnpackRLE(int src, int count) // sub_423A10
         {
             while (count > 0)
             {
@@ -293,10 +293,10 @@ namespace GameRes.Formats.YellowPig
                 else
                 {
                     int n = GetInt() * 3;
-                    m_output[m_dst]   = m_input[src++];
-                    m_output[m_dst+1] = m_input[src++];
-                    m_output[m_dst+2] = m_input[src++];
-                    Binary.CopyOverlapped (m_output, m_dst, m_dst+3, n-3);
+                    m_output[m_dst] = m_input[src++];
+                    m_output[m_dst + 1] = m_input[src++];
+                    m_output[m_dst + 2] = m_input[src++];
+                    Binary.CopyOverlapped(m_output, m_dst, m_dst + 3, n - 3);
                     m_dst += n;
                     count -= n;
                 }
@@ -304,7 +304,7 @@ namespace GameRes.Formats.YellowPig
             return src;
         }
 
-        int GetInt () // sub_423810
+        int GetInt() // sub_423810
         {
             int count = 0;
             while (0 == GetNextBit())
@@ -320,11 +320,11 @@ namespace GameRes.Formats.YellowPig
             return v;
         }
 
-        int GetNextBit ()
+        int GetNextBit()
         {
             if (m_bits_count-- <= 0)
             {
-                m_bits = LittleEndian.ToInt32 (m_input, m_bits_src);
+                m_bits = LittleEndian.ToInt32(m_input, m_bits_src);
                 m_bits_src += 4;
                 m_bits_count = 31;
             }

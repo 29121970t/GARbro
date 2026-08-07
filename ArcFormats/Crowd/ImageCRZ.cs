@@ -36,7 +36,7 @@ namespace GameRes.Formats.Crowd
 {
     internal class CrzMetaData : ImageMetaData
     {
-        public int  HeaderSize;
+        public int HeaderSize;
     }
 
     [Serializable]
@@ -48,68 +48,69 @@ namespace GameRes.Formats.Crowd
     [Export(typeof(ImageFormat))]
     public class CrzFormat : ImageFormat
     {
-        public override string         Tag { get { return "CRZ"; } }
+        public override string Tag { get { return "CRZ"; } }
         public override string Description { get { return "Crowd encrypted image format"; } }
-        public override uint     Signature { get { return 0x44445A53; } } // 'SZDD'
+        public override uint Signature { get { return 0x44445A53; } } // 'SZDD'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
             file.Position = 0xE;
-            using (var lz = OpenCrzStream (file))
+            using (var lz = OpenCrzStream(file))
             {
-                int max_header_length = KnownKeys.Keys.Max (x => x.Length);
+                int max_header_length = KnownKeys.Keys.Max(x => x.Length);
                 var header = new byte[max_header_length + 0x35];
-                lz.Read (header, 0, header.Length);
-                var id = Binary.GetCString (header, 0, max_header_length);
+                lz.ReadExactly(header);
+                var id = Binary.GetCString(header, 0, max_header_length);
                 byte[] key;
-                if (!KnownKeys.TryGetValue (id, out key))
+                if (!KnownKeys.TryGetValue(id, out key))
                     return null;
                 int seed_pos = id.Length + 1;
                 int header_pos = seed_pos + 0x10;
 
                 for (int i = 0; i < 0x24; ++i)
-                    header[header_pos+i] ^= (byte)(key[i] ^ header[seed_pos + (i & 0xF)]);
+                    header[header_pos + i] ^= (byte)(key[i] ^ header[seed_pos + (i & 0xF)]);
 
-                return new CrzMetaData {
-                    Width = header.ToUInt32 (header_pos+4),
-                    Height = header.ToUInt32 (header_pos+0x10),
+                return new CrzMetaData
+                {
+                    Width = header.ToUInt32(header_pos + 4),
+                    Height = header.ToUInt32(header_pos + 0x10),
                     BPP = 16,
-                    HeaderSize = header.ToInt32 (header_pos+0x18) + 0x34 + seed_pos
+                    HeaderSize = header.ToInt32(header_pos + 0x18) + 0x34 + seed_pos
                 };
             }
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
             file.Position = 0xE;
-            using (var lz = OpenCrzStream (file))
+            using (var lz = OpenCrzStream(file))
             {
                 var meta = (CrzMetaData)info;
                 var header = new byte[meta.HeaderSize];
-                lz.Read (header, 0, header.Length);
+                lz.ReadExactly(header);
                 int stride = info.iWidth * 2;
                 var pixels = new byte[stride * info.iHeight];
-                if (pixels.Length != lz.Read (pixels, 0, pixels.Length))
+                if (pixels.Length != lz.Read(pixels, 0, pixels.Length))
                     throw new InvalidFormatException();
-                return ImageData.Create (info, PixelFormats.Bgr555, null, pixels, stride);
+                return ImageData.Create(info, PixelFormats.Bgr555, null, pixels, stride);
             }
         }
 
-        internal Stream OpenCrzStream (IBinaryStream file)
+        internal Stream OpenCrzStream(IBinaryStream file)
         {
-            var lz = new LzssStream (file.AsStream, LzssMode.Decompress, true);
+            var lz = new LzssStream(file.AsStream, LzssMode.Decompress, true);
             lz.Config.FrameSize = 0x1000;
             lz.Config.FrameFill = 0x20;
             lz.Config.FrameInitPos = 0x1000 - 0x10;
             return lz;
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("CrzFormat.Write not implemented");
+            throw new System.NotImplementedException("CrzFormat.Write not implemented");
         }
 
-        public static byte[] GenerateKey (string secret)
+        public static byte[] GenerateKey(string secret)
         {
             var key = new byte[0x24];
             for (int i = 0; i < key.Length; ++i)
@@ -123,36 +124,36 @@ namespace GameRes.Formats.Crowd
                 int n;
                 switch (t & 7)
                 {
-                case 0:
-                    key[k] = (byte)~t;
-                    break;
-                case 1:
-                    key[k] <<= 1;
-                    break;
-                case 2:
-                    key[k] *= key[k];
-                    break;
-                case 3:
-                    key[k] = (byte)~(key[k] << 1);
-                    break;
-                case 4:
-                    key[k] = (byte)((key[k] + 0x32) << 1);
-                    break;
-                case 5:
-                    n = ~key[k];
-                    key[k] = (byte)n;
-                    k += n & 3;
-                    break;
-                case 6:
-                    n = key[k] >> 1;
-                    key[k] = (byte)n;
-                    k -= n & 3;
-                    break;
-                case 7:
-                    n = key[k] << 1;;
-                    key[k] = (byte)n;
-                    k += n & 7;
-                    break;
+                    case 0:
+                        key[k] = (byte)~t;
+                        break;
+                    case 1:
+                        key[k] <<= 1;
+                        break;
+                    case 2:
+                        key[k] *= key[k];
+                        break;
+                    case 3:
+                        key[k] = (byte)~(key[k] << 1);
+                        break;
+                    case 4:
+                        key[k] = (byte)((key[k] + 0x32) << 1);
+                        break;
+                    case 5:
+                        n = ~key[k];
+                        key[k] = (byte)n;
+                        k += n & 3;
+                        break;
+                    case 6:
+                        n = key[k] >> 1;
+                        key[k] = (byte)n;
+                        k -= n & 3;
+                        break;
+                    case 7:
+                        n = key[k] << 1; ;
+                        key[k] = (byte)n;
+                        k += n & 7;
+                        break;
                 }
                 ++k;
                 if (k >= key.Length)

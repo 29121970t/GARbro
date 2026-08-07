@@ -35,16 +35,16 @@ namespace GameRes
     /// </summary>
     public struct CowArray<T> : IList<T>
     {
-        T[]             m_source;
-        int             m_offset;
-        int             m_count;
-        bool            m_own_copy;
+        T[] m_source;
+        int m_offset;
+        int m_count;
+        bool m_own_copy;
 
-        public CowArray (T[] src) : this (src, 0, src.Length)
+        public CowArray(T[] src) : this(src, 0, src.Length)
         {
         }
 
-        public CowArray (T[] src, int start, int length)
+        public CowArray(T[] src, int start, int length)
         {
             m_source = src;
             m_offset = start;
@@ -52,12 +52,12 @@ namespace GameRes
             m_own_copy = false;
         }
 
-        public int       Count { get { return m_count; } }
-        public int      Length { get { return Count; } }
+        public int Count { get { return m_count; } }
+        public int Length { get { return Count; } }
         public bool IsReadOnly { get { return true; } }
         public T this[int pos]
         {
-            get { return m_source[m_offset+pos]; }
+            get { return m_source[m_offset + pos]; }
             set
             {
                 if (!m_own_copy)
@@ -68,45 +68,45 @@ namespace GameRes
             }
         }
 
-        public int IndexOf (T item)
+        public int IndexOf(T item)
         {
-            int i = Array.IndexOf<T> (m_source, item, m_offset, m_count);
+            int i = Array.IndexOf<T>(m_source, item, m_offset, m_count);
             if (-1 == i)
                 return i;
             return i - m_offset;
         }
 
-        public bool Contains (T item)
+        public bool Contains(T item)
         {
-            return Array.IndexOf<T> (m_source, item, m_offset, m_count) != -1;
+            return Array.IndexOf<T>(m_source, item, m_offset, m_count) != -1;
         }
 
-        public void CopyTo (T[] arr, int dst)
+        public void CopyTo(T[] arr, int dst)
         {
-            Array.Copy (m_source, m_offset, arr, dst, m_count);
+            Array.Copy(m_source, m_offset, arr, dst, m_count);
         }
 
-        public IEnumerator<T> GetEnumerator ()
+        public IEnumerator<T> GetEnumerator()
         {
             for (int i = 0; i < m_count; ++i)
                 yield return m_source[m_offset + i];
         }
 
-        IEnumerator IEnumerable.GetEnumerator ()
+        IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
         }
 
-        public T[] ToArray ()
+        public T[] ToArray()
         {
             if (m_own_copy)
                 return m_source;
             var copy = new T[m_count];
-            Array.Copy (m_source, m_offset, copy, 0, m_count);
+            Array.Copy(m_source, m_offset, copy, 0, m_count);
             return copy;
         }
 
-        internal void Reclaim ()
+        internal void Reclaim()
         {
             m_source = ToArray();
             m_offset = 0;
@@ -114,27 +114,27 @@ namespace GameRes
         }
 
         #region Not supported methods
-        public void Insert (int index, T item)
+        public void Insert(int index, T item)
         {
             throw new NotSupportedException();
         }
 
-        public bool Remove (T item)
+        public bool Remove(T item)
         {
             throw new NotSupportedException();
         }
 
-        public void RemoveAt (int index)
+        public void RemoveAt(int index)
         {
             throw new NotSupportedException();
         }
 
-        public void Add (T item)
+        public void Add(T item)
         {
             throw new NotSupportedException();
         }
 
-        public void Clear ()
+        public void Clear()
         {
             throw new NotSupportedException();
         }
@@ -143,60 +143,60 @@ namespace GameRes
 
     public static class ByteArrayExt
     {
-        public static ushort ToUInt16<TArray> (this TArray arr, int index) where TArray : IList<byte>
+        public static ushort ToUInt16<TArray>(this TArray arr, int index) where TArray : IList<byte>
         {
-            return (ushort)(arr[index] | arr[index+1] << 8);
+            return (ushort)(arr[index] | arr[index + 1] << 8);
         }
 
-        public static short ToInt16<TArray> (this TArray arr, int index) where TArray : IList<byte>
+        public static short ToInt16<TArray>(this TArray arr, int index) where TArray : IList<byte>
         {
-            return (short)(arr[index] | arr[index+1] << 8);
+            return (short)(arr[index] | arr[index + 1] << 8);
         }
 
-        public static int ToInt24<TArray> (this TArray arr, int index) where TArray : IList<byte>
+        public static int ToInt24<TArray>(this TArray arr, int index) where TArray : IList<byte>
         {
-            return arr[index] | arr[index+1] << 8 | arr[index+2] << 16;
+            return arr[index] | arr[index + 1] << 8 | arr[index + 2] << 16;
         }
 
-        public static uint ToUInt32<TArray> (this TArray arr, int index) where TArray : IList<byte>
+        public static uint ToUInt32<TArray>(this TArray arr, int index) where TArray : IList<byte>
         {
-            return (uint)(arr[index] | arr[index+1] << 8 | arr[index+2] << 16 | arr[index+3] << 24);
+            return (uint)(arr[index] | arr[index + 1] << 8 | arr[index + 2] << 16 | arr[index + 3] << 24);
         }
 
-        public static int ToInt32<TArray> (this TArray arr, int index) where TArray : IList<byte>
+        public static int ToInt32<TArray>(this TArray arr, int index) where TArray : IList<byte>
         {
-            return (int)ToUInt32 (arr, index);
+            return (int)ToUInt32(arr, index);
         }
 
-        public static ulong ToUInt64<TArray> (this TArray arr, int index) where TArray : IList<byte>
+        public static ulong ToUInt64<TArray>(this TArray arr, int index) where TArray : IList<byte>
         {
-            return (ulong)ToUInt32 (arr, index) | ((ulong)ToUInt32 (arr, index+4) << 32);
+            return (ulong)ToUInt32(arr, index) | ((ulong)ToUInt32(arr, index + 4) << 32);
         }
 
-        public static long ToInt64<TArray> (this TArray arr, int index) where TArray : IList<byte>
+        public static long ToInt64<TArray>(this TArray arr, int index) where TArray : IList<byte>
         {
-            return (long)ToUInt64 (arr, index);
+            return (long)ToUInt64(arr, index);
         }
 
-        public static bool AsciiEqual<TArray> (this TArray arr, int index, string str) where TArray : IList<byte>
+        public static bool AsciiEqual<TArray>(this TArray arr, int index, string str) where TArray : IList<byte>
         {
-            if (arr.Count-index < str.Length)
+            if (arr.Count - index < str.Length)
                 return false;
             for (int i = 0; i < str.Length; ++i)
-                if ((char)arr[index+i] != str[i])
+                if ((char)arr[index + i] != str[i])
                     return false;
             return true;
         }
 
-        public static bool AsciiEqual<TArray> (this TArray arr, string str) where TArray : IList<byte>
+        public static bool AsciiEqual<TArray>(this TArray arr, string str) where TArray : IList<byte>
         {
-            return arr.AsciiEqual (0, str);
+            return arr.AsciiEqual(0, str);
         }
 
-        public static string GetCString (this CowArray<byte> arr, int index, int length_limit)
+        public static string GetCString(this CowArray<byte> arr, int index, int length_limit)
         {
             arr.Reclaim();
-            return Binary.GetCString (arr.ToArray(), index, length_limit);
+            return Binary.GetCString(arr.ToArray(), index, length_limit);
         }
     }
 }

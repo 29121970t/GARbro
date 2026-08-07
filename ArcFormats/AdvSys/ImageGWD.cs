@@ -39,31 +39,31 @@ namespace GameRes.Formats.AdvSys
     [Export(typeof(ImageFormat))]
     public class GwdFormat : ImageFormat
     {
-        public override string         Tag { get { return "GWD"; } }
+        public override string Tag { get { return "GWD"; } }
         public override string Description { get { return "AdvSys3 engine image format"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
-            var header = stream.ReadHeader (12);
+            var header = stream.ReadHeader(12);
             if (header.Length != 12)
                 return null;
-            if (!header.AsciiEqual (4, "GWD"))
+            if (!header.AsciiEqual(4, "GWD"))
                 return null;
             return new GwdMetaData
             {
-                Width   = BigEndian.ToUInt16 (header, 7),
-                Height  = BigEndian.ToUInt16 (header, 9),
-                BPP     = header[11],
-                DataSize = LittleEndian.ToUInt32 (header, 0),
+                Width = BigEndian.ToUInt16(header, 7),
+                Height = BigEndian.ToUInt16(header, 9),
+                BPP = header[11],
+                DataSize = LittleEndian.ToUInt32(header, 0),
             };
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
             PixelFormat format = 24 == info.BPP ? PixelFormats.Bgr24 : PixelFormats.Gray8;
             byte[] image;
-            using (var reader = new GwdReader (stream, info))
+            using (var reader = new GwdReader(stream, info))
             {
                 image = reader.Unpack();
             }
@@ -71,15 +71,15 @@ namespace GameRes.Formats.AdvSys
             stream.Position = 4 + meta.DataSize;
             if (24 == info.BPP && 1 == stream.ReadByte())
             {
-                using (var part = new StreamRegion (stream.AsStream, stream.Position, true))
-                using (var alpha_stream = new BinaryStream (part, stream.Name))
+                using (var part = new StreamRegion(stream.AsStream, stream.Position, true))
+                using (var alpha_stream = new BinaryStream(part, stream.Name))
                 {
-                    var alpha_info = ReadMetaData (alpha_stream) as GwdMetaData;
+                    var alpha_info = ReadMetaData(alpha_stream) as GwdMetaData;
                     if (null != alpha_info && 8 == alpha_info.BPP
                         && alpha_info.Width == info.Width && alpha_info.Height == info.Height)
                     {
                         alpha_stream.Position = 0;
-                        using (var reader = new GwdReader (alpha_stream, alpha_info))
+                        using (var reader = new GwdReader(alpha_stream, alpha_info))
                         {
                             var alpha = reader.Unpack();
                             var pixels = new byte[info.Width * info.Height * 4];
@@ -99,35 +99,35 @@ namespace GameRes.Formats.AdvSys
                     }
                 }
             }
-            return ImageData.Create (info, format, null, image);
+            return ImageData.Create(info, format, null, image);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new NotImplementedException ("GwdFormat.Write not implemented");
+            throw new NotImplementedException("GwdFormat.Write not implemented");
         }
     }
 
     internal sealed class GwdReader : IDisposable
     {
-        MsbBitStream    m_input;
-        int             m_width;
-        int             m_height;
-        int             m_bpp;
-        int             m_stride;
-        byte[]          m_output;
-        byte[]          m_line_buf;
+        MsbBitStream m_input;
+        int m_width;
+        int m_height;
+        int m_bpp;
+        int m_stride;
+        byte[] m_output;
+        byte[] m_line_buf;
 
         public byte[] Pixels { get { return m_output; } }
         public int InputSize { get; private set; }
 
-        public GwdReader (IBinaryStream input, ImageMetaData info)
+        public GwdReader(IBinaryStream input, ImageMetaData info)
         {
             m_bpp = info.BPP;
             if (m_bpp != 8 && m_bpp != 24)
                 throw new InvalidFormatException();
 
-            m_input = new MsbBitStream (input.AsStream, true);
+            m_input = new MsbBitStream(input.AsStream, true);
             m_width = (int)info.Width;
             m_height = (int)info.Height;
             m_stride = m_width * m_bpp / 8;
@@ -135,7 +135,7 @@ namespace GameRes.Formats.AdvSys
             m_line_buf = new byte[m_width];
         }
 
-        public byte[] Unpack ()
+        public byte[] Unpack()
         {
             m_input.Input.Position = 12;
             if (8 == m_bpp)
@@ -145,18 +145,18 @@ namespace GameRes.Formats.AdvSys
             return m_output;
         }
 
-        void Read8bpp ()
+        void Read8bpp()
         {
             int dst = 0;
             for (int y = 0; y < m_height; ++y)
             {
                 FillLine();
-                Buffer.BlockCopy (m_line_buf, 0, m_output, dst, m_width);
+                Buffer.BlockCopy(m_line_buf, 0, m_output, dst, m_width);
                 dst += m_width;
             }
         }
 
-        void Read24bpp ()
+        void Read24bpp()
         {
             int dst = 0;
             for (int y = 0; y < m_height; ++y)
@@ -175,18 +175,18 @@ namespace GameRes.Formats.AdvSys
             }
         }
 
-        void FillLine ()
+        void FillLine()
         {
-            for (int dst = 0; dst < m_width; )
+            for (int dst = 0; dst < m_width;)
             {
-                int length = m_input.GetBits (3);
+                int length = m_input.GetBits(3);
                 if (-1 == length)
                     throw new EndOfStreamException();
                 int count = GetCount() + 1;
                 if (length != 0)
                 {
                     for (int j = 0; j < count; ++j)
-                        m_line_buf[dst++] = (byte)m_input.GetBits (length+1);
+                        m_line_buf[dst++] = (byte)m_input.GetBits(length + 1);
                 }
                 else
                 {
@@ -196,53 +196,53 @@ namespace GameRes.Formats.AdvSys
             }
             for (int i = 1; i < m_width; ++i)
             {
-                m_line_buf[i] = DeltaTable[ m_line_buf[i], m_line_buf[i-1] ];
+                m_line_buf[i] = DeltaTable[m_line_buf[i], m_line_buf[i - 1]];
             }
         }
 
-        int GetCount ()
+        int GetCount()
         {
             int n = 1;
             while (0 == m_input.GetNextBit())
                 ++n;
-            return m_input.GetBits (n) + (1 << n) - 2;
+            return m_input.GetBits(n) + (1 << n) - 2;
         }
 
         static readonly byte[,] DeltaTable = InitTable();
 
-        static byte[,] InitTable ()
+        static byte[,] InitTable()
         {
             var table = new byte[0x100, 0x100];
             for (int j = 0; j < 0x100; ++j)
-            for (int i = 0; i < 0x100; ++i)
-            {
-                int prev = i;
-                if (i >= 0x80)
-                    prev = 0xFF - i;
-                int v;
-                if (2 * prev < j)
+                for (int i = 0; i < 0x100; ++i)
                 {
-                    v = j;
+                    int prev = i;
+                    if (i >= 0x80)
+                        prev = 0xFF - i;
+                    int v;
+                    if (2 * prev < j)
+                    {
+                        v = j;
+                    }
+                    else if (0 != (j & 1))
+                    {
+                        v = prev + ((j + 1) >> 1);
+                    }
+                    else
+                    {
+                        v = prev - (j >> 1);
+                    }
+                    if (i >= 0x80)
+                        table[j, i] = (byte)(0xFF - v);
+                    else
+                        table[j, i] = (byte)v;
                 }
-                else if (0 != (j & 1))
-                {
-                    v = prev + ((j + 1) >> 1);
-                }
-                else
-                {
-                    v = prev - (j >> 1);
-                }
-                if (i >= 0x80)
-                    table[j,i] = (byte)(0xFF - v);
-                else
-                    table[j,i] = (byte)v;
-            }
             return table;
         }
 
         #region IDisposable Members
         bool _disposed = false;
-        public void Dispose ()
+        public void Dispose()
         {
             if (!_disposed)
             {

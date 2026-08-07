@@ -36,54 +36,55 @@ namespace GameRes.Formats.Ponytail
     [Export(typeof(ImageFormat))]
     public class TszFormat : ImageFormat
     {
-        public override string         Tag => "TSZ";
+        public override string Tag => "TSZ";
         public override string Description => "Ponytail Soft NMI image format";
-        public override uint     Signature => 0x20494D4E; // 'NMI '
+        public override uint Signature => 0x20494D4E; // 'NMI '
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x10);
-            if (!header.AsciiEqual (4, "2.05"))
+            var header = file.ReadHeader(0x10);
+            if (!header.AsciiEqual(4, "2.05"))
                 return null;
-            return new ImageMetaData {
-                Width  = (uint)header.ToUInt16 (0xC) << 2,
-                Height = header.ToUInt16 (0xE),
+            return new ImageMetaData
+            {
+                Width = (uint)header.ToUInt16(0xC) << 2,
+                Height = header.ToUInt16(0xE),
                 BPP = 4,
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new TszReader (file, info);
+            var reader = new TszReader(file, info);
             return reader.Unpack();
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("TszFormat.Write not implemented");
+            throw new System.NotImplementedException("TszFormat.Write not implemented");
         }
     }
 
     internal class TszReader
     {
-        protected IBinaryStream   m_input;
-        protected ImageMetaData   m_info;
-        protected int             m_stride;
+        protected IBinaryStream m_input;
+        protected ImageMetaData m_info;
+        protected int m_stride;
 
-        protected TszReader () { }
+        protected TszReader() { }
 
-        public TszReader (IBinaryStream input, ImageMetaData info)
+        public TszReader(IBinaryStream input, ImageMetaData info)
         {
             m_input = input;
             m_info = info;
             m_stride = m_info.iWidth >> 1;
         }
 
-        private   int       m_previous_row;
-        private   ushort[]  m_linebuffer;
-        private   int       m_dst;
+        private int m_previous_row;
+        private ushort[] m_linebuffer;
+        private int m_dst;
 
-        public ImageData Unpack ()
+        public ImageData Unpack()
         {
             m_input.Position = 0x10;
             var palette = ReadPalette();
@@ -110,40 +111,40 @@ namespace GameRes.Formats.Ponytail
                     int count; // bx
                     switch (ctl)
                     {
-                    case 0: count = CopyMethod0(); break;
-                    case 1: count = CopyMethod1(); break;
-                    case 2:
-                        m_linebuffer[m_dst] = m_input.ReadUInt16();
-                        count = 1;
-                        break;
-                    case 3: count = CopyMethod3(); break;
-                    case 4: count = CopyMethod4(); break;
-                    default: throw new InvalidFormatException();
+                        case 0: count = CopyMethod0(); break;
+                        case 1: count = CopyMethod1(); break;
+                        case 2:
+                            m_linebuffer[m_dst] = m_input.ReadUInt16();
+                            count = 1;
+                            break;
+                        case 3: count = CopyMethod3(); break;
+                        case 4: count = CopyMethod4(); break;
+                        default: throw new InvalidFormatException();
                     }
                     m_dst += count;
                     y += count;
                 }
                 if ((x & 1) != 0)
                 {
-                    CopyScanline (output, dst_x);
+                    CopyScanline(output, dst_x);
                     dst_x += 4;
                 }
                 m_previous_row = -m_previous_row;
                 ++x;
             }
-            return ImageData.Create (m_info, PixelFormats.Indexed4, palette, output, m_stride);
+            return ImageData.Create(m_info, PixelFormats.Indexed4, palette, output, m_stride);
         }
 
-        void CopyScanline (byte[] output, int dst)
+        void CopyScanline(byte[] output, int dst)
         {
             for (int i = 0; i < m_info.iHeight; ++i)
             {
                 ushort px1 = m_linebuffer[i];
                 ushort px2 = m_linebuffer[i + m_info.iHeight];
                 // these bytes contain 8 pixels that are being put into 4 planes
-                int b0 = (px1 << 4) & 0xF0 | (px2      ) & 0x0F;
-                int b1 = (px1     ) & 0xF0 | (px2 >>  4) & 0x0F;
-                int b2 = (px1 >> 4) & 0xF0 | (px2 >>  8) & 0x0F;
+                int b0 = (px1 << 4) & 0xF0 | (px2) & 0x0F;
+                int b1 = (px1) & 0xF0 | (px2 >> 4) & 0x0F;
+                int b2 = (px1 >> 4) & 0xF0 | (px2 >> 8) & 0x0F;
                 int b3 = (px1 >> 8) & 0xF0 | (px2 >> 12) & 0x0F;
                 // repack pixels into flat surface, 2 pixels per byte
                 for (int j = 0; j < 8; j += 2)
@@ -151,45 +152,45 @@ namespace GameRes.Formats.Ponytail
                     byte px = (byte)((((b0 << j) & 0x80) >> 3)
                                    | (((b1 << j) & 0x80) >> 2)
                                    | (((b2 << j) & 0x80) >> 1)
-                                   | (((b3 << j) & 0x80)     ));
+                                   | (((b3 << j) & 0x80)));
                     px |= (byte)((((b0 << j) & 0x40) >> 6)
                                | (((b1 << j) & 0x40) >> 5)
                                | (((b2 << j) & 0x40) >> 4)
                                | (((b3 << j) & 0x40) >> 3));
-                    output[dst+j/2] = px;
+                    output[dst + j / 2] = px;
                 }
                 dst += m_stride;
             }
         }
 
-        int CopyMethod0 ()
+        int CopyMethod0()
         {
             int count = GetBitLength();
-            int offset = GetBits (4);
+            int offset = GetBits(4);
             offset += m_previous_row - 8;
-            CopyOverlapped (m_linebuffer, m_dst + offset, m_dst, count);
+            CopyOverlapped(m_linebuffer, m_dst + offset, m_dst, count);
             return count;
         }
 
-        int CopyMethod1 ()
+        int CopyMethod1()
         {
             int count = GetBitLength();
             int offset = m_input.ReadUInt8();
             offset += m_previous_row - 0x80;
-            CopyOverlapped (m_linebuffer, m_dst + offset, m_dst, count);
+            CopyOverlapped(m_linebuffer, m_dst + offset, m_dst, count);
             return count;
         }
 
-        int CopyMethod3 ()
+        int CopyMethod3()
         {
             int count = GetBitLength();
-            int offset = GetBits (4);
+            int offset = GetBits(4);
             offset -= 0x10;
-            CopyOverlapped (m_linebuffer, m_dst + offset, m_dst, count);
+            CopyOverlapped(m_linebuffer, m_dst + offset, m_dst, count);
             return count;
         }
 
-        int CopyMethod4 ()
+        int CopyMethod4()
         {
             byte al = m_input.ReadUInt8();
             int nibble = al >> 4;
@@ -202,9 +203,9 @@ namespace GameRes.Formats.Ponytail
                 short carry = (short)(nibble & 1);
                 nibble >>= 1;
                 pixel |= (ushort)(-carry & mask2);
-                pixel = RotU16R (pixel, 1);
+                pixel = RotU16R(pixel, 1);
             }
-            pixel = RotU16L (pixel, 4);
+            pixel = RotU16L(pixel, 4);
             m_linebuffer[m_dst] = pixel;
             return 1;
         }
@@ -221,13 +222,13 @@ namespace GameRes.Formats.Ponytail
         ushort m_bits;
         int m_bit_count;
 
-        protected void ResetBitReader ()
+        protected void ResetBitReader()
         {
             m_bits = 0;
             m_bit_count = 0;
         }
 
-        protected int GetBitLength ()
+        protected int GetBitLength()
         {
             if (!GetNextBit())
                 return 1;
@@ -236,10 +237,10 @@ namespace GameRes.Formats.Ponytail
             {
                 ++count;
             }
-            return GetBits (count) | 1 << count;
+            return GetBits(count) | 1 << count;
         }
 
-        protected bool GetNextBit ()
+        protected bool GetNextBit()
         {
             if (--m_bit_count < 0)
             {
@@ -255,15 +256,15 @@ namespace GameRes.Formats.Ponytail
             0, 1, 3, 7, 0xF, 0x1F, 0x3F, 0x7F, 0xFF, 0x1FF, 0x3FF, 0x7FF, 0xFFF, 0x1FFF, 0x3FFF, 0x7FFF, 0xFFFF,
         };
 
-        protected int GetBits (int count)
+        protected int GetBits(int count)
         {
             m_bit_count -= count;
             if (m_bit_count < 0)
             {
-                m_bits = RotU16L (m_bits, count);
+                m_bits = RotU16L(m_bits, count);
                 int cl = -m_bit_count;
                 ushort bits = m_input.ReadUInt16();
-                bits = RotU16L (bits, cl);
+                bits = RotU16L(bits, cl);
                 ushort mask = s_bit_mask[cl];
                 ushort new_bits = (ushort)(bits & ~mask);
                 bits &= mask;
@@ -274,7 +275,7 @@ namespace GameRes.Formats.Ponytail
             }
             else
             {
-                m_bits = RotU16L (m_bits, count);
+                m_bits = RotU16L(m_bits, count);
                 ushort mask = s_bit_mask[count];
                 int bits = m_bits & mask;
                 m_bits &= (ushort)~mask;
@@ -282,7 +283,7 @@ namespace GameRes.Formats.Ponytail
             }
         }
 
-        protected BitmapPalette ReadPalette ()
+        protected BitmapPalette ReadPalette()
         {
             const int count = 16;
             var colors = new Color[count];
@@ -291,22 +292,22 @@ namespace GameRes.Formats.Ponytail
                 byte r = m_input.ReadUInt8();
                 byte g = m_input.ReadUInt8();
                 byte b = m_input.ReadUInt8();
-                colors[i] = Color.FromRgb ((byte)(r * 0x11), (byte)(g * 0x11), (byte)(b * 0x11));
+                colors[i] = Color.FromRgb((byte)(r * 0x11), (byte)(g * 0x11), (byte)(b * 0x11));
             }
-            return new BitmapPalette (colors);
+            return new BitmapPalette(colors);
         }
 
-        static internal ushort RotU16L (ushort val, int count)
+        static internal ushort RotU16L(ushort val, int count)
         {
             return (ushort)(val << count | val >> (16 - count));
         }
 
-        static internal ushort RotU16R (ushort val, int count)
+        static internal ushort RotU16R(ushort val, int count)
         {
             return (ushort)(val >> count | val << (16 - count));
         }
 
-        static internal void CopyOverlapped (ushort[] data, int src, int dst, int count)
+        static internal void CopyOverlapped(ushort[] data, int src, int dst, int count)
         {
             src <<= 1;
             dst <<= 1;
@@ -315,15 +316,15 @@ namespace GameRes.Formats.Ponytail
             {
                 while (count > 0)
                 {
-                    int preceding = Math.Min (dst - src, count);
-                    Buffer.BlockCopy (data, src, data, dst, preceding);
+                    int preceding = Math.Min(dst - src, count);
+                    Buffer.BlockCopy(data, src, data, dst, preceding);
                     dst += preceding;
                     count -= preceding;
                 }
             }
             else
             {
-                Buffer.BlockCopy (data, src, data, dst, count);
+                Buffer.BlockCopy(data, src, data, dst, count);
             }
         }
     }

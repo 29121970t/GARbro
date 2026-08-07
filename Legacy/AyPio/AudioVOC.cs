@@ -31,49 +31,50 @@ namespace GameRes.Formats.AyPio
     [Export(typeof(AudioFormat))]
     public class VocAudio : AudioFormat
     {
-        public override string         Tag => "VOC/UK2";
+        public override string Tag => "VOC/UK2";
         public override string Description => "UK2 engine compressed audio";
-        public override uint     Signature => 0x81564157; // 'WAV\x81'
-        public override bool      CanWrite => false;
+        public override uint Signature => 0x81564157; // 'WAV\x81'
+        public override bool CanWrite => false;
 
-        public override SoundInput TryOpen (IBinaryStream file)
+        public override SoundInput TryOpen(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x3C);
-            if (!header.AsciiEqual (0x38, "RIFF"))
+            var header = file.ReadHeader(0x3C);
+            if (!header.AsciiEqual(0x38, "RIFF"))
                 return null;
-            var decoder = new VocDecoder (file);
+            var decoder = new VocDecoder(file);
             var samples = decoder.Decode();
-            var stream = new BinMemoryStream (samples, file.Name);
+            var stream = new BinMemoryStream(samples, file.Name);
             file.Dispose();
-            return new RawPcmInput (stream, decoder.Format);
+            return new RawPcmInput(stream, decoder.Format);
         }
     }
 
     internal sealed class VocDecoder
     {
-        IBinaryStream   m_input;
+        IBinaryStream m_input;
 
-        int     m_sample_count;
-        byte    m_channels;
-        byte    m_bits_per_sample;
-        byte[]  m_prev_sample = new byte[2];
-        long    m_start_pos;
+        int m_sample_count;
+        byte m_channels;
+        byte m_bits_per_sample;
+        byte[] m_prev_sample = new byte[2];
+        long m_start_pos;
 
         public WaveFormat Format { get; private set; }
 
-        public VocDecoder (IBinaryStream input)
+        public VocDecoder(IBinaryStream input)
         {
             m_input = input;
-            var header = input.ReadHeader (0x38);
-            Format = new WaveFormat {
-                FormatTag = header.ToUInt16 (0x21),
-                Channels = header.ToUInt16 (0x23),
-                SamplesPerSecond = header.ToUInt32 (0x25),
-                AverageBytesPerSecond = header.ToUInt32 (0x29),
-                BlockAlign = header.ToUInt16 (0x2D),
-                BitsPerSample = header.ToUInt16 (0x2F),
+            var header = input.ReadHeader(0x38);
+            Format = new WaveFormat
+            {
+                FormatTag = header.ToUInt16(0x21),
+                Channels = header.ToUInt16(0x23),
+                SamplesPerSecond = header.ToUInt32(0x25),
+                AverageBytesPerSecond = header.ToUInt32(0x29),
+                BlockAlign = header.ToUInt16(0x2D),
+                BitsPerSample = header.ToUInt16(0x2F),
             };
-            m_sample_count = header.ToInt32 (0x18);
+            m_sample_count = header.ToInt32(0x18);
             m_channels = header[8];
             m_prev_sample[0] = header[0xC];
             m_prev_sample[1] = header[0x10];
@@ -83,14 +84,14 @@ namespace GameRes.Formats.AyPio
             m_output[1] = header[0xB];
             m_output[2] = header[0xE];
             m_output[3] = header[0xF];
-            m_start_pos = header.ToUInt32 (4) + header.ToUInt32 (0x14);
+            m_start_pos = header.ToUInt32(4) + header.ToUInt32(0x14);
         }
 
         byte[] m_output;
         int[] m_samples;
         int m_src;
 
-        public byte[] Decode ()
+        public byte[] Decode()
         {
             m_input.Position = m_start_pos;
             m_src = 0;
@@ -111,9 +112,9 @@ namespace GameRes.Formats.AyPio
                 int s = m_samples[89 * v7 + prev];
                 if ((sample & 8) != 0)
                     s = -s;
-                s += m_output.ToInt16 (pos);
+                s += m_output.ToInt16(pos);
                 pos += 2;
-                LittleEndian.Pack (Clamp (s), m_output, pos);
+                LittleEndian.Pack(Clamp(s), m_output, pos);
                 int p = IndexTable[v7] + prev;
                 if (p < 0)
                     p = 0;
@@ -127,7 +128,7 @@ namespace GameRes.Formats.AyPio
 
         byte m_current_sample;
 
-        byte GetSample ()
+        byte GetSample()
         {
             if (0 == (m_src & 1))
                 m_current_sample = m_input.ReadUInt8();
@@ -137,7 +138,7 @@ namespace GameRes.Formats.AyPio
             return sample &= 0xF;
         }
 
-        short Clamp (int sample)
+        short Clamp(int sample)
         {
             if (sample > 0x7FFF)
                 sample = 0x7FFF;
@@ -146,7 +147,7 @@ namespace GameRes.Formats.AyPio
             return (short)sample;
         }
 
-        void BuildSamples ()
+        void BuildSamples()
         {
             int b = 1 << (m_bits_per_sample - 1);
             int i = 0;

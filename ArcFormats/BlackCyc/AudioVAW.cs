@@ -35,100 +35,100 @@ namespace GameRes.Formats.BlackCyc
     [Export(typeof(AudioFormat))]
     public class VawAudio : AudioFormat
     {
-        public override string         Tag { get { return "VAW"; } }
+        public override string Tag { get { return "VAW"; } }
         public override string Description { get { return "Black Cyc audio format"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public VawAudio ()
+        public VawAudio()
         {
             Extensions = new string[] { "vaw", "wgq" };
         }
 
-        public override SoundInput TryOpen (IBinaryStream file)
+        public override SoundInput TryOpen(IBinaryStream file)
         {
-            var header = ResourceHeader.Read (file);
+            var header = ResourceHeader.Read(file);
             if (null == header)
                 return null;
             AudioFormat format;
             int offset;
             if (0 == header.PackType)
             {
-                if (4 != file.Read (header.Bytes, 0, 4))
+                if (4 != file.Read(header.Bytes, 0, 4))
                     return null;
-                if (!Binary.AsciiEqual (header.Bytes, "RIFF"))
+                if (!Binary.AsciiEqual(header.Bytes, "RIFF"))
                     return null;
                 format = Wav;
                 offset = 0x40;
             }
             else if (1 == header.PackType)
             {
-                return Unpack (file);
+                return Unpack(file);
             }
             else if (2 == header.PackType)
             {
                 format = OggAudio.Instance;
                 offset = 0x6C;
             }
-            else if (6 == header.PackType && Binary.AsciiEqual (header.Bytes, 0x10, "OGG "))
+            else if (6 == header.PackType && Binary.AsciiEqual(header.Bytes, 0x10, "OGG "))
             {
                 format = OggAudio.Instance;
                 offset = 0x40;
             }
             else
                 return null;
-            var input = new StreamRegion (file.AsStream, offset, file.Length-offset);
-            return format.TryOpen (new BinaryStream (input, file.Name));
+            var input = new StreamRegion(file.AsStream, offset, file.Length - offset);
+            return format.TryOpen(new BinaryStream(input, file.Name));
         }
 
-        public override void Write (SoundInput source, Stream output)
+        public override void Write(SoundInput source, Stream output)
         {
-            throw new System.NotImplementedException ("EdimFormat.Write not implemenented");
+            throw new System.NotImplementedException("EdimFormat.Write not implemenented");
         }
 
-        SoundInput Unpack (IBinaryStream input)
+        SoundInput Unpack(IBinaryStream input)
         {
             input.Position = 0x40;
             var header = new byte[0x24];
-            if (0x14 != input.Read (header, 0, 0x14))
+            if (0x14 != input.Read(header, 0, 0x14))
                 return null;
-            int fmt_size = LittleEndian.ToInt32 (header, 0x10);
+            int fmt_size = LittleEndian.ToInt32(header, 0x10);
             if (fmt_size + input.Position > input.Length)
                 return null;
             int header_size = fmt_size + 0x14;
             if (header_size > header.Length)
-                Array.Resize (ref header, header_size);
-            if (fmt_size != input.Read (header, 0x14, fmt_size))
+                Array.Resize(ref header, header_size);
+            if (fmt_size != input.Read(header, 0x14, fmt_size))
                 return null;
-            int riff_size = LittleEndian.ToInt32 (header, 4) + 8;
+            int riff_size = LittleEndian.ToInt32(header, 4) + 8;
             int data_size = riff_size - header_size;
-            var pcm = new MemoryStream (riff_size);
+            var pcm = new MemoryStream(riff_size);
             try
             {
-                pcm.Write (header, 0, header_size);
-                using (var output = new BinaryWriter (pcm, Encoding.Default, true))
-                using (var bits = new LsbBitStream (input.AsStream, true))
+                pcm.Write(header, 0, header_size);
+                using (var output = new BinaryWriter(pcm, Encoding.Default, true))
+                using (var bits = new LsbBitStream(input.AsStream, true))
                 {
                     int written = 0;
                     short sample = 0;
                     while (written < data_size)
                     {
-                        int c = bits.GetBits (4);
+                        int c = bits.GetBits(4);
                         if (-1 == c)
                             c = 0;
                         int code = 0;
                         if (c > 0)
-                            code = bits.GetBits (c) << (32 - c);
+                            code = bits.GetBits(c) << (32 - c);
                         code >>= 32 - c;
                         int sign = code >> 31;
                         code ^= 0x4000 >> (15 - c);
                         code -= sign;
                         sample += (short)code;
-                        output.Write (sample);
+                        output.Write(sample);
                         written += 2;
                     }
                 }
                 pcm.Position = 0;
-                var sound = Wav.TryOpen (new BinMemoryStream (pcm, input.Name));
+                var sound = Wav.TryOpen(new BinMemoryStream(pcm, input.Name));
                 if (sound != null)
                     input.Dispose();
                 else

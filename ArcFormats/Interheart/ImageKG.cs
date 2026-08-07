@@ -34,11 +34,11 @@ namespace GameRes.Formats.Interheart
     [Export(typeof(ImageFormat))]
     public class KgFormat : ImageFormat
     {
-        public override string         Tag { get { return "KG"; } }
+        public override string Tag { get { return "KG"; } }
         public override string Description { get { return "Interheart image format"; } }
-        public override uint     Signature { get { return 0x4B474347; } } // 'GCGK'
+        public override uint Signature { get { return 0x4B474347; } } // 'GCGK'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
             stream.Position = 4;
             uint width = stream.ReadUInt16();
@@ -54,9 +54,9 @@ namespace GameRes.Formats.Interheart
             };
         }
 
-        public override ImageData Read (IBinaryStream input, ImageMetaData info)
+        public override ImageData Read(IBinaryStream input, ImageMetaData info)
         {
-            byte[] pixels = new byte[info.Width*info.Height*4];
+            byte[] pixels = new byte[info.Width * info.Height * 4];
             input.Position = 12;
             uint[] offset_table = new uint[info.Height];
             for (uint i = 0; i < info.Height; ++i)
@@ -67,7 +67,7 @@ namespace GameRes.Formats.Interheart
             foreach (var offset in offset_table)
             {
                 input.Position = base_offset + offset;
-                for (int x = 0; x < info.Width; )
+                for (int x = 0; x < info.Width;)
                 {
                     byte alpha = input.ReadUInt8();
                     int count = input.ReadUInt8();
@@ -81,22 +81,22 @@ namespace GameRes.Formats.Interheart
                     {
                         for (int n = 0; n < count; ++n)
                         {
-                            pixels[dst+3] = alpha;
-                            pixels[dst+2] = input.ReadUInt8();
-                            pixels[dst+1] = input.ReadUInt8();
-                            pixels[dst]   = input.ReadUInt8();
+                            pixels[dst + 3] = alpha;
+                            pixels[dst + 2] = input.ReadUInt8();
+                            pixels[dst + 1] = input.ReadUInt8();
+                            pixels[dst] = input.ReadUInt8();
                             dst += 4;
                         }
                     }
                     x += count;
                 }
             }
-            return ImageData.Create (info, PixelFormats.Bgra32, null, pixels);
+            return ImageData.Create(info, PixelFormats.Bgra32, null, pixels);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("KgFormat.Write not implemented");
+            throw new System.NotImplementedException("KgFormat.Write not implemented");
         }
     }
 }

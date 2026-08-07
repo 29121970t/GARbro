@@ -16,89 +16,90 @@ namespace GARbro
 {
     class ConsoleBrowser
     {
-        private string      m_arc_name;
+        private string m_arc_name;
         private ImageFormat m_image_format;
-        private bool        m_extract_all;
+        private bool m_extract_all;
 
-        void ListFormats ()
+        void ListFormats()
         {
-            Console.WriteLine ("Recognized resource formats:");
+            Console.WriteLine("Recognized resource formats:");
             foreach (var impl in FormatCatalog.Instance.ArcFormats)
             {
-                Console.WriteLine ("{0,-4} {1}", impl.Tag, impl.Description);
+                Console.WriteLine("{0,-4} {1}", impl.Tag, impl.Description);
             }
         }
 
-        void ExtractAll (ArcFile arc)
+        void ExtractAll(ArcFile arc)
         {
-            arc.ExtractFiles ((i, entry, msg) => {
+            arc.ExtractFiles((i, entry, msg) =>
+            {
                 if (null != entry)
                 {
-                    Console.WriteLine ("Extracting {0} ...", entry.Name);
+                    Console.WriteLine("Extracting {0} ...", entry.Name);
                 }
                 else if (null != msg)
                 {
-                    Console.WriteLine (msg);
+                    Console.WriteLine(msg);
                 }
                 return ArchiveOperation.Continue;
             });
         }
 
-        void ExtractFile (ArcFile arc, string name)
+        void ExtractFile(ArcFile arc, string name)
         {
-            Entry entry = arc.Dir.FirstOrDefault (e => e.Name.Equals (name, StringComparison.OrdinalIgnoreCase));
+            Entry entry = arc.Dir.FirstOrDefault(e => e.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
             if (null == entry)
             {
-                Console.Error.WriteLine ("'{0}' not found within {1}", name, m_arc_name);
+                Console.Error.WriteLine("'{0}' not found within {1}", name, m_arc_name);
                 return;
             }
-            Console.WriteLine ("Extracting {0} ...", entry.Name);
-            arc.Extract (entry);
+            Console.WriteLine("Extracting {0} ...", entry.Name);
+            arc.Extract(entry);
         }
 
-        void TestArc (string[] args)
+        void TestArc(string[] args)
         {
-/*
-            if (args.Length > 1)
-            {
-                uint pass = GameRes.Formats.IntOpener.EncodePassPhrase (args[1]);
-                Console.WriteLine ("{0:X8}", pass);
-            }
-*/
+            /*
+                        if (args.Length > 1)
+                        {
+                            uint pass = GameRes.Formats.IntOpener.EncodePassPhrase (args[1]);
+                            Console.WriteLine ("{0:X8}", pass);
+                        }
+            */
         }
 
-        void Run (string[] args)
+        void Run(string[] args)
         {
             int argn = 0;
             while (argn < args.Length)
             {
-                if (args[argn].Equals ("-l"))
+                if (args[argn].Equals("-l"))
                 {
                     ListFormats();
                     return;
                 }
-                else if (args[argn].Equals ("-t"))
+                else if (args[argn].Equals("-t"))
                 {
-                    TestArc (args);
+                    TestArc(args);
                     return;
                 }
-                else if (args[argn].Equals ("-c"))
+                else if (args[argn].Equals("-c"))
                 {
-                    if (argn+1 >= args.Length)
+                    if (argn + 1 >= args.Length)
                     {
                         Usage();
                         return;
                     }
-                    var tag = args[argn+1];
-                    m_image_format = ImageFormat.FindByTag (tag);
+                    var tag = args[argn + 1];
+                    m_image_format = ImageFormat.FindByTag(tag);
                     if (null == m_image_format)
                     {
-                        Console.Error.WriteLine ("{0}: unknown format specified", tag);
+                        Console.Error.WriteLine("{0}: unknown format specified", tag);
                         return;
                     }
                     argn += 2;
                 }
-                else if (args[argn].Equals ("-x"))
+                else if (args[argn].Equals("-x"))
                 {
                     m_extract_all = true;
                     ++argn;
@@ -119,62 +120,62 @@ namespace GARbro
                 return;
             }
             DeserializeGameData();
-            foreach (var file in VFS.GetFiles (args[argn]))
+            foreach (var file in VFS.GetFiles(args[argn]))
             {
                 m_arc_name = file.Name;
                 try
                 {
-                    VFS.ChDir (m_arc_name);
+                    VFS.ChDir(m_arc_name);
                 }
                 catch (Exception)
                 {
-                    Console.Error.WriteLine ("{0}: unknown format", m_arc_name);
+                    Console.Error.WriteLine("{0}: unknown format", m_arc_name);
                     continue;
                 }
                 var arc = ((ArchiveFileSystem)VFS.Top).Source;
-                if (args.Length > argn+1)
+                if (args.Length > argn + 1)
                 {
-                    for (int i = argn+1; i < args.Length; ++i)
-                        ExtractFile (arc, args[i]);
+                    for (int i = argn + 1; i < args.Length; ++i)
+                        ExtractFile(arc, args[i]);
                 }
                 else if (m_extract_all)
                 {
-                    ExtractAll (arc);
+                    ExtractAll(arc);
                 }
                 else
                 {
-                    foreach (var entry in arc.Dir.OrderBy (e => e.Offset))
+                    foreach (var entry in arc.Dir.OrderBy(e => e.Offset))
                     {
-                        Console.WriteLine ("{0,9} [{2:X8}] {1}", entry.Size, entry.Name, entry.Offset);
+                        Console.WriteLine("{0,9} [{2:X8}] {1}", entry.Size, entry.Name, entry.Offset);
                     }
                 }
             }
         }
 
-        void DeserializeGameData ()
+        void DeserializeGameData()
         {
-            string scheme_file = Path.Combine (FormatCatalog.Instance.DataDirectory, "Formats.dat");
+            string scheme_file = Path.Combine(FormatCatalog.Instance.DataDirectory, "Formats.dat");
             try
             {
-                using (var file = File.OpenRead (scheme_file))
-                    FormatCatalog.Instance.DeserializeScheme (file);
+                using (var file = File.OpenRead(scheme_file))
+                    FormatCatalog.Instance.DeserializeScheme(file);
             }
             catch (Exception X)
             {
-                Console.Error.WriteLine ("Scheme deserialization failed: {0}", X.Message);
+                Console.Error.WriteLine("Scheme deserialization failed: {0}", X.Message);
             }
         }
 
-        static void Usage ()
+        static void Usage()
         {
-            Console.WriteLine ("Usage: gameres [OPTIONS] ARC [ENTRIES]");
-            Console.WriteLine ("    -l          list recognized archive formats");
-            Console.WriteLine ("    -x          extract all files");
-            Console.WriteLine ("    -c FORMAT   convert images to specified format");
-            Console.WriteLine ("Without options displays contents of specified archive.");
+            Console.WriteLine("Usage: gameres [OPTIONS] ARC [ENTRIES]");
+            Console.WriteLine("    -l          list recognized archive formats");
+            Console.WriteLine("    -x          extract all files");
+            Console.WriteLine("    -c FORMAT   convert images to specified format");
+            Console.WriteLine("Without options displays contents of specified archive.");
         }
 
-        static void Main (string[] args)
+        static void Main(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
             if (0 == args.Length)
@@ -182,16 +183,16 @@ namespace GARbro
                 Usage();
                 return;
             }
-            var listener = new TextWriterTraceListener (Console.Error);
-            Trace.Listeners.Add(listener);
+            var listener = new TextWriterTraceListener(Console.Error);
+            System.Diagnostics.Trace.Listeners.Add(listener);
             try
             {
                 var browser = new ConsoleBrowser();
-                browser.Run (args);
+                browser.Run(args);
             }
             catch (Exception X)
             {
-                Console.Error.WriteLine (X.Message);
+                Console.Error.WriteLine(X.Message);
             }
         }
     }

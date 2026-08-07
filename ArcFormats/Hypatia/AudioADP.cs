@@ -33,19 +33,19 @@ namespace GameRes.Formats.Hypatia
     [Export(typeof(AudioFormat))]
     public class AdpAudio : AudioFormat
     {
-        public override string         Tag { get { return "ADP/HYPATIA"; } }
+        public override string Tag { get { return "ADP/HYPATIA"; } }
         public override string Description { get { return "Hypatia compressed audio format"; } }
-        public override uint     Signature { get { return 0x31504441; } } // 'ADP1'
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x31504441; } } // 'ADP1'
+        public override bool CanWrite { get { return false; } }
 
-        public override SoundInput TryOpen (IBinaryStream file)
+        public override SoundInput TryOpen(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x10);
-            int samples = header.ToInt32 (4);
-            uint sample_rate = header.ToUInt32 (8);
+            var header = file.ReadHeader(0x10);
+            int samples = header.ToInt32(4);
+            uint sample_rate = header.ToUInt32(8);
             if (sample_rate < 8000 || sample_rate > 96000)
                 return null;
-            ushort channels = header.ToUInt16 (12);
+            ushort channels = header.ToUInt16(12);
             if (channels != 1 && channels != 2)
                 return null;
             samples *= channels;
@@ -61,25 +61,26 @@ namespace GameRes.Formats.Hypatia
                 int v = file.ReadByte();
                 if (-1 == v)
                     break;
-                LittleEndian.Pack (first.DecodeSample (v), output, dst);
+                LittleEndian.Pack(first.DecodeSample(v), output, dst);
                 if (0 == --samples)
                     break;
                 dst += 2;
-                LittleEndian.Pack (second.DecodeSample (v >> 4), output, dst);
+                LittleEndian.Pack(second.DecodeSample(v >> 4), output, dst);
                 dst += 2;
                 --samples;
             }
 
-            var format = new WaveFormat {
-                FormatTag        = 1,
-                Channels         = channels,
+            var format = new WaveFormat
+            {
+                FormatTag = 1,
+                Channels = channels,
                 SamplesPerSecond = sample_rate,
                 AverageBytesPerSecond = 2u * channels * sample_rate,
-                BlockAlign       = (ushort)(2 * channels),
-                BitsPerSample    = 16,
+                BlockAlign = (ushort)(2 * channels),
+                BitsPerSample = 16,
             };
-            var pcm = new MemoryStream (output);
-            var sound = new RawPcmInput (pcm, format);
+            var pcm = new MemoryStream(output);
+            var sound = new RawPcmInput(pcm, format);
             file.Dispose();
             return sound;
         }
@@ -90,18 +91,18 @@ namespace GameRes.Formats.Hypatia
         int prev_sample;
         int quant_idx = 0;
 
-        public AdpDecoder (int init_sample = 0)
+        public AdpDecoder(int init_sample = 0)
         {
             prev_sample = init_sample;
         }
 
-        public void Reset (short s, int q)
+        public void Reset(short s, int q)
         {
             prev_sample = s;
             quant_idx = q;
         }
 
-        public short DecodeSample (int src)
+        public short DecodeSample(int src)
         {
             src &= 0xF;
             int sample = ScaleTable[src] * QuantizeTable[quant_idx] + prev_sample;

@@ -32,122 +32,122 @@ namespace GameRes.Formats.ShiinaRio
     [Serializable]
     public class EncryptionScheme
     {
-        public string Name          { get; set; }
+        public string Name { get; set; }
         public string OriginalTitle { get; set; }
-        public    int Version       { get; set; }
-        public    int EntryNameSize;
+        public int Version { get; set; }
+        public int EntryNameSize;
         public byte[] CryptKey;
         public uint[] HelperKey;
         public byte[] Region;
         public byte[] DecodeBin;
-        public IByteArray       ShiinaImage;
-        public IDecryptExtra    ExtraCrypt;
+        public IByteArray ShiinaImage;
+        public IDecryptExtra ExtraCrypt;
 
         public static readonly EncryptionScheme Warc110 = new EncryptionScheme { EntryNameSize = 0x10 };
     }
 
     public interface IByteArray
     {
-        int       Length { get; }
+        int Length { get; }
         byte this[int i] { get; }
     }
 
     public interface IDecryptExtra
     {
-        void Decrypt (byte[] data, int index, uint length, uint flags);
-        void Encrypt (byte[] data, int index, uint length, uint flags);
+        void Decrypt(byte[] data, int index, uint length, uint flags);
+        void Encrypt(byte[] data, int index, uint length, uint flags);
     }
 
     internal class Decoder
     {
-        EncryptionScheme    m_scheme;
+        EncryptionScheme m_scheme;
 
-        public int   SchemeVersion { get { return m_scheme.Version; } }
-        public int     WarcVersion { get; private set; }
+        public int SchemeVersion { get { return m_scheme.Version; } }
+        public int WarcVersion { get; private set; }
         public uint MaxIndexLength { get; private set; }
-        public int   EntryNameSize { get { return m_scheme.EntryNameSize; } }
+        public int EntryNameSize { get { return m_scheme.EntryNameSize; } }
         public IDecryptExtra ExtraCrypt { get { return m_scheme.ExtraCrypt; } }
 
-        private uint          Rand { get; set; }
+        private uint Rand { get; set; }
 
-        public Decoder (int version, EncryptionScheme scheme)
+        public Decoder(int version, EncryptionScheme scheme)
         {
             m_scheme = scheme;
             WarcVersion = version;
-            MaxIndexLength = GetMaxIndexLength (version);
+            MaxIndexLength = GetMaxIndexLength(version);
         }
 
-        public void Decrypt (byte[] data, int index, uint data_length)
+        public void Decrypt(byte[] data, int index, uint data_length)
         {
-            DoEncryption (data, index, data_length, DecryptContent);
+            DoEncryption(data, index, data_length, DecryptContent);
         }
 
-        public void Encrypt (byte[] data, int index, uint data_length)
+        public void Encrypt(byte[] data, int index, uint data_length)
         {
-            DoEncryption (data, index, data_length, EncryptContent);
+            DoEncryption(data, index, data_length, EncryptContent);
         }
 
-        public void DecryptIndex (uint index_offset, byte[] index)
+        public void DecryptIndex(uint index_offset, byte[] index)
         {
-            Decrypt (index, 0, (uint)index.Length);
-            XorIndex (index_offset, index);
+            Decrypt(index, 0, (uint)index.Length);
+            XorIndex(index_offset, index);
         }
 
-        public void EncryptIndex (uint index_offset, byte[] index)
+        public void EncryptIndex(uint index_offset, byte[] index)
         {
-            XorIndex (index_offset, index);
-            Encrypt (index, 0, (uint)index.Length);
+            XorIndex(index_offset, index);
+            Encrypt(index, 0, (uint)index.Length);
         }
 
-        void DecryptContent (int x, byte[] data, int index, uint length)
+        void DecryptContent(int x, byte[] data, int index, uint length)
         {
             int n = 0;
             for (int i = 2; i < length; ++i)
             {
-                byte d = data[index+i];
+                byte d = data[index + i];
                 if (WarcVersion > 120)
                     d ^= (byte)((double)NextRand() / 16777216.0);
-                d = Binary.RotByteR (d, 1);
+                d = Binary.RotByteR(d, 1);
                 d ^= (byte)(m_scheme.CryptKey[n++] ^ m_scheme.CryptKey[x]);
-                data[index+i] = d;
+                data[index + i] = d;
                 x = d % m_scheme.CryptKey.Length;
                 if (n >= m_scheme.CryptKey.Length)
                     n = 0;
             }
         }
 
-        void EncryptContent (int x, byte[] data, int index, uint length)
+        void EncryptContent(int x, byte[] data, int index, uint length)
         {
             int n = 0;
             for (int i = 2; i < length; ++i)
             {
                 byte k = (byte)(m_scheme.CryptKey[n++] ^ m_scheme.CryptKey[x]);
-                byte d = data[index+i];
+                byte d = data[index + i];
                 x = d % m_scheme.CryptKey.Length;
                 d ^= k;
-                d = Binary.RotByteL (d, 1);
+                d = Binary.RotByteL(d, 1);
                 if (WarcVersion > 120)
                     d ^= (byte)((double)NextRand() / 16777216.0);
-                data[index+i] = d;
+                data[index + i] = d;
                 if (n >= m_scheme.CryptKey.Length)
                     n = 0;
             }
         }
 
-        delegate void ContentEncryptor (int start_key, byte[] data, int index, uint length);
+        delegate void ContentEncryptor(int start_key, byte[] data, int index, uint length);
 
-        void DoEncryption (byte[] data, int index, uint data_length, ContentEncryptor encryptor)
+        void DoEncryption(byte[] data, int index, uint data_length, ContentEncryptor encryptor)
         {
             if (data_length < 3 || WarcVersion < 120)
                 return;
-            uint effective_length = Math.Min (data_length, 1024u);
+            uint effective_length = Math.Min(data_length, 1024u);
             int a, b;
             uint fac = 0;
             Rand = data_length;
             if (WarcVersion > 120)
             {
-                a = (sbyte)data[index]   ^ (sbyte)data_length;
-                b = (sbyte)data[index+1] ^ (sbyte)(data_length / 2);
+                a = (sbyte)data[index] ^ (sbyte)data_length;
+                b = (sbyte)data[index + 1] ^ (sbyte)(data_length / 2);
                 if (data_length != MaxIndexLength && (WarcVersion > 130 || m_scheme.Version > 2150))
                 {
                     // ... regular entry decryption
@@ -155,10 +155,10 @@ namespace GameRes.Formats.ShiinaRio
                     if (WarcVersion >= 160)
                     {
                         fac = Rand + m_scheme.ShiinaImage[idx];
-                        fac = DecryptHelper3 (fac) & 0xfffffff;
+                        fac = DecryptHelper3(fac) & 0xfffffff;
                         if (effective_length > 0x80 && SchemeVersion > 2350)
                         {
-                            DecryptHelper4 (data, index+4, m_scheme.HelperKey);
+                            DecryptHelper4(data, index + 4, m_scheme.HelperKey);
                             index += 0x80;
                             effective_length -= 0x80;
                         }
@@ -190,29 +190,29 @@ namespace GameRes.Formats.ShiinaRio
             else
             {
                 a = data[index];
-                b = data[index+1];
+                b = data[index + 1];
             }
-            Rand ^= (uint)(DecryptHelper1 (a) * 100000000.0);
+            Rand ^= (uint)(DecryptHelper1(a) * 100000000.0);
 
             double token = 0.0;
-            if (0 != (a|b))
+            if (0 != (a | b))
             {
-                token = Math.Acos ((double)a / Math.Sqrt ((double)(a*a + b*b)));
+                token = Math.Acos((double)a / Math.Sqrt((double)(a * a + b * b)));
                 token = token / Math.PI * 180.0;
             }
             if (b < 0)
                 token = 360.0 - token;
 
-            int x = (int)((fac + (byte)DecryptHelper2 (token)) % (uint)m_scheme.CryptKey.Length);
-            encryptor (x, data, index, effective_length);
+            int x = (int)((fac + (byte)DecryptHelper2(token)) % (uint)m_scheme.CryptKey.Length);
+            encryptor(x, data, index, effective_length);
         }
 
-        unsafe void XorIndex (uint index_offset, byte[] index)
+        unsafe void XorIndex(uint index_offset, byte[] index)
         {
             fixed (byte* buf_raw = index)
             {
                 uint* encoded = (uint*)buf_raw;
-                for (int i = 0; i < index.Length/4; ++i)
+                for (int i = 0; i < index.Length / 4; ++i)
                     encoded[i] ^= index_offset;
                 if (WarcVersion >= 170)
                 {
@@ -223,16 +223,16 @@ namespace GameRes.Formats.ShiinaRio
             }
         }
 
-        public void Decrypt2 (byte[] data, int index, uint length)
+        public void Decrypt2(byte[] data, int index, uint length)
         {
             if (length < 0x400 || null == m_scheme.DecodeBin)
                 return;
-            uint crc = Crc32Normal.UpdateCrc (0xFFFFFFFF, data, index, 0x100);
+            uint crc = Crc32Normal.UpdateCrc(0xFFFFFFFF, data, index, 0x100);
             index += 0x100;
             for (int i = 0; i < 0x40; ++i)
             {
-                uint src = LittleEndian.ToUInt32 (data, index) & 0x1ffcu;
-                src = LittleEndian.ToUInt32 (m_scheme.DecodeBin, (int)src);
+                uint src = LittleEndian.ToUInt32(data, index) & 0x1ffcu;
+                src = LittleEndian.ToUInt32(m_scheme.DecodeBin, (int)src);
                 uint key = src ^ crc;
                 data[index++ + 0x100] ^= (byte)key;
                 data[index++ + 0x100] ^= (byte)(key >> 8);
@@ -241,10 +241,10 @@ namespace GameRes.Formats.ShiinaRio
             }
         }
 
-        double DecryptHelper1 (double a)
+        double DecryptHelper1(double a)
         {
             if (a < 0)
-                return -DecryptHelper1 (-a);
+                return -DecryptHelper1(-a);
 
             double v0;
             double v1;
@@ -273,7 +273,7 @@ namespace GameRes.Formats.ShiinaRio
             double v1_l = 0;
             v0 = 0;
             int i = 0;
-            
+
             do
             {
                 v0 += div;
@@ -309,14 +309,14 @@ namespace GameRes.Formats.ShiinaRio
             return ((Math.PI - Math.Cos(a) * (v0_l + v0_h)) - (Math.Sin(a) * (v1_l + v1_h))) / 2.0;
         }
 
-        uint DecryptHelper2 (double a)
+        uint DecryptHelper2(double a)
         {
             double v0, v1, v2, v3;
 
             if (a > 1.0)
             {
-                v0 = Math.Sqrt (a * 2 - 1);	
-                for (;;)
+                v0 = Math.Sqrt(a * 2 - 1);
+                for (; ; )
                 {
                     v1 = 1 - (double)NextRand() / 4294967296.0;
                     v2 = 2.0 * (double)NextRand() / 4294967296.0 - 1.0;
@@ -328,7 +328,7 @@ namespace GameRes.Formats.ShiinaRio
                     if (v3 <= 0)
                         continue;
 
-                    v1 = (a - 1.0) * Math.Log (v3 / (a - 1.0)) - v2 * v0;
+                    v1 = (a - 1.0) * Math.Log(v3 / (a - 1.0)) - v2 * v0;
                     if (v1 < -50.0)
                         continue;
 
@@ -347,7 +347,8 @@ namespace GameRes.Formats.ShiinaRio
                     {
                         v3 = Math.Pow(v2, 1.0 / a);
                         v1 = Math.Exp(-v3);
-                    } else
+                    }
+                    else
                     {
                         v3 = 1.0 - Math.Log(v2);
                         v1 = Math.Pow(v3, a - 1.0);
@@ -359,7 +360,7 @@ namespace GameRes.Formats.ShiinaRio
             if (WarcVersion > 120)
                 return (uint)(v3 * 256.0);
             else
-                return (byte)((double)NextRand() / 4294967296.0);	
+                return (byte)((double)NextRand() / 4294967296.0);
         }
 
         [StructLayout(LayoutKind.Explicit)]
@@ -367,7 +368,7 @@ namespace GameRes.Formats.ShiinaRio
         {
             [FieldOffset(0)]
             public int i;
-            [FieldOffset (0)]
+            [FieldOffset(0)]
             public uint u;
             [FieldOffset(0)]
             public float f;
@@ -381,13 +382,13 @@ namespace GameRes.Formats.ShiinaRio
             public byte b3;
         }
 
-        uint DecryptHelper3 (uint key)
+        uint DecryptHelper3(uint key)
         {
             var p = new Union();
             p.u = key;
             var fv = new Union();
             fv.f = (float)(1.5 * (double)p.b0 + 0.1);
-            uint v0 = Binary.BigEndian (fv.u);
+            uint v0 = Binary.BigEndian(fv.u);
             fv.f = (float)(1.5 * (double)p.b1 + 0.1);
             uint v1 = (uint)fv.f;
             fv.f = (float)(1.5 * (double)p.b2 + 0.1);
@@ -398,24 +399,24 @@ namespace GameRes.Formats.ShiinaRio
             return ((v0 + v1) | (v2 - v3));
         }
 
-        void DecryptHelper4 (byte[] data, int index, uint[] key_src)
+        void DecryptHelper4(byte[] data, int index, uint[] key_src)
         {
             uint[] buf = new uint[0x50];
             int i;
             for (i = 0; i < 0x10; ++i)
             {
-                buf[i] = BigEndian.ToUInt32 (data, index+40+4*i);
+                buf[i] = BigEndian.ToUInt32(data, index + 40 + 4 * i);
             }
             for (; i < 0x50; ++i)
             {
-                uint v = buf[i-16];
-                v ^= buf[i-14];
-                v ^= buf[i-8];
-                v ^= buf[i-3];
-                buf[i] = Binary.RotL (v, 1);
+                uint v = buf[i - 16];
+                v ^= buf[i - 14];
+                v ^= buf[i - 8];
+                v ^= buf[i - 3];
+                buf[i] = Binary.RotL(v, 1);
             }
             uint[] key = new uint[10];
-            Array.Copy (key_src, key, 5);
+            Array.Copy(key_src, key, 5);
             uint k0 = key[0];
             uint k1 = key[1];
             uint k2 = key[2];
@@ -450,8 +451,8 @@ namespace GameRes.Formats.ShiinaRio
                     f = k1 ^ (k2 | ~k3);
                     c = 0xA953FD4E;
                 }
-                uint new_k0 = buf[buf_idx] + k4 + f + c + Binary.RotL (k0, 5);
-                uint new_k2 = Binary.RotR (k1, 2);
+                uint new_k0 = buf[buf_idx] + k4 + f + c + Binary.RotL(k0, 5);
+                uint new_k2 = Binary.RotR(k1, 2);
                 k1 = k0;
                 k4 = k3;
                 k3 = k2;
@@ -463,20 +464,21 @@ namespace GameRes.Formats.ShiinaRio
             key[2] += k2;
             key[3] += k3;
             key[4] += k4;
-            var ft = new FILETIME {
+            var ft = new FILETIME
+            {
                 DateTimeLow = key[1],
                 DateTimeHigh = key[0] & 0x7FFFFFFF
             };
-            var sys_time = new SYSTEMTIME (ft);
+            var sys_time = new SYSTEMTIME(ft);
             key[5] = (uint)(sys_time.Year | sys_time.Month << 16);
             key[7] = (uint)(sys_time.Hour | sys_time.Minute << 16);
             key[8] = (uint)(sys_time.Second | sys_time.Milliseconds << 16);
 
-            uint flags = LittleEndian.ToUInt32 (data, index+40) | 0x80000000;
+            uint flags = LittleEndian.ToUInt32(data, index + 40) | 0x80000000;
             uint rgb = buf[1] >> 8; // BigEndian.ToUInt32 (data, index+44) >> 8;
             if (0 == (flags & 0x78000000))
                 flags |= 0x98000000;
-            key[6] = RegionCrc32 (m_scheme.Region, flags, rgb);
+            key[6] = RegionCrc32(m_scheme.Region, flags, rgb);
             key[9] = (uint)(((int)key[2] * (long)(int)key[3]) >> 8);
             if (m_scheme.Version >= 2390)
                 key[6] += key[9];
@@ -484,7 +486,7 @@ namespace GameRes.Formats.ShiinaRio
             {
                 fixed (byte* data_fixed = data)
                 {
-                    uint* encoded = (uint*)(data_fixed+index);
+                    uint* encoded = (uint*)(data_fixed + index);
                     for (i = 0; i < 10; ++i)
                     {
                         encoded[i] ^= key[i];
@@ -495,7 +497,7 @@ namespace GameRes.Formats.ShiinaRio
 
         static readonly uint[] CustomCrcTable = InitCrcTable();
 
-        static uint[] InitCrcTable ()
+        static uint[] InitCrcTable()
         {
             var table = new uint[0x100];
             for (uint i = 0; i != 256; ++i)
@@ -504,7 +506,7 @@ namespace GameRes.Formats.ShiinaRio
                 for (int j = 0; j < 8; ++j)
                 {
                     uint bit = poly & 1;
-                    poly = Binary.RotR (poly, 1);
+                    poly = Binary.RotR(poly, 1);
                     if (0 == bit)
                         poly ^= 0x6DB88320;
                 }
@@ -513,7 +515,7 @@ namespace GameRes.Formats.ShiinaRio
             return table;
         }
 
-        uint RegionCrc32 (byte[] src, uint flags, uint rgb)
+        uint RegionCrc32(byte[] src, uint flags, uint rgb)
         {
             int src_alpha = (int)flags & 0x1ff;
             int dst_alpha = (int)(flags >> 12) & 0x1ff;
@@ -529,13 +531,13 @@ namespace GameRes.Formats.ShiinaRio
             if (0 != (flags & 0x40)) // horizontal flip
             {
                 y_step += width;
-                pos += (width-1)*4;
+                pos += (width - 1) * 4;
                 x_step = -x_step;
             }
             if (0 != (flags & 0x20)) // vertical flip
             {
                 y_step -= width;
-                pos += width*0x2f*4; // width*(height-1)*4;
+                pos += width * 0x2f * 4; // width*(height-1)*4;
             }
             y_step <<= 3;
             uint checksum = 0;
@@ -543,12 +545,12 @@ namespace GameRes.Formats.ShiinaRio
             {
                 for (int x = 0; x < 48; ++x)
                 {
-                    int alpha = src[pos+3] * src_alpha;
+                    int alpha = src[pos + 3] * src_alpha;
                     alpha >>= 8;
                     uint color = rgb;
                     for (int i = 0; i < 3; ++i)
                     {
-                        int v = src[pos+i];
+                        int v = src[pos + i];
                         int c = (int)(color & 0xff); // rgb[i];
                         c -= v;
                         c = (c * dst_alpha) >> 8;
@@ -583,22 +585,22 @@ namespace GameRes.Formats.ShiinaRio
             [MarshalAs(UnmanagedType.U2)] public ushort Second;
             [MarshalAs(UnmanagedType.U2)] public ushort Milliseconds;
 
-            public SYSTEMTIME (FILETIME ft)
+            public SYSTEMTIME(FILETIME ft)
             {
-                FileTimeToSystemTime (ref ft, out this);
+                FileTimeToSystemTime(ref ft, out this);
             }
 
-            [DllImport ("kernel32.dll", CallingConvention = CallingConvention.Winapi, SetLastError = true)]
-            static extern bool FileTimeToSystemTime (ref FILETIME lpFileTime, out SYSTEMTIME lpSystemTime);
+            [DllImport("kernel32.dll", CallingConvention = CallingConvention.Winapi, SetLastError = true)]
+            static extern bool FileTimeToSystemTime(ref FILETIME lpFileTime, out SYSTEMTIME lpSystemTime);
         }
 
-        uint NextRand ()
+        uint NextRand()
         {
             Rand = 1566083941u * Rand + 1u;
             return Rand;
         }
 
-        uint GetMaxIndexLength (int version)
+        uint GetMaxIndexLength(int version)
         {
             int max_index_entries = version < 150 || SchemeVersion < 2310 ? 8192 : 16384;
             return (uint)((m_scheme.EntryNameSize + 0x18) * max_index_entries);
@@ -610,19 +612,19 @@ namespace GameRes.Formats.ShiinaRio
     [Serializable]
     public class ImageArray : IByteArray
     {
-        private byte[]  m_common;
-        private byte[]  m_extra;
-        private int     m_common_length;
+        private byte[] m_common;
+        private byte[] m_extra;
+        private int m_common_length;
 
-        public ImageArray (byte[] common) : this (common, common.Length, Array.Empty<byte>())
+        public ImageArray(byte[] common) : this(common, common.Length, Array.Empty<byte>())
         {
         }
 
-        public ImageArray (byte[] common, byte[] extra) : this (common, common.Length, extra)
+        public ImageArray(byte[] common, byte[] extra) : this(common, common.Length, extra)
         {
         }
 
-        public ImageArray (byte[] common, int common_length, byte[] extra)
+        public ImageArray(byte[] common, int common_length, byte[] extra)
         {
             if (common_length > common.Length)
                 throw new IndexOutOfRangeException();
@@ -648,46 +650,46 @@ namespace GameRes.Formats.ShiinaRio
     [Serializable]
     public abstract class KeyDecryptBase : IDecryptExtra
     {
-        protected readonly uint     Seed;
-        protected readonly byte[]   DecodeTable;
+        protected readonly uint Seed;
+        protected readonly byte[] DecodeTable;
         protected uint MinLength = 0x400;
         protected int PostDataOffset = 0x200;
 
-        public KeyDecryptBase (uint seed, byte[] decode_bin)
+        public KeyDecryptBase(uint seed, byte[] decode_bin)
         {
             Seed = seed;
             DecodeTable = decode_bin;
         }
 
-        public void Decrypt (byte[] data, int index, uint length, uint flags)
+        public void Decrypt(byte[] data, int index, uint length, uint flags)
         {
             if (length < MinLength)
                 return;
             if ((flags & 0x202) == 0x202)
-                DecryptPre (data, index, length);
+                DecryptPre(data, index, length);
             if ((flags & 0x204) == 0x204)
-                DecryptPost (data, index, length);
+                DecryptPost(data, index, length);
         }
 
-        public void Encrypt (byte[] data, int index, uint length, uint flags)
+        public void Encrypt(byte[] data, int index, uint length, uint flags)
         {
             if (length < MinLength)
                 return;
             if ((flags & 0x104) == 0x104)
-                DecryptPost (data, index, length);
+                DecryptPost(data, index, length);
             if ((flags & 0x102) == 0x102)
-                DecryptPre (data, index, length);
+                DecryptPre(data, index, length);
         }
 
-        protected abstract void DecryptPre (byte[] data, int index, uint length);
+        protected abstract void DecryptPre(byte[] data, int index, uint length);
 
-        protected virtual void DecryptPost (byte[] data, int index, uint length)
+        protected virtual void DecryptPost(byte[] data, int index, uint length)
         {
             int pos = index + PostDataOffset;
-            data[pos  ] ^= (byte)Seed;
-            data[pos+1] ^= (byte)(Seed >> 8);
-            data[pos+2] ^= (byte)(Seed >> 16);
-            data[pos+3] ^= (byte)(Seed >> 24);
+            data[pos] ^= (byte)Seed;
+            data[pos + 1] ^= (byte)(Seed >> 8);
+            data[pos + 2] ^= (byte)(Seed >> 16);
+            data[pos + 3] ^= (byte)(Seed >> 24);
         }
     }
 
@@ -696,14 +698,14 @@ namespace GameRes.Formats.ShiinaRio
     {
         protected int EncryptedSize = 0xFF;
 
-        public KeyDecryptExtra (uint seed, byte[] decode_bin) : base (seed, decode_bin)
+        public KeyDecryptExtra(uint seed, byte[] decode_bin) : base(seed, decode_bin)
         {
         }
 
-        protected override void DecryptPre (byte[] data, int index, uint length)
+        protected override void DecryptPre(byte[] data, int index, uint length)
         {
             var k = new uint[4];
-            InitKey (Seed, k);
+            InitKey(Seed, k);
             for (int i = 0; i < EncryptedSize; ++i)
             {
                 uint j = k[3] ^ (k[3] << 11) ^ k[0] ^ ((k[3] ^ (k[3] << 11) ^ (k[0] >> 11)) >> 8);
@@ -715,17 +717,17 @@ namespace GameRes.Formats.ShiinaRio
             }
         }
 
-        protected abstract void InitKey (uint key, uint[] k);
+        protected abstract void InitKey(uint key, uint[] k);
     }
 
     [Serializable]
     public class ShojoMamaCrypt : KeyDecryptExtra
     {
-        public ShojoMamaCrypt (uint key, byte[] bin) : base (key, bin)
+        public ShojoMamaCrypt(uint key, byte[] bin) : base(key, bin)
         {
         }
 
-        protected override void InitKey (uint key, uint[] k)
+        protected override void InitKey(uint key, uint[] k)
         {
             k[0] = key + 1;
             k[1] = key + 4;
@@ -737,13 +739,13 @@ namespace GameRes.Formats.ShiinaRio
     [Serializable]
     public class YuruPlusCrypt : KeyDecryptExtra
     {
-        public YuruPlusCrypt (uint key, byte[] bin) : base (key, bin)
+        public YuruPlusCrypt(uint key, byte[] bin) : base(key, bin)
         {
             EncryptedSize = 0x100;
             PostDataOffset = 0x204;
         }
 
-        protected override void InitKey (uint key, uint[] k)
+        protected override void InitKey(uint key, uint[] k)
         {
             k[0] = key + 4;
             k[1] = key + 3;
@@ -755,11 +757,11 @@ namespace GameRes.Formats.ShiinaRio
     [Serializable]
     public class TestamentCrypt : KeyDecryptExtra // Shinigami no Testament
     {
-        public TestamentCrypt (uint key, byte[] bin) : base (key, bin)
+        public TestamentCrypt(uint key, byte[] bin) : base(key, bin)
         {
         }
 
-        protected override void InitKey (uint key, uint[] k)
+        protected override void InitKey(uint key, uint[] k)
         {
             k[0] = key + 3;
             k[1] = key + 2;
@@ -771,17 +773,17 @@ namespace GameRes.Formats.ShiinaRio
     [Serializable]
     public class MakiFesCrypt : KeyDecryptBase
     {
-        public MakiFesCrypt (uint seed, byte[] key) : base (seed, key)
+        public MakiFesCrypt(uint seed, byte[] key) : base(seed, key)
         {
         }
 
-        protected override void DecryptPre (byte[] data, int index, uint length)
+        protected override void DecryptPre(byte[] data, int index, uint length)
         {
             uint k = Seed;
             for (int i = 0; i < 0x100; ++i)
             {
                 k = 0x343FD * k + 0x269EC3;
-                data[index+i] ^= DecodeTable[((int)(k >> 16) & 0x7FFF) % DecodeTable.Length];
+                data[index + i] ^= DecodeTable[((int)(k >> 16) & 0x7FFF) % DecodeTable.Length];
             }
         }
     }
@@ -789,57 +791,57 @@ namespace GameRes.Formats.ShiinaRio
     [Serializable]
     public class MajimeCrypt : IDecryptExtra
     {
-        public void Decrypt (byte[] data, int index, uint length, uint flags)
+        public void Decrypt(byte[] data, int index, uint length, uint flags)
         {
             if (length < 0x200)
                 return;
             if ((flags & 0x202) == 0x202)
             {
-                int sum = RotateBytesRight (data, index, 0x100);
+                int sum = RotateBytesRight(data, index, 0x100);
                 data[index + 0x104] ^= (byte)sum;
                 data[index + 0x105] ^= (byte)(sum >> 8);
             }
         }
 
-        public void Encrypt (byte[] data, int index, uint length, uint flags)
+        public void Encrypt(byte[] data, int index, uint length, uint flags)
         {
             if (length < 0x200)
                 return;
             if ((flags & 0x102) == 0x102)
             {
-                int sum = RotateBytesLeft (data, index, 0x100);
+                int sum = RotateBytesLeft(data, index, 0x100);
                 data[index + 0x104] ^= (byte)sum;
                 data[index + 0x105] ^= (byte)(sum >> 8);
             }
         }
 
-        internal int RotateBytesRight (byte[] data, int index, int length)
+        internal int RotateBytesRight(byte[] data, int index, int length)
         {
             int sum = 0;
             int bit = 0;
             for (int i = 0; i < length; ++i)
             {
-                byte v = data[index+i];
+                byte v = data[index + i];
                 sum += v >> 1;
-                data[index+i] = (byte)(v >> 1 | bit);
+                data[index + i] = (byte)(v >> 1 | bit);
                 bit = v << 7;
             }
             data[index] |= (byte)bit;
             return sum;
         }
 
-        internal int RotateBytesLeft (byte[] data, int index, int length)
+        internal int RotateBytesLeft(byte[] data, int index, int length)
         {
             int sum = 0;
             int bit = 0;
-            for (int i = length-1; i >= 0; --i)
+            for (int i = length - 1; i >= 0; --i)
             {
-                byte v = data[index+i];
+                byte v = data[index + i];
                 sum += v & 0x7F;
-                data[index+i] = (byte)(v << 1 | bit);
+                data[index + i] = (byte)(v << 1 | bit);
                 bit = v >> 7;
             }
-            data[index + length-1] |= (byte)bit;
+            data[index + length - 1] |= (byte)bit;
             return sum;
         }
     }
@@ -847,25 +849,25 @@ namespace GameRes.Formats.ShiinaRio
     [Serializable]
     public class NyaruCrypt : MajimeCrypt, IDecryptExtra
     {
-        new public void Decrypt (byte[] data, int index, uint length, uint flags)
+        new public void Decrypt(byte[] data, int index, uint length, uint flags)
         {
             if (length < 0x200)
                 return;
             if ((flags & 0x204) == 0x204)
             {
-                int sum = RotateBytesRight (data, index, 0x100);
+                int sum = RotateBytesRight(data, index, 0x100);
                 data[index + 0x100] ^= (byte)sum;
                 data[index + 0x101] ^= (byte)(sum >> 8);
             }
         }
 
-        new public void Encrypt (byte[] data, int index, uint length, uint flags)
+        new public void Encrypt(byte[] data, int index, uint length, uint flags)
         {
             if (length < 0x200)
                 return;
             if ((flags & 0x104) == 0x104)
             {
-                int sum = RotateBytesLeft (data, index, 0x100);
+                int sum = RotateBytesLeft(data, index, 0x100);
                 data[index + 0x100] ^= (byte)sum;
                 data[index + 0x101] ^= (byte)(sum >> 8);
             }
@@ -875,22 +877,22 @@ namespace GameRes.Formats.ShiinaRio
     [Serializable]
     public class AlcotCrypt : IDecryptExtra
     {
-        public void Decrypt (byte[] data, int index, uint length, uint flags)
+        public void Decrypt(byte[] data, int index, uint length, uint flags)
         {
             if (length >= 0x400 && (flags & 0x204) == 0x204)
-                Crc16Crypt (data, index, (int)length);
+                Crc16Crypt(data, index, (int)length);
         }
 
-        public void Encrypt (byte[] data, int index, uint length, uint flags)
+        public void Encrypt(byte[] data, int index, uint length, uint flags)
         {
             if (length >= 0x400 && (flags & 0x104) == 0x104)
-                Crc16Crypt (data, index, (int)length);
+                Crc16Crypt(data, index, (int)length);
         }
 
-        void Crc16Crypt (byte[] data, int index, int length)
+        void Crc16Crypt(byte[] data, int index, int length)
         {
             var crc16 = new Crc16();
-            crc16.Update (data, index, length & 0x7E | 1);
+            crc16.Update(data, index, length & 0x7E | 1);
             var sum = crc16.Value ^ 0xFFFF;
             data[index + 0x104] ^= (byte)sum;
             data[index + 0x105] ^= (byte)(sum >> 8);
@@ -900,17 +902,17 @@ namespace GameRes.Formats.ShiinaRio
     [Serializable]
     public class DodakureCrypt : IDecryptExtra
     {
-        public void Decrypt (byte[] data, int index, uint length, uint flags)
+        public void Decrypt(byte[] data, int index, uint length, uint flags)
         {
             if (length < 0x200)
                 return;
             if ((flags & 0x204) == 0x204)
             {
-                if (0x718E958D == LittleEndian.ToUInt32 (data, index))
+                if (0x718E958D == LittleEndian.ToUInt32(data, index))
                 {
                     var input = new byte[0x200];
-                    Buffer.BlockCopy (data, index, input, 0, 0x200);
-                    int remaining = LittleEndian.ToInt32 (input, 8);
+                    Buffer.BlockCopy(data, index, input, 0, 0x200);
+                    int remaining = LittleEndian.ToInt32(input, 8);
                     int src = 12;
                     int dst = index;
                     bool rle = false;
@@ -919,13 +921,13 @@ namespace GameRes.Formats.ShiinaRio
                         int count = input[src++];
                         if (rle)
                         {
-                            byte v = data[dst-1];
+                            byte v = data[dst - 1];
                             for (int i = 0; i < count; ++i)
                                 data[dst++] = v;
                         }
                         else
                         {
-                            Buffer.BlockCopy (input, src, data, dst, count);
+                            Buffer.BlockCopy(input, src, data, dst, count);
                             src += count;
                             dst += count;
                         }
@@ -945,7 +947,7 @@ namespace GameRes.Formats.ShiinaRio
             }
         }
 
-        public void Encrypt (byte[] data, int index, uint length, uint flags)
+        public void Encrypt(byte[] data, int index, uint length, uint flags)
         {
             if (length < 0x200)
                 return;
@@ -959,17 +961,17 @@ namespace GameRes.Formats.ShiinaRio
     [Serializable]
     public class JokersCrypt : IDecryptExtra
     {
-        public void Decrypt (byte[] data, int index, uint length, uint flags)
+        public void Decrypt(byte[] data, int index, uint length, uint flags)
         {
             if (length < 0x400)
                 return;
             if ((flags & 0x204) == 0x204)
             {
-                if (0x718E958D == LittleEndian.ToUInt32 (data, index))
+                if (0x718E958D == LittleEndian.ToUInt32(data, index))
                 {
                     var input = new byte[0x200];
-                    Buffer.BlockCopy (data, index, input, 0, 0x200);
-                    int remaining = LittleEndian.ToInt32 (input, 8);
+                    Buffer.BlockCopy(data, index, input, 0, 0x200);
+                    int remaining = LittleEndian.ToInt32(input, 8);
                     int src = 12;
                     int dst = index;
                     var ranges_hi = new uint[0x100];
@@ -978,28 +980,28 @@ namespace GameRes.Formats.ShiinaRio
                     {
                         uint v = input[src++];
                         ranges_hi[i] = v;
-                        ranges_lo[i+1] = v + ranges_lo[i];
+                        ranges_lo[i + 1] = v + ranges_lo[i];
                     }
                     uint denominator = ranges_lo[0x100];
                     var symbol_table = new byte[denominator];
                     uint low, high;
                     for (int i = 0; i < 0x100; ++i)
                     {
-                        low  = ranges_lo[i];
+                        low = ranges_lo[i];
                         high = ranges_lo[i + 1];
                         int count = (int)(high - low);
                         for (int j = 0; j < count; ++j)
                             symbol_table[low + j] = (byte)i;
                     }
-                    low  = 0;
+                    low = 0;
                     high = 0xFFFFFFFF;
-                    uint current = BigEndian.ToUInt32 (input, src);
+                    uint current = BigEndian.ToUInt32(input, src);
                     src += 4;
                     for (int i = 0; i < remaining; ++i)
                     {
                         uint range = high / denominator;
                         byte symbol = symbol_table[(current - low) / range];
-                        data[index+i] = symbol;
+                        data[index + i] = symbol;
                         low += ranges_lo[symbol] * range;
                         high = ranges_hi[symbol] * range;
                         while (0 == ((low ^ (high + low)) & 0xFF000000u))
@@ -1025,7 +1027,7 @@ namespace GameRes.Formats.ShiinaRio
             }
         }
 
-        public void Encrypt (byte[] data, int index, uint length, uint flags)
+        public void Encrypt(byte[] data, int index, uint length, uint flags)
         {
             if (length < 0x400)
                 return;
@@ -1039,13 +1041,13 @@ namespace GameRes.Formats.ShiinaRio
     [Serializable]
     public class KeyAdlerCrypt : KeyDecryptBase
     {
-        public KeyAdlerCrypt (uint key) : base (key, null)
+        public KeyAdlerCrypt(uint key) : base(key, null)
         {
         }
 
-        protected override void DecryptPre (byte[] data, int index, uint length)
+        protected override void DecryptPre(byte[] data, int index, uint length)
         {
-            uint key = Adler32.Compute (data, index, 0x100);
+            uint key = Adler32.Compute(data, index, 0x100);
             data[index + 0x204] ^= (byte)key;
             data[index + 0x205] ^= (byte)(key >> 8);
             data[index + 0x206] ^= (byte)(key >> 16);
@@ -1056,9 +1058,9 @@ namespace GameRes.Formats.ShiinaRio
     [Serializable]
     public class AdlerCrypt
     {
-        internal void Transform (byte[] data, int index, int length)
+        internal void Transform(byte[] data, int index, int length)
         {
-            uint key = Adler32.Compute (data, index, length);
+            uint key = Adler32.Compute(data, index, length);
             data[index + 0x200] ^= (byte)key;
             data[index + 0x201] ^= (byte)(key >> 8);
             data[index + 0x202] ^= (byte)(key >> 16);
@@ -1069,50 +1071,50 @@ namespace GameRes.Formats.ShiinaRio
     [Serializable]
     public class PostAdlerCrypt : AdlerCrypt, IDecryptExtra
     {
-        public void Decrypt (byte[] data, int index, uint length, uint flags)
+        public void Decrypt(byte[] data, int index, uint length, uint flags)
         {
             if (length >= 0x400 && (flags & 0x204) == 0x204)
-                Transform (data, index, 0xFF);
+                Transform(data, index, 0xFF);
         }
 
-        public void Encrypt (byte[] data, int index, uint length, uint flags)
+        public void Encrypt(byte[] data, int index, uint length, uint flags)
         {
             if (length >= 0x400 && (flags & 0x104) == 0x104)
-                Transform (data, index, 0xFF);
+                Transform(data, index, 0xFF);
         }
     }
 
     [Serializable]
     public class PreAdlerCrypt : AdlerCrypt, IDecryptExtra
     {
-        public void Decrypt (byte[] data, int index, uint length, uint flags)
+        public void Decrypt(byte[] data, int index, uint length, uint flags)
         {
             if (length >= 0x400 && (flags & 0x202) == 0x202)
-                Transform (data, index, 0xFF);
+                Transform(data, index, 0xFF);
         }
 
-        public void Encrypt (byte[] data, int index, uint length, uint flags)
+        public void Encrypt(byte[] data, int index, uint length, uint flags)
         {
             if (length >= 0x400 && (flags & 0x102) == 0x102)
-                Transform (data, index, 0xFF);
+                Transform(data, index, 0xFF);
         }
     }
 
     [Serializable]
     public class BinboCrypt : IDecryptExtra
     {
-        public void Decrypt (byte[] data, int index, uint length, uint flags)
+        public void Decrypt(byte[] data, int index, uint length, uint flags)
         {
             if (length < 0x200)
                 return;
             if ((flags & 0x204) == 0x204)
             {
-                if (0x718E958D == LittleEndian.ToUInt32 (data, index))
+                if (0x718E958D == LittleEndian.ToUInt32(data, index))
                 {
                     var input = new byte[0x200];
-                    Buffer.BlockCopy (data, index, input, 0, 0x200);
-                    var reader = new LzComp (input, 8);
-                    reader.Unpack (data, index);
+                    Buffer.BlockCopy(data, index, input, 0, 0x200);
+                    var reader = new LzComp(input, 8);
+                    reader.Unpack(data, index);
                 }
                 if (length > 0x200)
                     data[index + 0x200] ^= (byte)length;
@@ -1125,7 +1127,7 @@ namespace GameRes.Formats.ShiinaRio
             }
         }
 
-        public void Encrypt (byte[] data, int index, uint length, uint flags)
+        public void Encrypt(byte[] data, int index, uint length, uint flags)
         {
             if (length < 0x200)
                 return;
@@ -1137,19 +1139,19 @@ namespace GameRes.Formats.ShiinaRio
 
         sealed class LzComp
         {
-            byte[]  m_input;
-            int     m_src;
+            byte[] m_input;
+            int m_src;
 
-            uint    m_bits;
-            int     m_bits_count;
+            uint m_bits;
+            int m_bits_count;
 
-            public LzComp (byte[] input, int index)
+            public LzComp(byte[] input, int index)
             {
                 m_input = input;
                 m_src = index;
             }
 
-            public void Unpack (byte[] output, int dst)
+            public void Unpack(byte[] output, int dst)
             {
                 FillBitCache();
                 while (m_src < m_input.Length)
@@ -1162,7 +1164,7 @@ namespace GameRes.Formats.ShiinaRio
                     int count, offset;
                     if (GetBit() != 0)
                     {
-                        count = LittleEndian.ToUInt16 (m_input, m_src);
+                        count = LittleEndian.ToUInt16(m_input, m_src);
                         m_src += 2;
                         offset = count >> 3 | -0x2000;
                         count &= 7;
@@ -1185,12 +1187,12 @@ namespace GameRes.Formats.ShiinaRio
                         count += 2;
                         offset = m_input[m_src++] | -0x100;
                     }
-                    Binary.CopyOverlapped (output, dst+offset, dst, count);
+                    Binary.CopyOverlapped(output, dst + offset, dst, count);
                     dst += count;
                 }
             }
 
-            int GetBit ()
+            int GetBit()
             {
                 uint v = m_bits >> --m_bits_count;
                 if (m_bits_count <= 0)
@@ -1200,9 +1202,9 @@ namespace GameRes.Formats.ShiinaRio
                 return (int)(v & 1);
             }
 
-            void FillBitCache ()
+            void FillBitCache()
             {
-                m_bits = LittleEndian.ToUInt32 (m_input, m_src);
+                m_bits = LittleEndian.ToUInt32(m_input, m_src);
                 m_src += 4;
                 m_bits_count = 32;
             }
@@ -1212,19 +1214,19 @@ namespace GameRes.Formats.ShiinaRio
     [Serializable]
     public class CountCrypt : IDecryptExtra
     {
-        public void Decrypt (byte[] data, int index, uint length, uint flags)
+        public void Decrypt(byte[] data, int index, uint length, uint flags)
         {
             if ((flags & 0x204) == 0x204)
-                DoCountCrypt (data, index, (int)length);
+                DoCountCrypt(data, index, (int)length);
         }
 
-        public void Encrypt (byte[] data, int index, uint length, uint flags)
+        public void Encrypt(byte[] data, int index, uint length, uint flags)
         {
             if ((flags & 0x104) == 0x104)
-                DoCountCrypt (data, index, (int)length);
+                DoCountCrypt(data, index, (int)length);
         }
 
-        void DoCountCrypt (byte[] data, int index, int length)
+        void DoCountCrypt(byte[] data, int index, int length)
         {
             if (length < 0x200)
                 return;
@@ -1232,9 +1234,9 @@ namespace GameRes.Formats.ShiinaRio
             byte count_00 = 0, count_FF = 0;
             for (int i = 0; i < length; ++i)
             {
-                if (0xFF == data[index+i])
+                if (0xFF == data[index + i])
                     count_FF++;
-                else if (0 == data[index+i])
+                else if (0 == data[index + i])
                     count_00++;
             }
             data[index + 0x100] ^= count_00;
@@ -1245,19 +1247,19 @@ namespace GameRes.Formats.ShiinaRio
     [Serializable]
     public class AltCountCrypt : IDecryptExtra
     {
-        public void Decrypt (byte[] data, int index, uint length, uint flags)
+        public void Decrypt(byte[] data, int index, uint length, uint flags)
         {
             if ((flags & 0x204) == 0x204)
-                DoCountCrypt (data, index, (int)length);
+                DoCountCrypt(data, index, (int)length);
         }
 
-        public void Encrypt (byte[] data, int index, uint length, uint flags)
+        public void Encrypt(byte[] data, int index, uint length, uint flags)
         {
             if ((flags & 0x104) == 0x104)
-                DoCountCrypt (data, index, (int)length);
+                DoCountCrypt(data, index, (int)length);
         }
 
-        void DoCountCrypt (byte[] data, int index, int length)
+        void DoCountCrypt(byte[] data, int index, int length)
         {
             if (length < 0x400)
                 return;
@@ -1265,9 +1267,9 @@ namespace GameRes.Formats.ShiinaRio
             byte count_00 = 0, count_FF = 0;
             for (int i = 0; i < length; ++i)
             {
-                if (0xFF == data[index+i])
+                if (0xFF == data[index + i])
                     count_FF++;
-                else if (0 == data[index+i])
+                else if (0 == data[index + i])
                     count_00++;
             }
             data[index + 0x100] ^= count_FF;
@@ -1280,24 +1282,24 @@ namespace GameRes.Formats.ShiinaRio
     {
         protected readonly uint m_key;
 
-        public UshimitsuCrypt (uint key)
+        public UshimitsuCrypt(uint key)
         {
             m_key = key;
         }
 
-        public void Decrypt (byte[] data, int index, uint length, uint flags)
+        public void Decrypt(byte[] data, int index, uint length, uint flags)
         {
             if ((flags & 0x204) == 0x204)
-                DoCrypt (data, index, length);
+                DoCrypt(data, index, length);
         }
 
-        public void Encrypt (byte[] data, int index, uint length, uint flags)
+        public void Encrypt(byte[] data, int index, uint length, uint flags)
         {
             if ((flags & 0x104) == 0x104)
-                DoCrypt (data, index, length);
+                DoCrypt(data, index, length);
         }
 
-        unsafe void DoCrypt (byte[] data, int index, uint length)
+        unsafe void DoCrypt(byte[] data, int index, uint length)
         {
             if (length < 0x100)
                 return;

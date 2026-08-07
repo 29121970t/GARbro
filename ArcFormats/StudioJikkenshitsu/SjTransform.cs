@@ -32,24 +32,24 @@ namespace GameRes.Formats.Jikkenshitsu
     {
         const int BlockSize = 8;
 
-        public bool          CanReuseTransform { get { return true; } }
+        public bool CanReuseTransform { get { return true; } }
         public bool CanTransformMultipleBlocks { get { return true; } }
-        public int              InputBlockSize { get { return BlockSize; } }
-        public int             OutputBlockSize { get { return BlockSize; } }
+        public int InputBlockSize { get { return BlockSize; } }
+        public int OutputBlockSize { get { return BlockSize; } }
 
-        byte[]  m_key000 = new byte[0x80];
-        byte[]  m_key080 = new byte[0x80];
+        byte[] m_key000 = new byte[0x80];
+        byte[] m_key080 = new byte[0x80];
 
-        public SjTransform (byte[] key)
+        public SjTransform(byte[] key)
         {
-            var key_bits = GetKeyBits (key);
-            InitKey (key_bits);
+            var key_bits = GetKeyBits(key);
+            InitKey(key_bits);
         }
 
-        byte[] GetKeyBits (byte[] key)
+        byte[] GetKeyBits(byte[] key)
         {
             var key_bits = new byte[0x40];
-            int length = Math.Min (key.Length, 16);
+            int length = Math.Min(key.Length, 16);
             int dst = 0;
             for (int src = 0; src < length && key[src] != 0; ++src)
             {
@@ -62,7 +62,7 @@ namespace GameRes.Formats.Jikkenshitsu
             return key_bits;
         }
 
-        void InitKey (byte[] key_bits)
+        void InitKey(byte[] key_bits)
         {
             var key_buf = new int[0xA8];
             key_buf[56] = key_bits[56];
@@ -122,48 +122,48 @@ namespace GameRes.Formats.Jikkenshitsu
             key_buf[138] = key_bits[11];
             key_buf[139] = key_bits[3];
 
-            Array.Copy (key_buf, 0x38, key_buf, 0x54, 0x1C);
-            Array.Copy (key_buf, 0x70, key_buf, 0x8C, 0x1C);
+            Array.Copy(key_buf, 0x38, key_buf, 0x54, 0x1C);
+            Array.Copy(key_buf, 0x70, key_buf, 0x8C, 0x1C);
             int src1 = 0; //off_45AA20;
             int src2 = 0; //off_45AA60;
             int k8 = 0; // g_key080;
             int k0 = 0; // g_key000;
             for (int i = 0; i < 16; ++i)
             {
-                Array.Copy (key_buf, off_45AA20[src1++], key_buf, off_45AAA8[0], 0x1C);
-                Array.Copy (key_buf, off_45AA60[src2++], key_buf, off_45AB08[0], 0x1C);
-                m_key080[k8++] = (byte)(key_buf[off_45AAA8[0]]  + 2 * (key_buf[off_45AAA8[20]] + 2 * (key_buf[off_45AAA8[9]]  + 2 * key_buf[off_45AAA8[15]])));
-                m_key080[k8++] = (byte)(key_buf[off_45AAA8[18]] + 2 * (key_buf[off_45AAA8[5]]  + 2 * (key_buf[off_45AAA8[13]] + 2 * key_buf[off_45AAA8[23]])));
-                m_key080[k8++] = (byte)(key_buf[off_45AAA8[21]] + 2 * (key_buf[off_45AAA8[3]]  + 2 * (key_buf[off_45AAA8[10]] + 2 * key_buf[off_45AAA8[16]])));
+                Array.Copy(key_buf, off_45AA20[src1++], key_buf, off_45AAA8[0], 0x1C);
+                Array.Copy(key_buf, off_45AA60[src2++], key_buf, off_45AB08[0], 0x1C);
+                m_key080[k8++] = (byte)(key_buf[off_45AAA8[0]] + 2 * (key_buf[off_45AAA8[20]] + 2 * (key_buf[off_45AAA8[9]] + 2 * key_buf[off_45AAA8[15]])));
+                m_key080[k8++] = (byte)(key_buf[off_45AAA8[18]] + 2 * (key_buf[off_45AAA8[5]] + 2 * (key_buf[off_45AAA8[13]] + 2 * key_buf[off_45AAA8[23]])));
+                m_key080[k8++] = (byte)(key_buf[off_45AAA8[21]] + 2 * (key_buf[off_45AAA8[3]] + 2 * (key_buf[off_45AAA8[10]] + 2 * key_buf[off_45AAA8[16]])));
                 m_key080[k8++] = (byte)(key_buf[off_45AAA8[11]] + 2 * (key_buf[off_45AAA8[17]] + 2 * (key_buf[off_45AAA8[22]] + 2 * key_buf[off_45AAA8[6]])));
-                m_key080[k8++] = (byte)(key_buf[off_45AB08[15]] + 2 * (key_buf[off_45AB08[7]]  + 2 * (key_buf[off_45AB08[2]]  + 2 * key_buf[off_45AB08[20]])));
-                m_key080[k8++] = (byte)(key_buf[off_45AB08[4]]  + 2 * (key_buf[off_45AB08[13]] + 2 * (key_buf[off_45AB08[19]] + 2 * key_buf[off_45AB08[9]])));
-                m_key080[k8++] = (byte)(key_buf[off_45AB08[5]]  + 2 * (key_buf[off_45AB08[23]] + 2 * (key_buf[off_45AB08[8]]  + 2 * key_buf[off_45AB08[17]])));
-                m_key080[k8++] = (byte)(key_buf[off_45AB08[0]]  + 2 * (key_buf[off_45AB08[6]]  + 2 * (key_buf[off_45AB08[18]] + 2 * key_buf[off_45AB08[11]])));
-                m_key000[k0++] = (byte)(key_buf[off_45AAA8[4]]  + 2 * key_buf[off_45AAA8[12]]);
-                m_key000[k0++] = (byte)(key_buf[off_45AAA8[8]]  + 2 * key_buf[off_45AAA8[2]]);
-                m_key000[k0++] = (byte)(key_buf[off_45AAA8[7]]  + 2 * key_buf[off_45AAA8[19]]);
-                m_key000[k0++] = (byte)(key_buf[off_45AAA8[1]]  + 2 * key_buf[off_45AAA8[14]]);
+                m_key080[k8++] = (byte)(key_buf[off_45AB08[15]] + 2 * (key_buf[off_45AB08[7]] + 2 * (key_buf[off_45AB08[2]] + 2 * key_buf[off_45AB08[20]])));
+                m_key080[k8++] = (byte)(key_buf[off_45AB08[4]] + 2 * (key_buf[off_45AB08[13]] + 2 * (key_buf[off_45AB08[19]] + 2 * key_buf[off_45AB08[9]])));
+                m_key080[k8++] = (byte)(key_buf[off_45AB08[5]] + 2 * (key_buf[off_45AB08[23]] + 2 * (key_buf[off_45AB08[8]] + 2 * key_buf[off_45AB08[17]])));
+                m_key080[k8++] = (byte)(key_buf[off_45AB08[0]] + 2 * (key_buf[off_45AB08[6]] + 2 * (key_buf[off_45AB08[18]] + 2 * key_buf[off_45AB08[11]])));
+                m_key000[k0++] = (byte)(key_buf[off_45AAA8[4]] + 2 * key_buf[off_45AAA8[12]]);
+                m_key000[k0++] = (byte)(key_buf[off_45AAA8[8]] + 2 * key_buf[off_45AAA8[2]]);
+                m_key000[k0++] = (byte)(key_buf[off_45AAA8[7]] + 2 * key_buf[off_45AAA8[19]]);
+                m_key000[k0++] = (byte)(key_buf[off_45AAA8[1]] + 2 * key_buf[off_45AAA8[14]]);
                 m_key000[k0++] = (byte)(key_buf[off_45AB08[22]] + 2 * key_buf[off_45AB08[10]]);
                 m_key000[k0++] = (byte)(key_buf[off_45AB08[16]] + 2 * key_buf[off_45AB08[1]]);
                 m_key000[k0++] = (byte)(key_buf[off_45AB08[21]] + 2 * key_buf[off_45AB08[12]]);
-                m_key000[k0++] = (byte)(key_buf[off_45AB08[3]]  + 2 * key_buf[off_45AB08[14]]);
+                m_key000[k0++] = (byte)(key_buf[off_45AB08[3]] + 2 * key_buf[off_45AB08[14]]);
             }
         }
 
-        public int TransformBlock (byte[] inputBuffer, int inputOffset, int inputCount,
+        public int TransformBlock(byte[] inputBuffer, int inputOffset, int inputCount,
                                    byte[] outputBuffer, int outputOffset)
         {
             for (int i = 0; i < inputCount; i += 8)
             {
-                DoTransform (inputBuffer, inputOffset, outputBuffer, outputOffset);
+                DoTransform(inputBuffer, inputOffset, outputBuffer, outputOffset);
                 inputOffset += 8;
                 outputOffset += 8;
             }
             return inputCount;
         }
 
-        public byte[] TransformFinalBlock (byte[] inputBuffer, int inputOffset, int inputCount)
+        public byte[] TransformFinalBlock(byte[] inputBuffer, int inputOffset, int inputCount)
         {
             byte[] outputBuffer = new byte[inputCount];
             int src = inputOffset;
@@ -171,16 +171,16 @@ namespace GameRes.Formats.Jikkenshitsu
             if (inputCount >= 8)
             {
                 int count = inputCount & ~7;
-                TransformBlock (inputBuffer, inputOffset, count, outputBuffer, dst);
+                TransformBlock(inputBuffer, inputOffset, count, outputBuffer, dst);
                 dst += count;
                 inputCount -= count;
             }
             if (inputCount > 0)
-                Buffer.BlockCopy (inputBuffer, inputOffset, outputBuffer, dst, inputCount);
+                Buffer.BlockCopy(inputBuffer, inputOffset, outputBuffer, dst, inputCount);
             return outputBuffer;
         }
 
-        void DoTransform (byte[] input, int src, byte[] output, int dst)
+        void DoTransform(byte[] input, int src, byte[] output, int dst)
         {
             int b07 = (input[src] >> 7) & 1;
             int b06 = (input[src] >> 6) & 1;
@@ -190,62 +190,62 @@ namespace GameRes.Formats.Jikkenshitsu
             int b02 = (input[src] >> 2) & 1;
             int b01 = (input[src] >> 1) & 1;
             int b00 = input[src] & 1;
-            int b17 = (input[src+1] >> 7) & 1;
-            int b16 = (input[src+1] >> 6) & 1;
-            int b15 = (input[src+1] >> 5) & 1;
-            int b14 = (input[src+1] >> 4) & 1;
-            int b13 = (input[src+1] >> 3) & 1;
-            int b12 = (input[src+1] >> 2) & 1;
-            int b11 = (input[src+1] >> 1) & 1;
-            int b10 = input[src+1] & 1;
-            int b27 = (input[src+2] >> 7) & 1;
-            int b26 = (input[src+2] >> 6) & 1;
-            int b25 = (input[src+2] >> 5) & 1;
-            int b24 = (input[src+2] >> 4) & 1;
-            int b23 = (input[src+2] >> 3) & 1;
-            int b22 = (input[src+2] >> 2) & 1;
-            int b21 = (input[src+2] >> 1) & 1;
-            int b20 = input[src+2] & 1;
-            int b37 = (input[src+3] >> 7) & 1;
-            int b36 = (input[src+3] >> 6) & 1;
-            int b35 = (input[src+3] >> 5) & 1;
-            int b34 = (input[src+3] >> 4) & 1;
-            int b33 = (input[src+3] >> 3) & 1;
-            int b32 = (input[src+3] >> 2) & 1;
-            int b31 = (input[src+3] >> 1) & 1;
-            int b30 = input[src+3] & 1;
-            int b47 = (input[src+4] >> 7) & 1;
-            int b46 = (input[src+4] >> 6) & 1;
-            int b45 = (input[src+4] >> 5) & 1;
-            int b44 = (input[src+4] >> 4) & 1;
-            int b43 = (input[src+4] >> 3) & 1;
-            int b42 = (input[src+4] >> 2) & 1;
-            int b41 = (input[src+4] >> 1) & 1;
-            int b40 = input[src+4] & 1;
-            int b57 = (input[src+5] >> 7) & 1;
-            int b56 = (input[src+5] >> 6) & 1;
-            int b55 = (input[src+5] >> 5) & 1;
-            int b54 = (input[src+5] >> 4) & 1;
-            int b53 = (input[src+5] >> 3) & 1;
-            int b52 = (input[src+5] >> 2) & 1;
-            int b51 = (input[src+5] >> 1) & 1;
-            int b50 = input[src+5] & 1;
-            int b67 = (input[src+6] >> 7) & 1;
-            int b66 = (input[src+6] >> 6) & 1;
-            int b65 = (input[src+6] >> 5) & 1;
-            int b64 = (input[src+6] >> 4) & 1;
-            int b63 = (input[src+6] >> 3) & 1;
-            int b62 = (input[src+6] >> 2) & 1;
-            int b61 = (input[src+6] >> 1) & 1;
-            int b60 = input[src+6] & 1;
-            int b77 = (input[src+7] >> 7) & 1;
-            int b76 = (input[src+7] >> 6) & 1;
-            int b75 = (input[src+7] >> 5) & 1;
-            int b74 = (input[src+7] >> 4) & 1;
-            int b73 = (input[src+7] >> 3) & 1;
-            int b72 = (input[src+7] >> 2) & 1;
-            int b71 = (input[src+7] >> 1) & 1;
-            int b70 = input[src+7] & 1;
+            int b17 = (input[src + 1] >> 7) & 1;
+            int b16 = (input[src + 1] >> 6) & 1;
+            int b15 = (input[src + 1] >> 5) & 1;
+            int b14 = (input[src + 1] >> 4) & 1;
+            int b13 = (input[src + 1] >> 3) & 1;
+            int b12 = (input[src + 1] >> 2) & 1;
+            int b11 = (input[src + 1] >> 1) & 1;
+            int b10 = input[src + 1] & 1;
+            int b27 = (input[src + 2] >> 7) & 1;
+            int b26 = (input[src + 2] >> 6) & 1;
+            int b25 = (input[src + 2] >> 5) & 1;
+            int b24 = (input[src + 2] >> 4) & 1;
+            int b23 = (input[src + 2] >> 3) & 1;
+            int b22 = (input[src + 2] >> 2) & 1;
+            int b21 = (input[src + 2] >> 1) & 1;
+            int b20 = input[src + 2] & 1;
+            int b37 = (input[src + 3] >> 7) & 1;
+            int b36 = (input[src + 3] >> 6) & 1;
+            int b35 = (input[src + 3] >> 5) & 1;
+            int b34 = (input[src + 3] >> 4) & 1;
+            int b33 = (input[src + 3] >> 3) & 1;
+            int b32 = (input[src + 3] >> 2) & 1;
+            int b31 = (input[src + 3] >> 1) & 1;
+            int b30 = input[src + 3] & 1;
+            int b47 = (input[src + 4] >> 7) & 1;
+            int b46 = (input[src + 4] >> 6) & 1;
+            int b45 = (input[src + 4] >> 5) & 1;
+            int b44 = (input[src + 4] >> 4) & 1;
+            int b43 = (input[src + 4] >> 3) & 1;
+            int b42 = (input[src + 4] >> 2) & 1;
+            int b41 = (input[src + 4] >> 1) & 1;
+            int b40 = input[src + 4] & 1;
+            int b57 = (input[src + 5] >> 7) & 1;
+            int b56 = (input[src + 5] >> 6) & 1;
+            int b55 = (input[src + 5] >> 5) & 1;
+            int b54 = (input[src + 5] >> 4) & 1;
+            int b53 = (input[src + 5] >> 3) & 1;
+            int b52 = (input[src + 5] >> 2) & 1;
+            int b51 = (input[src + 5] >> 1) & 1;
+            int b50 = input[src + 5] & 1;
+            int b67 = (input[src + 6] >> 7) & 1;
+            int b66 = (input[src + 6] >> 6) & 1;
+            int b65 = (input[src + 6] >> 5) & 1;
+            int b64 = (input[src + 6] >> 4) & 1;
+            int b63 = (input[src + 6] >> 3) & 1;
+            int b62 = (input[src + 6] >> 2) & 1;
+            int b61 = (input[src + 6] >> 1) & 1;
+            int b60 = input[src + 6] & 1;
+            int b77 = (input[src + 7] >> 7) & 1;
+            int b76 = (input[src + 7] >> 6) & 1;
+            int b75 = (input[src + 7] >> 5) & 1;
+            int b74 = (input[src + 7] >> 4) & 1;
+            int b73 = (input[src + 7] >> 3) & 1;
+            int b72 = (input[src + 7] >> 2) & 1;
+            int b71 = (input[src + 7] >> 1) & 1;
+            int b70 = input[src + 7] & 1;
             int t0 = 0; // m_key000;
             int t1 = 0; // m_key080;
             for (int i = 0; i < 8; ++i)
@@ -332,18 +332,18 @@ namespace GameRes.Formats.Jikkenshitsu
                 b15 ^= bits[2];
                 b33 ^= bits[3];
             }
-            output[dst  ] = (byte)(b01 + 2 * (b00 + 2 * (b03 + 2 * (b02 + 2 * (b05 + 2 * (b04 + 2 * (b07 - (b06 << 1))))))));
-            output[dst+1] = (byte)(b11 + 2 * (b10 + 2 * (b13 + 2 * (b12 + 2 * (b15 + 2 * (b14 + 2 * (b17 - (b16 << 1))))))));
-            output[dst+2] = (byte)(b21 + 2 * (b20 + 2 * (b23 + 2 * (b22 + 2 * (b25 + 2 * (b24 + 2 * (b27 - (b26 << 1))))))));
-            output[dst+3] = (byte)(b31 + 2 * (b30 + 2 * (b33 + 2 * (b32 + 2 * (b35 + 2 * (b34 + 2 * (b37 - (b36 << 1))))))));
-            output[dst+4] = (byte)(b41 + 2 * (b40 + 2 * (b43 + 2 * (b42 + 2 * (b45 + 2 * (b44 + 2 * (b47 - (b46 << 1))))))));
-            output[dst+5] = (byte)(b51 + 2 * (b50 + 2 * (b53 + 2 * (b52 + 2 * (b55 + 2 * (b54 + 2 * (b57 - (b56 << 1))))))));
-            output[dst+6] = (byte)(b61 + 2 * (b60 + 2 * (b63 + 2 * (b62 + 2 * (b65 + 2 * (b64 + 2 * (b67 - (b66 << 1))))))));
-            output[dst+7] = (byte)(b71 + 2 * (b70 + 2 * (b73 + 2 * (b72 + 2 * (b75 + 2 * (b74 + 2 * (b77 - (b76 << 1))))))));
+            output[dst] = (byte)(b01 + 2 * (b00 + 2 * (b03 + 2 * (b02 + 2 * (b05 + 2 * (b04 + 2 * (b07 - (b06 << 1))))))));
+            output[dst + 1] = (byte)(b11 + 2 * (b10 + 2 * (b13 + 2 * (b12 + 2 * (b15 + 2 * (b14 + 2 * (b17 - (b16 << 1))))))));
+            output[dst + 2] = (byte)(b21 + 2 * (b20 + 2 * (b23 + 2 * (b22 + 2 * (b25 + 2 * (b24 + 2 * (b27 - (b26 << 1))))))));
+            output[dst + 3] = (byte)(b31 + 2 * (b30 + 2 * (b33 + 2 * (b32 + 2 * (b35 + 2 * (b34 + 2 * (b37 - (b36 << 1))))))));
+            output[dst + 4] = (byte)(b41 + 2 * (b40 + 2 * (b43 + 2 * (b42 + 2 * (b45 + 2 * (b44 + 2 * (b47 - (b46 << 1))))))));
+            output[dst + 5] = (byte)(b51 + 2 * (b50 + 2 * (b53 + 2 * (b52 + 2 * (b55 + 2 * (b54 + 2 * (b57 - (b56 << 1))))))));
+            output[dst + 6] = (byte)(b61 + 2 * (b60 + 2 * (b63 + 2 * (b62 + 2 * (b65 + 2 * (b64 + 2 * (b67 - (b66 << 1))))))));
+            output[dst + 7] = (byte)(b71 + 2 * (b70 + 2 * (b73 + 2 * (b72 + 2 * (b75 + 2 * (b74 + 2 * (b77 - (b76 << 1))))))));
 
         }
 
-        public void Dispose ()
+        public void Dispose()
         {
         }
 

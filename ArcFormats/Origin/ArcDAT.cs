@@ -39,22 +39,22 @@ namespace GameRes.Formats.Origin
     [Export(typeof(ArchiveFormat))]
     public class HedDatOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "DAT/HED"; } }
+        public override string Tag { get { return "DAT/HED"; } }
         public override string Description { get { return "origin engine resource archive"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            if (!file.Name.HasExtension ("DAT"))
+            if (!file.Name.HasExtension("DAT"))
                 return null;
-            var hed_name = Path.ChangeExtension (file.Name, "HED");
-            if (!VFS.FileExists (hed_name))
+            var hed_name = Path.ChangeExtension(file.Name, "HED");
+            if (!VFS.FileExists(hed_name))
                 return null;
-            using (var hed = VFS.OpenBinaryStream (hed_name))
+            using (var hed = VFS.OpenBinaryStream(hed_name))
             {
-                var base_name = Path.GetFileNameWithoutExtension (file.Name);
+                var base_name = Path.GetFileNameWithoutExtension(file.Name);
                 var dir = new List<Entry>();
                 var name_buffer = new byte[0x100];
                 while (hed.PeekByte() != -1)
@@ -63,33 +63,34 @@ namespace GameRes.Formats.Origin
                     string name;
                     if (name_length != 0)
                     {
-                        if (hed.Read (name_buffer, 0, name_length) != name_length)
+                        if (hed.Read(name_buffer, 0, name_length) != name_length)
                             return null;
                         for (int i = 0; i < name_length; ++i)
                             name_buffer[i] ^= 0xFF;
-                        name = Binary.GetCString (name_buffer, 0, name_length);
+                        name = Binary.GetCString(name_buffer, 0, name_length);
                     }
                     else
                     {
-                        name = string.Format ("{0}#{1:D4}", base_name, dir.Count);
+                        name = string.Format("{0}#{1:D4}", base_name, dir.Count);
                     }
-                    var entry = new Entry {
+                    var entry = new Entry
+                    {
                         Name = name,
                         Offset = hed.ReadUInt32(),
                     };
                     if (entry.Offset > file.MaxOffset)
                         return null;
-                    dir.Add (entry);
+                    dir.Add(entry);
                 }
                 if (0 == dir.Count)
                     return null;
-                AdjustSizes (dir, file.MaxOffset);
-                DetectFileTypes (dir, file);
-                return new ArcFile (file, this, dir);
+                AdjustSizes(dir, file.MaxOffset);
+                DetectFileTypes(dir, file);
+                return new ArcFile(file, this, dir);
             }
         }
 
-        void AdjustSizes (List<Entry> dir, long arc_length)
+        void AdjustSizes(List<Entry> dir, long arc_length)
         {
             var last = dir[0];
             for (int i = 1; i < dir.Count; ++i)
@@ -101,16 +102,16 @@ namespace GameRes.Formats.Origin
             last.Size = (uint)(arc_length - last.Offset);
         }
 
-        void DetectFileTypes (List<Entry> dir, ArcView file)
+        void DetectFileTypes(List<Entry> dir, ArcView file)
         {
-            bool is_mask = VFS.IsPathEqualsToFileName (file.Name, "MASK.DAT");
+            bool is_mask = VFS.IsPathEqualsToFileName(file.Name, "MASK.DAT");
             var buffer = new byte[0x11];
             foreach (var entry in dir)
             {
-                file.View.Read (entry.Offset, buffer, 0, 0x11);
-                if (buffer.AsciiEqual (0xD, "OggS"))
+                file.View.Read(entry.Offset, buffer, 0, 0x11);
+                if (buffer.AsciiEqual(0xD, "OggS"))
                 {
-                    entry.ChangeType (OggAudio.Instance);
+                    entry.ChangeType(OggAudio.Instance);
                     entry.Offset += 0xD;
                     entry.Size -= 0xD;
                 }
@@ -119,34 +120,36 @@ namespace GameRes.Formats.Origin
             }
         }
 
-        public override IImageDecoder OpenImage (ArcFile arc, Entry entry)
+        public override IImageDecoder OpenImage(ArcFile arc, Entry entry)
         {
             OrgMetaData info;
-            if (VFS.IsPathEqualsToFileName (arc.File.Name, "MASK.DAT"))
+            if (VFS.IsPathEqualsToFileName(arc.File.Name, "MASK.DAT"))
             {
-                info = new OrgMetaData {
-                    Width = arc.File.View.ReadUInt32 (entry.Offset),
-                    Height = arc.File.View.ReadUInt32 (entry.Offset+4),
+                info = new OrgMetaData
+                {
+                    Width = arc.File.View.ReadUInt32(entry.Offset),
+                    Height = arc.File.View.ReadUInt32(entry.Offset + 4),
                     BPP = 8,
                     IsMask = true,
                 };
             }
             else
             {
-                byte has_alpha = arc.File.View.ReadByte (entry.Offset);
-                byte type      = arc.File.View.ReadByte (entry.Offset+1);
+                byte has_alpha = arc.File.View.ReadByte(entry.Offset);
+                byte type = arc.File.View.ReadByte(entry.Offset + 1);
                 if (has_alpha > 1 || type < 1 || type > 3)
-                    return base.OpenImage (arc, entry);
-                info = new OrgMetaData {
-                    Width = arc.File.View.ReadUInt16 (entry.Offset+2),
-                    Height = arc.File.View.ReadUInt16 (entry.Offset+4),
+                    return base.OpenImage(arc, entry);
+                info = new OrgMetaData
+                {
+                    Width = arc.File.View.ReadUInt16(entry.Offset + 2),
+                    Height = arc.File.View.ReadUInt16(entry.Offset + 4),
                     HasAlpha = has_alpha != 0,
                     Method = type,
                     BPP = 32,
                 };
             }
-            var input = arc.File.CreateStream (entry.Offset, entry.Size);
-            return new OrgImageDecoder (input, info);
+            var input = arc.File.CreateStream(entry.Offset, entry.Size);
+            return new OrgImageDecoder(input, info);
         }
     }
 
@@ -159,23 +162,23 @@ namespace GameRes.Formats.Origin
 
     internal class OrgImageDecoder : BinaryImageDecoder
     {
-        OrgMetaData     m_info;
-        int             m_width;
-        int             m_height;
+        OrgMetaData m_info;
+        int m_width;
+        int m_height;
 
         public BitmapPalette Palette { get; private set; }
-        public PixelFormat    Format { get; private set; }
+        public PixelFormat Format { get; private set; }
 
-        public OrgImageDecoder (IBinaryStream input, OrgMetaData info) : base (input, info)
+        public OrgImageDecoder(IBinaryStream input, OrgMetaData info) : base(input, info)
         {
             m_info = info;
             m_width = (int)info.Width;
             m_height = (int)info.Height;
         }
 
-        byte[]  m_symbol_table;
+        byte[] m_symbol_table;
 
-        protected override ImageData GetImageData ()
+        protected override ImageData GetImageData()
         {
             if (m_info.IsMask)
                 return GetMaskData();
@@ -185,7 +188,7 @@ namespace GameRes.Formats.Origin
             if (1 == m_info.Method || 2 == m_info.Method)
             {
                 int colors = m_input.ReadUInt16();
-                Palette = ImageFormat.ReadPalette (m_input.AsStream, colors, PaletteFormat.Bgr);
+                Palette = ImageFormat.ReadPalette(m_input.AsStream, colors, PaletteFormat.Bgr);
                 pixel_size = 1;
             }
             else if (3 == m_info.Method)
@@ -196,9 +199,9 @@ namespace GameRes.Formats.Origin
                 throw new InvalidFormatException();
 
             if (2 == m_info.Method)
-                m_symbol_table = Enumerable.Range (0, 0x100).Select (x => (byte)x).ToArray();
+                m_symbol_table = Enumerable.Range(0, 0x100).Select(x => (byte)x).ToArray();
             else if (3 == m_info.Method)
-                m_symbol_table = m_input.ReadBytes (0x100);
+                m_symbol_table = m_input.ReadBytes(0x100);
 
             int plane_length = m_width * m_height;
             var planes = new byte[pixel_size * plane_length];
@@ -206,12 +209,12 @@ namespace GameRes.Formats.Origin
             long data_end = m_input.Position + packed_length;
             if (m_info.Method > 1)
             {
-                using (var bits = new LsbBitStream (m_input.AsStream, true))
-                    UnpackHuffman (bits, planes);
+                using (var bits = new LsbBitStream(m_input.AsStream, true))
+                    UnpackHuffman(bits, planes);
             }
             else
             {
-                UnpackLz (planes);
+                UnpackLz(planes);
             }
 
             byte[] alpha = null;
@@ -225,13 +228,13 @@ namespace GameRes.Formats.Origin
                 {
                     alpha = new byte[plane_length];
                     if (1 == method)
-                        UnpackRle (alpha);
+                        UnpackRle(alpha);
                     else if (2 == method)
-                        UnpackAlphaV2 (alpha);
+                        UnpackAlphaV2(alpha);
                     else
                     {
-                        m_input.Seek (-1, SeekOrigin.Current);
-                        UnpackRle (alpha);
+                        m_input.Seek(-1, SeekOrigin.Current);
+                        UnpackRle(alpha);
                         for (int i = 0; i < alpha.Length; ++i)
                             alpha[i] = (byte)(alpha[i] * 0xFF / 0x64);
                     }
@@ -245,18 +248,18 @@ namespace GameRes.Formats.Origin
                 int b = 0;
                 int g = plane_length;
                 int r = plane_length * 2;
-                PaethFilter (planes, b);
-                PaethFilter (planes, g);
-                PaethFilter (planes, r);
+                PaethFilter(planes, b);
+                PaethFilter(planes, g);
+                PaethFilter(planes, r);
                 pixels = new byte[pixel_size * plane_length];
                 int dst = 0;
                 for (int src = 0; src < plane_length; ++src)
                 {
-                    pixels[dst  ] = planes[b + src];
-                    pixels[dst+1] = planes[g + src];
-                    pixels[dst+2] = planes[r + src];
+                    pixels[dst] = planes[b + src];
+                    pixels[dst + 1] = planes[g + src];
+                    pixels[dst + 2] = planes[r + src];
                     if (alpha != null)
-                        pixels[dst+3] = alpha[src];
+                        pixels[dst + 3] = alpha[src];
                     dst += pixel_size;
                 }
             }
@@ -287,32 +290,32 @@ namespace GameRes.Formats.Origin
                 Format = PixelFormats.Bgra32;
 
             int stride = m_width * pixel_size;
-            return ImageData.Create (m_info, Format, Palette, pixels, stride);
+            return ImageData.Create(m_info, Format, Palette, pixels, stride);
         }
 
-        internal ImageData GetMaskData ()
+        internal ImageData GetMaskData()
         {
             Format = PixelFormats.Gray8;
             m_input.Position = 12;
             int method = m_input.ReadByte();
             var pixels = new byte[m_width * m_height];
             if (1 == method)
-                UnpackRle (pixels);
+                UnpackRle(pixels);
             else if (2 == method)
-                UnpackAlphaV2 (pixels);
+                UnpackAlphaV2(pixels);
             else
                 throw new InvalidFormatException();
 
-            return ImageData.Create (m_info, Format, null, pixels, m_width);
+            return ImageData.Create(m_info, Format, null, pixels, m_width);
         }
 
         struct LzNode
         {
-            public  int Offset;
-            public  int Length;
+            public int Offset;
+            public int Length;
         }
 
-        void UnpackLz (byte[] output)
+        void UnpackLz(byte[] output)
         {
             var tree = new LzNode[0x10000];
             int node_count = 0;
@@ -332,7 +335,7 @@ namespace GameRes.Formats.Origin
                         index = m_input.ReadUInt16();
 
                     count = tree[index].Length;
-                    Buffer.BlockCopy (output, tree[index].Offset, output, dst, count);
+                    Buffer.BlockCopy(output, tree[index].Offset, output, dst, count);
                 }
                 int symbol = m_input.ReadByte();
                 if (-1 == symbol)
@@ -351,11 +354,11 @@ namespace GameRes.Formats.Origin
 
         struct HuffmanNode
         {
-            public int  Parent;
+            public int Parent;
             public byte Value;
         }
 
-        void UnpackHuffman (IBitStream input, byte[] output)
+        void UnpackHuffman(IBitStream input, byte[] output)
         {
             var tree = new HuffmanNode[0x10000];
             var buf = new byte[0x10000];
@@ -379,13 +382,14 @@ namespace GameRes.Formats.Origin
                     }
                     int chunk_length = 0;
                     int curr_index = index;
-                    do {
+                    do
+                    {
                         buf[chunk_length++] = tree[curr_index].Value;
-                        curr_index          = tree[curr_index].Parent;
+                        curr_index = tree[curr_index].Parent;
                     }
                     while (curr_index != -1);
 
-                    while (chunk_length --> 0)
+                    while (chunk_length-- > 0)
                         output[dst++] = buf[chunk_length];
                 }
 
@@ -394,7 +398,7 @@ namespace GameRes.Formats.Origin
                     bits_count++;
 
                 int c = 0;
-                while (bits_count --> 0)
+                while (bits_count-- > 0)
                     c |= input.GetNextBit() << bits_count;
                 if (c < 0)
                     break;
@@ -405,29 +409,29 @@ namespace GameRes.Formats.Origin
                 if (node_count < tree.Length)
                 {
                     tree[node_count].Parent = index;
-                    tree[node_count].Value  = symbol;
+                    tree[node_count].Value = symbol;
                     node_count++;
                 }
             }
         }
 
-        void UnpackRle (byte[] output)
+        void UnpackRle(byte[] output)
         {
             int dst = 0;
             while (dst < output.Length)
             {
                 byte symbol = m_input.ReadUInt8();
-                int count = Math.Min (m_input.ReadUInt8(), output.Length - dst);
-                while (count --> 0)
+                int count = Math.Min(m_input.ReadUInt8(), output.Length - dst);
+                while (count-- > 0)
                     output[dst++] = symbol;
             }
         }
 
-        void UnpackAlphaV2 (byte[] output)
+        void UnpackAlphaV2(byte[] output)
         {
             int dst = 0;
             var table = new byte[4];
-            m_input.Read (table, 1, 3);
+            m_input.Read(table, 1, 3);
             int ctl = 1;
             byte prev = 0;
             while (dst < output.Length)
@@ -447,10 +451,10 @@ namespace GameRes.Formats.Origin
             }
         }
 
-        void PaethFilter (byte[] data, int pos)
+        void PaethFilter(byte[] data, int pos)
         {
             for (int x = 1; x < m_width; ++x)
-                data[pos+x] += data[pos+x-1];
+                data[pos + x] += data[pos + x - 1];
             int row = pos;
             for (int y = 1; y < m_height; ++y)
             {
@@ -460,16 +464,16 @@ namespace GameRes.Formats.Origin
 
                 for (int x = 1; x < m_width; ++x)
                 {
-                    data[row+x] += PaethPredictor (data[row+x-1], data[prev_row+x], data[prev_row+x-1]);
+                    data[row + x] += PaethPredictor(data[row + x - 1], data[prev_row + x], data[prev_row + x - 1]);
                 }
             }
         }
 
-        byte PaethPredictor (byte px, byte py, byte pxy)
+        byte PaethPredictor(byte px, byte py, byte pxy)
         {
-            int pa = Math.Abs (py - pxy);
-            int pb = Math.Abs (px - pxy);
-            int pc = Math.Abs (py + px - 2 * pxy);
+            int pa = Math.Abs(py - pxy);
+            int pb = Math.Abs(px - pxy);
+            int pc = Math.Abs(py + px - 2 * pxy);
             if (pc < pa && pc < pb)
                 return pxy;
             else if (pb < pa)

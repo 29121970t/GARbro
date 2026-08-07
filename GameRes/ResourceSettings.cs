@@ -65,23 +65,23 @@ namespace GameRes
         /// <summary>
         /// Called on application startup to check if settings need upgrading after assembly version change.
         /// </summary>
-        void UpgradeSettings ();
+        void UpgradeSettings();
 
         /// <summary>
         /// Called on application exit.
         /// </summary>
-        void SaveSettings ();
+        void SaveSettings();
     }
 
     public abstract class ResourceSettingBase : IResourceSetting
     {
-        public string        Name { get; set; }
-        public string        Text { get; set; }
+        public string Name { get; set; }
+        public string Text { get; set; }
         public string Description { get; set; }
 
         public abstract object Value { get; set; }
 
-        public TValue Get<TValue> ()
+        public TValue Get<TValue>()
         {
             var value = this.Value;
             if (null == value || !(value is TValue))
@@ -92,14 +92,15 @@ namespace GameRes
 
     public class ApplicationSetting : ResourceSettingBase
     {
-        public ApplicationSetting (ApplicationSettingsBase settings)
+        public ApplicationSetting(ApplicationSettingsBase settings)
         {
             Settings = settings;
         }
 
         public ApplicationSettingsBase Settings { get; set; }
 
-        public override object Value {
+        public override object Value
+        {
             get { return Settings[Name]; }
             set { Settings[Name] = value; }
         }
@@ -107,7 +108,7 @@ namespace GameRes
 
     internal class LocalResourceSetting : ApplicationSetting
     {
-        public LocalResourceSetting () : base (GameRes.Properties.Settings.Default) { }
+        public LocalResourceSetting() : base(GameRes.Properties.Settings.Default) { }
     }
 
     /// <summary>
@@ -115,11 +116,11 @@ namespace GameRes
     /// </summary>
     public class FixedGaugeSetting : ApplicationSetting
     {
-        public int  Min { get; set; }
-        public int  Max { get; set; }
+        public int Min { get; set; }
+        public int Max { get; set; }
         public IEnumerable<int> ValuesSet { get; set; }
 
-        public FixedGaugeSetting (ApplicationSettingsBase settings) : base (settings)
+        public FixedGaugeSetting(ApplicationSettingsBase settings) : base(settings)
         {
         }
     }
@@ -131,7 +132,7 @@ namespace GameRes
     {
         public IEnumerable ValuesSet { get; set; }
 
-        public FixedSetSetting (ApplicationSettingsBase settings) : base (settings)
+        public FixedSetSetting(ApplicationSettingsBase settings) : base(settings)
         {
         }
     }

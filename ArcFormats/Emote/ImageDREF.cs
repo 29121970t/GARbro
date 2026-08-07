@@ -47,37 +47,37 @@ namespace GameRes.Formats.Emote
     [Export(typeof(ImageFormat))]
     public class DrefFormat : ImageFormat
     {
-        public override string         Tag { get { return "DREF"; } }
+        public override string Tag { get { return "DREF"; } }
         public override string Description { get { return "DPAK-referenced compound image"; } }
-        public override uint     Signature { get { return 0x0070FEFF; } }
+        public override uint Signature { get { return 0x0070FEFF; } }
 
-        public DrefFormat ()
+        public DrefFormat()
         {
             // 'psb:' string with possible byte-order-mark prepended
             Signatures = new uint[] { 0x0070FEFF, 0x70BFBBEF, 0x3A627370, 0x00730070 };
         }
 
-        static readonly Regex PathRe = new Regex (@"^psb://([^/]+)/(.+)");
+        static readonly Regex PathRe = new Regex(@"^psb://([^/]+)/(.+)");
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            if (!file.Name.HasExtension (".dref"))
+            if (!file.Name.HasExtension(".dref"))
                 return null;
-            var dir = VFS.GetDirectoryName (file.Name);
-            using (var input = new StreamReader (file.AsStream, Encoding.Unicode, true, 1024, true))
+            var dir = VFS.GetDirectoryName(file.Name);
+            using (var input = new StreamReader(file.AsStream, Encoding.Unicode, true, 1024, true))
             {
                 var layers = new List<Tuple<string, string>>();
                 string line;
                 while ((line = input.ReadLine()) != null)
                 {
-                    var match = PathRe.Match (line);
+                    var match = PathRe.Match(line);
                     if (!match.Success)
                         return null;
                     var pak_name = match.Groups[1].Value;
-                    if (!VFS.FileExists (pak_name))
+                    if (!VFS.FileExists(pak_name))
                         return null;
-                    pak_name = VFS.CombinePath (dir, pak_name);
-                    layers.Add (Tuple.Create (pak_name, match.Groups[2].Value));
+                    pak_name = VFS.CombinePath(dir, pak_name);
+                    layers.Add(Tuple.Create(pak_name, match.Groups[2].Value));
                 }
                 if (0 == layers.Count)
                     return null;
@@ -85,9 +85,9 @@ namespace GameRes.Formats.Emote
             }
         }
 
-        static readonly ResourceInstance<ArchiveFormat> Psb = new ResourceInstance<ArchiveFormat> ("PSB/EMOTE");
+        static readonly ResourceInstance<ArchiveFormat> Psb = new ResourceInstance<ArchiveFormat>("PSB/EMOTE");
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
             var meta = (DrefMetaData)info;
             ArcFile dpak = null;
@@ -104,12 +104,12 @@ namespace GameRes.Formats.Emote
                             dpak.Dispose();
                             dpak = null;
                         }
-                        var view = VFS.OpenView (path.Item1);
+                        var view = VFS.OpenView(path.Item1);
                         try
                         {
-                            dpak = Psb.Value.TryOpen (view);
+                            dpak = Psb.Value.TryOpen(view);
                             if (null == dpak)
-                                throw new InvalidFormatException ();
+                                throw new InvalidFormatException();
                         }
                         catch
                         {
@@ -117,16 +117,16 @@ namespace GameRes.Formats.Emote
                             throw;
                         }
                     }
-                    var entry = dpak.Dir.FirstOrDefault (e => e.Name == path.Item2);
+                    var entry = dpak.Dir.FirstOrDefault(e => e.Name == path.Item2);
                     if (null == entry)
                         throw new InvalidFormatException();
-                    using (var decoder = dpak.OpenImage (entry))
+                    using (var decoder = dpak.OpenImage(entry))
                     {
                         if (1 == layers_count)
                             return decoder.Image;
                         if (null == canvas)
                         {
-                            canvas = new WriteableBitmap (decoder.Image.Bitmap);
+                            canvas = new WriteableBitmap(decoder.Image.Bitmap);
                             meta.Width = decoder.Info.Width;
                             meta.Height = decoder.Info.Height;
                             meta.OffsetX = decoder.Info.OffsetX;
@@ -134,14 +134,14 @@ namespace GameRes.Formats.Emote
                         }
                         else
                         {
-                            BlendLayer (canvas, decoder.Image);
+                            BlendLayer(canvas, decoder.Image);
                         }
                     }
                 }
                 if (null == canvas)
                     throw new InvalidFormatException();
                 canvas.Freeze();
-                return new ImageData (canvas, meta);
+                return new ImageData(canvas, meta);
             }
             finally
             {
@@ -150,14 +150,14 @@ namespace GameRes.Formats.Emote
             }
         }
 
-        void BlendLayer (WriteableBitmap canvas, ImageData layer)
+        void BlendLayer(WriteableBitmap canvas, ImageData layer)
         {
             BitmapSource source = layer.Bitmap;
             if (source.Format.BitsPerPixel != 32)
-                source = new FormatConvertedBitmap (source, PixelFormats.Bgra32, null, 0);
+                source = new FormatConvertedBitmap(source, PixelFormats.Bgra32, null, 0);
 
             // determine coordinates of the intersection of layer and canvas
-            var src_rect = new Int32Rect (0, 0, source.PixelWidth, source.PixelHeight);
+            var src_rect = new Int32Rect(0, 0, source.PixelWidth, source.PixelHeight);
             if (layer.OffsetX < 0)
             {
                 src_rect.X = -layer.OffsetX;
@@ -170,16 +170,16 @@ namespace GameRes.Formats.Emote
             }
             if (!src_rect.HasArea)
                 return;
-            var layer_rect = new Rectangle (layer.OffsetX, layer.OffsetY, source.PixelWidth, source.PixelHeight);
-            var canvas_rect = new Rectangle (0, 0, canvas.PixelWidth, canvas.PixelHeight);
-            layer_rect.Intersect (canvas_rect);
+            var layer_rect = new Rectangle(layer.OffsetX, layer.OffsetY, source.PixelWidth, source.PixelHeight);
+            var canvas_rect = new Rectangle(0, 0, canvas.PixelWidth, canvas.PixelHeight);
+            layer_rect.Intersect(canvas_rect);
             if (layer_rect.Width <= 0 || layer_rect.Height <= 0)
                 return;
 
             // copy out layer area
             int src_stride = src_rect.Width * 4;
             var pixels = new byte[src_stride * src_rect.Height];
-            source.CopyPixels (src_rect, pixels, src_stride, 0);
+            source.CopyPixels(src_rect, pixels, src_stride, 0);
 
             // perform blending within established coordinates
             int pixel_size = (canvas.Format.BitsPerPixel + 7) / 8;
@@ -191,22 +191,22 @@ namespace GameRes.Formats.Emote
                 byte* buffer = (byte*)canvas.BackBuffer;
                 for (int src = 0; src < pixels.Length; src += src_stride)
                 {
-                    byte* dst = buffer+dst_row;
+                    byte* dst = buffer + dst_row;
                     for (int x = 0; x < src_stride; x += 4)
                     {
-                        byte src_alpha = pixels[src+x+3];
+                        byte src_alpha = pixels[src + x + 3];
                         if (0xFF == src_alpha)
                         {
                             for (int i = 0; i < pixel_size; ++i)
-                                dst[i] = pixels[src+x+i];
+                                dst[i] = pixels[src + x + i];
                         }
                         else if (src_alpha > 0)
                         {
-                            dst[0] = (byte)((pixels[src+x+0] * src_alpha + dst[0] * (0xFF - src_alpha)) / 0xFF);
-                            dst[1] = (byte)((pixels[src+x+1] * src_alpha + dst[1] * (0xFF - src_alpha)) / 0xFF);
-                            dst[2] = (byte)((pixels[src+x+2] * src_alpha + dst[2] * (0xFF - src_alpha)) / 0xFF);
+                            dst[0] = (byte)((pixels[src + x + 0] * src_alpha + dst[0] * (0xFF - src_alpha)) / 0xFF);
+                            dst[1] = (byte)((pixels[src + x + 1] * src_alpha + dst[1] * (0xFF - src_alpha)) / 0xFF);
+                            dst[2] = (byte)((pixels[src + x + 2] * src_alpha + dst[2] * (0xFF - src_alpha)) / 0xFF);
                             if (pixel_size > 3)
-                                dst[3] = (byte)Math.Max (src_alpha, dst[3]);
+                                dst[3] = (byte)Math.Max(src_alpha, dst[3]);
                         }
                         dst += pixel_size;
                     }
@@ -216,9 +216,9 @@ namespace GameRes.Formats.Emote
             canvas.Unlock();
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("DrefFormat.Write not implemented");
+            throw new System.NotImplementedException("DrefFormat.Write not implemented");
         }
     }
 }

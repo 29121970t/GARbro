@@ -35,30 +35,30 @@ namespace GameRes.Formats.Will
 {
     internal class WipMetaData : ImageMetaData
     {
-        public int  FrameCount;
+        public int FrameCount;
         public uint FrameSize;
     }
 
     [Export(typeof(ImageFormat))]
     public class WipFormat : ImageFormat
     {
-        public override string         Tag { get { return "WIP"; } }
+        public override string Tag { get { return "WIP"; } }
         public override string Description { get { return "Will Co. image format"; } }
-        public override uint     Signature { get { return 0x46504957u; } } // 'WIPF'
+        public override uint Signature { get { return 0x46504957u; } } // 'WIPF'
 
-        public WipFormat ()
+        public WipFormat()
         {
             Extensions = new string[] { "wip", "wi0", "msk", "mos" };
         }
 
         public bool ApplyMask = false;
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
             file.Position = 4;
-            int frames  = file.ReadUInt16();
-            int bpp     = file.ReadUInt16();
-            uint width  = file.ReadUInt32();
+            int frames = file.ReadUInt16();
+            int bpp = file.ReadUInt16();
+            uint width = file.ReadUInt32();
             uint height = file.ReadUInt32();
             int x = file.ReadInt32();
             int y = file.ReadInt32();
@@ -66,80 +66,80 @@ namespace GameRes.Formats.Will
             uint frame_size = file.ReadUInt32();
             if (24 != bpp && 8 != bpp)
             {
-                Trace.WriteLine ("unsupported bpp", "WipFormat");
+                Trace.WriteLine("unsupported bpp", "WipFormat");
                 return null;
             }
             return new WipMetaData
             {
-                Width   = width,
-                Height  = height,
+                Width = width,
+                Height = height,
                 OffsetX = x,
                 OffsetY = y,
-                BPP     = bpp,
-                FrameCount  = frames,
-                FrameSize   = frame_size,
+                BPP = bpp,
+                FrameCount = frames,
+                FrameSize = frame_size,
             };
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new NotImplementedException ("WipFormat.Write not implemented");
+            throw new NotImplementedException("WipFormat.Write not implemented");
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
             var meta = (WipMetaData)info;
-            using (var reader = new Reader (file, meta))
+            using (var reader = new Reader(file, meta))
             {
                 reader.Unpack();
                 if (24 == meta.BPP)
                 {
                     byte[] raw = reader.Data;
-                    if (ApplyMask && !meta.FileName.HasExtension (".msk"))
+                    if (ApplyMask && !meta.FileName.HasExtension(".msk"))
                     {
-                        var mask_name = Path.ChangeExtension (meta.FileName, "msk");
-                        if (VFS.FileExists (mask_name))
+                        var mask_name = Path.ChangeExtension(meta.FileName, "msk");
+                        if (VFS.FileExists(mask_name))
                         {
                             try
                             {
-                                return ApplyMaskToWipData (meta, raw, mask_name);
+                                return ApplyMaskToWipData(meta, raw, mask_name);
                             }
                             catch { /* ignore mask read errors */ }
                         }
                     }
                     int size = (int)meta.Width * (int)meta.Height;
-                    byte[] pixels = new byte[size*3];
+                    byte[] pixels = new byte[size * 3];
                     int dst = 0;
                     for (int i = 0; i < size; ++i)
                     {
                         pixels[dst++] = raw[i];
-                        pixels[dst++] = raw[i+size];
-                        pixels[dst++] = raw[i+size*2];
+                        pixels[dst++] = raw[i + size];
+                        pixels[dst++] = raw[i + size * 2];
                     }
-                    return ImageData.Create (meta, PixelFormats.Bgr24, null, pixels, (int)meta.Width*3);
+                    return ImageData.Create(meta, PixelFormats.Bgr24, null, pixels, (int)meta.Width * 3);
                 }
                 else if (8 == meta.BPP)
                 {
                     byte[] pixels = reader.Data;
-                    var bmp_palette = new BitmapPalette (reader.Palette);
-                    return ImageData.Create (meta, PixelFormats.Indexed8, bmp_palette, pixels, (int)meta.Width);
+                    var bmp_palette = new BitmapPalette(reader.Palette);
+                    return ImageData.Create(meta, PixelFormats.Indexed8, bmp_palette, pixels, (int)meta.Width);
                 }
                 else
                     throw new InvalidFormatException();
             }
         }
 
-        ImageData ApplyMaskToWipData (ImageMetaData info, byte[] image, string mask_name)
+        ImageData ApplyMaskToWipData(ImageMetaData info, byte[] image, string mask_name)
         {
-            using (var mask_file = VFS.OpenBinaryStream (mask_name))
+            using (var mask_file = VFS.OpenBinaryStream(mask_name))
             {
                 if (mask_file.Signature != Signature)
                     throw new InvalidFormatException();
-                var mask_info = ReadMetaData (mask_file) as WipMetaData;
+                var mask_info = ReadMetaData(mask_file) as WipMetaData;
                 if (null == mask_info || 8 != mask_info.BPP
                     || info.Width != mask_info.Width || info.Height != mask_info.Height)
                     throw new InvalidFormatException();
-                using (var reader = new Reader (mask_file, mask_info))
+                using (var reader = new Reader(mask_file, mask_info))
                 {
                     reader.Unpack();
                     var palette = reader.Palette;
@@ -151,45 +151,45 @@ namespace GameRes.Formats.Will
                     for (int src = 0; src < plane_size; ++src)
                     {
                         pixels[dst++] = image[src];
-                        pixels[dst++] = image[src+plane_size];
-                        pixels[dst++] = image[src+plane_size*2];
+                        pixels[dst++] = image[src + plane_size];
+                        pixels[dst++] = image[src + plane_size * 2];
                         var color = palette[alpha[src]];
                         pixels[dst++] = (byte)((color.B + color.G + color.R) / 3);
                     }
-                    return ImageData.Create (info, PixelFormats.Bgra32, null, pixels, dst_stride);
+                    return ImageData.Create(info, PixelFormats.Bgra32, null, pixels, dst_stride);
                 }
             }
         }
 
         internal sealed class Reader : IDisposable
         {
-            private IBinaryStream   m_input;
-            private uint            m_length;
-            private byte[]          m_data;
+            private IBinaryStream m_input;
+            private uint m_length;
+            private byte[] m_data;
 
-            public byte[]     Data { get { return m_data; } }
+            public byte[] Data { get { return m_data; } }
             public Color[] Palette { get; private set; }
 
-            public Reader (IBinaryStream file, WipMetaData info)
+            public Reader(IBinaryStream file, WipMetaData info)
             {
                 m_length = info.FrameSize;
-//                int stride = (int)info.Width*((info.BPP+7)/8);
-                int stride = (int)info.Width*4;
+                //                int stride = (int)info.Width*((info.BPP+7)/8);
+                int stride = (int)info.Width * 4;
                 m_data = new byte[stride * (int)info.Height];
                 m_input = file;
                 m_input.Position = 8 + 24 * info.FrameCount;
                 if (8 == info.BPP)
-                    Palette = ReadColorMap (file.AsStream, 0x100, PaletteFormat.RgbX);
+                    Palette = ReadColorMap(file.AsStream, 0x100, PaletteFormat.RgbX);
             }
 
             private byte[] m_window = new byte[0x1000];
 
-            public void Unpack ()
+            public void Unpack()
             {
                 int dst = 0;
                 int window_index = 1;
                 int control = 0;
-                for (int length = (int)m_length; length > 0; )
+                for (int length = (int)m_length; length > 0;)
                 {
                     control >>= 1;
                     if (0 == (control & 0x100))
@@ -227,7 +227,7 @@ namespace GameRes.Formats.Will
             }
 
             #region IDisposable Members
-            public void Dispose ()
+            public void Dispose()
             {
             }
             #endregion

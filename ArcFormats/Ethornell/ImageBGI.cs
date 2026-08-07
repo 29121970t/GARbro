@@ -37,23 +37,23 @@ namespace GameRes.Formats.BGI
     [Export(typeof(ImageFormat))]
     public class BgiFormat : ImageFormat
     {
-        public override string         Tag { get { return "BGI"; } }
+        public override string Tag { get { return "BGI"; } }
         public override string Description { get { return "BGI/Ethornell image format"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public BgiFormat ()
+        public BgiFormat()
         {
             Extensions = new string[] { "", "bgi", "_bg", "bg" };
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("BgiFormat.Write not implemented");
+            throw new System.NotImplementedException("BgiFormat.Write not implemented");
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
-            int width  = stream.ReadInt16();
+            int width = stream.ReadInt16();
             int height = stream.ReadInt16();
             if (width <= 0 || height <= 0)
                 return null;
@@ -74,7 +74,7 @@ namespace GameRes.Formats.BGI
             };
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
             var meta = (BgiMetaData)info;
             PixelFormat format;
@@ -84,23 +84,23 @@ namespace GameRes.Formats.BGI
                 format = PixelFormats.Bgra32;
             else
                 format = PixelFormats.Gray8;
-            int stride = (int)info.Width * ((info.BPP+7)/8);
+            int stride = (int)info.Width * ((info.BPP + 7) / 8);
             var pixels = new byte[stride * (int)info.Height];
             stream.Position = 0x10;
             if (!meta.IsScrambled)
             {
-                int read = stream.Read (pixels, 0, pixels.Length);
+                int read = stream.Read(pixels, 0, pixels.Length);
                 if (read != pixels.Length)
                     throw new InvalidFormatException();
             }
             else
             {
-                RestorePixels (stream, pixels, meta);
+                RestorePixels(stream, pixels, meta);
             }
-            return ImageData.Create (info, format, null, pixels, stride);
+            return ImageData.Create(info, format, null, pixels, stride);
         }
 
-        void RestorePixels (IBinaryStream input, byte[] output, BgiMetaData info)
+        void RestorePixels(IBinaryStream input, byte[] output, BgiMetaData info)
         {
             int bpp = info.BPP / 8;
             int stride = (int)info.Width * bpp;

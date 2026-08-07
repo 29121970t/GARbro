@@ -34,24 +34,24 @@ namespace GameRes.Formats.Sarang
 {
     internal class AbcMetaData : ImageMetaData
     {
-        public int              UnpackedSize;
-        public ImageFormat      SourceFormat;
-        public ImageMetaData    SourceInfo;
+        public int UnpackedSize;
+        public ImageFormat SourceFormat;
+        public ImageMetaData SourceInfo;
     }
 
     [Export(typeof(ImageFormat))]
     public class AbcFormat : ImageFormat
     {
-        public override string         Tag { get { return "ABC"; } }
+        public override string Tag { get { return "ABC"; } }
         public override string Description { get { return "Sarang compressed bitmap"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
         const int MinUnpackedSize = 0x38;
         const int MaxUnpackedSize = 4096 * 4096 * 4;
 
-        static readonly ResourceInstance<ImageFormat> s_DdsFormat = new ResourceInstance<ImageFormat> ("DDS");
+        static readonly ResourceInstance<ImageFormat> s_DdsFormat = new ResourceInstance<ImageFormat>("DDS");
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
             int unpacked_size = file.ReadInt32();
             if (unpacked_size < MinUnpackedSize || unpacked_size > MaxUnpackedSize)
@@ -59,22 +59,23 @@ namespace GameRes.Formats.Sarang
             uint signature = file.ReadUInt32();
             if ((signature & 0xFFFF) != 0x1321 && signature != 0x620A1122)
                 return null;
-            using (var reader = new AbcDecoder (file.AsStream, Math.Min (0x6C, unpacked_size)))
+            using (var reader = new AbcDecoder(file.AsStream, Math.Min(0x6C, unpacked_size)))
             {
                 var data = reader.Unpack();
                 ImageFormat format;
-                if (data.AsciiEqual (0, "BM"))
+                if (data.AsciiEqual(0, "BM"))
                     format = Bmp;
-                else if (data.AsciiEqual (0, "DDS "))
+                else if (data.AsciiEqual(0, "DDS "))
                     format = s_DdsFormat.Value;
                 else
                     return null;
-                using (var input = new BinMemoryStream (data))
+                using (var input = new BinMemoryStream(data))
                 {
-                    var info = format.ReadMetaData (input);
+                    var info = format.ReadMetaData(input);
                     if (null == info)
                         return null;
-                    return new AbcMetaData {
+                    return new AbcMetaData
+                    {
                         Width = info.Width,
                         Height = info.Height,
                         BPP = info.BPP,
@@ -86,54 +87,54 @@ namespace GameRes.Formats.Sarang
             }
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
             var meta = (AbcMetaData)info;
-            using (var reader = new AbcDecoder (file.AsStream, meta.UnpackedSize))
+            using (var reader = new AbcDecoder(file.AsStream, meta.UnpackedSize))
             {
                 var data = reader.Unpack();
-                using (var input = new BinMemoryStream (data))
-                    return meta.SourceFormat.Read (input, meta.SourceInfo);
+                using (var input = new BinMemoryStream(data))
+                    return meta.SourceFormat.Read(input, meta.SourceInfo);
             }
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("AbcFormat.Write not implemented");
+            throw new System.NotImplementedException("AbcFormat.Write not implemented");
         }
     }
 
     internal sealed class AbcDecoder : IDisposable
     {
-        MsbBitStream    m_input;
-        byte[]          m_output;
+        MsbBitStream m_input;
+        byte[] m_output;
 
-        byte[]  m_root = new byte[0x1000];
+        byte[] m_root = new byte[0x1000];
 
-        int[]   m_dict1 = new int[0x1000];
-        int[]   m_dict2 = new int[0x1000];
-        int[]   m_dict3 = new int[0x1000];
-        int[]   m_dict4 = new int[0x1000];
+        int[] m_dict1 = new int[0x1000];
+        int[] m_dict2 = new int[0x1000];
+        int[] m_dict3 = new int[0x1000];
+        int[] m_dict4 = new int[0x1000];
 
-        int     m_last_token;
-        int[]   m_table1 = new int[0x1000];
-        int[]   m_table2 = new int[0x1000];
+        int m_last_token;
+        int[] m_table1 = new int[0x1000];
+        int[] m_table2 = new int[0x1000];
 
-        int     m_field_4;
-        int     m_field_8;
-        int[]   m_buffer = new int[MaxStringLength];
-        int     m_token_bits;
-        int     m_token_limit;
+        int m_field_4;
+        int m_field_8;
+        int[] m_buffer = new int[MaxStringLength];
+        int m_token_bits;
+        int m_token_limit;
 
         const int MaxStringLength = 100;
 
-        public AbcDecoder (Stream input, int unpacked_size)
+        public AbcDecoder(Stream input, int unpacked_size)
         {
-            m_input = new MsbBitStream (input, true);
+            m_input = new MsbBitStream(input, true);
             m_output = new byte[unpacked_size];
         }
 
-        void InitDecoder ()
+        void InitDecoder()
         {
             m_input.Input.Position = 4;
             m_last_token = 256;
@@ -151,7 +152,7 @@ namespace GameRes.Formats.Sarang
             }
         }
 
-        public byte[] Unpack ()
+        public byte[] Unpack()
         {
             InitDecoder();
             int prev_count = 0;
@@ -166,28 +167,28 @@ namespace GameRes.Formats.Sarang
                 {
                     if (token >= 256 && token != m_field_4)
                     {
-                        sub_411760 (token);
-                        sub_4117B0 (token, m_field_4);
+                        sub_411760(token);
+                        sub_4117B0(token, m_field_4);
                     }
                     m_buffer[--pos] = m_root[token];
                     ++count;
                 }
                 int src = MaxStringLength - count;
-                int copy_count = Math.Min (count, m_output.Length - dst);
+                int copy_count = Math.Min(count, m_output.Length - dst);
                 for (int i = 0; i < copy_count; ++i)
                 {
                     m_output[dst++] = (byte)m_buffer[src++];
                 }
                 if (dst >= m_output.Length)
                     break;
-                sub_4118F0 (MaxStringLength - count, count, prev_token, prev_count);
+                sub_4118F0(MaxStringLength - count, count, prev_token, prev_count);
                 prev_token = current_token;
                 prev_count = count;
             }
             return m_output;
         }
 
-        void sub_411760 (int token)
+        void sub_411760(int token)
         {
             if (token == m_field_8)
             {
@@ -203,7 +204,7 @@ namespace GameRes.Formats.Sarang
             }
         }
 
-        void sub_4117B0 (int a2, int a3)
+        void sub_4117B0(int a2, int a3)
         {
             int v3 = m_field_4;
             if (v3 == 0x1000)
@@ -237,7 +238,7 @@ namespace GameRes.Formats.Sarang
             }
         }
 
-        int sub_411870 (int prev_token, int symbol)
+        int sub_411870(int prev_token, int symbol)
         {
             int token = m_dict2[prev_token];
             while (token != 0x1000 && symbol != m_root[token])
@@ -247,7 +248,7 @@ namespace GameRes.Formats.Sarang
             return token;
         }
 
-        void sub_4118F0 (int src, int count, int prev_token, int prev_count)
+        void sub_4118F0(int src, int count, int prev_token, int prev_count)
         {
             if (prev_token == 0x1000)
                 return;
@@ -256,7 +257,7 @@ namespace GameRes.Formats.Sarang
                 if (++prev_count > MaxStringLength)
                     break;
                 int symbol = m_buffer[src];
-                int token = sub_411870 (prev_token, symbol);
+                int token = sub_411870(prev_token, symbol);
                 if (token == 0x1000)
                 {
                     token = m_last_token;
@@ -265,25 +266,25 @@ namespace GameRes.Formats.Sarang
                         token = m_field_8;
                         if (prev_token == token)
                             return;
-                        sub_411760 (m_field_8);
-                        sub_411A40 (token);
+                        sub_411760(m_field_8);
+                        sub_411A40(token);
                     }
                     else
                     {
                         m_last_token = token + 1;
                     }
-                    sub_4119E0 (prev_token, token, (byte)symbol);
+                    sub_4119E0(prev_token, token, (byte)symbol);
                     if (prev_token >= 256)
-                        sub_4117B0 (token, m_table2[prev_token]);
+                        sub_4117B0(token, m_table2[prev_token]);
                     else
-                        sub_4117B0 (token, m_field_4);
+                        sub_4117B0(token, m_field_4);
                 }
                 prev_token = token;
                 ++src;
             }
         }
 
-        void sub_4119E0 (int prev_token, int token, byte symbol)
+        void sub_4119E0(int prev_token, int token, byte symbol)
         {
             m_root[token] = symbol;
             m_dict1[token] = prev_token;
@@ -296,7 +297,7 @@ namespace GameRes.Formats.Sarang
             m_dict2[prev_token] = token;
         }
 
-        void sub_411A40 (int a2)
+        void sub_411A40(int a2)
         {
             int d4 = m_dict4[a2];
             int d3 = m_dict3[a2];
@@ -308,23 +309,23 @@ namespace GameRes.Formats.Sarang
                 m_dict4[d3] = d4;
         }
 
-        int ReadToken ()
+        int ReadToken()
         {
             if (m_last_token - 256 >= m_token_limit)
             {
                 m_token_limit <<= 1;
-                m_token_bits  += 1;
+                m_token_bits += 1;
             }
             int token = m_input.GetNextBit();
             if (token > 0)
             {
-                token = m_input.GetBits (m_token_bits);
+                token = m_input.GetBits(m_token_bits);
                 if (token != -1)
                     token += 256;
             }
             else if (0 == token)
             {
-                token = m_input.GetBits (8);
+                token = m_input.GetBits(8);
             }
             return token;
         }
@@ -332,7 +333,7 @@ namespace GameRes.Formats.Sarang
         #region IDisposable Members
         bool m_disposed = false;
 
-        public void Dispose ()
+        public void Dispose()
         {
             if (!m_disposed)
             {

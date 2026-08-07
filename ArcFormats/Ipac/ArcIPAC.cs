@@ -33,46 +33,46 @@ namespace GameRes.Formats.BaseUnit
     [Export(typeof(ArchiveFormat))]
     public class PakOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "PAK/IPAC"; } }
+        public override string Tag { get { return "PAK/IPAC"; } }
         public override string Description { get { return "IPAC resource archive"; } }
-        public override uint     Signature { get { return 0x43415049; } } // 'IPAC'
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x43415049; } } // 'IPAC'
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            int count = file.View.ReadInt16 (4);
-            if (!IsSaneCount (count))
+            int count = file.View.ReadInt16(4);
+            if (!IsSaneCount(count))
                 return null;
 
             uint index_offset = 8;
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
-                var name = file.View.ReadString (index_offset, 0x20);
-                var entry = Create<PackedEntry> (name);
-                entry.Offset = file.View.ReadUInt32 (index_offset+0x24);
-                entry.Size   = file.View.ReadUInt32 (index_offset+0x28);
-                if (!entry.CheckPlacement (file.MaxOffset))
+                var name = file.View.ReadString(index_offset, 0x20);
+                var entry = Create<PackedEntry>(name);
+                entry.Offset = file.View.ReadUInt32(index_offset + 0x24);
+                entry.Size = file.View.ReadUInt32(index_offset + 0x28);
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
-                dir.Add (entry);
+                dir.Add(entry);
                 index_offset += 0x2C;
             }
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var pent = (PackedEntry)entry;
             if (!pent.IsPacked)
             {
-                if (!arc.File.View.AsciiEqual (entry.Offset, "IEL1"))
-                    return base.OpenEntry (arc, entry);
+                if (!arc.File.View.AsciiEqual(entry.Offset, "IEL1"))
+                    return base.OpenEntry(arc, entry);
                 pent.IsPacked = true;
-                pent.UnpackedSize = arc.File.View.ReadUInt32 (entry.Offset+4);
+                pent.UnpackedSize = arc.File.View.ReadUInt32(entry.Offset + 4);
             }
-            var input = arc.File.CreateStream (entry.Offset+8, entry.Size-8);
-            return new LzssStream (input);
+            var input = arc.File.CreateStream(entry.Offset + 8, entry.Size - 8);
+            return new LzssStream(input);
         }
     }
 }

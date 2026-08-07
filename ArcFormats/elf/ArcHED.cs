@@ -36,92 +36,92 @@ namespace GameRes.Formats.Elf
     [Export(typeof(ArchiveFormat))]
     public class PakOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "BIN/HED"; } }
+        public override string Tag { get { return "BIN/HED"; } }
         public override string Description { get { return "elf AV King resource archive"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool  IsHierarchic { get { return true; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool IsHierarchic { get { return true; } }
+        public override bool CanWrite { get { return false; } }
 
-        public PakOpener ()
+        public PakOpener()
         {
             Extensions = new string[] { "bin" };
         }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            string pak_name = Path.ChangeExtension (file.Name, "pak");
-            if (pak_name == file.Name || !VFS.FileExists (pak_name))
+            string pak_name = Path.ChangeExtension(file.Name, "pak");
+            if (pak_name == file.Name || !VFS.FileExists(pak_name))
                 return null;
-            var file_map = GetFileMap (pak_name);
+            var file_map = GetFileMap(pak_name);
             if (null == file_map)
                 return null;
-            string base_name = Path.GetFileNameWithoutExtension (pak_name);
+            string base_name = Path.GetFileNameWithoutExtension(pak_name);
 
-            using (var pak = VFS.OpenView (pak_name))
+            using (var pak = VFS.OpenView(pak_name))
             {
-                if (0x00646568 != pak.View.ReadUInt32 (0))
+                if (0x00646568 != pak.View.ReadUInt32(0))
                     return null;
-                int count = pak.View.ReadInt32 (4);
+                int count = pak.View.ReadInt32(4);
                 if (count != file_map.Count)
                     return null;
                 List<Entry> dir;
                 if ("cg" == base_name)
-                    dir = ReadCgPak (pak, file, file_map);
+                    dir = ReadCgPak(pak, file, file_map);
                 else
-                    dir = ReadVoicePak (pak, file, file_map);
+                    dir = ReadVoicePak(pak, file, file_map);
                 if (null == dir)
                     return null;
-                return new ArcFile (file, this, dir);
+                return new ArcFile(file, this, dir);
             }
         }
 
-        List<Entry> ReadCgPak (ArcView pak, ArcView bin, List<string> file_map)
+        List<Entry> ReadCgPak(ArcView pak, ArcView bin, List<string> file_map)
         {
             uint index_offset = 8;
             uint index_size = (uint)file_map.Count * 8u;
-            if (index_size > pak.View.Reserve (index_offset, index_size))
+            if (index_size > pak.View.Reserve(index_offset, index_size))
                 return null;
-            var dir = new List<Entry> (file_map.Count);
+            var dir = new List<Entry>(file_map.Count);
             for (int i = 0; i < file_map.Count; ++i)
             {
-                var entry = FormatCatalog.Instance.Create<Entry> (file_map[i]);
-                entry.Offset = pak.View.ReadUInt32 (index_offset);
-                entry.Size   = pak.View.ReadUInt32 (index_offset + 4);
-                if (!entry.CheckPlacement (bin.MaxOffset))
+                var entry = FormatCatalog.Instance.Create<Entry>(file_map[i]);
+                entry.Offset = pak.View.ReadUInt32(index_offset);
+                entry.Size = pak.View.ReadUInt32(index_offset + 4);
+                if (!entry.CheckPlacement(bin.MaxOffset))
                     return null;
-                dir.Add (entry);
+                dir.Add(entry);
                 index_offset += 8;
             }
             return dir;
         }
 
-        List<Entry> ReadVoicePak (ArcView pak, ArcView bin, List<string> file_map)
+        List<Entry> ReadVoicePak(ArcView pak, ArcView bin, List<string> file_map)
         {
             uint index_offset = 8;
             uint index_size = (uint)file_map.Count * 0x18u;
-            if (index_size > pak.View.Reserve (index_offset, index_size))
+            if (index_size > pak.View.Reserve(index_offset, index_size))
                 return null;
-            var dir = new List<Entry> (file_map.Count);
+            var dir = new List<Entry>(file_map.Count);
             for (int i = 0; i < file_map.Count; ++i)
             {
-                var entry = FormatCatalog.Instance.Create<Entry> (file_map[i]);
-                entry.Offset = pak.View.ReadUInt32 (index_offset);
-                entry.Size   = pak.View.ReadUInt32 (index_offset + 4);
-                if (!entry.CheckPlacement (bin.MaxOffset))
+                var entry = FormatCatalog.Instance.Create<Entry>(file_map[i]);
+                entry.Offset = pak.View.ReadUInt32(index_offset);
+                entry.Size = pak.View.ReadUInt32(index_offset + 4);
+                if (!entry.CheckPlacement(bin.MaxOffset))
                     return null;
-                dir.Add (entry);
+                dir.Add(entry);
                 index_offset += 0x18;
             }
             return dir;
         }
 
-        private List<string>    CgMap { get; set; }
+        private List<string> CgMap { get; set; }
         private List<string> VoiceMap { get; set; }
         private string CurrentMapName { get; set; }
 
-        private List<string> GetFileMap (string pak_name, string map_name = "avking.map")
+        private List<string> GetFileMap(string pak_name, string map_name = "avking.map")
         {
-            string base_name = Path.GetFileNameWithoutExtension (pak_name);
+            string base_name = Path.GetFileNameWithoutExtension(pak_name);
             List<string> map;
             if ("cg" == base_name)
                 map = CgMap;
@@ -129,19 +129,19 @@ namespace GameRes.Formats.Elf
                 map = VoiceMap;
             else
                 return null;
-            if (null != map && File.Exists (CurrentMapName))
+            if (null != map && File.Exists(CurrentMapName))
                 return map;
             CgMap = null;
             VoiceMap = null;
-            string dir_name = Path.GetDirectoryName (pak_name);
-            if (string.IsNullOrEmpty (dir_name))
+            string dir_name = Path.GetDirectoryName(pak_name);
+            if (string.IsNullOrEmpty(dir_name))
                 dir_name = ".";
-            while (!string.IsNullOrEmpty (dir_name))
+            while (!string.IsNullOrEmpty(dir_name))
             {
-                string map_file = Path.Combine (dir_name, map_name);
-                if (File.Exists (map_file))
+                string map_file = Path.Combine(dir_name, map_name);
+                if (File.Exists(map_file))
                 {
-                    if (!ReadMap (map_file))
+                    if (!ReadMap(map_file))
                         return null;
                     CurrentMapName = map_file;
                     if ("cg" == base_name)
@@ -149,29 +149,29 @@ namespace GameRes.Formats.Elf
                     if ("voice" == base_name)
                         return VoiceMap;
                 }
-                dir_name = Path.GetDirectoryName (dir_name);
+                dir_name = Path.GetDirectoryName(dir_name);
             }
             return null;
         }
 
-        static readonly Regex FilesTypeRe = new Regex (@"^//([A-Z]+) FILES = (\d+)");
+        static readonly Regex FilesTypeRe = new Regex(@"^//([A-Z]+) FILES = (\d+)");
 
-        private bool ReadMap (string map_file)
+        private bool ReadMap(string map_file)
         {
             try
             {
-                using (var map = File.OpenRead (map_file))
-                using (var input = new StreamReader (map, Encoding.ASCII))
+                using (var map = File.OpenRead(map_file))
+                using (var input = new StreamReader(map, Encoding.ASCII))
                 {
                     var cg = new List<string>();
                     var voice = new List<string>();
                     List<string> current_list = null;
-                    for (;;)
+                    for (; ; )
                     {
                         string line = input.ReadLine();
                         if (null == line)
                             break;
-                        var match = FilesTypeRe.Match (line);
+                        var match = FilesTypeRe.Match(line);
                         if (!match.Success)
                             return false;
                         string type = match.Groups[1].Value;
@@ -181,14 +181,14 @@ namespace GameRes.Formats.Elf
                             current_list = voice;
                         else
                             current_list = null;
-                        int count = UInt16.Parse (match.Groups[2].Value);
+                        int count = UInt16.Parse(match.Groups[2].Value);
                         for (int i = 0; i < count; ++i)
                         {
                             line = input.ReadLine();
                             if (null == line)
                                 break;
                             if (null != current_list)
-                                current_list.Add (line.TrimEnd ('\0'));
+                                current_list.Add(line.TrimEnd('\0'));
                         }
                     }
                     CgMap = cg;

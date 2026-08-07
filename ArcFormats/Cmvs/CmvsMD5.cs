@@ -31,30 +31,30 @@ namespace GameRes.Formats.Cmvs
 
     public abstract class MD5 : Cryptography.MD5Base
     {
-        public MD5 ()
+        public MD5()
         {
             InitState();
         }
 
-        static public MD5 Create (Md5Variant variant)
+        static public MD5 Create(Md5Variant variant)
         {
             switch (variant)
             {
-            case Md5Variant.A: return new Md5VariantA();
-            case Md5Variant.B: return new Md5VariantB();
-            case Md5Variant.Chrono: return new Md5Chrono();
-            case Md5Variant.Memoria: return new Md5Memoria();
-            case Md5Variant.Natsu: return new Md5Natsu();
-            case Md5Variant.Aoi: return new Md5Aoi();
-            case Md5Variant.Mirai: return new Md5Mirai();
-            default: throw new System.ArgumentException ("Unknown MD5 variant", "variant");
+                case Md5Variant.A: return new Md5VariantA();
+                case Md5Variant.B: return new Md5VariantB();
+                case Md5Variant.Chrono: return new Md5Chrono();
+                case Md5Variant.Memoria: return new Md5Memoria();
+                case Md5Variant.Natsu: return new Md5Natsu();
+                case Md5Variant.Aoi: return new Md5Aoi();
+                case Md5Variant.Mirai: return new Md5Mirai();
+                default: throw new System.ArgumentException("Unknown MD5 variant", "variant");
             }
         }
 
-        protected abstract void InitState ();
-        protected abstract void SetResult (uint[] data);
+        protected abstract void InitState();
+        protected abstract void SetResult(uint[] data);
 
-        public void Compute (uint[] data)
+        public void Compute(uint[] data)
         {
             m_buffer[0] = data[0];
             m_buffer[1] = data[1];
@@ -63,13 +63,13 @@ namespace GameRes.Formats.Cmvs
             m_buffer[4] = 0x80;
             m_buffer[14] = 0x80;
             Transform();
-            SetResult (data);
+            SetResult(data);
         }
     }
 
     public class Md5VariantA : MD5
     {
-        protected override void InitState ()
+        protected override void InitState()
         {
             m_state[0] = 0xC74A2B01;
             m_state[1] = 0xE7C8AB8F;
@@ -77,7 +77,7 @@ namespace GameRes.Formats.Cmvs
             m_state[3] = 0x7302A4C5;
         }
 
-        protected override void SetResult (uint[] data)
+        protected override void SetResult(uint[] data)
         {
             data[0] = m_state[3];
             data[1] = m_state[1];
@@ -88,7 +88,7 @@ namespace GameRes.Formats.Cmvs
 
     public class Md5Chrono : Md5VariantA
     {
-        protected override void SetResult (uint[] data)
+        protected override void SetResult(uint[] data)
         {
             data[0] = m_state[2] ^ 0x45A76C2F;
             data[1] = m_state[1] - 0x5BA17FCB;
@@ -99,7 +99,7 @@ namespace GameRes.Formats.Cmvs
 
     public class Md5VariantB : MD5
     {
-        protected override void InitState ()
+        protected override void InitState()
         {
             m_state[0] = 0x53FE9B2C;
             m_state[1] = 0xF2C93EA8;
@@ -107,7 +107,7 @@ namespace GameRes.Formats.Cmvs
             m_state[3] = 0xA2C8973E;
         }
 
-        protected override void SetResult (uint[] data)
+        protected override void SetResult(uint[] data)
         {
             data[0] = m_state[1] ^ 0x49875325;
             data[1] = m_state[2] + 0x54F46D7D;
@@ -118,7 +118,7 @@ namespace GameRes.Formats.Cmvs
 
     public class Md5Memoria : MD5
     {
-        protected override void InitState ()
+        protected override void InitState()
         {
             m_state[0] = 0xA79463F9;
             m_state[1] = 0xB6E755C5;
@@ -126,7 +126,7 @@ namespace GameRes.Formats.Cmvs
             m_state[3] = 0x6983E978;
         }
 
-        protected override void SetResult (uint[] data)
+        protected override void SetResult(uint[] data)
         {
             data[0] = m_state[1];
             data[1] = m_state[2];
@@ -137,7 +137,7 @@ namespace GameRes.Formats.Cmvs
 
     public class Md5Natsu : MD5
     {
-        protected override void InitState ()
+        protected override void InitState()
         {
             m_state[0] = 0x63FE9A7C;
             m_state[1] = 0xC2B93E98;
@@ -145,7 +145,7 @@ namespace GameRes.Formats.Cmvs
             m_state[3] = 0x72C9A82E;
         }
 
-        protected override void SetResult (uint[] data)
+        protected override void SetResult(uint[] data)
         {
             data[0] = m_state[1] + 0x45876329;
             data[1] = m_state[2] ^ 0x54F36D6C;
@@ -156,7 +156,7 @@ namespace GameRes.Formats.Cmvs
 
     public class Md5Mirai : MD5
     {
-        protected override void InitState ()
+        protected override void InitState()
         {
             m_state[0] = 0x67452301;
             m_state[1] = 0xEFCDAB89;
@@ -164,7 +164,7 @@ namespace GameRes.Formats.Cmvs
             m_state[3] = 0x10325476;
         }
 
-        protected override void SetResult (uint[] data)
+        protected override void SetResult(uint[] data)
         {
             data[0] = m_state[0];
             data[1] = m_state[1];
@@ -175,7 +175,7 @@ namespace GameRes.Formats.Cmvs
 
     public class Md5Aoi : MD5
     {
-        protected override void InitState ()
+        protected override void InitState()
         {
             m_state[0] = 0xC74A2B02;
             m_state[1] = 0xE7C8AB8F;
@@ -183,7 +183,7 @@ namespace GameRes.Formats.Cmvs
             m_state[3] = 0x7531A4C3;
         }
 
-        protected override void SetResult (uint[] data)
+        protected override void SetResult(uint[] data)
         {
             data[0] = m_state[2] ^ 0x53A76D2E;
             data[1] = m_state[1] + 0x5BB17FDA;

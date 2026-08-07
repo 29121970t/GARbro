@@ -34,59 +34,59 @@ namespace GameRes.Formats.RealLive
 {
     internal class PdtMetaData : ImageMetaData
     {
-        public int  Version;
+        public int Version;
         public uint AlphaOffset;
     }
 
     [Export(typeof(ImageFormat))]
     public class PdtFormat : ImageFormat
     {
-        public override string         Tag { get { return "PDT"; } }
+        public override string Tag { get { return "PDT"; } }
         public override string Description { get { return "AVG32 engine image format"; } }
-        public override uint     Signature { get { return 0x31544450; } } // 'PDT1'
+        public override uint Signature { get { return 0x31544450; } } // 'PDT1'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
-            var header = stream.ReadHeader (32);
+            var header = stream.ReadHeader(32);
             int version = header[4] - '0';
             if (version < 0 || version > 1)
                 return null;
             return new PdtMetaData
             {
-                Width   = header.ToUInt32 (0x0C),
-                Height  = header.ToUInt32 (0x10),
-                BPP     = 32,
-                Version     = version,
-                AlphaOffset = header.ToUInt32 (0x1C),
+                Width = header.ToUInt32(0x0C),
+                Height = header.ToUInt32(0x10),
+                BPP = 32,
+                Version = version,
+                AlphaOffset = header.ToUInt32(0x1C),
             };
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
-            using (var reader = new PdtReader (stream, (PdtMetaData)info))
+            using (var reader = new PdtReader(stream, (PdtMetaData)info))
             {
                 reader.Unpack();
-                return ImageData.Create (info, reader.Format, reader.Palette, reader.Data);
+                return ImageData.Create(info, reader.Format, reader.Palette, reader.Data);
             }
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new NotImplementedException ("PdtFormat.Write not implemented");
+            throw new NotImplementedException("PdtFormat.Write not implemented");
         }
     }
 
     internal sealed class PdtReader : IDisposable
     {
-        IBinaryStream   m_input;
-        byte[]          m_output;
-        PdtMetaData     m_info;
+        IBinaryStream m_input;
+        byte[] m_output;
+        PdtMetaData m_info;
 
-        public byte[]           Data { get { return m_output; } }
-        public PixelFormat    Format { get; private set; }
+        public byte[] Data { get { return m_output; } }
+        public PixelFormat Format { get; private set; }
         public BitmapPalette Palette { get; private set; }
 
-        public PdtReader (IBinaryStream input, PdtMetaData info)
+        public PdtReader(IBinaryStream input, PdtMetaData info)
         {
             m_input = input;
             m_info = info;
@@ -100,7 +100,7 @@ namespace GameRes.Formats.RealLive
             m_output = new byte[m_info.Width * m_info.Height * Format.BitsPerPixel / 8];
         }
 
-        public void Unpack ()
+        public void Unpack()
         {
             m_input.Position = 0x20;
             if (0 == m_info.Version)
@@ -109,7 +109,7 @@ namespace GameRes.Formats.RealLive
                 UnpackV1();
         }
 
-        void UnpackV0 ()
+        void UnpackV0()
         {
             Unpack24();
             if (0 != m_info.AlphaOffset)
@@ -124,13 +124,13 @@ namespace GameRes.Formats.RealLive
             }
         }
 
-        void UnpackV1 ()
+        void UnpackV1()
         {
-            Palette = ImageFormat.ReadPalette (m_input.AsStream);
+            Palette = ImageFormat.ReadPalette(m_input.AsStream);
             var offsets = new int[16];
             for (int i = 0; i < offsets.Length; ++i)
                 offsets[i] = m_input.ReadInt32();
-            LzUnpack (offsets);
+            LzUnpack(offsets);
 
             if (0 != m_info.AlphaOffset)
             {
@@ -139,7 +139,7 @@ namespace GameRes.Formats.RealLive
             }
         }
 
-        void Unpack24 ()
+        void Unpack24()
         {
             int dst = 0;
             int bits = 0;
@@ -154,7 +154,7 @@ namespace GameRes.Formats.RealLive
                 }
                 if (0 != (bits & mask))
                 {
-                    m_input.Read (m_output, dst, 3);
+                    m_input.Read(m_output, dst, 3);
                     dst += 4;
                 }
                 else
@@ -162,13 +162,13 @@ namespace GameRes.Formats.RealLive
                     int offset = m_input.ReadUInt16();
                     int count = (1 + (offset & 0xF)) * 4;
                     offset = (1 + (offset >> 4)) * 4;
-                    Binary.CopyOverlapped (m_output, dst-offset, dst, count);
+                    Binary.CopyOverlapped(m_output, dst - offset, dst, count);
                     dst += count;
                 }
             }
         }
 
-        byte[] Unpack8 ()
+        byte[] Unpack8()
         {
             var output = new byte[m_info.Width * m_info.Height];
             int dst = 0;
@@ -190,14 +190,14 @@ namespace GameRes.Formats.RealLive
                 {
                     int count = 2 + m_input.ReadUInt8();
                     int offset = 1 + m_input.ReadUInt8();
-                    Binary.CopyOverlapped (output, dst-offset, dst, count);
+                    Binary.CopyOverlapped(output, dst - offset, dst, count);
                     dst += count;
                 }
             }
             return output;
         }
 
-        void LzUnpack (int[] offsets)
+        void LzUnpack(int[] offsets)
         {
             int dst = 0;
             int bits = 0;
@@ -217,17 +217,17 @@ namespace GameRes.Formats.RealLive
                 else
                 {
                     int offset = m_input.ReadUInt8();
-                    int count = Math.Min (2 + (offset >> 4), m_output.Length - dst);
+                    int count = Math.Min(2 + (offset >> 4), m_output.Length - dst);
                     offset = offsets[offset & 0xF];
                     if (dst < offset)
                     {
-                        int gap = Math.Min (offset - dst, count);
+                        int gap = Math.Min(offset - dst, count);
                         dst += gap;
                         count -= gap;
                     }
                     if (count > 0)
                     {
-                        Binary.CopyOverlapped (m_output, dst-offset, dst, count);
+                        Binary.CopyOverlapped(m_output, dst - offset, dst, count);
                         dst += count;
                     }
                 }
@@ -235,7 +235,7 @@ namespace GameRes.Formats.RealLive
         }
 
         #region IDisposable Members
-        public void Dispose ()
+        public void Dispose()
         {
         }
         #endregion

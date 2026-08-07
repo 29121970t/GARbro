@@ -33,68 +33,69 @@ namespace GameRes.Formats.Mink
     [Export(typeof(ImageFormat))]
     public class FdFormat : ImageFormat
     {
-        public override string         Tag { get { return "BMP/FD"; } }
+        public override string Tag { get { return "BMP/FD"; } }
         public override string Description { get { return "Mink compressed bitmap format"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public FdFormat ()
+        public FdFormat()
         {
             Signatures = new uint[] { 0x00186446, 0x00184446, 0x00206446, 0 };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x10);
+            var header = file.ReadHeader(0x10);
             if (header[0] != 'F' || (header[1] & 0x5F) != 'D' || header[3] > 1)
                 return null;
             int bpp = header[2];
             if (bpp != 24 && bpp != 32)
                 return null;
-            return new FcMetaData {
-                Width  = header.ToUInt16 (4),
-                Height = header.ToUInt16 (6),
-                BPP    = bpp,
-                Flag   = header[3],
+            return new FcMetaData
+            {
+                Width = header.ToUInt16(4),
+                Height = header.ToUInt16(6),
+                BPP = bpp,
+                Flag = header[3],
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new FdReader (file, (FcMetaData)info);
+            var reader = new FdReader(file, (FcMetaData)info);
             return reader.Unpack();
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("FdFormat.Write not implemented");
+            throw new System.NotImplementedException("FdFormat.Write not implemented");
         }
     }
 
     internal class FdReader
     {
-        IBinaryStream   m_input;
-        FcMetaData      m_info;
+        IBinaryStream m_input;
+        FcMetaData m_info;
 
-        public FdReader (IBinaryStream input, FcMetaData info)
+        public FdReader(IBinaryStream input, FcMetaData info)
         {
             m_input = input;
             m_info = info;
         }
 
-        public ImageData Unpack ()
+        public ImageData Unpack()
         {
             m_input.Position = 16;
             var output = new uint[m_info.iWidth * m_info.iHeight];
-            UnpackRgb (output);
+            UnpackRgb(output);
             if (32 == m_info.BPP)
-                UnpackAlpha (output);
+                UnpackAlpha(output);
             PixelFormat format = 32 == m_info.BPP ? PixelFormats.Bgra32 : PixelFormats.Bgr32;
-            return ImageData.CreateFlipped (m_info, format, null, output, m_info.iWidth * 4);
+            return ImageData.CreateFlipped(m_info, format, null, output, m_info.iWidth * 4);
         }
 
         byte m_cur_bits;
 
-        void UnpackRgb (uint[] output)
+        void UnpackRgb(uint[] output)
         {
             InitOffsetTable();
             int dst = 0;
@@ -136,7 +137,7 @@ namespace GameRes.Formats.Mink
                     int count = ReadNext() - 1;
                     if (code == 38)
                     {
-                        while (count --> 0)
+                        while (count-- > 0)
                         {
                             output[dst++] = output[src++];
                         }
@@ -144,7 +145,7 @@ namespace GameRes.Formats.Mink
                     else
                     {
                         int offset = m_offset_table[code - 20]; // dword_5D51F8[code];
-                        while (count --> 0)
+                        while (count-- > 0)
                         {
                             uint pixel = output[src] + output[dst + offset] - output[src + offset];
                             output[dst++] = pixel;
@@ -156,7 +157,7 @@ namespace GameRes.Formats.Mink
             }
         }
 
-        void UnpackAlpha (uint[] output)
+        void UnpackAlpha(uint[] output)
         {
             int dst = 0;
             while (dst < output.Length)
@@ -229,9 +230,9 @@ namespace GameRes.Formats.Mink
                     bits = (m_cur_bits << v99) + (1 << (v99 - 1));
                 }
                 m_cur_bits = (byte)bits;
-                count = Math.Min (count - 1, output.Length - dst);
+                count = Math.Min(count - 1, output.Length - dst);
                 alpha <<= 24;
-                while (count --> 0)
+                while (count-- > 0)
                 {
                     uint px = output[dst] & 0xFFFFFFu;
                     output[dst++] = px | alpha;
@@ -239,7 +240,7 @@ namespace GameRes.Formats.Mink
             }
         }
 
-        int ReadNext ()
+        int ReadNext()
         {
             int shift = FlowMap3[m_cur_bits];
             m_cur_bits = FlowMap1[m_cur_bits];
@@ -283,8 +284,8 @@ namespace GameRes.Formats.Mink
 
         int[] m_offset_table = new int[18];
 
-        static readonly sbyte[] OffsetsX = { -1,  0,  1, -1,  0, -2,  0, -3,  0, -4,  0, -5,  0, -6,  0, -7,  0, -8 };
-        static readonly sbyte[] OffsetsY = {  0, -1, -1, -1, -2,  0, -3,  0, -4,  0, -5,  0, -6,  0, -7,  0, -8,  0 };
+        static readonly sbyte[] OffsetsX = { -1, 0, 1, -1, 0, -2, 0, -3, 0, -4, 0, -5, 0, -6, 0, -7, 0, -8 };
+        static readonly sbyte[] OffsetsY = { 0, -1, -1, -1, -2, 0, -3, 0, -4, 0, -5, 0, -6, 0, -7, 0, -8, 0 };
 
         static readonly byte[] ControlTable = new byte[38];
         static readonly byte[] ControlMap = new byte[] {
@@ -292,7 +293,7 @@ namespace GameRes.Formats.Mink
             6, 8, 7, 9, 16, 17, 18, 19, 20, 21, 30, 31, 32, 33, 34, 35, 36, 37
         };
 
-        void InitOffsetTable ()
+        void InitOffsetTable()
         {
             for (int i = 0; i < 18; ++i)
             {
@@ -306,7 +307,7 @@ namespace GameRes.Formats.Mink
         static readonly byte[] FlowMap4 = new byte[256];
         static readonly byte[] FlowMap5 = new byte[256];
 
-        static FdReader ()
+        static FdReader()
         {
             for (int i = 0; i < 38; ++i)
             {

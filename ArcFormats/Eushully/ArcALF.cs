@@ -35,101 +35,101 @@ namespace GameRes.Formats.Eushully
     [Export(typeof(ArchiveFormat))]
     public class AlfOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "ALF"; } }
+        public override string Tag { get { return "ALF"; } }
         public override string Description { get { return "Eushully resource archive"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public AlfOpener ()
+        public AlfOpener()
         {
             ContainedFormats = new[] { "AGF", "WAV", "AOG/SYS3", "SCR" };
         }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            string dir_name = Path.GetDirectoryName (file.Name);
-            string file_name = Path.GetFileName (file.Name);
-            foreach (var ini_name in GetIndexNames (file_name))
+            string dir_name = Path.GetDirectoryName(file.Name);
+            string file_name = Path.GetFileName(file.Name);
+            foreach (var ini_name in GetIndexNames(file_name))
             {
-                string ini_path = VFS.CombinePath (dir_name, ini_name);
-                if (VFS.FileExists (ini_path))
+                string ini_path = VFS.CombinePath(dir_name, ini_name);
+                if (VFS.FileExists(ini_path))
                 {
-                    var dir = ReadIndex (ini_path, file_name);
+                    var dir = ReadIndex(ini_path, file_name);
                     if (null != dir)
-                        return new ArcFile (file, this, dir);
+                        return new ArcFile(file, this, dir);
                 }
             }
             return null;
         }
 
-        internal IEnumerable<string> GetIndexNames (string alf_name)
+        internal IEnumerable<string> GetIndexNames(string alf_name)
         {
             yield return "sys4ini.bin";
             yield return "sys3ini.bin";
-            yield return Path.ChangeExtension (alf_name, "AAI");
+            yield return Path.ChangeExtension(alf_name, "AAI");
         }
 
         Tuple<string, Dictionary<string, List<Entry>>> LastAccessedIndex;
 
-        List<Entry> ReadIndex (string ini_file, string arc_name)
+        List<Entry> ReadIndex(string ini_file, string arc_name)
         {
             if (null == LastAccessedIndex
-                || !LastAccessedIndex.Item1.Equals (ini_file, StringComparison.OrdinalIgnoreCase))
+                || !LastAccessedIndex.Item1.Equals(ini_file, StringComparison.OrdinalIgnoreCase))
             {
                 LastAccessedIndex = null;
-                using (var ini = VFS.OpenView (ini_file))
+                using (var ini = VFS.OpenView(ini_file))
                 {
                     IBinaryStream index;
-                    bool is_append = ini.View.AsciiEqual (0, "S4AC");
-                    if (is_append || ini.View.AsciiEqual (0, "S4IC") || ini.View.AsciiEqual (0, "S3IC"))
+                    bool is_append = ini.View.AsciiEqual(0, "S4AC");
+                    if (is_append || ini.View.AsciiEqual(0, "S4IC") || ini.View.AsciiEqual(0, "S3IC"))
                     {
                         uint offset = is_append ? 0x114u : 0x134u;
-                        uint packed_size = ini.View.ReadUInt32 (offset);
-                        var packed = ini.CreateStream (offset+4, packed_size);
-                        var unpacked = new LzssStream (packed);
-                        index = new BinaryStream (unpacked, ini_file);
+                        uint packed_size = ini.View.ReadUInt32(offset);
+                        var packed = ini.CreateStream(offset + 4, packed_size);
+                        var unpacked = new LzssStream(packed);
+                        index = new BinaryStream(unpacked, ini_file);
                     }
-                    else if (ini.View.AsciiEqual (0, "S3IN"))
+                    else if (ini.View.AsciiEqual(0, "S3IN"))
                     {
-                        index = ini.CreateStream (0x12C);
+                        index = ini.CreateStream(0x12C);
                     }
                     else
                         return null;
                     using (index)
                     {
-                        var file_table = ReadSysIni (index);
+                        var file_table = ReadSysIni(index);
                         if (null == file_table)
                             return null;
-                        LastAccessedIndex = Tuple.Create (ini_file, file_table);
+                        LastAccessedIndex = Tuple.Create(ini_file, file_table);
                     }
                 }
             }
             List<Entry> dir = null;
-            LastAccessedIndex.Item2.TryGetValue (arc_name, out dir);
+            LastAccessedIndex.Item2.TryGetValue(arc_name, out dir);
             return dir;
         }
 
-        internal Dictionary<string, List<Entry>> ReadSysIni (IBinaryStream index)
+        internal Dictionary<string, List<Entry>> ReadSysIni(IBinaryStream index)
         {
             int arc_count = index.ReadInt32();
-            if (!IsSaneCount (arc_count))
+            if (!IsSaneCount(arc_count))
                 return null;
-            var file_table = new Dictionary<string, List<Entry>> (arc_count, StringComparer.OrdinalIgnoreCase);
+            var file_table = new Dictionary<string, List<Entry>>(arc_count, StringComparer.OrdinalIgnoreCase);
             var arc_list = new List<Entry>[arc_count];
             for (int i = 0; i < arc_count; ++i)
             {
-                var name = index.ReadCString (0x100);
+                var name = index.ReadCString(0x100);
                 var file_list = new List<Entry>();
-                file_table.Add (name, file_list);
+                file_table.Add(name, file_list);
                 arc_list[i] = file_list;
             }
             int file_count = index.ReadInt32();
-            if (!IsSaneCount (file_count))
+            if (!IsSaneCount(file_count))
                 return null;
             for (int i = 0; i < file_count; ++i)
             {
-                var name = index.ReadCString (0x40);
+                var name = index.ReadCString(0x40);
                 int arc_id = index.ReadInt32();
                 if (arc_id < 0 || arc_id >= arc_list.Length)
                     return null;
@@ -138,10 +138,10 @@ namespace GameRes.Formats.Eushully
                 uint size = index.ReadUInt32();
                 if ("@" == name)
                     continue;
-                var entry = Create<Entry> (name);
+                var entry = Create<Entry>(name);
                 entry.Offset = offset;
                 entry.Size = size;
-                arc_list[arc_id].Add (entry);
+                arc_list[arc_id].Add(entry);
             }
             return file_table;
         }

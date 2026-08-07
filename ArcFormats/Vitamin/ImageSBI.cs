@@ -36,24 +36,24 @@ namespace GameRes.Formats.Vitamin
     {
         public bool HasPalette;
         public bool IsPacked;
-        public int  InputSize;
+        public int InputSize;
     }
 
     [Export(typeof(ImageFormat))]
     public class SbiFormat : ImageFormat
     {
-        public override string         Tag { get { return "SBI"; } }
+        public override string Tag { get { return "SBI"; } }
         public override string Description { get { return "Vitamin image format"; } }
-        public override uint     Signature { get { return 0x0A494253; } } // 'SBI'
+        public override uint Signature { get { return 0x0A494253; } } // 'SBI'
 
-        public SbiFormat ()
+        public SbiFormat()
         {
             Extensions = new string[] { "cmp" };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
-            var header = stream.ReadHeader (0x20);
+            var header = stream.ReadHeader(0x20);
             if (header[4] != 1 || header[5] != 0)
                 return null;
             int bpp = header[6];
@@ -61,43 +61,43 @@ namespace GameRes.Formats.Vitamin
                 return null;
             return new SbiMetaData
             {
-                Width   = header.ToUInt16 (7),
-                Height  = header.ToUInt16 (9),
-                BPP     = bpp,
-                InputSize = header.ToInt32 (0xB),
+                Width = header.ToUInt16(7),
+                Height = header.ToUInt16(9),
+                BPP = bpp,
+                InputSize = header.ToInt32(0xB),
                 IsPacked = 0 != header[0x10],
                 HasPalette = 8 == bpp && 0 == header[0xF],
             };
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
-            using (var reader = new SbiReader (stream, (SbiMetaData)info))
+            using (var reader = new SbiReader(stream, (SbiMetaData)info))
             {
                 reader.Unpack();
-                return ImageData.Create (info, reader.Format, reader.Palette, reader.Data, reader.Stride);
+                return ImageData.Create(info, reader.Format, reader.Palette, reader.Data, reader.Stride);
             }
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("SbiFormat.Write not implemented");
+            throw new System.NotImplementedException("SbiFormat.Write not implemented");
         }
     }
 
     internal sealed class SbiReader : IDisposable
     {
-        IBinaryStream   m_input;
-        SbiMetaData     m_info;
-        byte[]          m_output;
-        int             m_stride;
+        IBinaryStream m_input;
+        SbiMetaData m_info;
+        byte[] m_output;
+        int m_stride;
 
-        public byte[]           Data { get { return m_output; } }
-        public PixelFormat    Format { get; private set; }
+        public byte[] Data { get { return m_output; } }
+        public PixelFormat Format { get; private set; }
         public BitmapPalette Palette { get; private set; }
-        public int            Stride { get { return m_stride; } }
+        public int Stride { get { return m_stride; } }
 
-        public SbiReader (IBinaryStream input, SbiMetaData info)
+        public SbiReader(IBinaryStream input, SbiMetaData info)
         {
             m_input = input;
             m_info = info;
@@ -120,13 +120,13 @@ namespace GameRes.Formats.Vitamin
                 throw new InvalidFormatException();
         }
 
-        public void Unpack ()
+        public void Unpack()
         {
             m_input.Position = 0x20;
             int input_size = m_info.InputSize - 0x20;
             if (m_info.HasPalette)
             {
-                Palette = ImageFormat.ReadPalette (m_input.AsStream, 0x100, PaletteFormat.Rgb);
+                Palette = ImageFormat.ReadPalette(m_input.AsStream, 0x100, PaletteFormat.Rgb);
                 input_size -= 0x300;
             }
             int x = 0;
@@ -136,7 +136,7 @@ namespace GameRes.Formats.Vitamin
             {
                 while (dst >= 0)
                 {
-                    if (m_stride != m_input.Read (m_output, dst, m_stride))
+                    if (m_stride != m_input.Read(m_output, dst, m_stride))
                         throw new EndOfStreamException();
                     dst -= m_stride;
                 }
@@ -151,17 +151,17 @@ namespace GameRes.Formats.Vitamin
                 if (count < 0x80)
                 {
                     int c = count * pixel_size;
-                    if (c != m_input.Read (buffer, 0, c))
+                    if (c != m_input.Read(buffer, 0, c))
                         throw new EndOfStreamException();
                     input_size -= c;
                 }
                 else if (count >= 0x80)
                 {
                     count &= 0x7F;
-                    if (pixel_size != m_input.Read (buffer, 0, pixel_size))
+                    if (pixel_size != m_input.Read(buffer, 0, pixel_size))
                         throw new EndOfStreamException();
                     input_size -= pixel_size;
-                    Binary.CopyOverlapped (buffer, 0, pixel_size, pixel_size * (count-1));
+                    Binary.CopyOverlapped(buffer, 0, pixel_size, pixel_size * (count - 1));
                 }
                 int src = 0;
                 while (count > 0)
@@ -177,7 +177,7 @@ namespace GameRes.Formats.Vitamin
                         x = 0;
                     }
                     int chunk = pixel_size * line_left;
-                    Buffer.BlockCopy (buffer, src, m_output, dst, chunk);
+                    Buffer.BlockCopy(buffer, src, m_output, dst, chunk);
                     src += chunk;
                     if (0 == x)
                         dst = m_stride * --y;
@@ -189,7 +189,7 @@ namespace GameRes.Formats.Vitamin
         }
 
         #region IDisposable Members
-        public void Dispose ()
+        public void Dispose()
         {
         }
         #endregion

@@ -33,60 +33,60 @@ namespace GameRes.Formats.Purple
     [Export(typeof(ArchiveFormat))]
     public class Cpz2Opener : ArchiveFormat
     {
-        public override string         Tag { get { return "CPZ2"; } }
+        public override string Tag { get { return "CPZ2"; } }
         public override string Description { get { return "CVNS engine resource archive"; } }
-        public override uint     Signature { get { return 0x325A5043; } } // 'CPZ2'
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x325A5043; } } // 'CPZ2'
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public Cpz2Opener ()
+        public Cpz2Opener()
         {
             Extensions = new string[] { "cpz" };
         }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            int count = (int)(file.View.ReadUInt32 (4) ^ 0xE47C59F3);
-            if (!IsSaneCount (count))
+            int count = (int)(file.View.ReadUInt32(4) ^ 0xE47C59F3);
+            if (!IsSaneCount(count))
                 return null;
-            uint index_size = file.View.ReadUInt32 (8) ^ 0x3F71DE2Au;
-            uint key = file.View.ReadUInt32 (0x10) ^ 0x40DE832Cu;
-            var index = file.View.ReadBytes (0x14, index_size);
-            DecryptData (index, key);
+            uint index_size = file.View.ReadUInt32(8) ^ 0x3F71DE2Au;
+            uint key = file.View.ReadUInt32(0x10) ^ 0x40DE832Cu;
+            var index = file.View.ReadBytes(0x14, index_size);
+            DecryptData(index, key);
             long base_offset = 0x14 + index_size;
             int index_offset = 0;
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
-                int entry_size = LittleEndian.ToInt32 (index, index_offset);
+                int entry_size = LittleEndian.ToInt32(index, index_offset);
                 if (entry_size <= 0 || entry_size > index.Length - index_offset)
                     return null;
-                var name = Binary.GetCString (index, index_offset+0x18);
-                var entry = FormatCatalog.Instance.Create<CpzEntry> (name);
-                entry.Size = LittleEndian.ToUInt32 (index, index_offset+4);
-                entry.Offset = LittleEndian.ToUInt32 (index, index_offset+8) + base_offset;
-                if (!entry.CheckPlacement (file.MaxOffset))
+                var name = Binary.GetCString(index, index_offset + 0x18);
+                var entry = FormatCatalog.Instance.Create<CpzEntry>(name);
+                entry.Size = LittleEndian.ToUInt32(index, index_offset + 4);
+                entry.Offset = LittleEndian.ToUInt32(index, index_offset + 8) + base_offset;
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
-                entry.Key = LittleEndian.ToUInt32 (index, index_offset+0x14) ^ 0x796C3AFDu;
-                dir.Add (entry);
+                entry.Key = LittleEndian.ToUInt32(index, index_offset + 0x14) ^ 0x796C3AFDu;
+                dir.Add(entry);
                 index_offset += entry_size;
             }
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var cent = entry as CpzEntry;
             if (null == cent)
-                return base.OpenEntry (arc, entry);
-            var data = arc.File.View.ReadBytes (entry.Offset, entry.Size);
-            DecryptData (data, cent.Key);
-            if (Binary.AsciiEqual (data, "PSS0"))
-                data = CpzOpener.UnpackLzss (data);
-            return new BinMemoryStream (data, entry.Name);
+                return base.OpenEntry(arc, entry);
+            var data = arc.File.View.ReadBytes(entry.Offset, entry.Size);
+            DecryptData(data, cent.Key);
+            if (Binary.AsciiEqual(data, "PSS0"))
+                data = CpzOpener.UnpackLzss(data);
+            return new BinMemoryStream(data, entry.Name);
         }
 
-        void DecryptData (byte[] data, uint key)
+        void DecryptData(byte[] data, uint key)
         {
             int shift = 5;
             int k = (int)key;
@@ -105,7 +105,7 @@ namespace GameRes.Formats.Purple
                     for (int count = data.Length >> 2; count > 0; --count)
                     {
                         uint t = (*data32 ^ (EncryptionTable[table_ptr++ & 0xF] + key)) - 0x15C3E7u;
-                        *data32++ = Binary.RotR (t, shift);
+                        *data32++ = Binary.RotR(t, shift);
                     }
                     byte* data8 = (byte*)data32;
                     shift = 0;

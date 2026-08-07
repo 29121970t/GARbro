@@ -32,24 +32,24 @@ namespace GameRes.Formats.Nags
 {
     internal class NgpMetaData : ImageMetaData
     {
-        public int  PackedSize;
-        public int  UnpackedSize;
+        public int PackedSize;
+        public int UnpackedSize;
     }
 
     [Export(typeof(ImageFormat))]
     public class NgpFormat : ImageFormat
     {
-        public override string         Tag { get { return "NGP"; } }
+        public override string Tag { get { return "NGP"; } }
         public override string Description { get { return "NAGS engine image format"; } }
-        public override uint     Signature { get { return 0x2050474E; } } // 'NGP '
+        public override uint Signature { get { return 0x2050474E; } } // 'NGP '
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
             file.Position = 0x12;
             int packed_size = file.ReadInt32();
-            uint width      = file.ReadUInt32();
-            uint height     = file.ReadUInt32();
-            int bpp         = file.ReadUInt16() * 8;
+            uint width = file.ReadUInt32();
+            uint height = file.ReadUInt32();
+            int bpp = file.ReadUInt16() * 8;
             file.Position = 0x100;
             int unpacked_size = file.ReadInt32();
             if (packed_size <= 0 || unpacked_size <= 0)
@@ -64,14 +64,14 @@ namespace GameRes.Formats.Nags
             };
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
             var meta = (NgpMetaData)info;
-            using (var input = new StreamRegion (stream.AsStream, 0x104, meta.PackedSize, true))
-            using (var z = new ZLibStream (input, CompressionMode.Decompress))
+            using (var input = new StreamRegion(stream.AsStream, 0x104, meta.PackedSize, true))
+            using (var z = new ZLibStream(input, CompressionMode.Decompress))
             {
                 var pixels = new byte[meta.UnpackedSize];
-                if (pixels.Length != z.Read (pixels, 0, pixels.Length))
+                if (pixels.Length != z.Read(pixels, 0, pixels.Length))
                     throw new EndOfStreamException();
                 PixelFormat format;
                 if (32 == meta.BPP)
@@ -81,15 +81,15 @@ namespace GameRes.Formats.Nags
                 else if (8 == meta.BPP)
                     format = PixelFormats.Gray8;
                 else
-                    throw new System.NotSupportedException ("Not supported NGP image color depth");
+                    throw new System.NotSupportedException("Not supported NGP image color depth");
 
-                return ImageData.Create (info, format, null, pixels);
+                return ImageData.Create(info, format, null, pixels);
             }
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("NgpFormat.Write not implemented");
+            throw new System.NotImplementedException("NgpFormat.Write not implemented");
         }
     }
 }

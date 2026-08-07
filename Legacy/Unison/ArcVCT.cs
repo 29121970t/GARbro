@@ -36,66 +36,66 @@ namespace GameRes.Formats.Unison
     [Export(typeof(ArchiveFormat))]
     public class VctOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "VCT"; } }
+        public override string Tag { get { return "VCT"; } }
         public override string Description { get { return "Unison Shift resource archive"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            int idx_count = file.View.ReadByte (0);
+            int idx_count = file.View.ReadByte(0);
             if (0 == idx_count)
                 return null;
             int index_offset = 1 + idx_count * 3;
-            int count = file.View.ReadInt32 (index_offset);
-            if (!IsSaneCount (count))
+            int count = file.View.ReadInt32(index_offset);
+            if (!IsSaneCount(count))
                 return null;
             index_offset += 4;
             uint index_size = (uint)count * 0x20;
-            if (index_size > file.View.Reserve (index_offset, index_size))
+            if (index_size > file.View.Reserve(index_offset, index_size))
                 return null;
 
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
-                string name = file.View.ReadString (index_offset, 0x14).TrimEnd();
-                if (string.IsNullOrWhiteSpace (name))
+                string name = file.View.ReadString(index_offset, 0x14).TrimEnd();
+                if (string.IsNullOrWhiteSpace(name))
                     return null;
-                string ext  = file.View.ReadString (index_offset+0x14, 3);
-                if (!string.IsNullOrWhiteSpace (ext))
+                string ext = file.View.ReadString(index_offset + 0x14, 3);
+                if (!string.IsNullOrWhiteSpace(ext))
                     name += '.' + ext;
-                var entry = FormatCatalog.Instance.Create<Entry> (name);
-                entry.Offset = file.View.ReadUInt32 (index_offset+0x18);
-                entry.Size   = file.View.ReadUInt32 (index_offset+0x1C);
-                if (!entry.CheckPlacement (file.MaxOffset))
+                var entry = FormatCatalog.Instance.Create<Entry>(name);
+                entry.Offset = file.View.ReadUInt32(index_offset + 0x18);
+                entry.Size = file.View.ReadUInt32(index_offset + 0x1C);
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
-                dir.Add (entry);
+                dir.Add(entry);
                 index_offset += 0x20;
             }
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
-            if (!arc.File.View.AsciiEqual (entry.Offset, "LZS\0"))
-                return base.OpenEntry (arc, entry);
-            using (var input = arc.File.CreateStream (entry.Offset, entry.Size))
+            if (!arc.File.View.AsciiEqual(entry.Offset, "LZS\0"))
+                return base.OpenEntry(arc, entry);
+            using (var input = arc.File.CreateStream(entry.Offset, entry.Size))
             {
-                var data = LzsUnpack (input);
-                if (data.AsciiEqual ("BM") && 32 == data.ToUInt16 (0x1C))
-                    FixBitmapAlpha (data);
-                return new BinMemoryStream (data, entry.Name);
+                var data = LzsUnpack(input);
+                if (data.AsciiEqual("BM") && 32 == data.ToUInt16(0x1C))
+                    FixBitmapAlpha(data);
+                return new BinMemoryStream(data, entry.Name);
             }
         }
 
-        byte[] LzsUnpack (IBinaryStream input)
+        byte[] LzsUnpack(IBinaryStream input)
         {
             input.ReadInt32();
             int unpacked_size = input.ReadInt32();
             int packed_size = input.ReadInt32();
             int ctl_size = input.ReadInt32();
-            var ctl = input.ReadBytes (ctl_size);
+            var ctl = input.ReadBytes(ctl_size);
             var output = new byte[unpacked_size];
             var frame = new byte[0x1000];
             int frame_pos = 1;
@@ -117,7 +117,7 @@ namespace GameRes.Formats.Unison
                 {
                     int offset = input.ReadUInt16();
                     int count = (offset >> 12) + 2;
-                    while (count --> 0)
+                    while (count-- > 0)
                     {
                         byte b = frame[offset++ & 0xFFF];
                         output[dst++] = frame[frame_pos++ & 0xFFF] = b;
@@ -127,20 +127,20 @@ namespace GameRes.Formats.Unison
             return output;
         }
 
-        void FixBitmapAlpha (byte[] bmp)
+        void FixBitmapAlpha(byte[] bmp)
         {
-            int img_start = bmp.ToInt32 (0xA);
+            int img_start = bmp.ToInt32(0xA);
             for (int pos = img_start; pos < bmp.Length; pos += 4)
             {
                 byte r = bmp[pos];
-                bmp[pos] = bmp[pos+2];
-                bmp[pos+2] = r;
-                bmp[pos+3] ^= 0xFF;
+                bmp[pos] = bmp[pos + 2];
+                bmp[pos + 2] = r;
+                bmp[pos + 3] ^= 0xFF;
             }
-            if (img_start == 0x42 && bmp.ToInt32 (0x36) == 0xFF && bmp.ToInt32 (0x3E) == 0xFF0000)
+            if (img_start == 0x42 && bmp.ToInt32(0x36) == 0xFF && bmp.ToInt32(0x3E) == 0xFF0000)
             {
-                LittleEndian.Pack (0xFF0000, bmp, 0x36);
-                LittleEndian.Pack (0x0000FF, bmp, 0x3E);
+                LittleEndian.Pack(0xFF0000, bmp, 0x36);
+                LittleEndian.Pack(0x0000FF, bmp, 0x3E);
             }
         }
     }

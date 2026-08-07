@@ -34,60 +34,61 @@ namespace GameRes.Formats.Abel
 {
     internal class CbfMetaData : ImageMetaData
     {
-        public int  Compression;
+        public int Compression;
     }
 
     [Export(typeof(ImageFormat))]
     public class CbfFormat : ImageFormat
     {
-        public override string         Tag { get { return "CBF"; } }
+        public override string Tag { get { return "CBF"; } }
         public override string Description { get { return "Abel image format"; } }
-        public override uint     Signature { get { return 0x31464243; } } // 'CBF1'
+        public override uint Signature { get { return 0x31464243; } } // 'CBF1'
 
-        public CbfFormat ()
+        public CbfFormat()
         {
             Signatures = new uint[] { 0x30464243, 0x31464243, 0x32464243, 0x33464243 };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x18);
-            if (header.ToInt32 (0x10) != 1)
+            var header = file.ReadHeader(0x18);
+            if (header.ToInt32(0x10) != 1)
                 return null;
             int compression = header[3] - '0';
             if (compression < 0 || compression > 3)
                 return null;
-            return new CbfMetaData {
-                Width  = header.ToUInt32 (4),
-                Height = header.ToUInt32 (8),
-                BPP    = header.ToInt32 (12),
+            return new CbfMetaData
+            {
+                Width = header.ToUInt32(4),
+                Height = header.ToUInt32(8),
+                BPP = header.ToInt32(12),
                 Compression = compression,
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new CbfReader (file, (CbfMetaData)info);
+            var reader = new CbfReader(file, (CbfMetaData)info);
             var pixels = reader.Unpack();
-            var alp_name = Path.ChangeExtension (file.Name, "alp");
-            if (VFS.FileExists (alp_name))
+            var alp_name = Path.ChangeExtension(file.Name, "alp");
+            if (VFS.FileExists(alp_name))
             {
                 try
                 {
-                    using (var alp = VFS.OpenBinaryStream (alp_name))
-                        return ReadAlpha (alp, info, pixels);
+                    using (var alp = VFS.OpenBinaryStream(alp_name))
+                        return ReadAlpha(alp, info, pixels);
                 }
                 catch { /* ignore mask read errors */ }
             }
-            return ImageData.Create (info, PixelFormats.Bgr24, null, pixels);
+            return ImageData.Create(info, PixelFormats.Bgr24, null, pixels);
         }
 
-        ImageData ReadAlpha (IBinaryStream alp, ImageMetaData info, byte[] image)
+        ImageData ReadAlpha(IBinaryStream alp, ImageMetaData info, byte[] image)
         {
-            var header = alp.ReadHeader (0x10);
-            if (!header.AsciiEqual ("ALP1"))
+            var header = alp.ReadHeader(0x10);
+            if (!header.AsciiEqual("ALP1"))
                 throw new InvalidFormatException();
-            int unpacked_size = header.ToInt32 (8);
+            int unpacked_size = header.ToInt32(8);
             var alpha = new byte[unpacked_size];
             int dst = 0;
             while (dst < alpha.Length)
@@ -103,32 +104,32 @@ namespace GameRes.Formats.Abel
             int src = 0;
             for (dst = 0; dst < pixels.Length; dst += 4)
             {
-                pixels[dst  ] = image[src++];
-                pixels[dst+1] = image[src++];
-                pixels[dst+2] = image[src++];
-                pixels[dst+3] = alpha[a_src++];
+                pixels[dst] = image[src++];
+                pixels[dst + 1] = image[src++];
+                pixels[dst + 2] = image[src++];
+                pixels[dst + 3] = alpha[a_src++];
             }
-            return ImageData.Create (info, PixelFormats.Bgra32, null, pixels, dst_stride);
+            return ImageData.Create(info, PixelFormats.Bgra32, null, pixels, dst_stride);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("CbfFormat.Write not implemented");
+            throw new System.NotImplementedException("CbfFormat.Write not implemented");
         }
     }
 
     internal class CbfReader
     {
-        IBinaryStream   m_input;
-        byte[]          m_output;
-        int             m_width;
-        int             m_height;
-        int             m_stride;
-        int             m_compression;
+        IBinaryStream m_input;
+        byte[] m_output;
+        int m_width;
+        int m_height;
+        int m_stride;
+        int m_compression;
 
-        public byte[]        Data { get { return m_output; } }
+        public byte[] Data { get { return m_output; } }
 
-        public CbfReader (IBinaryStream input, CbfMetaData info)
+        public CbfReader(IBinaryStream input, CbfMetaData info)
         {
             m_input = input;
             m_width = (int)info.Width;
@@ -138,82 +139,82 @@ namespace GameRes.Formats.Abel
             m_compression = info.Compression;
         }
 
-        public byte[] Unpack ()
+        public byte[] Unpack()
         {
             switch (m_compression)
             {
-            case 0: UnpackV0(); break;
-            case 1: UnpackV1(); break;
-            case 2: UnpackV2(); break;
-            case 3: UnpackV3(); break;
-            default:
-                throw new NotImplementedException (string.Format ("CBF compression {0} not implemented.", m_compression));
+                case 0: UnpackV0(); break;
+                case 1: UnpackV1(); break;
+                case 2: UnpackV2(); break;
+                case 3: UnpackV3(); break;
+                default:
+                    throw new NotImplementedException(string.Format("CBF compression {0} not implemented.", m_compression));
             }
             return m_output;
         }
 
-        void UnpackV0 ()
+        void UnpackV0()
         {
             m_input.Position = 0x18;
-            m_input.Read (m_output, 0, m_output.Length);
+            m_input.Read(m_output, 0, m_output.Length);
         }
 
-        void UnpackV1 ()
+        void UnpackV1()
         {
             m_input.Position = 0x18;
-            using (var lzss = new LzssStream (m_input.AsStream, LzssMode.Decompress, true))
-                lzss.Read (m_output, 0, m_output.Length);
+            using (var lzss = new LzssStream(m_input.AsStream, LzssMode.Decompress, true))
+                lzss.ReadExactly(m_output);
             for (int i = 3; i < m_output.Length; ++i)
-                m_output[i] += m_output[i-3];
+                m_output[i] += m_output[i - 3];
             var pixels = new byte[m_output.Length];
             int src = 0;
             var z_order = GetZigzagBlock();
             for (int y = 0; y < m_height; y += 8)
-            for (int x = 0; x < m_stride; x += 24)
-            {
-                int dst = x + y * m_stride;
-                for (int i = 0; i < 64; ++i)
+                for (int x = 0; x < m_stride; x += 24)
                 {
-                    int pos = z_order[i];
-                    pixels[dst + pos++] = m_output[src++];
-                    pixels[dst + pos++] = m_output[src++];
-                    pixels[dst + pos++] = m_output[src++];
+                    int dst = x + y * m_stride;
+                    for (int i = 0; i < 64; ++i)
+                    {
+                        int pos = z_order[i];
+                        pixels[dst + pos++] = m_output[src++];
+                        pixels[dst + pos++] = m_output[src++];
+                        pixels[dst + pos++] = m_output[src++];
+                    }
                 }
-            }
             m_output = pixels;
         }
 
-        void UnpackV2 ()
+        void UnpackV2()
         {
             m_input.Position = 0x18;
-            ReadRle (m_input.AsStream);
+            ReadRle(m_input.AsStream);
         }
 
-        void UnpackV3 ()
+        void UnpackV3()
         {
             m_input.Position = 0x1C;
-            using (var lzss = new LzssStream (m_input.AsStream, LzssMode.Decompress, true))
-                ReadRle (lzss);
+            using (var lzss = new LzssStream(m_input.AsStream, LzssMode.Decompress, true))
+                ReadRle(lzss);
         }
 
-        void ReadRle (Stream input)
+        void ReadRle(Stream input)
         {
             int dst = 0;
             while (dst < m_output.Length)
             {
-                if (3 != input.Read (m_output, dst, 3))
+                if (3 != input.Read(m_output, dst, 3))
                     break;
                 int count = input.ReadByte();
                 if (count > 0)
                 {
                     count *= 3;
-                    Binary.CopyOverlapped (m_output, dst, dst+3, count-3);
+                    Binary.CopyOverlapped(m_output, dst, dst + 3, count - 3);
                     dst += count;
                 }
             }
         }
 
-        int[] GetZigzagBlock ()
+        int[] GetZigzagBlock()
         {
             var order = new int[64];
             for (int i = 0; i < 64; ++i)

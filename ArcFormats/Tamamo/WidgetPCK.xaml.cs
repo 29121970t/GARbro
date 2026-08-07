@@ -8,9 +8,9 @@ namespace GameRes.Formats.GUI
     /// </summary>
     public partial class WidgetPCK : StackPanel
     {
-        public WidgetPCK (IEnumerable<string> keys)
+        public WidgetPCK(IEnumerable<string> keys)
         {
-            InitializeComponent ();
+            InitializeComponent();
             Title.ItemsSource = keys;
         }
     }

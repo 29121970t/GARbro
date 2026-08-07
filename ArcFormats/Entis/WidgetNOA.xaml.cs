@@ -10,11 +10,11 @@ namespace GameRes.Formats.GUI
     /// </summary>
     public partial class WidgetNOA : Grid
     {
-        public WidgetNOA ()
+        public WidgetNOA()
         {
-            InitializeComponent ();
+            InitializeComponent();
             var keys = new string[] { arcStrings.ArcIgnoreEncryption };
-            Scheme.ItemsSource = keys.Concat (NoaOpener.KnownKeys.Keys.OrderBy (x => x));
+            Scheme.ItemsSource = keys.Concat(NoaOpener.KnownKeys.Keys.OrderBy(x => x));
             // select first scheme as default
             if (-1 == Scheme.SelectedIndex)
                 Scheme.SelectedIndex = 0;

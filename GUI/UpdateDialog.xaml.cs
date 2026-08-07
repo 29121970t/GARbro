@@ -7,12 +7,12 @@ namespace GARbro.GUI
     /// </summary>
     public partial class UpdateDialog : Window
     {
-        public UpdateDialog (GarUpdateInfo info, bool enable_release, bool enable_formats)
+        public UpdateDialog(GarUpdateInfo info, bool enable_release, bool enable_formats)
         {
-            InitializeComponent ();
+            InitializeComponent();
             this.ReleasePane.Visibility = enable_release ? Visibility.Visible : Visibility.Collapsed;
             this.FormatsPane.Visibility = enable_formats ? Visibility.Visible : Visibility.Collapsed;
-            if (string.IsNullOrEmpty (info.ReleaseNotes))
+            if (string.IsNullOrEmpty(info.ReleaseNotes))
                 this.ReleaseNotes.Visibility = Visibility.Collapsed;
             this.DataContext = info;
             this.Closed += (s, e) => IsClosed = true;
@@ -20,13 +20,13 @@ namespace GARbro.GUI
 
         public bool IsClosed { get; private set; }
 
-        private void Hyperlink_RequestNavigate (object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+        private void Hyperlink_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
         {
-            if (App.NavigateUri (e.Uri))
+            if (App.NavigateUri(e.Uri))
                 e.Handled = true;
         }
 
-        private void Button_Click (object sender, RoutedEventArgs e)
+        private void Button_Click(object sender, RoutedEventArgs e)
         {
             this.DialogResult = false;
         }

@@ -34,42 +34,43 @@ namespace GameRes.Formats.Mermaid
     internal class MgMetaData : ImageMetaData
     {
         public uint ImageOffset;
-        public int  TileCount;
+        public int TileCount;
     }
 
     [Export(typeof(ImageFormat))]
     public class MgFormat : ImageFormat
     {
-        public override string         Tag { get { return "MG1"; } }
+        public override string Tag { get { return "MG1"; } }
         public override string Description { get { return "Mermaid obfuscated bitmap"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public MgFormat ()
+        public MgFormat()
         {
             Extensions = new string[] { "mg1", "mg2" };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            if (!file.Name.HasAnyOfExtensions ("mg1", "mg2"))
+            if (!file.Name.HasAnyOfExtensions("mg1", "mg2"))
                 return null;
-            var header = file.ReadHeader (0x36);
-            if (!header.AsciiEqual ("BM"))
+            var header = file.ReadHeader(0x36);
+            if (!header.AsciiEqual("BM"))
                 return null;
-            int width = header.ToInt32 (0x12);
+            int width = header.ToInt32(0x12);
             int tile_count = 5;
-            if (file.Name.HasExtension ("mg2"))
+            if (file.Name.HasExtension("mg2"))
                 tile_count = width / 32;
-            return new MgMetaData {
+            return new MgMetaData
+            {
                 Width = (uint)width,
-                Height = header.ToUInt32 (0x16),
-                BPP = header.ToInt16 (0x1C),
-                ImageOffset = header.ToUInt32 (0x0A),
+                Height = header.ToUInt32(0x16),
+                BPP = header.ToInt16(0x1C),
+                ImageOffset = header.ToUInt32(0x0A),
                 TileCount = tile_count,
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
             var meta = (MgMetaData)info;
             PixelFormat format;
@@ -90,25 +91,25 @@ namespace GameRes.Formats.Mermaid
             file.Position = meta.ImageOffset;
             for (int dst = row_size - stride; dst >= 0; dst -= stride)
             {
-                for (int y = tile_count-1; y >= 0; --y)
+                for (int y = tile_count - 1; y >= 0; --y)
                 {
                     int tile_dst = dst + y * tile_width;
                     for (int x = 0; x < stride; x += tile_width)
                     {
                         if (tile_dst + tile_width > pixels.Length)
-                            file.Seek (tile_width, SeekOrigin.Current);
+                            file.Seek(tile_width, SeekOrigin.Current);
                         else
-                            file.Read (pixels, tile_dst, tile_width);
+                            file.Read(pixels, tile_dst, tile_width);
                         tile_dst += row_size;
                     }
                 }
             }
-            return ImageData.Create (info, format, null, pixels, stride);
+            return ImageData.Create(info, format, null, pixels, stride);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("MgFormat.Write not implemented");
+            throw new System.NotImplementedException("MgFormat.Write not implemented");
         }
     }
 }

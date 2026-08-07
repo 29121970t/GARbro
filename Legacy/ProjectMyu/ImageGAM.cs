@@ -36,50 +36,50 @@ namespace GameRes.Formats.ProjectMu
     [Export(typeof(ImageFormat))]
     public class GamFormat : ImageFormat
     {
-        public override string         Tag { get { return "GAM"; } }
+        public override string Tag { get { return "GAM"; } }
         public override string Description { get { return "Project-μ image format"; } }
-        public override uint     Signature { get { return 0x4D4147; } } // 'GAM'
+        public override uint Signature { get { return 0x4D4147; } } // 'GAM'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            using (var input = OpenGamStream (file))
-                return Bmp.ReadMetaData (input);
+            using (var input = OpenGamStream(file))
+                return Bmp.ReadMetaData(input);
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            using (var input = OpenGamStream (file))
-                return Bmp.Read (input, info);
+            using (var input = OpenGamStream(file))
+                return Bmp.Read(input, info);
         }
 
-        IBinaryStream OpenGamStream (IBinaryStream input)
+        IBinaryStream OpenGamStream(IBinaryStream input)
         {
             input.Position = 8;
-            var unpacked = new PackedStream<GamDecompressor> (input.AsStream, true);
-            return new BinaryStream (unpacked, input.Name);
+            var unpacked = new PackedStream<GamDecompressor>(input.AsStream, true);
+            return new BinaryStream(unpacked, input.Name);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("GamFormat.Write not implemented");
+            throw new System.NotImplementedException("GamFormat.Write not implemented");
         }
     }
 
     internal class GamDecompressor : Decompressor
     {
-        Stream      m_input;
+        Stream m_input;
 
-        public override void Initialize (Stream input)
+        public override void Initialize(Stream input)
         {
             m_input = input;
         }
 
-        protected override IEnumerator<int> Unpack ()
+        protected override IEnumerator<int> Unpack()
         {
             var frame = new byte[0x100];
             int frame_pos = 0;
             int bits = 1;
-            for (;;)
+            for (; ; )
             {
                 if (1 == bits)
                 {
@@ -110,7 +110,7 @@ namespace GameRes.Formats.ProjectMu
                     int count = m_input.ReadByte();
                     if (-1 == count)
                         yield break;
-                    while (count --> 0)
+                    while (count-- > 0)
                     {
                         byte v = frame[(frame_pos - offset) & 0xFF];
                         frame[frame_pos++ & 0xFF] = v;

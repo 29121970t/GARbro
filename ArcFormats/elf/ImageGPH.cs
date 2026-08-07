@@ -32,21 +32,21 @@ using GameRes.Utility;
 
 namespace GameRes.Formats.Elf
 {
-    internal class GphMetaData :ImageMetaData
+    internal class GphMetaData : ImageMetaData
     {
-        public int  DataOffset;
-        public int  DataSize;
-        public int  Flags;
+        public int DataOffset;
+        public int DataSize;
+        public int Flags;
     }
 
     [Export(typeof(ImageFormat))]
     public class GphFormat : ImageFormat
     {
-        public override string         Tag { get { return "GPH"; } }
+        public override string Tag { get { return "GPH"; } }
         public override string Description { get { return "Elf GPH image format"; } }
-        public override uint     Signature { get { return 0x1D485047; } } // 'GPH\x1D'
+        public override uint Signature { get { return 0x1D485047; } } // 'GPH\x1D'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream input)
+        public override ImageMetaData ReadMetaData(IBinaryStream input)
         {
             input.Position = 4;
             int frame_count = input.ReadUInt16();
@@ -57,7 +57,7 @@ namespace GameRes.Formats.Elf
             int frame_length = input.ReadInt32();
             int flags = input.ReadUInt16();
             if (0 == (flags & 4))
-                input.Seek (0x20, SeekOrigin.Current);
+                input.Seek(0x20, SeekOrigin.Current);
             int left = input.ReadInt16();
             int top = input.ReadInt16();
             int right = input.ReadInt16() + 1;
@@ -71,39 +71,39 @@ namespace GameRes.Formats.Elf
                 OffsetX = left,
                 OffsetY = top,
                 BPP = 4,
-                DataOffset = frame_offset+4,
+                DataOffset = frame_offset + 4,
                 DataSize = frame_length,
                 Flags = flags,
             };
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
-            using (var reader = new GphReader (stream, (GphMetaData)info))
+            using (var reader = new GphReader(stream, (GphMetaData)info))
             {
                 reader.Unpack();
-                return ImageData.Create (info, reader.Format, reader.Palette, reader.Data, reader.Stride);
+                return ImageData.Create(info, reader.Format, reader.Palette, reader.Data, reader.Stride);
             }
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("GphFormat.Write not implemented");
+            throw new System.NotImplementedException("GphFormat.Write not implemented");
         }
     }
 
     internal sealed class GphReader : IDisposable
     {
-        IBinaryStream   m_input;
-        GphMetaData     m_info;
-        byte[]          m_output;
+        IBinaryStream m_input;
+        GphMetaData m_info;
+        byte[] m_output;
 
-        public byte[]           Data { get { return m_output; } }
-        public PixelFormat    Format { get { return PixelFormats.Indexed4; } }
+        public byte[] Data { get { return m_output; } }
+        public PixelFormat Format { get { return PixelFormats.Indexed4; } }
         public BitmapPalette Palette { get; private set; }
-        public int            Stride { get; private set; }
+        public int Stride { get; private set; }
 
-        public GphReader (IBinaryStream input, GphMetaData info)
+        public GphReader(IBinaryStream input, GphMetaData info)
         {
             m_input = input;
             m_info = info;
@@ -117,20 +117,20 @@ namespace GameRes.Formats.Elf
         int bit_count, bits;
         int m_out_pos;
 
-        public void Unpack ()
+        public void Unpack()
         {
-            m_input.Position = m_info.DataOffset+2;
+            m_input.Position = m_info.DataOffset + 2;
             if (0 == (m_info.Flags & 4))
                 ReadPalette();
             else
                 SetDefaultPalette();
-            m_input.Seek (8, SeekOrigin.Current);
+            m_input.Seek(8, SeekOrigin.Current);
 
             int stride = Stride;
             if (stride <= 0x10)
             {
                 for (int i = 0; i < 0x100; ++i)
-                    OffsetTable[i] = (ushort)(i+1);
+                    OffsetTable[i] = (ushort)(i + 1);
             }
             else
             {
@@ -170,7 +170,7 @@ namespace GameRes.Formats.Elf
                     m_buffer[dst++] = (byte)token;
                     if (dst >= m_buffer.Length)
                     {
-                        CopyPixels (m_buffer.Length);
+                        CopyPixels(m_buffer.Length);
                         dst = 0;
                     }
                     --total_count;
@@ -189,7 +189,7 @@ namespace GameRes.Formats.Elf
                             src = 0;
                         if (dst >= m_buffer.Length)
                         {
-                            CopyPixels (m_buffer.Length);
+                            CopyPixels(m_buffer.Length);
                             dst = 0;
                         }
                     }
@@ -198,30 +198,30 @@ namespace GameRes.Formats.Elf
             }
             if (dst != 0)
             {
-                CopyPixels (dst);
+                CopyPixels(dst);
             }
         }
 
         int m_next_token;
 
-        void CreateHuffmanTree ()
+        void CreateHuffmanTree()
         {
             m_next_token = 0;
             int root = CreateTokenNode();
             for (int i = 0; i < 0x100; ++i)
-                ProcessTokenNode (i, root);
+                ProcessTokenNode(i, root);
 
             m_next_token = 0;
             root = CreateOffsetNode();
             for (int i = 0; i < 0x100; ++i)
-                ProcessOffsetNode (i, root);
+                ProcessOffsetNode(i, root);
         }
 
         byte[] LengthTable = new byte[0x200];
         short[] TokenTable = new short[0x200];
-        short[] NodeTable  = new short[0x600];
+        short[] NodeTable = new short[0x600];
 
-        int CreateTokenNode ()
+        int CreateTokenNode()
         {
             --bit_count;
             if (0 == bit_count)
@@ -235,8 +235,8 @@ namespace GameRes.Formats.Elf
             {
                 node = m_next_token++;
                 int idx = node << 1;
-                NodeTable[idx]   = (short)CreateTokenNode();
-                NodeTable[idx+1] = (short)CreateTokenNode();
+                NodeTable[idx] = (short)CreateTokenNode();
+                NodeTable[idx + 1] = (short)CreateTokenNode();
                 return node + 0x200;
             }
             --bit_count;
@@ -252,7 +252,7 @@ namespace GameRes.Formats.Elf
             return node;
         }
 
-        void ProcessTokenNode (int idx, int b)
+        void ProcessTokenNode(int idx, int b)
         {
             int x = idx;
             byte i = 0;
@@ -270,7 +270,7 @@ namespace GameRes.Formats.Elf
             TokenTable[idx] = (short)b;
         }
 
-        int CreateOffsetNode ()
+        int CreateOffsetNode()
         {
             --bit_count;
             if (0 == bit_count)
@@ -284,8 +284,8 @@ namespace GameRes.Formats.Elf
             {
                 node = m_next_token++;
                 int idx = (node << 1) + 0x400;
-                NodeTable[idx]   = (short)CreateOffsetNode();
-                NodeTable[idx+1] = (short)CreateOffsetNode();
+                NodeTable[idx] = (short)CreateOffsetNode();
+                NodeTable[idx + 1] = (short)CreateOffsetNode();
                 return node + 0x100;
             }
             node = (bits >> 8) & 0xFF;
@@ -295,7 +295,7 @@ namespace GameRes.Formats.Elf
             return node;
         }
 
-        void ProcessOffsetNode (int idx, int b)
+        void ProcessOffsetNode(int idx, int b)
         {
             int x = idx;
             byte i = 0;
@@ -310,11 +310,11 @@ namespace GameRes.Formats.Elf
                 x <<= 1;
             }
             while (i < 8);
-            LengthTable[idx+0x100] = i;
-            TokenTable[idx+0x100] = (short)b;
+            LengthTable[idx + 0x100] = i;
+            TokenTable[idx + 0x100] = (short)b;
         }
 
-        int GetToken ()
+        int GetToken()
         {
             int token = (bits >> 8) & 0xFF;
             int length = LengthTable[token];
@@ -345,11 +345,11 @@ namespace GameRes.Formats.Elf
             return token;
         }
 
-        int GetOffset ()
+        int GetOffset()
         {
             int token = (bits >> 8) & 0xFF;
-            int length = LengthTable[token+0x100];
-            token = TokenTable[token+0x100];
+            int length = LengthTable[token + 0x100];
+            token = TokenTable[token + 0x100];
             if (length >= bit_count)
             {
                 --bit_count;
@@ -371,12 +371,12 @@ namespace GameRes.Formats.Elf
                 token = (token << 1) | ((bits >> 15) & 1);
                 bits <<= 1;
                 token &= 0x1FF;
-                token = NodeTable[token+0x400];
+                token = NodeTable[token + 0x400];
             }
             return token;
         }
 
-        void ReadNext ()
+        void ReadNext()
         {
             bits &= 0xFF00;
             int b = m_input.ReadByte();
@@ -384,20 +384,20 @@ namespace GameRes.Formats.Elf
                 bits |= b;
         }
 
-        void CopyPixels (int count)
+        void CopyPixels(int count)
         {
             int src = 0;
-            while (count --> 0)
+            while (count-- > 0)
             {
                 byte b = m_buffer[src++];
                 int p;
-                p  = (b & 0x80) | (b & 0x20) << 1 | (b & 0x08) << 2 | (b & 0x02) << 3;
+                p = (b & 0x80) | (b & 0x20) << 1 | (b & 0x08) << 2 | (b & 0x02) << 3;
                 p |= (b & 0x01) | (b & 0x04) >> 1 | (b & 0x10) >> 2 | (b & 0x40) >> 3;
                 m_output[m_out_pos++] = (byte)p;
             }
         }
 
-        void ReadPalette ()
+        void ReadPalette()
         {
             var palette = new Color[0x10];
             for (int i = 0; i < 0x10; ++i)
@@ -407,12 +407,12 @@ namespace GameRes.Formats.Elf
                 int b = (rgb << 2) & 0x3C;
                 rgb = m_input.ReadByte();
                 int g = (rgb << 2) & 0x3C;
-                palette[i] = Color.FromRgb (Clamp (r), Clamp (g), Clamp (b));
+                palette[i] = Color.FromRgb(Clamp(r), Clamp(g), Clamp(b));
             }
-            Palette = new BitmapPalette (palette);
+            Palette = new BitmapPalette(palette);
         }
 
-        void SetDefaultPalette ()
+        void SetDefaultPalette()
         {
             var palette = new Color[0x10]
             {
@@ -425,16 +425,16 @@ namespace GameRes.Formats.Elf
                 Color.FromRgb (0xFF, 0x00, 0x00), Color.FromRgb (0xFF, 0x00, 0xFF),
                 Color.FromRgb (0xFF, 0xFF, 0x00), Color.FromRgb (0xFF, 0xFF, 0xFF),
             };
-            Palette = new BitmapPalette (palette);
+            Palette = new BitmapPalette(palette);
         }
 
-        static byte Clamp (int color)
+        static byte Clamp(int color)
         {
             return (byte)(color * 0xFF / 0x3C);
         }
 
         #region IDisposable Members
-        public void Dispose ()
+        public void Dispose()
         {
         }
         #endregion

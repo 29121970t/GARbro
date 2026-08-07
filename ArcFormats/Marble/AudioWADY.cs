@@ -32,7 +32,7 @@ namespace GameRes.Formats.Marble
 {
     public class WadyInput : SoundInput
     {
-        byte        MulValue;
+        byte MulValue;
 
         public override long Position
         {
@@ -49,53 +49,53 @@ namespace GameRes.Formats.Marble
 
         public override string SourceFormat { get { return "raw"; } }
 
-        public override long Seek (long offset, SeekOrigin origin)
+        public override long Seek(long offset, SeekOrigin origin)
         {
-            return Source.Seek (offset, origin);
+            return Source.Seek(offset, origin);
         }
 
-        public override int Read (byte[] buffer, int offset, int count)
+        public override int Read(byte[] buffer, int offset, int count)
         {
-            return Source.Read (buffer, offset, count);
+            return Source.Read(buffer, offset, count);
         }
 
-        public override int ReadByte ()
+        public override int ReadByte()
         {
             return Source.ReadByte();
         }
 
-        public WadyInput (IBinaryStream input) : base (new MemoryStream())
+        public WadyInput(IBinaryStream input) : base(new MemoryStream())
         {
-            input.Seek (5, SeekOrigin.Begin);
+            input.Seek(5, SeekOrigin.Begin);
             MulValue = input.ReadUInt8();
-            input.Seek (6, SeekOrigin.Current);
+            input.Seek(6, SeekOrigin.Current);
             int src_size = input.ReadInt32();
-            input.Seek (16, SeekOrigin.Current);
+            input.Seek(16, SeekOrigin.Current);
             var format = new WaveFormat();
-            format.FormatTag                = input.ReadUInt16();
-            format.Channels                 = input.ReadUInt16();
-            format.SamplesPerSecond         = input.ReadUInt32();
-            format.AverageBytesPerSecond    = input.ReadUInt32();
-            format.BlockAlign               = input.ReadUInt16();
-            format.BitsPerSample            = input.ReadUInt16();
-            format.ExtraSize                = 0;
+            format.FormatTag = input.ReadUInt16();
+            format.Channels = input.ReadUInt16();
+            format.SamplesPerSecond = input.ReadUInt32();
+            format.AverageBytesPerSecond = input.ReadUInt32();
+            format.BlockAlign = input.ReadUInt16();
+            format.BitsPerSample = input.ReadUInt16();
+            format.ExtraSize = 0;
             this.Format = format;
-            int remaining = (int)(input.Length-input.Position);
+            int remaining = (int)(input.Length - input.Position);
             if (remaining == src_size)
             {
                 (Source as MemoryStream).Capacity = src_size * 2;
-                Decode (input, src_size, Source);
+                Decode(input, src_size, Source);
             }
             else
-                Decode2 (input, Source);
+                Decode2(input, Source);
             Source.Position = 0;
             this.PcmSize = Source.Length;
             input.Dispose();
         }
 
-        private void Decode (IBinaryStream input, int count, Stream output)
+        private void Decode(IBinaryStream input, int count, Stream output)
         {
-            using (var buffer = new BinaryWriter (output, Encoding.ASCII, true))
+            using (var buffer = new BinaryWriter(output, Encoding.ASCII, true))
             {
                 ushort sampleL = 0;
                 ushort sampleR = 0;
@@ -106,7 +106,7 @@ namespace GameRes.Formats.Marble
                         sampleL = (ushort)(v << 9);
                     else
                         sampleL += (ushort)(MulValue * SampleTable[v]);
-                    buffer.Write (sampleL);
+                    buffer.Write(sampleL);
                     if (1 != Format.Channels)
                     {
                         ++i;
@@ -115,48 +115,48 @@ namespace GameRes.Formats.Marble
                             sampleR = (ushort)(v << 9);
                         else
                             sampleR += (ushort)(MulValue * SampleTable[v]);
-                        buffer.Write (sampleR);
+                        buffer.Write(sampleR);
                     }
                 }
             }
         }
 
-        private void Decode2 (IBinaryStream input, Stream output)
+        private void Decode2(IBinaryStream input, Stream output)
         {
             if (1 != Format.Channels)
             {
                 int channel_size = input.ReadInt32();
-                Decode3 (input, output, 2);
+                Decode3(input, output, 2);
                 input.Position = 0x38 + channel_size;
                 output.Position = 2;
-                Decode3 (input, output, 2);
+                Decode3(input, output, 2);
             }
             else
-                Decode3 (input, output, 0);
+                Decode3(input, output, 0);
         }
 
-        private void Decode2Alt (IBinaryStream input, Stream output)
+        private void Decode2Alt(IBinaryStream input, Stream output)
         {
             if (1 != Format.Channels)
             {
                 int channel_size = input.ReadInt32();
-                Decode3Alt (input, output, 2);
+                Decode3Alt(input, output, 2);
                 input.Position = 0x38 + channel_size;
                 output.Position = 2;
-                Decode3Alt (input, output, 2);
+                Decode3Alt(input, output, 2);
             }
             else
-                Decode3Alt (input, output, 0);
+                Decode3Alt(input, output, 0);
         }
 
-        private void Decode3 (IBinaryStream input, Stream output, int step)
+        private void Decode3(IBinaryStream input, Stream output, int step)
         {
             input.ReadInt32(); // unpacked_size
             int count = input.ReadInt32();
-            using (var buffer = new BinaryWriter (output, Encoding.ASCII, true))
+            using (var buffer = new BinaryWriter(output, Encoding.ASCII, true))
             {
                 short sample = input.ReadInt16();
-                buffer.Write (sample);
+                buffer.Write(sample);
                 for (int i = 0; i < count; ++i)
                 {
                     if (count - 300 == i)
@@ -169,9 +169,9 @@ namespace GameRes.Formats.Marble
                             sample = (short)(v14 << 10);
                         else
                             sample += (short)SampleTable2[v14];
-                        buffer.Write (sample);
+                        buffer.Write(sample);
                         if (step != 0)
-                            buffer.BaseStream.Seek (step, SeekOrigin.Current);
+                            buffer.BaseStream.Seek(step, SeekOrigin.Current);
                     }
                     else
                     {
@@ -183,9 +183,9 @@ namespace GameRes.Formats.Marble
                         for (int j = 0; j < repeat; ++j)
                         {
                             v8 += inc;
-                            buffer.Write ((short)v8);
+                            buffer.Write((short)v8);
                             if (step != 0)
-                                buffer.BaseStream.Seek (step, SeekOrigin.Current);
+                                buffer.BaseStream.Seek(step, SeekOrigin.Current);
                         }
                         sample = end;
                     }
@@ -193,14 +193,14 @@ namespace GameRes.Formats.Marble
             }
         }
 
-        private void Decode3Alt (IBinaryStream input, Stream output, int step)
+        private void Decode3Alt(IBinaryStream input, Stream output, int step)
         {
             int output_size = input.ReadInt32();
             int count = input.ReadInt32();
-            using (var buffer = new BinaryWriter (output, Encoding.ASCII, true))
+            using (var buffer = new BinaryWriter(output, Encoding.ASCII, true))
             {
                 short sample = input.ReadInt16();
-                buffer.Write (sample);
+                buffer.Write(sample);
                 int output_count = 1;
                 for (int i = 0; i < count; ++i)
                 {
@@ -212,9 +212,9 @@ namespace GameRes.Formats.Marble
                     for (int j = 0; j < repeat; ++j)
                     {
                         sample += inc;
-                        buffer.Write (sample);
+                        buffer.Write(sample);
                         if (step != 0)
-                            buffer.BaseStream.Seek (step, SeekOrigin.Current);
+                            buffer.BaseStream.Seek(step, SeekOrigin.Current);
                     }
                     sample = end;
                 }
@@ -223,9 +223,9 @@ namespace GameRes.Formats.Marble
                 while (output_count++ < output_size)
                 {
                     sample = input.ReadInt16();
-                    buffer.Write (sample);
+                    buffer.Write(sample);
                     if (step != 0)
-                        buffer.BaseStream.Seek (step, SeekOrigin.Current);
+                        buffer.BaseStream.Seek(step, SeekOrigin.Current);
                 }
             }
         }
@@ -267,13 +267,13 @@ namespace GameRes.Formats.Marble
     [Export(typeof(AudioFormat))]
     public class WadyAudio : AudioFormat
     {
-        public override string         Tag { get { return "WAY"; } }
+        public override string Tag { get { return "WAY"; } }
         public override string Description { get { return "Marble engine wave audio format"; } }
-        public override uint     Signature { get { return 0x59444157u; } } // 'WADY'
+        public override uint Signature { get { return 0x59444157u; } } // 'WADY'
 
-        public override SoundInput TryOpen (IBinaryStream file)
+        public override SoundInput TryOpen(IBinaryStream file)
         {
-            return new WadyInput (file);
+            return new WadyInput(file);
         }
     }
 }

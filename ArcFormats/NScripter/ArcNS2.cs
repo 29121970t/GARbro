@@ -36,11 +36,11 @@ namespace GameRes.Formats.NScripter
     [Export(typeof(ArchiveFormat))]
     public class Ns2Opener : ArchiveFormat
     {
-        public override string         Tag { get { return "NS2"; } }
+        public override string Tag { get { return "NS2"; } }
         public override string Description { get { return arcStrings.NSADescription; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool  IsHierarchic { get { return true; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool IsHierarchic { get { return true; } }
+        public override bool CanWrite { get { return false; } }
 
         public static Dictionary<string, string> KnownKeys = new Dictionary<string, string>();
 
@@ -50,43 +50,43 @@ namespace GameRes.Formats.NScripter
             set { KnownKeys = ((NsaScheme)value).KnownKeys; }
         }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
             List<Entry> dir = null;
-            uint data_offset = file.View.ReadUInt32 (0);
+            uint data_offset = file.View.ReadUInt32(0);
             if (data_offset > 4 && data_offset < file.MaxOffset)
             {
                 try
                 {
                     using (var input = file.CreateStream())
                     {
-                        dir = ReadIndex (input);
+                        dir = ReadIndex(input);
                         if (null != dir)
-                            return new ArcFile (file, this, dir);
+                            return new ArcFile(file, this, dir);
                     }
                 }
                 catch { /* ignore parse errors */ }
             }
-            if (!file.Name.HasExtension (".ns2"))
+            if (!file.Name.HasExtension(".ns2"))
                 return null;
 
             var password = QueryPassword();
-            if (string.IsNullOrEmpty (password))
+            if (string.IsNullOrEmpty(password))
                 return null;
-            var key = Encoding.ASCII.GetBytes (password);
+            var key = Encoding.ASCII.GetBytes(password);
 
-            using (var input = OpenEncryptedStream (file, key))
+            using (var input = OpenEncryptedStream(file, key))
             {
-                dir = ReadIndex (input);
+                dir = ReadIndex(input);
                 if (null == dir)
                     return null;
-                return new NsaEncryptedArchive (file, this, dir, key);
+                return new NsaEncryptedArchive(file, this, dir, key);
             }
         }
 
-        protected List<Entry> ReadIndex (Stream file)
+        protected List<Entry> ReadIndex(Stream file)
         {
-            using (var input = new BinaryReader (file, Encodings.cp932, true))
+            using (var input = new BinaryReader(file, Encodings.cp932, true))
             {
                 uint base_offset = input.ReadUInt32();
                 if (base_offset <= 4 || base_offset >= file.Length)
@@ -109,50 +109,50 @@ namespace GameRes.Formats.NScripter
                     }
                     if (0 == i)
                         return null;
-                    var name = new string (name_buffer, 0, i);
-                    var entry = FormatCatalog.Instance.Create<Entry> (name);
+                    var name = new string(name_buffer, 0, i);
+                    var entry = FormatCatalog.Instance.Create<Entry>(name);
                     entry.Offset = current_offset;
-                    entry.Size   = input.ReadUInt32();
-                    if (!entry.CheckPlacement (file.Length))
+                    entry.Size = input.ReadUInt32();
+                    if (!entry.CheckPlacement(file.Length))
                         return null;
                     current_offset += entry.Size;
-                    dir.Add (entry);
+                    dir.Add(entry);
                 }
                 return dir.Count > 0 ? dir : null;
             }
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var nsa_arc = arc as NsaEncryptedArchive;
             if (null == nsa_arc)
             {
-                return arc.File.CreateStream (entry.Offset, entry.Size);
+                return arc.File.CreateStream(entry.Offset, entry.Size);
             }
-            var encrypted = OpenEncryptedStream (arc.File, nsa_arc.Key);
-            return new StreamRegion (encrypted, entry.Offset, entry.Size);
+            var encrypted = OpenEncryptedStream(arc.File, nsa_arc.Key);
+            return new StreamRegion(encrypted, entry.Offset, entry.Size);
         }
 
-        Stream OpenEncryptedStream (ArcView file, byte[] key)
+        Stream OpenEncryptedStream(ArcView file, byte[] key)
         {
             if (key.Length < 96)
-                return new EncryptedViewStream (file, key);
+                return new EncryptedViewStream(file, key);
             else
-                return new Ns2Stream (file, key);
+                return new Ns2Stream(file, key);
         }
 
-        private string QueryPassword ()
+        private string QueryPassword()
         {
-            var options = Query<NsaOptions> (arcStrings.ArcEncryptedNotice);
+            var options = Query<NsaOptions>(arcStrings.ArcEncryptedNotice);
             return options.Password;
         }
 
-        public override ResourceOptions GetDefaultOptions ()
+        public override ResourceOptions GetDefaultOptions()
         {
             return new NsaOptions { Password = Properties.Settings.Default.NSAPassword };
         }
 
-        public override ResourceOptions GetOptions (object widget)
+        public override ResourceOptions GetOptions(object widget)
         {
             var w = widget as GUI.WidgetNSA;
             if (null != w)
@@ -160,28 +160,28 @@ namespace GameRes.Formats.NScripter
             return GetDefaultOptions();
         }
 
-        public override object GetAccessWidget ()
+        public override object GetAccessWidget()
         {
-            return new GUI.WidgetNSA (KnownKeys);
+            return new GUI.WidgetNSA(KnownKeys);
         }
     }
 
     internal class Ns2Stream : ViewStreamBase
     {
-        byte[]          m_key;
+        byte[] m_key;
 
         readonly Cryptography.MD5 MD5 = new Cryptography.MD5();
 
-        const int BlockSize   = 32;
+        const int BlockSize = 32;
 
-        public Ns2Stream (ArcView mmap, byte[] key) : base (mmap)
+        public Ns2Stream(ArcView mmap, byte[] key) : base(mmap)
         {
             m_key = key;
         }
 
         byte[] m_seed = new byte[64];
 
-        protected override void DecryptBlock ()
+        protected override void DecryptBlock()
         {
             var temp = new byte[32];
             var hash = new byte[16];
@@ -191,36 +191,36 @@ namespace GameRes.Formats.NScripter
                 int key1 = 0; // within m_key
                 int key2 = 48;
 
-                Buffer.BlockCopy (m_current_block, src2, m_seed, 0,  16);
-                Buffer.BlockCopy (m_key,           key1, m_seed, 16, 48);
+                Buffer.BlockCopy(m_current_block, src2, m_seed, 0, 16);
+                Buffer.BlockCopy(m_key, key1, m_seed, 16, 48);
 
                 MD5.Initialize();
-                MD5.Update (m_seed, 0, m_seed.Length);
-                Buffer.BlockCopy (MD5.State, 0, hash, 0, 16);
+                MD5.Update(m_seed, 0, m_seed.Length);
+                Buffer.BlockCopy(MD5.State, 0, hash, 0, 16);
 
                 for (int j = 0; j < 16; ++j)
                 {
                     temp[j] = m_seed[j] = (byte)(hash[j] ^ m_current_block[src + j]);
                 }
 
-                Buffer.BlockCopy (m_key, key2, m_seed, 16, 48);
+                Buffer.BlockCopy(m_key, key2, m_seed, 16, 48);
 
                 MD5.Initialize();
-                MD5.Update (m_seed, 0, m_seed.Length);
-                Buffer.BlockCopy (MD5.State, 0, hash, 0, 16);
-                
+                MD5.Update(m_seed, 0, m_seed.Length);
+                Buffer.BlockCopy(MD5.State, 0, hash, 0, 16);
+
                 for (int j = 0; j < 16; ++j)
                 {
                     temp[16 + j] = m_seed[j] = (byte)(hash[j] ^ m_current_block[src2 + j]);
                 }
 
-                Buffer.BlockCopy (m_key, key1, m_seed, 16, 48);
+                Buffer.BlockCopy(m_key, key1, m_seed, 16, 48);
 
                 MD5.Initialize();
-                MD5.Update (m_seed, 0, m_seed.Length);
-                Buffer.BlockCopy (MD5.State, 0, hash, 0, 16);
+                MD5.Update(m_seed, 0, m_seed.Length);
+                Buffer.BlockCopy(MD5.State, 0, hash, 0, 16);
 
-                Buffer.BlockCopy (temp, 16, m_current_block, src, 16);
+                Buffer.BlockCopy(temp, 16, m_current_block, src, 16);
                 for (int j = 0; j < 16; ++j)
                 {
                     m_current_block[src2 + j] = (byte)(hash[j] ^ temp[j]);

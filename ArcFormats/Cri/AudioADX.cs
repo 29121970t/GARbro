@@ -34,55 +34,55 @@ namespace GameRes.Formats.Cri
     [Export(typeof(AudioFormat))]
     public class AdxAudio : AudioFormat
     {
-        public override string         Tag { get { return "ADX"; } }
+        public override string Tag { get { return "ADX"; } }
         public override string Description { get { return "CRI MiddleWare ADPCM audio"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public override SoundInput TryOpen (IBinaryStream file)
+        public override SoundInput TryOpen(IBinaryStream file)
         {
             uint signature = file.Signature;
             if (0x80 != (signature & 0xFFFF))
                 return null;
-            int header_size = (int)Binary.BigEndian (signature & 0xFFFF0000);
+            int header_size = (int)Binary.BigEndian(signature & 0xFFFF0000);
             if (header_size < 0x10 || header_size >= file.Length)
                 return null;
-            var header = file.ReadBytes (header_size);
+            var header = file.ReadBytes(header_size);
             if (header.Length != header_size)
                 return null;
-            if (!Binary.AsciiEqual (header, header.Length-6, "(c)CRI"))
+            if (!Binary.AsciiEqual(header, header.Length - 6, "(c)CRI"))
                 return null;
 
-            return new AdxInput (file.AsStream, header);
+            return new AdxInput(file.AsStream, header);
         }
     }
 
     internal class AdxInput : SoundInput
     {
-        AdxReader       m_reader;
-        int             m_data_offset;
-        int             m_bitrate;
-        long            m_position;
-        int             m_buffered_sample;
-        int             m_buffered_count;
-        int             m_bytes_per_frame;
+        AdxReader m_reader;
+        int m_data_offset;
+        int m_bitrate;
+        long m_position;
+        int m_buffered_sample;
+        int m_buffered_count;
+        int m_bytes_per_frame;
         ThreadLocal<short[]> m_frame_buffer;
 
         public override string SourceFormat { get { return "adx"; } }
-        public override int   SourceBitrate { get { return m_bitrate; } }
+        public override int SourceBitrate { get { return m_bitrate; } }
 
-        public AdxInput (Stream file, byte[] header) : base (file)
+        public AdxInput(Stream file, byte[] header) : base(file)
         {
-            m_reader = new AdxReader (file, header);
+            m_reader = new AdxReader(file, header);
             m_data_offset = 4 + header.Length;
             this.Format = m_reader.Format;
             this.PcmSize = m_reader.SampleCount * Format.BlockAlign;
-            m_bitrate = (int)(Format.SamplesPerSecond * (file.Length-m_data_offset) * 8 / m_reader.SampleCount);
+            m_bitrate = (int)(Format.SamplesPerSecond * (file.Length - m_data_offset) * 8 / m_reader.SampleCount);
             int frame_buffer_length = m_reader.SamplesPerFrame * m_reader.Format.Channels;
-            m_frame_buffer = new ThreadLocal<short[]> (() => new short[frame_buffer_length]);
+            m_frame_buffer = new ThreadLocal<short[]>(() => new short[frame_buffer_length]);
             m_bytes_per_frame = frame_buffer_length * Format.BitsPerSample / 8;
         }
 
-        public override int Read (byte[] buffer, int offset, int count)
+        public override int Read(byte[] buffer, int offset, int count)
         {
             int total_read = 0;
             int current_sample = (int)(m_position / Format.BlockAlign);
@@ -92,8 +92,8 @@ namespace GameRes.Formats.Cri
             {
                 if (need_refill)
                     FillBuffer();
-                int available = Math.Min (count, m_buffered_count * Format.BlockAlign - src_offset);
-                Buffer.BlockCopy (m_frame_buffer.Value, src_offset, buffer, offset, available);
+                int available = Math.Min(count, m_buffered_count * Format.BlockAlign - src_offset);
+                Buffer.BlockCopy(m_frame_buffer.Value, src_offset, buffer, offset, available);
                 offset += available;
                 count -= available;
                 total_read += available;
@@ -104,16 +104,16 @@ namespace GameRes.Formats.Cri
             return total_read;
         }
 
-        void FillBuffer ()
+        void FillBuffer()
         {
             int frame_number = (int)(m_position / m_bytes_per_frame);
-            m_reader.SetPosition (m_data_offset + frame_number * m_reader.FrameSize * Format.Channels);
+            m_reader.SetPosition(m_data_offset + frame_number * m_reader.FrameSize * Format.Channels);
             for (int i = 0; i < Format.Channels; ++i)
             {
-                m_reader.DecodeFrame (i, m_frame_buffer.Value);
+                m_reader.DecodeFrame(i, m_frame_buffer.Value);
             }
             m_buffered_sample = frame_number * m_reader.SamplesPerFrame;
-            m_buffered_count = Math.Min (m_reader.SampleCount - m_buffered_sample, m_reader.SamplesPerFrame);
+            m_buffered_count = Math.Min(m_reader.SampleCount - m_buffered_sample, m_reader.SamplesPerFrame);
         }
 
         // FIXME
@@ -124,12 +124,12 @@ namespace GameRes.Formats.Cri
         public override long Position
         {
             get { return m_position; }
-            set { m_position = Math.Max (value, 0); }
+            set { m_position = Math.Max(value, 0); }
         }
 
         #region IDisposable Members
         bool _adx_disposed = false;
-        protected override void Dispose (bool disposing)
+        protected override void Dispose(bool disposing)
         {
             if (!_adx_disposed)
             {
@@ -139,7 +139,7 @@ namespace GameRes.Formats.Cri
                     m_frame_buffer.Dispose();
                 }
                 _adx_disposed = true;
-                base.Dispose (disposing);
+                base.Dispose(disposing);
             }
         }
         #endregion
@@ -147,20 +147,20 @@ namespace GameRes.Formats.Cri
 
     internal sealed class AdxReader : IDisposable
     {
-        MsbBitStream    m_input;
-        WaveFormat      m_format;
-        int             m_samples_per_frame;
-        int             m_prev_scale0;
-        int             m_prev_scale1;
-        int[][]         m_prev_samples;
+        MsbBitStream m_input;
+        WaveFormat m_format;
+        int m_samples_per_frame;
+        int m_prev_scale0;
+        int m_prev_scale1;
+        int[][] m_prev_samples;
 
-        public WaveFormat   Format { get { return m_format; } }
+        public WaveFormat Format { get { return m_format; } }
         public int SamplesPerFrame { get { return m_samples_per_frame; } }
-        public int     SampleCount { get; private set; }
-        public int       FrameSize { get; private set; }
-        public int   BitsPerSample { get; private set; }
+        public int SampleCount { get; private set; }
+        public int FrameSize { get; private set; }
+        public int BitsPerSample { get; private set; }
 
-        public AdxReader (Stream file, byte[] header)
+        public AdxReader(Stream file, byte[] header)
         {
             FrameSize = header[1];
             BitsPerSample = header[2];
@@ -170,33 +170,33 @@ namespace GameRes.Formats.Cri
             m_format.Channels = header[3];
             if (0 == m_format.Channels || m_format.Channels > 16)
                 throw new InvalidFormatException();
-            int encoding = BigEndian.ToInt16 (header, 0x0E);
+            int encoding = BigEndian.ToInt16(header, 0x0E);
             if (encoding != 0x0400)
-                throw new NotSupportedException ("Not supported ADX encoding");
+                throw new NotSupportedException("Not supported ADX encoding");
 
-            m_format.FormatTag              = 1;
-            m_format.SamplesPerSecond       = BigEndian.ToUInt32 (header, 4);
-            m_format.BitsPerSample          = 16;
-            m_format.BlockAlign             = (ushort)(m_format.BitsPerSample * m_format.Channels / 8);
-            m_format.AverageBytesPerSecond  = m_format.SamplesPerSecond * m_format.BlockAlign;
-            SampleCount = BigEndian.ToInt32 (header, 8);
+            m_format.FormatTag = 1;
+            m_format.SamplesPerSecond = BigEndian.ToUInt32(header, 4);
+            m_format.BitsPerSample = 16;
+            m_format.BlockAlign = (ushort)(m_format.BitsPerSample * m_format.Channels / 8);
+            m_format.AverageBytesPerSecond = m_format.SamplesPerSecond * m_format.BlockAlign;
+            SampleCount = BigEndian.ToInt32(header, 8);
 
-            int lowest_freq = BigEndian.ToUInt16 (header, 12);
-            var sqrt2 = Math.Sqrt (2.0);
-            var x = sqrt2 - Math.Cos (2 * Math.PI * lowest_freq / m_format.SamplesPerSecond);
+            int lowest_freq = BigEndian.ToUInt16(header, 12);
+            var sqrt2 = Math.Sqrt(2.0);
+            var x = sqrt2 - Math.Cos(2 * Math.PI * lowest_freq / m_format.SamplesPerSecond);
             var y = sqrt2 - 1;
-            var z = (x - Math.Sqrt ((x + y) * (x - y))) / y;
+            var z = (x - Math.Sqrt((x + y) * (x - y))) / y;
 
-            m_prev_scale0 = (int)Math.Floor (z * 8192);
-            m_prev_scale1 = (int)Math.Floor (z * z * -4096);
+            m_prev_scale0 = (int)Math.Floor(z * 8192);
+            m_prev_scale1 = (int)Math.Floor(z * z * -4096);
             m_prev_samples = new int[m_format.Channels][];
             for (int i = 0; i < m_format.Channels; ++i)
             {
                 m_prev_samples[i] = new int[2];
             }
 
-            file.Position = 4+header.Length;
-            m_input = new MsbBitStream (file, true);
+            file.Position = 4 + header.Length;
+            m_input = new MsbBitStream(file, true);
         }
 
         /*
@@ -219,22 +219,22 @@ namespace GameRes.Formats.Cri
         }
         */
 
-        public void SetPosition (long position)
+        public void SetPosition(long position)
         {
             m_input.Input.Position = position;
             m_input.Reset();
         }
 
-        public void DecodeFrame (int channel, short[] output)
+        public void DecodeFrame(int channel, short[] output)
         {
             int offset = channel;
             var prev_samples = m_prev_samples[channel];
-            int scale = (short)m_input.GetBits (16) + 1;
+            int scale = (short)m_input.GetBits(16) + 1;
             for (int i = 0; i < m_samples_per_frame; ++i)
             {
-                int sample = NibbleToSigned (m_input.GetBits (BitsPerSample));
+                int sample = NibbleToSigned(m_input.GetBits(BitsPerSample));
                 int adjust = (m_prev_scale0 * prev_samples[0] + m_prev_scale1 * prev_samples[1]) >> 12;
-                sample = Clamp16 (sample * scale + adjust);
+                sample = Clamp16(sample * scale + adjust);
                 output[offset] = (short)sample;
                 offset += m_format.Channels;
                 prev_samples[1] = prev_samples[0];
@@ -242,12 +242,12 @@ namespace GameRes.Formats.Cri
             }
         }
 
-        static int NibbleToSigned (int n)
+        static int NibbleToSigned(int n)
         {
             return (n & 7) - (n & 8);
         }
 
-        static int Clamp16 (int sample)
+        static int Clamp16(int sample)
         {
             if (sample > 0x7FFF)
                 sample = 0x7FFF;
@@ -258,7 +258,7 @@ namespace GameRes.Formats.Cri
 
         #region IDisposable Members
         bool _disposed = false;
-        public void Dispose ()
+        public void Dispose()
         {
             if (!_disposed)
             {

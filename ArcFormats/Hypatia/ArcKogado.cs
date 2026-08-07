@@ -42,22 +42,22 @@ namespace GameRes.Formats.Hypatia
         // 1 : Mariel compression
         // 2 : Cocotte compression
         // 3 : Xor 0xff encryption
-        public byte     CompressionType;
-        public bool     HasCheckSum;
-        public ushort   CheckSum;
-        public long     FileTime;
+        public byte CompressionType;
+        public bool HasCheckSum;
+        public ushort CheckSum;
+        public long FileTime;
     }
 
     [Export(typeof(ArchiveFormat))]
     public class PakOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "PAK/HyPack"; } }
+        public override string Tag { get { return "PAK/HyPack"; } }
         public override string Description { get { return arcStrings.KogadoDescription; } }
-        public override uint     Signature { get { return 0x61507948; } } // 'HyPa'
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return true; } }
+        public override uint Signature { get { return 0x61507948; } } // 'HyPa'
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return true; } }
 
-        public PakOpener ()
+        public PakOpener()
         {
             Extensions = new string[] { "pak", "dat" };
             ContainedFormats = new[] {
@@ -67,90 +67,90 @@ namespace GameRes.Formats.Hypatia
             };
         }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            if (!file.View.AsciiEqual (0, "HyPack"))
+            if (!file.View.AsciiEqual(0, "HyPack"))
                 return null;
-            int version = file.View.ReadUInt16 (6);
+            int version = file.View.ReadUInt16(6);
             int entry_size;
             switch (version)
             {
-            case 0x100: entry_size = 32; break;
-            case 0x200: entry_size = 40; break;
-            case 0x300:
-            case 0x301: entry_size = 48; break;
-            default: return null;
+                case 0x100: entry_size = 32; break;
+                case 0x200: entry_size = 40; break;
+                case 0x300:
+                case 0x301: entry_size = 48; break;
+                default: return null;
             }
-            long index_offset = 0x10 + file.View.ReadUInt32 (8);
+            long index_offset = 0x10 + file.View.ReadUInt32(8);
             if (index_offset >= file.MaxOffset)
                 return null;
-            int entry_count = file.View.ReadInt32 (12);
+            int entry_count = file.View.ReadInt32(12);
             if (entry_count <= 0 || entry_count > 0xfffff)
                 return null;
             uint index_size = (uint)(entry_count * entry_size);
-            if (index_size > file.View.Reserve (index_offset, index_size))
+            if (index_size > file.View.Reserve(index_offset, index_size))
                 return null;
             long data_offset = 0x10;
 
-            var dir = new List<Entry> (entry_count);
+            var dir = new List<Entry>(entry_count);
             for (int i = 0; i < entry_count; ++i)
             {
-                string name = file.View.ReadString (index_offset, 0x15);
-                string ext  = file.View.ReadString (index_offset+0x15, 3);
+                string name = file.View.ReadString(index_offset, 0x15);
+                string ext = file.View.ReadString(index_offset + 0x15, 3);
                 if (0 == name.Length)
-                    name = i.ToString ("D5");
+                    name = i.ToString("D5");
                 if (0 != ext.Length)
-                    name += '.'+ext;
-                var entry = Create<HypEntry> (name);
-                entry.Offset        = data_offset + file.View.ReadUInt32 (index_offset + 0x18);
+                    name += '.' + ext;
+                var entry = Create<HypEntry>(name);
+                entry.Offset = data_offset + file.View.ReadUInt32(index_offset + 0x18);
                 if (version >= 0x200)
                 {
-                    entry.UnpackedSize  = file.View.ReadUInt32 (index_offset + 0x1c);
-                    entry.Size          = file.View.ReadUInt32 (index_offset + 0x20);
-                    entry.CompressionType = file.View.ReadByte (index_offset + 0x24);
-                    entry.IsPacked      = 0 != entry.CompressionType;
+                    entry.UnpackedSize = file.View.ReadUInt32(index_offset + 0x1c);
+                    entry.Size = file.View.ReadUInt32(index_offset + 0x20);
+                    entry.CompressionType = file.View.ReadByte(index_offset + 0x24);
+                    entry.IsPacked = 0 != entry.CompressionType;
                     if (version >= 0x300)
                     {
-                        entry.HasCheckSum = 0 != file.View.ReadByte (index_offset + 0x25);
-                        entry.CheckSum  = file.View.ReadUInt16 (index_offset + 0x26);
-                        entry.FileTime  = file.View.ReadInt64 (index_offset + 0x28);
+                        entry.HasCheckSum = 0 != file.View.ReadByte(index_offset + 0x25);
+                        entry.CheckSum = file.View.ReadUInt16(index_offset + 0x26);
+                        entry.FileTime = file.View.ReadInt64(index_offset + 0x28);
                     }
                 }
                 else
-                    entry.Size          = file.View.ReadUInt32 (index_offset + 0x1c);
-                if (!entry.CheckPlacement (file.MaxOffset))
+                    entry.Size = file.View.ReadUInt32(index_offset + 0x1c);
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
-                dir.Add (entry);
+                dir.Add(entry);
                 index_offset += entry_size;
             }
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
-            var input = arc.File.CreateStream (entry.Offset, entry.Size);
+            var input = arc.File.CreateStream(entry.Offset, entry.Size);
             var packed_entry = entry as HypEntry;
             if (null == packed_entry || !packed_entry.IsPacked)
                 return input;
             if (packed_entry.CompressionType > 3)
             {
-                Trace.WriteLine (string.Format ("{1}: Unknown compression type {0}",
+                Trace.WriteLine(string.Format("{1}: Unknown compression type {0}",
                                                 packed_entry.CompressionType, packed_entry.Name),
                                  "Kogado.PakOpener.OpenEntry");
                 return input;
             }
             if (3 == packed_entry.CompressionType)
-                return new InputCryptoStream (input, new NotTransform());
+                return new InputCryptoStream(input, new NotTransform());
             try
             {
                 if (2 == packed_entry.CompressionType)
                 {
-                    var decoded = new MemoryStream ((int)packed_entry.UnpackedSize);
+                    var decoded = new MemoryStream((int)packed_entry.UnpackedSize);
                     try
                     {
                         var cocotte = new CocotteEncoder();
-                        if (!cocotte.Decode (input, decoded))
-                            throw new InvalidFormatException ("Invalid Cocotte-encoded stream");
+                        if (!cocotte.Decode(input, decoded))
+                            throw new InvalidFormatException("Invalid Cocotte-encoded stream");
                         decoded.Position = 0;
                         return decoded;
                     }
@@ -163,8 +163,8 @@ namespace GameRes.Formats.Hypatia
                 // if (1 == packed_entry.CompressionType)
                 var unpacked = new byte[packed_entry.UnpackedSize];
                 var mariel = new MarielEncoder();
-                mariel.Unpack (input, unpacked, unpacked.Length);
-                return new BinMemoryStream (unpacked, entry.Name);
+                mariel.Unpack(input, unpacked, unpacked.Length);
+                return new BinMemoryStream(unpacked, entry.Name);
             }
             finally
             {
@@ -184,69 +184,69 @@ namespace GameRes.Formats.Hypatia
         //
         // last two bytes of archive is CRC16 of the whole file
 
-        public override void Create (Stream output, IEnumerable<Entry> list, ResourceOptions options,
+        public override void Create(Stream output, IEnumerable<Entry> list, ResourceOptions options,
                                      EntryCallback callback)
         {
             const long data_offset = 0x10;
             var encoding = Encodings.cp932.WithFatalFallback();
             int callback_count = 0;
 
-            var output_list = new List<OutputEntry> (list.Count());
+            var output_list = new List<OutputEntry>(list.Count());
             foreach (var entry in list)
             {
                 try
                 {
-                    string name = Path.GetFileNameWithoutExtension (entry.Name);
-                    string ext  = Path.GetExtension (entry.Name);
+                    string name = Path.GetFileNameWithoutExtension(entry.Name);
+                    string ext = Path.GetExtension(entry.Name);
                     byte[] name_buf = new byte[0x15];
-                    byte[] ext_buf  = new byte[3];
-                    encoding.GetBytes (name, 0, name.Length, name_buf, 0);
-                    if (!string.IsNullOrEmpty (ext))
+                    byte[] ext_buf = new byte[3];
+                    encoding.GetBytes(name, 0, name.Length, name_buf, 0);
+                    if (!string.IsNullOrEmpty(ext))
                     {
-                        ext = ext.TrimStart ('.').ToLowerInvariant();
-                        encoding.GetBytes (ext, 0, ext.Length, ext_buf, 0);
+                        ext = ext.TrimStart('.').ToLowerInvariant();
+                        encoding.GetBytes(ext, 0, ext.Length, ext_buf, 0);
                     }
                     var out_entry = new OutputEntry
                     {
-                        Name      = entry.Name,
+                        Name = entry.Name,
                         IndexName = name_buf,
-                        IndexExt  = ext_buf,
+                        IndexExt = ext_buf,
                     };
-                    output_list.Add (out_entry);
+                    output_list.Add(out_entry);
                 }
                 catch (EncoderFallbackException X)
                 {
-                    throw new InvalidFileName (entry.Name, arcStrings.MsgIllegalCharacters, X);
+                    throw new InvalidFileName(entry.Name, arcStrings.MsgIllegalCharacters, X);
                 }
                 catch (ArgumentException X)
                 {
-                    throw new InvalidFileName (entry.Name, arcStrings.MsgFileNameTooLong, X);
+                    throw new InvalidFileName(entry.Name, arcStrings.MsgFileNameTooLong, X);
                 }
             }
 
             if (null != callback)
-                callback (output_list.Count+2, null, null);
+                callback(output_list.Count + 2, null, null);
 
             output.Position = data_offset;
             uint current_offset = 0;
             foreach (var entry in output_list)
             {
                 if (null != callback)
-                    callback (callback_count++, entry, arcStrings.MsgAddingFile);
+                    callback(callback_count++, entry, arcStrings.MsgAddingFile);
 
-                entry.FileTime = File.GetCreationTimeUtc (entry.Name).Ticks;
+                entry.FileTime = File.GetCreationTimeUtc(entry.Name).Ticks;
                 entry.Offset = current_offset;
                 entry.CompressionType = 0;
-                using (var input = File.OpenRead (entry.Name))
+                using (var input = File.OpenRead(entry.Name))
                 {
                     var size = input.Length;
                     if (size > uint.MaxValue || current_offset + size + 0x0f > uint.MaxValue)
                         throw new FileSizeException();
                     entry.Size = (uint)size;
                     entry.UnpackedSize = entry.Size;
-                    using (var checked_stream = new CheckedStream (output, new Crc16()))
+                    using (var checked_stream = new CheckedStream(output, new Crc16()))
                     {
-                        input.CopyTo (checked_stream);
+                        input.CopyTo(checked_stream);
                         entry.HasCheckSum = true;
                         entry.CheckSum = (ushort)checked_stream.CheckSumValue;
                     }
@@ -257,38 +257,38 @@ namespace GameRes.Formats.Hypatia
             }
 
             if (null != callback)
-                callback (callback_count++, null, arcStrings.MsgUpdatingIndex);
+                callback(callback_count++, null, arcStrings.MsgUpdatingIndex);
 
             // at last, go back to directory and write offset/sizes
             uint index_offset = current_offset;
-            using (var index = new BinaryWriter (output, encoding, true))
+            using (var index = new BinaryWriter(output, encoding, true))
             {
                 foreach (var entry in output_list)
                 {
-                    index.Write (entry.IndexName);
-                    index.Write (entry.IndexExt);
-                    index.Write ((uint)entry.Offset);
-                    index.Write (entry.UnpackedSize);
-                    index.Write (entry.Size);
-                    index.Write (entry.CompressionType);
-                    index.Write (entry.HasCheckSum);
-                    index.Write (entry.CheckSum);
-                    index.Write (entry.FileTime);
+                    index.Write(entry.IndexName);
+                    index.Write(entry.IndexExt);
+                    index.Write((uint)entry.Offset);
+                    index.Write(entry.UnpackedSize);
+                    index.Write(entry.Size);
+                    index.Write(entry.CompressionType);
+                    index.Write(entry.HasCheckSum);
+                    index.Write(entry.CheckSum);
+                    index.Write(entry.FileTime);
                 }
                 index.BaseStream.Position = 0;
-                index.Write (Signature);
-                index.Write (0x03006b63);
-                index.Write (index_offset);
-                index.Write (output_list.Count);
+                index.Write(Signature);
+                index.Write(0x03006b63);
+                index.Write(index_offset);
+                index.Write(output_list.Count);
 
                 if (null != callback)
-                    callback (callback_count++, null, arcStrings.MsgCalculatingChecksum);
+                    callback(callback_count++, null, arcStrings.MsgCalculatingChecksum);
 
                 output.Position = 0;
-                using (var checked_stream = new CheckedStream (output, new Crc16()))
+                using (var checked_stream = new CheckedStream(output, new Crc16()))
                 {
-                    checked_stream.CopyTo (Stream.Null);
-                    index.Write ((ushort)checked_stream.CheckSumValue);
+                    checked_stream.CopyTo(Stream.Null);
+                    index.Write((ushort)checked_stream.CheckSumValue);
                 }
             }
         }
@@ -296,7 +296,7 @@ namespace GameRes.Formats.Hypatia
 
     internal class MarielEncoder
     {
-        public void Unpack (IBinaryStream input, byte[] dest, int dest_size)
+        public void Unpack(IBinaryStream input, byte[] dest, int dest_size)
         {
             int out_pos = 0;
             uint bits = 0;
@@ -343,7 +343,7 @@ namespace GameRes.Formats.Hypatia
                 int src = out_pos - offset;
                 if (src < 0 || src >= out_pos)
                     break;
-                Binary.CopyOverlapped (dest, src, out_pos, count);
+                Binary.CopyOverlapped(dest, src, out_pos, count);
                 out_pos += count;
                 dest_size -= count;
             }

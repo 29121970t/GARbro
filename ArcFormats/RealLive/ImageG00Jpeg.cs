@@ -32,39 +32,39 @@ namespace GameRes.Formats.RealLive
     [Export(typeof(ImageFormat))]
     public class G00JpegFormat : ImageFormat
     {
-        public override string         Tag { get { return "G00/JPEG"; } }
+        public override string Tag { get { return "G00/JPEG"; } }
         public override string Description { get { return "Siglus engine encrypted JPEG image"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
             int type = file.ReadByte();
             if (type != 3)
                 return null;
-            uint width  = file.ReadUInt16();
+            uint width = file.ReadUInt16();
             uint height = file.ReadUInt16();
             if (0 == width || width > 0x8000 || 0 == height || height > 0x8000)
                 return null;
-            using (var jpeg = OpenJpegStream (file))
-                return Jpeg.ReadMetaData (jpeg);
+            using (var jpeg = OpenJpegStream(file))
+                return Jpeg.ReadMetaData(jpeg);
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            using (var jpeg = OpenJpegStream (file))
-                return Jpeg.Read (jpeg, info);
+            using (var jpeg = OpenJpegStream(file))
+                return Jpeg.Read(jpeg, info);
         }
 
-        IBinaryStream OpenJpegStream (IBinaryStream file)
+        IBinaryStream OpenJpegStream(IBinaryStream file)
         {
-            Stream input = new StreamRegion (file.AsStream, 5, true);
-            input = new ByteStringEncryptedStream (input, DefaultKey);
-            return new BinaryStream (input, file.Name);
+            Stream input = new StreamRegion(file.AsStream, 5, true);
+            input = new ByteStringEncryptedStream(input, DefaultKey);
+            return new BinaryStream(input, file.Name);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("G00JpegFormat.Write not implemented");
+            throw new System.NotImplementedException("G00JpegFormat.Write not implemented");
         }
 
         static readonly byte[] DefaultKey = {

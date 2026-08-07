@@ -37,29 +37,30 @@ namespace GameRes.Formats.AyPio
     [Export(typeof(ImageFormat))]
     public class Pdt5Format : ImageFormat
     {
-        public override string         Tag => "PDT/5";
+        public override string Tag => "PDT/5";
         public override string Description => "UK2 engine image format";
-        public override uint     Signature => 0;
+        public override uint Signature => 0;
 
-        public Pdt5Format ()
+        public Pdt5Format()
         {
             Extensions = new[] { "pdt", "anm" };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
             if (file.ReadByte() != 0x35)
                 return null;
             file.Position = 0x21;
-            int left   = file.ReadUInt16();
-            int top    = file.ReadUInt16();
-            int right  = file.ReadUInt16();
+            int left = file.ReadUInt16();
+            int top = file.ReadUInt16();
+            int right = file.ReadUInt16();
             int bottom = file.ReadUInt16();
             int width = (right - left + 1) << 3;
             int height = bottom - top + 1;
             if (width <= 0 || height <= 0 || width > 640 || height > 1024)
                 return null;
-            return new ImageMetaData {
+            return new ImageMetaData
+            {
                 Width = (uint)width,
                 Height = (uint)height,
                 OffsetX = left << 3,
@@ -68,24 +69,24 @@ namespace GameRes.Formats.AyPio
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new Pdt5Reader (file, info);
+            var reader = new Pdt5Reader(file, info);
             return reader.Unpack();
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("Pdt5Format.Write not implemented");
+            throw new System.NotImplementedException("Pdt5Format.Write not implemented");
         }
     }
 
     internal class Pdt5Reader
     {
-        IBinaryStream   m_input;
-        ImageMetaData   m_info;
+        IBinaryStream m_input;
+        ImageMetaData m_info;
 
-        public Pdt5Reader (IBinaryStream input, ImageMetaData info)
+        public Pdt5Reader(IBinaryStream input, ImageMetaData info)
         {
             m_input = input;
             m_info = info;
@@ -93,7 +94,7 @@ namespace GameRes.Formats.AyPio
 
         byte[] m_buffer;
 
-        public ImageData Unpack ()
+        public ImageData Unpack()
         {
             m_input.Position = 1;
             var palette = ReadPalette();
@@ -120,7 +121,7 @@ namespace GameRes.Formats.AyPio
                                 int count = GetCount() + 2;
                                 int pos = 1290 + x;
                                 x += count - 1;
-                                while (count --> 0)
+                                while (count-- > 0)
                                 {
                                     m_buffer[pos++] = px;
                                 }
@@ -131,41 +132,41 @@ namespace GameRes.Formats.AyPio
                                 px = m_buffer[1289 + x];
                                 int src = x + 1288;
                                 int dst = x + 1290;
-                                Binary.CopyOverlapped (m_buffer, src, dst, count * 2);
+                                Binary.CopyOverlapped(m_buffer, src, dst, count * 2);
                                 x += count * 2 - 1;
                             }
                         }
                         else
                         {
-                            px = GetPixel (x);
+                            px = GetPixel(x);
                             m_buffer[x + 1290] = px;
                         }
                     }
                     else
                     {
                         int count = 0;
-                        byte b = GetPixel (x);
+                        byte b = GetPixel(x);
                         while (GetNextBit() != 1)
                             ++count;
                         int src = 0x10 * b + count;
                         px = m_frame[src];
                         m_buffer[x + 1290] = px;
-                        while (count --> 0)
+                        while (count-- > 0)
                         {
-                            m_frame[src] = m_frame[src-1];
+                            m_frame[src] = m_frame[src - 1];
                             --src;
                         }
                         m_frame[src] = px;
                     }
                 }
-                Buffer.BlockCopy (m_buffer, 1290, pixels, output_pos, width);
+                Buffer.BlockCopy(m_buffer, 1290, pixels, output_pos, width);
                 output_pos += output_stride;
-                Buffer.BlockCopy (m_buffer, 644, m_buffer, 0, 1288);
+                Buffer.BlockCopy(m_buffer, 644, m_buffer, 0, 1288);
             }
-            return ImageData.Create (m_info, PixelFormats.Indexed8, palette, pixels, output_stride);
+            return ImageData.Create(m_info, PixelFormats.Indexed8, palette, pixels, output_stride);
         }
 
-        byte GetPixel (int src)
+        byte GetPixel(int src)
         {
             byte px = m_buffer[src + 647];
             if (m_buffer[src + 4] != px)
@@ -183,7 +184,7 @@ namespace GameRes.Formats.AyPio
 
         byte[] m_frame;
 
-        void InitFrame ()
+        void InitFrame()
         {
             m_frame = new byte[0x110];
             for (int j = 0; j < 0x110; j += 0x10)
@@ -193,7 +194,7 @@ namespace GameRes.Formats.AyPio
             }
         }
 
-        int GetCount ()
+        int GetCount()
         {
             int count = 0;
             int bits = 1;
@@ -218,12 +219,12 @@ namespace GameRes.Formats.AyPio
         uint m_bits;
         int m_bit_count;
 
-        void InitBitReader ()
+        void InitBitReader()
         {
             m_bit_count = 1;
         }
 
-        byte GetNextBit ()
+        byte GetNextBit()
         {
             if (--m_bit_count <= 0)
             {
@@ -235,7 +236,7 @@ namespace GameRes.Formats.AyPio
             return (byte)bit;
         }
 
-        BitmapPalette ReadPalette ()
+        BitmapPalette ReadPalette()
         {
             var colors = new Color[16];
             for (int i = 0; i < 16; ++i)
@@ -244,9 +245,9 @@ namespace GameRes.Formats.AyPio
                 int b = (rgb & 0xF) * 0x11;
                 int r = ((rgb >> 4) & 0xF) * 0x11;
                 int g = ((rgb >> 8) & 0xF) * 0x11;
-                colors[i] = Color.FromRgb ((byte)r, (byte)g, (byte)b);
+                colors[i] = Color.FromRgb((byte)r, (byte)g, (byte)b);
             }
-            return new BitmapPalette (colors);
+            return new BitmapPalette(colors);
         }
     }
 }

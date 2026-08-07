@@ -36,13 +36,13 @@ namespace GameRes.Formats.GPlay
     [Export(typeof(ArchiveFormat))]
     public class YskOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "YSK"; } }
+        public override string Tag { get { return "YSK"; } }
         public override string Description { get { return "GPlay engine resource archive"; } }
-        public override uint     Signature { get { return 0x36314141; } } // 'AA1640124080'
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x36314141; } } // 'AA1640124080'
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public YskOpener ()
+        public YskOpener()
         {
             // "AA1640124080", "AA7790743350", "AA1825646340", "AA1316763700", "AA1945074730", "AA7235065580"
             Signatures = new uint[] {
@@ -52,63 +52,63 @@ namespace GameRes.Formats.GPlay
 
         const ulong DefaultKey = 0x1234567812345678ul;
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            if (!file.View.AsciiEqual (0, "AA"))
+            if (!file.View.AsciiEqual(0, "AA"))
                 return null;
-            int count = file.View.ReadInt32 (12);
-            if (!IsSaneCount (count))
+            int count = file.View.ReadInt32(12);
+            if (!IsSaneCount(count))
                 return null;
-            var ver_str = file.View.ReadString (2, 10);
-            if (!ver_str.All (char.IsDigit))
+            var ver_str = file.View.ReadString(2, 10);
+            if (!ver_str.All(char.IsDigit))
                 return null;
 
             uint index_offset = 0x10;
             long data_offset = index_offset + count * 0x18;
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
-                var name = file.View.ReadString (index_offset, 0x14);
-                var entry = Create<Entry> (name);
+                var name = file.View.ReadString(index_offset, 0x14);
+                var entry = Create<Entry>(name);
                 entry.Offset = data_offset;
-                entry.Size = file.View.ReadUInt32 (index_offset+0x14);
-                if (!entry.CheckPlacement (file.MaxOffset))
+                entry.Size = file.View.ReadUInt32(index_offset + 0x14);
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
-                dir.Add (entry);
+                dir.Add(entry);
                 index_offset += 0x18;
                 data_offset += entry.Size;
             }
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
-            if (entry.Name.HasAnyOfExtensions ("TXT", "DAT"))
+            if (entry.Name.HasAnyOfExtensions("TXT", "DAT"))
             {
-                var input = arc.File.CreateStream (entry.Offset, entry.Size, entry.Name);
+                var input = arc.File.CreateStream(entry.Offset, entry.Size, entry.Name);
                 int first_byte = (int)input.Signature & 0xFF;
                 if (first_byte == '#' || first_byte == '*')
                     return input;
-                var dec = new DesTransform (DefaultKey);
-                return new InputCryptoStream (input, dec);
+                var dec = new DesTransform(DefaultKey);
+                return new InputCryptoStream(input, dec);
             }
-            else if (entry.Name.HasExtension ("JPG"))
+            else if (entry.Name.HasExtension("JPG"))
             {
-                using (var dec = new DesTransform (DefaultKey))
+                using (var dec = new DesTransform(DefaultKey))
                 {
-                    var data = arc.File.View.ReadBytes (entry.Offset, entry.Size);
+                    var data = arc.File.View.ReadBytes(entry.Offset, entry.Size);
                     for (int i = 0; i < data.Length; i += 0x1000)
                     {
-                        int count = Math.Min (8, data.Length-i);
-                        dec.TransformBlock (data, i, count, data, i);
+                        int count = Math.Min(8, data.Length - i);
+                        dec.TransformBlock(data, i, count, data, i);
                     }
-                    return new BinMemoryStream (data, entry.Name);
+                    return new BinMemoryStream(data, entry.Name);
                 }
             }
-            else if (entry.Name.HasExtension ("BMP"))
+            else if (entry.Name.HasExtension("BMP"))
             {
-                var data = arc.File.View.ReadBytes (entry.Offset, entry.Size);
-                int bpp = data.ToUInt16 (0x1C);
+                var data = arc.File.View.ReadBytes(entry.Offset, entry.Size);
+                int bpp = data.ToUInt16(0x1C);
                 if (4 == bpp)
                     data[0x1C] = 8;
                 else if (16 == bpp)
@@ -117,19 +117,19 @@ namespace GameRes.Formats.GPlay
                 int pixels_length = data.Length - pixels_src;
                 if (pixels_length > 0x493AA)
                 {
-                    using (var dec = new DesTransform (DefaultKey))
+                    using (var dec = new DesTransform(DefaultKey))
                     {
                         for (int src = pixels_src + 0x493AA; src + 8 <= data.Length; src += 0xA0)
                         {
-                            dec.TransformBlock (data, src, 8, data, src);
+                            dec.TransformBlock(data, src, 8, data, src);
                         }
                     }
                 }
-                return new BinMemoryStream (data, entry.Name);
+                return new BinMemoryStream(data, entry.Name);
             }
             else
             {
-                return base.OpenEntry (arc, entry);
+                return base.OpenEntry(arc, entry);
             }
         }
     }
@@ -138,20 +138,20 @@ namespace GameRes.Formats.GPlay
     {
         const int BlockSize = 8;
 
-        public bool          CanReuseTransform { get { return true; } }
+        public bool CanReuseTransform { get { return true; } }
         public bool CanTransformMultipleBlocks { get { return true; } }
-        public int              InputBlockSize { get { return BlockSize; } }
-        public int             OutputBlockSize { get { return BlockSize; } }
+        public int InputBlockSize { get { return BlockSize; } }
+        public int OutputBlockSize { get { return BlockSize; } }
 
-        public DesTransform (ulong key)
+        public DesTransform(ulong key)
         {
-            SetKey (key);
+            SetKey(key);
         }
 
-        byte[]  m_state1 = new byte[512]; // dword_461820
+        byte[] m_state1 = new byte[512]; // dword_461820
         ulong[] m_state0 = new ulong[16]; // dword_462020
 
-        internal void SetKey (ulong key)
+        internal void SetKey(ulong key)
         {
             uint p = 0;
             uint q = 0;
@@ -184,7 +184,7 @@ namespace GameRes.Formats.GPlay
             for (int i = 0; i < 4; i += 2)
             {
                 int idx3 = idx4;
-                for (int j = 0; j < 16; )
+                for (int j = 0; j < 16;)
                 {
                     int idx2 = idx3;
                     for (int k = 2; k > 0; --k)
@@ -196,8 +196,8 @@ namespace GameRes.Formats.GPlay
                             for (int n = 2; n > 0; --n)
                             {
                                 int src = j + 16 * i;
-                                m_state1[0   + idx] = pState[st0[src]];
-                                m_state1[64  + idx] = pState[st1[src]];
+                                m_state1[0 + idx] = pState[st0[src]];
+                                m_state1[64 + idx] = pState[st1[src]];
                                 m_state1[128 + idx] = pState[st2[src]];
                                 m_state1[192 + idx] = pState[st3[src]];
                                 m_state1[256 + idx] = pState[st4[src]];
@@ -205,8 +205,8 @@ namespace GameRes.Formats.GPlay
                                 m_state1[384 + idx] = pState[st6[src]];
                                 m_state1[448 + idx] = pState[st7[src]];
                                 src = j + 16 * (i + 1);
-                                m_state1[32 + idx]  = pState[st0[src]];
-                                m_state1[96 + idx]  = pState[st1[src]];
+                                m_state1[32 + idx] = pState[st0[src]];
+                                m_state1[96 + idx] = pState[st1[src]];
                                 m_state1[160 + idx] = pState[st2[src]];
                                 m_state1[224 + idx] = pState[st3[src]];
                                 m_state1[288 + idx] = pState[st4[src]];
@@ -226,7 +226,7 @@ namespace GameRes.Formats.GPlay
             }
         }
 
-        internal ulong TransformQWord (ulong q)
+        internal ulong TransformQWord(ulong q)
         {
             uint hi = 0;
             uint lo = 0;
@@ -265,7 +265,7 @@ namespace GameRes.Formats.GPlay
                     | 16u * (m_state1[(n4 & 0x3F) + 128]
                     | 16u * (m_state1[(n5 & 0x3F) + 192]
                     | 16u * (m_state1[(n6 & 0x3F) + 448]
-                    | 16u *  m_state1[(n7 & 0x3F) + 320]))))));
+                    | 16u * m_state1[(n7 & 0x3F) + 320]))))));
                 uint x = 0;
                 for (int j = 0; j < 32; ++j)
                 {
@@ -288,21 +288,21 @@ namespace GameRes.Formats.GPlay
             return r;
         }
 
-        public int TransformBlock (byte[] inputBuffer, int inputOffset, int inputCount,
+        public int TransformBlock(byte[] inputBuffer, int inputOffset, int inputCount,
                                    byte[] outputBuffer, int outputOffset)
         {
             for (int i = 0; i < inputCount; i += 8)
             {
                 ulong q = 0;
-                int count = Math.Min (8, inputCount - i);
+                int count = Math.Min(8, inputCount - i);
                 for (int j = 0; j < count; ++j)
                 {
-                    q |= (ulong)inputBuffer[inputOffset+j] << (j << 3);
+                    q |= (ulong)inputBuffer[inputOffset + j] << (j << 3);
                 }
-                q = TransformQWord (q);
+                q = TransformQWord(q);
                 for (int j = 0; j < count; ++j)
                 {
-                    outputBuffer[outputOffset+j] = (byte)q;
+                    outputBuffer[outputOffset + j] = (byte)q;
                     q >>= 8;
                 }
                 inputOffset += 8;
@@ -311,14 +311,14 @@ namespace GameRes.Formats.GPlay
             return inputCount;
         }
 
-        public byte[] TransformFinalBlock (byte[] inputBuffer, int inputOffset, int inputCount)
+        public byte[] TransformFinalBlock(byte[] inputBuffer, int inputOffset, int inputCount)
         {
             byte[] outputBuffer = new byte[inputCount];
-            TransformBlock (inputBuffer, inputOffset, inputCount, outputBuffer, 0);
+            TransformBlock(inputBuffer, inputOffset, inputCount, outputBuffer, 0);
             return outputBuffer;
         }
 
-        public void Dispose ()
+        public void Dispose()
         {
         }
 

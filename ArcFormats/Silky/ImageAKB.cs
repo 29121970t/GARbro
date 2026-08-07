@@ -34,27 +34,27 @@ namespace GameRes.Formats.Silky
 {
     internal class AkbMetaData : ImageMetaData
     {
-        public byte[]   Background;
-        public int      InnerWidth;
-        public int      InnerHeight;
-        public uint     Flags;
-        public string   BaseFileName;
-        public uint     DataOffset;
+        public byte[] Background;
+        public int InnerWidth;
+        public int InnerHeight;
+        public uint Flags;
+        public string BaseFileName;
+        public uint DataOffset;
     }
 
     [Export(typeof(ImageFormat))]
     public class AkbFormat : ImageFormat
     {
-        public override string         Tag { get { return "AKB"; } }
+        public override string Tag { get { return "AKB"; } }
         public override string Description { get { return "AI6WIN engine image format"; } }
-        public override uint     Signature { get { return 0x20424B41; } } // 'AKB '
+        public override uint Signature { get { return 0x20424B41; } } // 'AKB '
 
-        public AkbFormat ()
+        public AkbFormat()
         {
             Signatures = new uint[] { 0x20424B41, 0x2B424b41 };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
             var info = new AkbMetaData();
             bool is_incremental = '+' == (file.ReadUInt32() >> 24);
@@ -62,7 +62,7 @@ namespace GameRes.Formats.Silky
             info.Height = file.ReadUInt16();
             info.Flags = file.ReadUInt32();
             info.BPP = 0 == (info.Flags & 0x40000000) ? 32 : 24;
-            info.Background = file.ReadBytes (4);
+            info.Background = file.ReadBytes(4);
             info.OffsetX = file.ReadInt32();
             info.OffsetY = file.ReadInt32();
             info.InnerWidth = file.ReadInt32() - info.OffsetX;
@@ -70,45 +70,45 @@ namespace GameRes.Formats.Silky
             if (info.InnerWidth > info.Width || info.InnerHeight > info.Height)
                 return null;
             if (is_incremental)
-                info.BaseFileName = file.ReadCString (0x20);
+                info.BaseFileName = file.ReadCString(0x20);
             info.DataOffset = (uint)file.Position;
             return info;
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
             var meta = (AkbMetaData)info;
             byte[] background = null;
-            if (!string.IsNullOrEmpty (meta.BaseFileName))
+            if (!string.IsNullOrEmpty(meta.BaseFileName))
             {
-                background = ReadBaseImage (meta.BaseFileName, meta);
+                background = ReadBaseImage(meta.BaseFileName, meta);
             }
-            var reader = new AkbReader (file.AsStream, (AkbMetaData)info);
-            var image = reader.Unpack (background);
-            return ImageData.Create (info, reader.Format, null, image, reader.Stride);
+            var reader = new AkbReader(file.AsStream, (AkbMetaData)info);
+            var image = reader.Unpack(background);
+            return ImageData.Create(info, reader.Format, null, image, reader.Stride);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("AkbFormat.Write not implemented");
+            throw new System.NotImplementedException("AkbFormat.Write not implemented");
         }
 
-        byte[] ReadBaseImage (string filename, AkbMetaData overlay_info)
+        byte[] ReadBaseImage(string filename, AkbMetaData overlay_info)
         {
-            var pattern = Path.GetFileNameWithoutExtension (filename) + ".*";
-            pattern = VFS.CombinePath (VFS.GetDirectoryName (filename), pattern);
-            foreach (var entry in VFS.GetFiles (pattern))
+            var pattern = Path.GetFileNameWithoutExtension(filename) + ".*";
+            pattern = VFS.CombinePath(VFS.GetDirectoryName(filename), pattern);
+            foreach (var entry in VFS.GetFiles(pattern))
             {
                 if (entry.Name == overlay_info.FileName)
                     continue;
-                using (var base_file = VFS.OpenBinaryStream (entry))
+                using (var base_file = VFS.OpenBinaryStream(entry))
                 {
-                    var base_info = ReadMetaData (base_file) as AkbMetaData;
+                    var base_info = ReadMetaData(base_file) as AkbMetaData;
                     if (null != base_info && base_info.BPP == overlay_info.BPP
                         && base_info.Width == overlay_info.Width && base_info.Height == overlay_info.Height)
                     {
                         // FIXME what if baseline image is incremental itself?
-                        var reader = new AkbReader (base_file.AsStream, base_info);
+                        var reader = new AkbReader(base_file.AsStream, base_info);
                         return reader.Unpack();
                     }
                 }
@@ -119,14 +119,14 @@ namespace GameRes.Formats.Silky
 
     internal class AkbReader
     {
-        Stream          m_input;
-        AkbMetaData     m_info;
-        int             m_pixel_size;
+        Stream m_input;
+        AkbMetaData m_info;
+        int m_pixel_size;
 
         public PixelFormat Format { get; private set; }
-        public int         Stride { get; private set; }
+        public int Stride { get; private set; }
 
-        public AkbReader (Stream input, AkbMetaData info)
+        public AkbReader(Stream input, AkbMetaData info)
         {
             m_input = input;
             m_info = info;
@@ -140,7 +140,7 @@ namespace GameRes.Formats.Silky
                 Format = PixelFormats.Bgra32;
         }
 
-        public byte[] Unpack (byte[] background = null)
+        public byte[] Unpack(byte[] background = null)
         {
             if (0 == m_info.InnerWidth || 0 == m_info.InnerHeight)
                 return background ?? CreateBackground();
@@ -148,15 +148,15 @@ namespace GameRes.Formats.Silky
             m_input.Position = m_info.DataOffset;
             int inner_stride = m_info.InnerWidth * m_pixel_size;
             var pixels = new byte[m_info.InnerHeight * inner_stride];
-            using (var lz = new LzssStream (m_input, LzssMode.Decompress, true))
+            using (var lz = new LzssStream(m_input, LzssMode.Decompress, true))
             {
                 for (int pos = pixels.Length - inner_stride; pos >= 0; pos -= inner_stride)
                 {
-                    if (inner_stride != lz.Read (pixels, pos, inner_stride))
+                    if (inner_stride != lz.Read(pixels, pos, inner_stride))
                         throw new InvalidFormatException();
                 }
             }
-            RestoreDelta (pixels, inner_stride);
+            RestoreDelta(pixels, inner_stride);
             if (null == background && m_info.InnerWidth == m_info.Width && m_info.InnerHeight == m_info.Height)
                 return pixels;
 
@@ -166,17 +166,18 @@ namespace GameRes.Formats.Silky
             Action blend_row;
             if (null == background)
             {
-                blend_row = () => Buffer.BlockCopy (pixels, src, image, dst, inner_stride);
+                blend_row = () => Buffer.BlockCopy(pixels, src, image, dst, inner_stride);
             }
             else
             {
-                blend_row = () => {
+                blend_row = () =>
+                {
                     for (int x = 0; x < inner_stride; x += m_pixel_size)
                     {
-                        if (0x00 != pixels[src+x] || 0xFF != pixels[src+x+1] || 0x00 != pixels[src+x+2])
+                        if (0x00 != pixels[src + x] || 0xFF != pixels[src + x + 1] || 0x00 != pixels[src + x + 2])
                         {
                             for (int i = 0; i < m_pixel_size; ++i)
-                                image[dst+x+i] = pixels[src+x+i];
+                                image[dst + x + i] = pixels[src + x + i];
                         }
                     }
                 };
@@ -190,7 +191,7 @@ namespace GameRes.Formats.Silky
             return image;
         }
 
-        private void RestoreDelta (byte[] pixels, int stride)
+        private void RestoreDelta(byte[] pixels, int stride)
         {
             int src = 0;
             for (int i = m_pixel_size; i < stride; ++i)
@@ -200,14 +201,14 @@ namespace GameRes.Formats.Silky
                 pixels[i] += pixels[src++];
         }
 
-        private byte[] CreateBackground ()
+        private byte[] CreateBackground()
         {
             var pixels = new byte[Stride * (int)m_info.Height];
-            if (0 != LittleEndian.ToInt32 (m_info.Background, 0))
+            if (0 != LittleEndian.ToInt32(m_info.Background, 0))
             {
                 for (int i = 0; i < Stride; i += m_pixel_size)
-                    Buffer.BlockCopy (m_info.Background, 0, pixels, i, m_pixel_size);
-                Binary.CopyOverlapped (pixels, 0, Stride, pixels.Length-Stride);
+                    Buffer.BlockCopy(m_info.Background, 0, pixels, i, m_pixel_size);
+                Binary.CopyOverlapped(pixels, 0, Stride, pixels.Length - Stride);
             }
             return pixels;
         }

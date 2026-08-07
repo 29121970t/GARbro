@@ -34,11 +34,11 @@ namespace GameRes.Formats.Leaf
 {
     internal class PxMetaData : ImageMetaData
     {
-        public int  Type;
-        public int  FrameCount;
-        public int  BlockSize;
-        public int  BlocksWidth;
-        public int  BlocksHeight;
+        public int Type;
+        public int FrameCount;
+        public int BlockSize;
+        public int BlocksWidth;
+        public int BlocksHeight;
     }
 
     // XXX this format changes significantly from game to game
@@ -46,25 +46,25 @@ namespace GameRes.Formats.Leaf
     [Export(typeof(ImageFormat))]
     public class PxFormat : ImageFormat
     {
-        public override string         Tag { get { return "PX"; } }
+        public override string Tag { get { return "PX"; } }
         public override string Description { get { return "Leaf image format"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
-            var header = stream.ReadHeader (0x20);
-            int type = header.ToUInt16 (0x10);
+            var header = stream.ReadHeader(0x20);
+            int type = header.ToUInt16(0x10);
             if (0x0C == type)
             {
-                int count = header.ToInt32 (0);
-                if (!ArchiveFormat.IsSaneCount (count))
+                int count = header.ToInt32(0);
+                if (!ArchiveFormat.IsSaneCount(count))
                     return null;
-                int block_size = header.ToInt32 (4);
+                int block_size = header.ToInt32(4);
                 if (block_size <= 0)
                     return null;
-                int  bpp    = header.ToUInt16 (0x12);
-                uint width  = header.ToUInt16 (0x14);
-                uint height = header.ToUInt16 (0x16);
+                int bpp = header.ToUInt16(0x12);
+                uint width = header.ToUInt16(0x14);
+                uint height = header.ToUInt16(0x16);
                 if (bpp != 32 || 0 == width || 0 == height)
                     return null;
                 return new PxMetaData
@@ -75,92 +75,92 @@ namespace GameRes.Formats.Leaf
                     Type = type,
                     FrameCount = count,
                     BlockSize = block_size,
-                    BlocksWidth = header.ToUInt16 (0x1C),
-                    BlocksHeight = header.ToUInt16 (0x1E),
+                    BlocksWidth = header.ToUInt16(0x1C),
+                    BlocksHeight = header.ToUInt16(0x1E),
                 };
             }
             else if (0x90 == type)
             {
-                if (!header.AsciiEqual (0x14, "Leaf"))
+                if (!header.AsciiEqual(0x14, "Leaf"))
                     return null;
-                int count = header.ToInt32 (4);
-                if (!ArchiveFormat.IsSaneCount (count))
+                int count = header.ToInt32(4);
+                if (!ArchiveFormat.IsSaneCount(count))
                     return null;
-                var header_ex = stream.ReadBytes (0x20);
+                var header_ex = stream.ReadBytes(0x20);
                 if (0x20 != header_ex.Length)
                     return null;
-                if (0x0A != LittleEndian.ToUInt16 (header_ex, 0x10))
+                if (0x0A != LittleEndian.ToUInt16(header_ex, 0x10))
                     return null;
                 return new PxMetaData
                 {
-                    Width   = LittleEndian.ToUInt32 (header_ex, 0),
-                    Height  = LittleEndian.ToUInt32 (header_ex, 4),
-                    BPP     = LittleEndian.ToUInt16 (header_ex, 0x12),
-                    Type    = type,
+                    Width = LittleEndian.ToUInt32(header_ex, 0),
+                    Height = LittleEndian.ToUInt32(header_ex, 4),
+                    BPP = LittleEndian.ToUInt16(header_ex, 0x12),
+                    Type = type,
                     FrameCount = count,
                 };
             }
             else if (0x40 == type || 0x44 == type)
             {
-                int count = header.ToInt32 (0);
-                if (!ArchiveFormat.IsSaneCount (count))
+                int count = header.ToInt32(0);
+                if (!ArchiveFormat.IsSaneCount(count))
                     return null;
                 return new PxMetaData
                 {
-                    Width   = header.ToUInt32 (0x14),
-                    Height  = header.ToUInt32 (0x18),
-                    Type    = 0x40,
-                    BPP     = 32,
+                    Width = header.ToUInt32(0x14),
+                    Height = header.ToUInt32(0x18),
+                    Type = 0x40,
+                    BPP = 32,
                     FrameCount = count,
                 };
             }
             else if (1 == type || 4 == type || 7 == type)
             {
-                int bpp = header.ToUInt16 (0x12);
+                int bpp = header.ToUInt16(0x12);
                 if (bpp != 32 && bpp != 8)
                     return null;
                 return new PxMetaData
                 {
-                    Width   = header.ToUInt32 (0x14),
-                    Height  = header.ToUInt32 (0x18),
-                    Type    = type,
-                    BPP     = bpp,
+                    Width = header.ToUInt32(0x14),
+                    Height = header.ToUInt32(0x18),
+                    Type = type,
+                    BPP = bpp,
                     FrameCount = 1,
                 };
             }
             return null;
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
-            using (var reader = new PxReader (stream, (PxMetaData)info))
+            using (var reader = new PxReader(stream, (PxMetaData)info))
             {
                 var pixels = reader.Unpack();
-                return ImageData.Create (info, reader.Format, reader.Palette, pixels, reader.Stride);
+                return ImageData.Create(info, reader.Format, reader.Palette, pixels, reader.Stride);
             }
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("PxFormat.Write not implemented");
+            throw new System.NotImplementedException("PxFormat.Write not implemented");
         }
     }
 
     internal sealed class PxReader : IDisposable
     {
-        IBinaryStream   m_input;
-        PxMetaData      m_info;
-        byte[]          m_output;
-        int             m_pixel_size;
-        int             m_stride;
+        IBinaryStream m_input;
+        PxMetaData m_info;
+        byte[] m_output;
+        int m_pixel_size;
+        int m_stride;
 
         public PixelFormat Format { get; private set; }
-        public byte[]        Data { get { return m_output; } }
-        public int         Stride { get { return m_stride; } }
-        public int     FrameCount { get { return m_info.FrameCount; } }
+        public byte[] Data { get { return m_output; } }
+        public int Stride { get { return m_stride; } }
+        public int FrameCount { get { return m_info.FrameCount; } }
         public BitmapPalette Palette { get; private set; }
 
-        public PxReader (IBinaryStream input, PxMetaData info)
+        public PxReader(IBinaryStream input, PxMetaData info)
         {
             m_input = input;
             m_info = info;
@@ -173,21 +173,21 @@ namespace GameRes.Formats.Leaf
                 Format = PixelFormats.Bgra32;
         }
 
-        public byte[] Unpack (int frame = 0)
+        public byte[] Unpack(int frame = 0)
         {
             if (frame < 0 || frame >= FrameCount)
-                throw new ArgumentException ("[PX] Invalid frame number", "frame");
+                throw new ArgumentException("[PX] Invalid frame number", "frame");
             switch (m_info.Type)
             {
-            case 0x0C:  Unpack0C (frame); break;
-            case 0x90:  Unpack90 (frame); break;
-            case 0x40:  Unpack40(); break;
-            default:    ReadBlock (0); break;
+                case 0x0C: Unpack0C(frame); break;
+                case 0x90: Unpack90(frame); break;
+                case 0x40: Unpack40(); break;
+                default: ReadBlock(0); break;
             }
             return m_output;
         }
 
-        void Unpack0C (int frame)
+        void Unpack0C(int frame)
         {
             int block_count = m_info.BlocksWidth * m_info.BlocksHeight;
             var block_table = new ushort[block_count];
@@ -207,14 +207,14 @@ namespace GameRes.Formats.Leaf
                     if (block_num != 0)
                     {
                         m_input.Position = data_pos + (block_num - 1) * block_length;
-                        int block_width  = m_input.ReadByte() - 2;
+                        int block_width = m_input.ReadByte() - 2;
                         int block_height = m_input.ReadByte() - 2;
                         int line_length = block_width * m_pixel_size;
                         for (int y = 0; y < block_height; ++y)
                         {
-                            m_input.Read (m_output, dst, line_length);
+                            m_input.Read(m_output, dst, line_length);
                             dst += m_stride;
-                            m_input.Seek (8, SeekOrigin.Current);
+                            m_input.Seek(8, SeekOrigin.Current);
                         }
                     }
                 }
@@ -222,14 +222,14 @@ namespace GameRes.Formats.Leaf
             }
         }
 
-        void Unpack90 (int frame)
+        void Unpack90(int frame)
         {
             m_input.Position = 0x40 + frame * (0x20 + m_output.Length);
-            if (m_output.Length != m_input.Read (m_output, 0, m_output.Length))
+            if (m_output.Length != m_input.Read(m_output, 0, m_output.Length))
                 throw new EndOfStreamException();
         }
 
-        void Unpack40 ()
+        void Unpack40()
         {
             m_input.Position = 0x20;
             uint data_offset = 0x20 + (uint)m_info.FrameCount * 4;
@@ -238,110 +238,110 @@ namespace GameRes.Formats.Leaf
                 offsets[i] = data_offset + m_input.ReadUInt32();
 
             foreach (var offset in offsets)
-                ReadBlock (offset);
+                ReadBlock(offset);
         }
 
         internal class PxBlock
         {
-            public int  Width;
-            public int  Height;
-            public int  X;
-            public int  Y;
-            public int  Type;
-            public int  Bits;
+            public int Width;
+            public int Height;
+            public int X;
+            public int Y;
+            public int Type;
+            public int Bits;
         }
 
-        void ReadBlock (uint offset)
+        void ReadBlock(uint offset)
         {
             m_input.Position = offset;
             var px = new PxBlock();
-            px.Width    = m_input.ReadInt32();
-            px.Height   = m_input.ReadInt32();
-            px.X        = m_input.ReadInt32();
-            px.Y        = m_input.ReadInt32();
-            px.Type     = m_input.ReadUInt16();
-            px.Bits     = m_input.ReadUInt16();
+            px.Width = m_input.ReadInt32();
+            px.Height = m_input.ReadInt32();
+            px.X = m_input.ReadInt32();
+            px.Y = m_input.ReadInt32();
+            px.Type = m_input.ReadUInt16();
+            px.Bits = m_input.ReadUInt16();
             m_input.Position = offset + 0x20;
             switch (px.Type)
             {
-            case 0:
-                Palette = ImageFormat.ReadPalette (m_input.AsStream, (int)px.Width);
-                break;
+                case 0:
+                    Palette = ImageFormat.ReadPalette(m_input.AsStream, (int)px.Width);
+                    break;
 
-            case 1:
-                switch (px.Bits)
-                {
-                case 8:     UnpackBlock_1_8 (px); break;
-                case 0x20:  UnpackBlock_1_20 (px); break;
-                }
-                break;
+                case 1:
+                    switch (px.Bits)
+                    {
+                        case 8: UnpackBlock_1_8(px); break;
+                        case 0x20: UnpackBlock_1_20(px); break;
+                    }
+                    break;
 
-            case 4:
-                switch (px.Bits)
-                {
-                case 8:     UnpackBlock_4_8 (px); break;
-                case 9:     UnpackBlock_4_9 (px); break;
-                case 0x20:  UnpackBlock_4_20 (px); break;
-                case 0x30:  UnpackBlock_4_30 (px); break;
-                }
-                break;
+                case 4:
+                    switch (px.Bits)
+                    {
+                        case 8: UnpackBlock_4_8(px); break;
+                        case 9: UnpackBlock_4_9(px); break;
+                        case 0x20: UnpackBlock_4_20(px); break;
+                        case 0x30: UnpackBlock_4_30(px); break;
+                    }
+                    break;
 
-            case 7:
-                UnpackBlock_7 (px);
-                break;
+                case 7:
+                    UnpackBlock_7(px);
+                    break;
 
-            default:
-                throw new InvalidFormatException();
+                default:
+                    throw new InvalidFormatException();
             }
         }
 
-        void UnpackBlock_1_8 (PxBlock block)
+        void UnpackBlock_1_8(PxBlock block)
         {
-            m_input.Read (m_output, 0, (int)m_info.Width * (int)m_info.Height);
+            m_input.Read(m_output, 0, (int)m_info.Width * (int)m_info.Height);
         }
 
-        void UnpackBlock_1_20 (PxBlock block)
+        void UnpackBlock_1_20(PxBlock block)
         {
             int dst = 0;
             for (int y = 0; y < block.Height; ++y)
-            for (int x = 0; x < block.Width; ++x)
-            {
-                m_input.Read (m_output, dst, 4);
-                if (0 != m_output[dst+3])
+                for (int x = 0; x < block.Width; ++x)
                 {
-                    byte alpha = (byte)((m_output[dst+3] << 1 | m_output[dst+2] >> 7) + 0xFF);
-                    m_output[dst+3] = alpha;
+                    m_input.Read(m_output, dst, 4);
+                    if (0 != m_output[dst + 3])
+                    {
+                        byte alpha = (byte)((m_output[dst + 3] << 1 | m_output[dst + 2] >> 7) + 0xFF);
+                        m_output[dst + 3] = alpha;
+                    }
+                    else
+                    {
+                        m_output[dst + 3] = 0xFF;
+                    }
+                    dst += 4;
                 }
-                else
-                {
-                    m_output[dst+3] = 0xFF;
-                }
-                dst += 4;
-            }
         }
 
-        void UnpackBlock_4_8 (PxBlock block)
+        void UnpackBlock_4_8(PxBlock block)
         {
             throw new NotImplementedException();
         }
 
         const int MaxBlockSize = 1024;
         // lazily evaluated to avoid unnecessary allocation
-        Lazy<uint[]> m_block = new Lazy<uint[]> (() => new uint[MaxBlockSize * MaxBlockSize]);
+        Lazy<uint[]> m_block = new Lazy<uint[]>(() => new uint[MaxBlockSize * MaxBlockSize]);
 
-        uint[] NewBlock (PxBlock block_info)
+        uint[] NewBlock(PxBlock block_info)
         {
             var block = m_block.Value;
-            Array.Clear (block, 0, MaxBlockSize * block_info.Height);
+            Array.Clear(block, 0, MaxBlockSize * block_info.Height);
             return block;
         }
 
-        void UnpackBlock_4_9 (PxBlock block_info)
+        void UnpackBlock_4_9(PxBlock block_info)
         {
-            var output = NewBlock (block_info);
+            var output = NewBlock(block_info);
             int dst = 0;
             bool has_alpha = true;
-            for (;;)
+            for (; ; )
             {
                 int code = m_input.ReadInt32();
                 if (-1 == code)
@@ -364,12 +364,12 @@ namespace GameRes.Formats.Leaf
                     dst++;
                 }
             }
-            PutBlock (block_info);
+            PutBlock(block_info);
         }
 
-        void UnpackBlock_4_20 (PxBlock block_info)
+        void UnpackBlock_4_20(PxBlock block_info)
         {
-            var block = NewBlock (block_info);
+            var block = NewBlock(block_info);
             int dst = 0;
             int next;
             while ((next = m_input.ReadInt32()) != -1)
@@ -380,7 +380,7 @@ namespace GameRes.Formats.Leaf
                 m_input.ReadInt32();
 
                 int count = m_input.ReadInt32();
-                while (count --> 0)
+                while (count-- > 0)
                 {
                     uint color = m_input.ReadUInt32();
                     if (dst < block.Length)
@@ -398,14 +398,14 @@ namespace GameRes.Formats.Leaf
                     ++dst;
                 }
             }
-            PutBlock (block_info);
+            PutBlock(block_info);
         }
 
-        void UnpackBlock_4_30 (PxBlock block_info)
+        void UnpackBlock_4_30(PxBlock block_info)
         {
-            var output = NewBlock (block_info);
+            var output = NewBlock(block_info);
             int dst = 0;
-            for (;;)
+            for (; ; )
             {
                 int next = m_input.ReadInt32();
                 if (-1 == next)
@@ -435,10 +435,10 @@ namespace GameRes.Formats.Leaf
                     dst++;
                 }
             }
-            PutBlock (block_info);
+            PutBlock(block_info);
         }
 
-        void UnpackBlock_7 (PxBlock block)
+        void UnpackBlock_7(PxBlock block)
         {
             m_stride = 4 * block.Width;
             m_output = new byte[m_stride * block.Height];
@@ -446,41 +446,41 @@ namespace GameRes.Formats.Leaf
             m_info.OffsetX = block.X;
             m_info.OffsetY = block.Y;
             int dst = 0;
-            var color_map = ImageFormat.ReadColorMap (m_input.AsStream, 0x100, PaletteFormat.BgrA);
+            var color_map = ImageFormat.ReadColorMap(m_input.AsStream, 0x100, PaletteFormat.BgrA);
             for (int y = 0; y < block.Height; ++y)
-            for (int x = 0; x < block.Width; ++x)
-            {
-                int idx = m_input.ReadUInt8();
-                var c = color_map[idx];
-                m_output[dst++] = c.B;
-                m_output[dst++] = c.G;
-                m_output[dst++] = c.R;
-                if (c.A != 0)
-                    m_output[dst++] = (byte)((c.A << 1 | c.R >> 7) + 0xFF);
-                else
-                    m_output[dst++] = 0xFF;
-            }
+                for (int x = 0; x < block.Width; ++x)
+                {
+                    int idx = m_input.ReadUInt8();
+                    var c = color_map[idx];
+                    m_output[dst++] = c.B;
+                    m_output[dst++] = c.G;
+                    m_output[dst++] = c.R;
+                    if (c.A != 0)
+                        m_output[dst++] = (byte)((c.A << 1 | c.R >> 7) + 0xFF);
+                    else
+                        m_output[dst++] = 0xFF;
+                }
         }
 
-        void PutBlock (PxBlock block_info)
+        void PutBlock(PxBlock block_info)
         {
             var block = m_block.Value;
-            int left   = Math.Max (0, block_info.X);
-            int top    = Math.Max (0, block_info.Y);
-            int right  = Math.Min (block_info.X + block_info.Width, (int)m_info.Width);
-            int bottom = Math.Min (block_info.Y + block_info.Height, (int)m_info.Height);
+            int left = Math.Max(0, block_info.X);
+            int top = Math.Max(0, block_info.Y);
+            int right = Math.Min(block_info.X + block_info.Width, (int)m_info.Width);
+            int bottom = Math.Min(block_info.Y + block_info.Height, (int)m_info.Height);
             int dst_row = top * m_stride + left * 4;
             int row_size = (right - left) * 4;
             for (int y = top; y < bottom; ++y)
             {
                 int src = (left - block_info.X) + (y - block_info.Y) * MaxBlockSize;
-                Buffer.BlockCopy (block, src * 4, m_output, dst_row, row_size);
+                Buffer.BlockCopy(block, src * 4, m_output, dst_row, row_size);
                 dst_row += m_stride;
             }
         }
 
         #region IDisposable Members
-        public void Dispose ()
+        public void Dispose()
         {
         }
         #endregion

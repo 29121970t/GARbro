@@ -36,80 +36,83 @@ namespace GameRes.Formats.Bonk
     [Export(typeof(ArchiveFormat))]
     public class PackOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "PACK/BONK"; } }
+        public override string Tag { get { return "PACK/BONK"; } }
         public override string Description { get { return "Bonk! Game Stduio resource archive"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool  IsHierarchic { get { return true; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool IsHierarchic { get { return true; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            var index = LookupIndex (file);
+            var index = LookupIndex(file);
             if (null == index)
                 return null;
 
             var last_record = index.Last();
             if (last_record.Offset + last_record.Size > file.MaxOffset)
                 return null;
-            var dir = index.Select (e => e.ToEntry()).ToList();
-            return new ArcFile (file, this, dir);
+            var dir = index.Select(e => e.ToEntry()).ToList();
+            return new ArcFile(file, this, dir);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var pent = entry as PackedEntry;
-            if (null == pent || !pent.IsPacked && (entry.Size < 16 || !arc.File.View.AsciiEqual (entry.Offset, "SLID")))
-                return base.OpenEntry (arc, entry);
+            if (null == pent || !pent.IsPacked && (entry.Size < 16 || !arc.File.View.AsciiEqual(entry.Offset, "SLID")))
+                return base.OpenEntry(arc, entry);
             if (!pent.IsPacked)
             {
                 pent.IsPacked = true;
-                pent.UnpackedSize = arc.File.View.ReadUInt32 (entry.Offset+4);
+                pent.UnpackedSize = arc.File.View.ReadUInt32(entry.Offset + 4);
             }
-            uint packed_size = arc.File.View.ReadUInt32 (entry.Offset+8);
-            int frame_size = arc.File.View.ReadUInt16 (entry.Offset+0xC);
-            var input = arc.File.CreateStream (entry.Offset+0x10, packed_size);
-            var lzss = new LzssStream (input);
+            uint packed_size = arc.File.View.ReadUInt32(entry.Offset + 8);
+            int frame_size = arc.File.View.ReadUInt16(entry.Offset + 0xC);
+            var input = arc.File.CreateStream(entry.Offset + 0x10, packed_size);
+            var lzss = new LzssStream(input);
             lzss.Config.FrameSize = frame_size;
             lzss.Config.FrameInitPos = frame_size - 0x12;
             return lzss;
         }
 
-        IEnumerable<IndexRecord> LookupIndex (ArcView file)
+        IEnumerable<IndexRecord> LookupIndex(ArcView file)
         {
-            var arc_name = Path.GetFileName (file.Name);
-            if (!arc_name.StartsWith ("data_") || !arc_name.EndsWith (".pack"))
+            var arc_name = Path.GetFileName(file.Name);
+            if (!arc_name.StartsWith("data_") || !arc_name.EndsWith(".pack"))
                 return null;
             ArchiveRecord arc_record;
-            if (!FileListMap.Value.TryGetValue (arc_name, out arc_record))
+            if (!FileListMap.Value.TryGetValue(arc_name, out arc_record))
                 return null;
             if (file.MaxOffset != arc_record.Size)
                 return null;
             return arc_record.Index;
         }
 
-        Lazy<Dictionary<string, ArchiveRecord>> FileListMap = new Lazy<Dictionary<string, ArchiveRecord>> (ReadFileList);
+        Lazy<Dictionary<string, ArchiveRecord>> FileListMap = new Lazy<Dictionary<string, ArchiveRecord>>(ReadFileList);
 
-        static Dictionary<string, ArchiveRecord> ReadFileList ()
+        static Dictionary<string, ArchiveRecord> ReadFileList()
         {
             var file_map = new Dictionary<string, ArchiveRecord>();
-            var comma = new char[] {','};
+            var comma = new char[] { ',' };
             List<IndexRecord> current_list = null;
-            FormatCatalog.Instance.ReadFileList ("bonk_ntr_1.lst", line => {
-                var parts = line.Split (comma);
+            FormatCatalog.Instance.ReadFileList("bonk_ntr_1.lst", line =>
+            {
+                var parts = line.Split(comma);
                 if (2 == parts.Length)
                 {
                     current_list = new List<IndexRecord>();
-                    file_map[parts[0]] = new ArchiveRecord {
-                        Size = long.Parse (parts[1], NumberStyles.HexNumber),
+                    file_map[parts[0]] = new ArchiveRecord
+                    {
+                        Size = long.Parse(parts[1], NumberStyles.HexNumber),
                         Index = current_list,
                     };
                 }
                 else if (3 == parts.Length)
                 {
-                    current_list.Add (new IndexRecord {
+                    current_list.Add(new IndexRecord
+                    {
                         Name = parts[2],
-                        Offset = long.Parse (parts[0], NumberStyles.HexNumber),
-                        Size   = uint.Parse (parts[1], NumberStyles.HexNumber),
+                        Offset = long.Parse(parts[0], NumberStyles.HexNumber),
+                        Size = uint.Parse(parts[1], NumberStyles.HexNumber),
                     });
                 }
             });
@@ -122,19 +125,19 @@ namespace GameRes.Formats.Bonk
     /// </summary>
     internal class ArchiveRecord
     {
-        public long     Size;
+        public long Size;
         public IEnumerable<IndexRecord> Index;
     }
 
     internal class IndexRecord
     {
-        public string   Name;
-        public long     Offset;
-        public uint     Size;
+        public string Name;
+        public long Offset;
+        public uint Size;
 
-        public Entry ToEntry ()
+        public Entry ToEntry()
         {
-            var entry = FormatCatalog.Instance.Create<PackedEntry> (Name);
+            var entry = FormatCatalog.Instance.Create<PackedEntry>(Name);
             entry.Offset = Offset;
             entry.Size = Size;
             return entry;

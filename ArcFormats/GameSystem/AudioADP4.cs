@@ -33,36 +33,37 @@ namespace GameRes.Formats.GameSystem
     [Export(typeof(AudioFormat))]
     public class Adp4Audio : AudioFormat
     {
-        public override string         Tag { get { return "ADP4"; } }
+        public override string Tag { get { return "ADP4"; } }
         public override string Description { get { return "'GameSystem' compressed audio"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool CanWrite { get { return false; } }
 
-        public Adp4Audio ()
+        public Adp4Audio()
         {
             Extensions = new string[] { "adp4", "adps" };
         }
 
         const uint DefaultSampleRate = 44100; // XXX varies
 
-        public override SoundInput TryOpen (IBinaryStream file)
+        public override SoundInput TryOpen(IBinaryStream file)
         {
-            bool is_adp4 = file.Name.HasExtension (".adp4");
-            bool is_adps = !is_adp4 && file.Name.HasExtension (".adps");
+            bool is_adp4 = file.Name.HasExtension(".adp4");
+            bool is_adps = !is_adp4 && file.Name.HasExtension(".adps");
             if (!(is_adp4 || is_adps) || file.Length <= 4)
                 return null;
-            var decoder = new AdpDecoder (file);
-            var pcm = decoder.Decode (is_adps);
-            var format = new WaveFormat {
-                FormatTag      = 1,
-                Channels       = 2,
+            var decoder = new AdpDecoder(file);
+            var pcm = decoder.Decode(is_adps);
+            var format = new WaveFormat
+            {
+                FormatTag = 1,
+                Channels = 2,
                 SamplesPerSecond = DefaultSampleRate,
-                BlockAlign     = 4,
-                BitsPerSample  = 16,
+                BlockAlign = 4,
+                BitsPerSample = 16,
             };
             format.SetBPS();
-            var input = new MemoryStream (pcm);
-            var sound = new RawPcmInput (input, format);
+            var input = new MemoryStream(pcm);
+            var sound = new RawPcmInput(input, format);
             file.Dispose();
             return sound;
         }
@@ -70,16 +71,16 @@ namespace GameRes.Formats.GameSystem
 
     internal sealed class AdpDecoder
     {
-        IBinaryStream   m_input;
+        IBinaryStream m_input;
 
-        public AdpDecoder (IBinaryStream input)
+        public AdpDecoder(IBinaryStream input)
         {
             m_input = input;
         }
 
         byte[] m_output;
 
-        public byte[] Decode (bool is_adps)
+        public byte[] Decode(bool is_adps)
         {
             m_input.Position = 0;
             int sample_count = m_input.ReadInt32();
@@ -90,13 +91,13 @@ namespace GameRes.Formats.GameSystem
             }
             m_output = new byte[sample_count * 8];
             if (is_adps)
-                DecodeAdps (sample_count);
+                DecodeAdps(sample_count);
             else
-                DecodeBits (sample_count);
+                DecodeBits(sample_count);
             return m_output;
         }
 
-        void DecodeAdps (int sample_count)
+        void DecodeAdps(int sample_count)
         {
             uint sample = 0;
             uint left_sample = 0;
@@ -108,30 +109,30 @@ namespace GameRes.Formats.GameSystem
 
                 left_sample += bits & 0xF;
                 int s = AdpSamples[left_sample] + (short)sample;
-                sample = sample >> 16 | (uint)(Clamp (s) << 16);
+                sample = sample >> 16 | (uint)(Clamp(s) << 16);
                 left_sample = AdpAdjust[left_sample];
                 right_sample += (bits >> 8) & 0xF;
                 s = AdpSamples[right_sample] + (short)sample;
-                sample = sample >> 16 | (uint)(Clamp (s) << 16);
+                sample = sample >> 16 | (uint)(Clamp(s) << 16);
                 right_sample = AdpAdjust[right_sample];
-                LittleEndian.Pack (sample, m_output, dst);
+                LittleEndian.Pack(sample, m_output, dst);
                 dst += 4;
 
                 left_sample += (bits >> 4) & 0xF;
                 s = AdpSamples[left_sample] + (short)sample;
-                sample = sample >> 16 | (uint)(Clamp (s) << 16);
+                sample = sample >> 16 | (uint)(Clamp(s) << 16);
                 left_sample = AdpAdjust[left_sample];
                 right_sample += bits >> 12;
                 s = AdpSamples[right_sample] + (short)sample;
-                sample = sample >> 16 | (uint)(Clamp (s) << 16);
+                sample = sample >> 16 | (uint)(Clamp(s) << 16);
                 right_sample = AdpAdjust[right_sample];
-                LittleEndian.Pack (sample, m_output, dst);
+                LittleEndian.Pack(sample, m_output, dst);
                 dst += 4;
                 sample_count -= 2;
             }
         }
 
-        void DecodeBits (int sample_count)
+        void DecodeBits(int sample_count)
         {
             bool copy_stereo = true;
             uint last_sample = 0;
@@ -162,21 +163,21 @@ namespace GameRes.Formats.GameSystem
                         last_sample += data_bits & 0xF;
                         int s = AdpSamples[last_sample] + sample;
                         last_sample = AdpAdjust[last_sample];
-                        sample = Clamp (s);
-                        LittleEndian.Pack (sample, m_output, dst);
+                        sample = Clamp(s);
+                        LittleEndian.Pack(sample, m_output, dst);
                         dst += 2;
                         if (copy_stereo)
-                            LittleEndian.Pack (sample, m_output, dst);
+                            LittleEndian.Pack(sample, m_output, dst);
                         dst += 2;
 
                         last_sample += (data_bits >> 4) & 0xF;
                         s = AdpSamples[last_sample] + sample;
                         last_sample = AdpAdjust[last_sample];
-                        sample = Clamp (s);
-                        LittleEndian.Pack (sample, m_output, dst);
+                        sample = Clamp(s);
+                        LittleEndian.Pack(sample, m_output, dst);
                         dst += 2;
                         if (copy_stereo)
-                            LittleEndian.Pack (sample, m_output, dst);
+                            LittleEndian.Pack(sample, m_output, dst);
                         dst += 2;
                     }
                     while (--count > 0);
@@ -191,7 +192,7 @@ namespace GameRes.Formats.GameSystem
             }
         }
 
-        static short Clamp (int sample)
+        static short Clamp(int sample)
         {
             if (sample > 0x7FFF)
                 sample = 0x7FFF;

@@ -40,22 +40,22 @@ namespace GameRes.Formats.Gs
         public uint PackedSize;
         public uint UnpackedSize;
         public uint HeaderSize;
-        public int  Extra;
+        public int Extra;
     }
 
     [Export(typeof(ImageFormat))]
     public class PicFormat : ImageFormat
     {
-        public override string         Tag { get { return "GsPIC"; } }
+        public override string Tag { get { return "GsPIC"; } }
         public override string Description { get { return "GsPack image format"; } }
-        public override uint     Signature { get { return 0x00040000; } }
+        public override uint Signature { get { return 0x00040000; } }
 
-        public PicFormat ()
+        public PicFormat()
         {
             Extensions = new string[] { "pic" }; // made-up
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
             file.Position = 4;
             var info = new PicMetaData();
@@ -77,18 +77,18 @@ namespace GameRes.Formats.Gs
             return info;
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
             var meta = (PicMetaData)info;
             file.Position = meta.HeaderSize;
-            using (var input = new LzssStream (file.AsStream, LzssMode.Decompress, true))
+            using (var input = new LzssStream(file.AsStream, LzssMode.Decompress, true))
             {
                 BitmapPalette palette = null;
                 PixelFormat format;
                 if (8 == meta.BPP) // read palette
                 {
                     format = PixelFormats.Indexed8;
-                    palette = ReadPalette (input);
+                    palette = ReadPalette(input);
                 }
                 else if (24 == meta.BPP)
                     format = PixelFormats.Bgr24;
@@ -97,9 +97,9 @@ namespace GameRes.Formats.Gs
                 else
                     format = PixelFormats.Bgr32;
 
-                int stride = (int)meta.Width*((info.BPP+7)/8);
-                var pixels = new byte[stride*meta.Height];
-                input.Read (pixels, 0, pixels.Length);
+                int stride = (int)meta.Width * ((info.BPP + 7) / 8);
+                var pixels = new byte[stride * meta.Height];
+                input.ReadExactly(pixels);
                 if (32 == meta.BPP && meta.Extra != 0)
                 {
                     for (int i = 3; i < pixels.Length; i += 4)
@@ -111,13 +111,13 @@ namespace GameRes.Formats.Gs
                         }
                     }
                 }
-                return ImageData.Create (meta, format, palette, pixels);
+                return ImageData.Create(meta, format, palette, pixels);
             }
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new NotImplementedException ("PicFormat.Write not implemented");
+            throw new NotImplementedException("PicFormat.Write not implemented");
         }
     }
 }

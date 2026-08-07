@@ -33,88 +33,88 @@ namespace GameRes.Formats.Gss
     [Export(typeof(ArchiveFormat))]
     public class LsdOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "ARC/LSD"; } }
+        public override string Tag { get { return "ARC/LSD"; } }
         public override string Description { get { return "GSS engine resource archive"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            if (!file.Name.HasExtension (".arc"))
+            if (!file.Name.HasExtension(".arc"))
                 return null;
-            var bin_name = Path.ChangeExtension (file.Name, "BIN");
-            if (!VFS.FileExists (bin_name))
+            var bin_name = Path.ChangeExtension(file.Name, "BIN");
+            if (!VFS.FileExists(bin_name))
                 return null;
-            using (var bin = VFS.OpenView (bin_name))
+            using (var bin = VFS.OpenView(bin_name))
             {
-                if (!bin.View.AsciiEqual (0, "LSDARC V.100"))
+                if (!bin.View.AsciiEqual(0, "LSDARC V.100"))
                     return null;
-                int count = bin.View.ReadInt32 (0xC);
-                if (!IsSaneCount (count))
+                int count = bin.View.ReadInt32(0xC);
+                if (!IsSaneCount(count))
                     return null;
                 using (var index = bin.CreateStream())
                 {
                     index.Position = 0x10;
-                    var dir = new List<Entry> (count);
+                    var dir = new List<Entry>(count);
                     for (int i = 0; i < count; ++i)
                     {
                         var entry = new PackedEntry();
-                        entry.IsPacked     = index.ReadInt32() != 0;
-                        entry.Offset       = index.ReadUInt32();
+                        entry.IsPacked = index.ReadInt32() != 0;
+                        entry.Offset = index.ReadUInt32();
                         entry.UnpackedSize = index.ReadUInt32();
-                        entry.Size         = index.ReadUInt32();
-                        entry.Name         = index.ReadCString();
-                        if (!entry.CheckPlacement (file.MaxOffset))
+                        entry.Size = index.ReadUInt32();
+                        entry.Name = index.ReadCString();
+                        if (!entry.CheckPlacement(file.MaxOffset))
                             return null;
-                        dir.Add (entry);
+                        dir.Add(entry);
                     }
-                    return new ArcFile (file, this, dir);
+                    return new ArcFile(file, this, dir);
                 }
             }
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var pent = entry as PackedEntry;
-            if (null == pent || !pent.IsPacked || !arc.File.View.AsciiEqual (entry.Offset, "LSD\x1A"))
-                return base.OpenEntry (arc, entry);
-            byte enc_method = arc.File.View.ReadByte (entry.Offset+4);
-            byte pack_method = arc.File.View.ReadByte (entry.Offset+5);
-            uint unpacked_size = arc.File.View.ReadUInt32 (entry.Offset+6);
-            using (var input = arc.File.CreateStream (entry.Offset+12, entry.Size-12))
+            if (null == pent || !pent.IsPacked || !arc.File.View.AsciiEqual(entry.Offset, "LSD\x1A"))
+                return base.OpenEntry(arc, entry);
+            byte enc_method = arc.File.View.ReadByte(entry.Offset + 4);
+            byte pack_method = arc.File.View.ReadByte(entry.Offset + 5);
+            uint unpacked_size = arc.File.View.ReadUInt32(entry.Offset + 6);
+            using (var input = arc.File.CreateStream(entry.Offset + 12, entry.Size - 12))
             {
                 var data = new byte[unpacked_size];
                 switch ((char)pack_method)
                 {
-                case 'D':   UnpackD (input, data); break;
-                case 'R':   UnpackR (input, data); break;
-                case 'H':   UnpackH (input, data); break;
-                case 'W':   UnpackW (input, data); break;
-                default:    input.Read (data, 0, data.Length); break;
+                    case 'D': UnpackD(input, data); break;
+                    case 'R': UnpackR(input, data); break;
+                    case 'H': UnpackH(input, data); break;
+                    case 'W': UnpackW(input, data); break;
+                    default: input.ReadExactly(data); break;
                 }
                 switch ((char)enc_method)
                 {
-                case 'B':
-                case 'W':
-                case 'S':
-                    break;
+                    case 'B':
+                    case 'W':
+                    case 'S':
+                        break;
                 }
-                return new BinMemoryStream (data, entry.Name);
+                return new BinMemoryStream(data, entry.Name);
             }
         }
 
-        public override IImageDecoder OpenImage (ArcFile arc, Entry entry)
+        public override IImageDecoder OpenImage(ArcFile arc, Entry entry)
         {
             throw new NotImplementedException();
         }
 
-        void UnpackD (IBinaryStream input, byte[] output)
+        void UnpackD(IBinaryStream input, byte[] output)
         {
             throw new NotImplementedException();
         }
 
-        void UnpackR (IBinaryStream input, byte[] output)
+        void UnpackR(IBinaryStream input, byte[] output)
         {
             int dst = 0;
             while (dst < output.Length)
@@ -135,53 +135,53 @@ namespace GameRes.Formats.Gss
                 }
                 switch (ctl)
                 {
-                case 0xF0: return;
-                case 0x40:
-                    input.Read (output, dst, count);
-                    dst += count;
-                    break;
-
-                case 0xD0:
-                    count = count << 8 | input.ReadUInt8();
-                    input.Read (output, dst, count);
-                    dst += count;
-                    break;
-
-                case 0x80:
-                    {
-                        byte v = input.ReadUInt8();
-                        while (count --> 0)
-                            output[dst++] = v;
+                    case 0xF0: return;
+                    case 0x40:
+                        input.Read(output, dst, count);
+                        dst += count;
                         break;
-                    }
 
-                case 0xE0:
-                    {
+                    case 0xD0:
                         count = count << 8 | input.ReadUInt8();
-                        byte v = input.ReadUInt8();
-                        while (count --> 0)
-                            output[dst++] = v;
+                        input.Read(output, dst, count);
+                        dst += count;
                         break;
-                    }
 
-                case 0x00:
-                    dst += count;
-                    break;
+                    case 0x80:
+                        {
+                            byte v = input.ReadUInt8();
+                            while (count-- > 0)
+                                output[dst++] = v;
+                            break;
+                        }
 
-                case 0xC0:
-                    count = count << 8 | input.ReadUInt8();
-                    dst += count;
-                    break;
+                    case 0xE0:
+                        {
+                            count = count << 8 | input.ReadUInt8();
+                            byte v = input.ReadUInt8();
+                            while (count-- > 0)
+                                output[dst++] = v;
+                            break;
+                        }
+
+                    case 0x00:
+                        dst += count;
+                        break;
+
+                    case 0xC0:
+                        count = count << 8 | input.ReadUInt8();
+                        dst += count;
+                        break;
                 }
             }
         }
 
-        void UnpackH (IBinaryStream input, byte[] output)
+        void UnpackH(IBinaryStream input, byte[] output)
         {
             throw new NotImplementedException();
         }
 
-        void UnpackW (IBinaryStream input, byte[] output)
+        void UnpackW(IBinaryStream input, byte[] output)
         {
             throw new NotImplementedException();
             /*

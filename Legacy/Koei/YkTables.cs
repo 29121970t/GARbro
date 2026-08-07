@@ -7,12 +7,12 @@ using System.Collections.Generic;
 
 namespace GameRes.Formats.Koei
 {
-  public partial class YkOpener
-  {
-    internal static readonly HashSet<string> IsAudio = new HashSet<string> {
+    public partial class YkOpener
+    {
+        internal static readonly HashSet<string> IsAudio = new HashSet<string> {
       "DATA05", "DATA06", "DATA07", "DATA08", "DATA09", "DATA10", "DATA11", "DATA12", "DATA13", "DATA14", "DATA15",
     };
-    internal static readonly Dictionary<int, ImageMetaData> Data02Images = new Dictionary<int, ImageMetaData>
+        internal static readonly Dictionary<int, ImageMetaData> Data02Images = new Dictionary<int, ImageMetaData>
     {
       {  0, new ImageMetaData { Width = 0x168, Height = 0x90, BPP = 8 } },
       {  1, new ImageMetaData { Width = 0x510, Height = 0x3C0, BPP = 8 } },
@@ -201,7 +201,7 @@ namespace GameRes.Formats.Koei
       {188, new ImageMetaData { Width = 256, Height = 128, BPP = 8 } },
     };
 
-    internal static readonly Dictionary<string, uint[]> OffsetTable = new Dictionary<string, uint[]>
+        internal static readonly Dictionary<string, uint[]> OffsetTable = new Dictionary<string, uint[]>
     {
       { "DATA02", new uint[] {
         0x0CE84, 0x13CE84, 0x1C4284, 0x229584, 0x30A5BC, 0x30B8B8, 0x30BCA8, 0x30BFA8, 0x30C548, 0x3A9D80,
@@ -918,6 +918,6 @@ namespace GameRes.Formats.Koei
         0x1255A0C, 0x125F798, 0x126589C,
       } },
     };
-  }
+    }
 }
 // vim: sw=2

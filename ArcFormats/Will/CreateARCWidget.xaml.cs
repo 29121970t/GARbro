@@ -7,9 +7,9 @@ namespace GameRes.Formats.GUI
     /// </summary>
     public partial class CreateARCWidget : Grid
     {
-        public CreateARCWidget ()
+        public CreateARCWidget()
         {
-            InitializeComponent ();
+            InitializeComponent();
         }
     }
 }

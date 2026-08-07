@@ -42,55 +42,56 @@ namespace GameRes.Formats.SplushWave
     [Export(typeof(ImageFormat))]
     public class SwgFormat : ImageFormat
     {
-        public override string         Tag { get { return "SWG"; } }
+        public override string Tag { get { return "SWG"; } }
         public override string Description { get { return "Splush Wave Graphics format"; } }
-        public override uint     Signature { get { return 0x475753; } } // 'SWG'
+        public override uint Signature { get { return 0x475753; } } // 'SWG'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x30);
-            uint pal_offset = header.ToUInt32 (0x14);
+            var header = file.ReadHeader(0x30);
+            uint pal_offset = header.ToUInt32(0x14);
             if (pal_offset != 0)
                 pal_offset += 0x10;
             byte depth = header[0x28];
-            return new SwgMetaData {
-                Width  = header.ToUInt16 (0x20),
-                Height = header.ToUInt16 (0x22),
-                BPP    = pal_offset != 0 ? 8 : depth == 2 ? 32 : 24,
-                DataOffset = header.ToUInt32 (0x10) + 0x10,
+            return new SwgMetaData
+            {
+                Width = header.ToUInt16(0x20),
+                Height = header.ToUInt16(0x22),
+                BPP = pal_offset != 0 ? 8 : depth == 2 ? 32 : 24,
+                DataOffset = header.ToUInt32(0x10) + 0x10,
                 PaletteOffset = pal_offset,
                 Depth = depth,
                 IsCompressed = header[0x2F] != 0,
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
             var meta = (SwgMetaData)info;
-            PixelFormat format = meta.BPP == 8  ? PixelFormats.Indexed8
+            PixelFormat format = meta.BPP == 8 ? PixelFormats.Indexed8
                                : meta.BPP == 32 ? PixelFormats.Bgra32 : PixelFormats.Bgr24;
             BitmapPalette palette = null;
             if (meta.BPP == 8)
             {
                 file.Position = meta.PaletteOffset;
-                palette = ReadPalette (file.AsStream);
+                palette = ReadPalette(file.AsStream);
             }
             int stride = meta.iWidth * meta.BPP / 8;
             file.Position = meta.DataOffset;
             var pixels = new byte[stride * meta.iHeight];
             if (!meta.IsCompressed)
             {
-                file.Read (pixels, 0, pixels.Length);
-                return ImageData.CreateFlipped (meta, format, palette, pixels, stride);
+                file.Read(pixels, 0, pixels.Length);
+                return ImageData.CreateFlipped(meta, format, palette, pixels, stride);
             }
-            if (!Decompress (file, pixels, meta.Depth + 2, meta.iWidth, meta.iHeight))
-                throw new InvalidFormatException ("Invalid SWG file.");
-            return ImageData.CreateFlipped (meta, format, palette, pixels, stride);
+            if (!Decompress(file, pixels, meta.Depth + 2, meta.iWidth, meta.iHeight))
+                throw new InvalidFormatException("Invalid SWG file.");
+            return ImageData.CreateFlipped(meta, format, palette, pixels, stride);
         }
 
         static readonly byte[] PlaneMap = { 2, 1, 0, 3 };
 
-        bool Decompress (IBinaryStream input, byte[] output, int channels, int width, int height)
+        bool Decompress(IBinaryStream input, byte[] output, int channels, int width, int height)
         {
             long start_pos = input.Position;
             byte hi = input.ReadUInt8();
@@ -117,7 +118,7 @@ namespace GameRes.Formats.SplushWave
                 {
                     int pos = i;
                     int count = height * width;
-                    while (count --> 0)
+                    while (count-- > 0)
                     {
                         output[pos] = input.ReadUInt8();
                         pos += channels;
@@ -128,20 +129,20 @@ namespace GameRes.Formats.SplushWave
             if (compress_method != 1)
                 return false;
             int stride = width * channels;
-            var row_sizes = input.ReadBytes (2 * height * channels);
+            var row_sizes = input.ReadBytes(2 * height * channels);
             int ctl_pos = 0;
             for (int c = 0; c < channels; ++c)
-            for (int y = height - 1; y >= 0; --y)
-            {
-                int dst = stride * y + PlaneMap[c];
-                int row_size = row_sizes[ctl_pos+1] | row_sizes[ctl_pos] << 8;
-                ctl_pos += 2;
-                DecompressRow (input, row_size, output, dst, channels);
-            }
+                for (int y = height - 1; y >= 0; --y)
+                {
+                    int dst = stride * y + PlaneMap[c];
+                    int row_size = row_sizes[ctl_pos + 1] | row_sizes[ctl_pos] << 8;
+                    ctl_pos += 2;
+                    DecompressRow(input, row_size, output, dst, channels);
+                }
             return true;
         }
 
-        internal static void DecompressRow (IBinaryStream input, int row_size, byte[] output, int dst, int step)
+        internal static void DecompressRow(IBinaryStream input, int row_size, byte[] output, int dst, int step)
         {
             int x = 0;
             while (x < row_size)
@@ -158,7 +159,7 @@ namespace GameRes.Formats.SplushWave
                 {
                     int count = ctl + 1;
                     x += count + 1;
-                    while (count --> 0)
+                    while (count-- > 0)
                     {
                         output[dst] = input.ReadUInt8();
                         dst += step;
@@ -169,7 +170,7 @@ namespace GameRes.Formats.SplushWave
                     byte v = input.ReadUInt8();
                     x += 2;
                     int count = 0x101 - ctl;
-                    while (count --> 0)
+                    while (count-- > 0)
                     {
                         output[dst] = v;
                         dst += step;
@@ -178,9 +179,9 @@ namespace GameRes.Formats.SplushWave
             }
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("SwgFormat.Write not implemented");
+            throw new System.NotImplementedException("SwgFormat.Write not implemented");
         }
     }
 }

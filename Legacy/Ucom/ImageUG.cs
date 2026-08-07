@@ -36,17 +36,17 @@ namespace GameRes.Formats.Ucom
     [Export(typeof(ImageFormat))]
     public class UgFormat : ImageFormat
     {
-        public override string         Tag => "UG";
+        public override string Tag => "UG";
         public override string Description => "Ucom image format";
-        public override uint     Signature => 0;
+        public override uint Signature => 0;
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            if (!file.Name.HasExtension (".UG"))
+            if (!file.Name.HasExtension(".UG"))
                 return null;
-            int left   = file.ReadUInt16();
-            int top    = file.ReadUInt16();
-            int right  = file.ReadUInt16();
+            int left = file.ReadUInt16();
+            int top = file.ReadUInt16();
+            int right = file.ReadUInt16();
             int bottom = file.ReadUInt16();
             int width = (right - left + 1) << 3;
             int height = bottom - top + 1;
@@ -62,15 +62,15 @@ namespace GameRes.Formats.Ucom
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new UgReader (file, info);
+            var reader = new UgReader(file, info);
             return reader.Unpack();
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("UgFormat.Write not implemented");
+            throw new System.NotImplementedException("UgFormat.Write not implemented");
         }
     }
 
@@ -79,11 +79,11 @@ namespace GameRes.Formats.Ucom
     /// </summary>
     internal class UgReader : System98.GraBaseReader
     {
-        public UgReader (IBinaryStream input, ImageMetaData info) : base (input, info)
+        public UgReader(IBinaryStream input, ImageMetaData info) : base(input, info)
         {
         }
 
-        public ImageData Unpack ()
+        public ImageData Unpack()
         {
             m_input.Position = 8;
             var palette = ReadPalette();
@@ -96,10 +96,10 @@ namespace GameRes.Formats.Ucom
             {
                 FlushBuffer();
             }
-            return ImageData.Create (m_info, PixelFormats.Indexed4, palette, Pixels, Stride);
+            return ImageData.Create(m_info, PixelFormats.Indexed4, palette, Pixels, Stride);
         }
 
-        void UnpackBitsInternal ()
+        void UnpackBitsInternal()
         {
             int height = m_info.iHeight;
             int hTimes2 = height << 1;
@@ -109,8 +109,8 @@ namespace GameRes.Formats.Ucom
             m_dst = 0;
             InitFrame();
             InitBitReader();
-            ushort p = ReadPair (0);
-            for (int i = 0; i < hTimes2+1; ++i)
+            ushort p = ReadPair(0);
+            for (int i = 0; i < hTimes2 + 1; ++i)
                 m_buffer[i] = p;
             int dst = hTimes4;
             int prev_src = 0;
@@ -130,7 +130,7 @@ namespace GameRes.Formats.Ucom
                 else if (GetNextBit() == 0) // @2@
                 {
                     src = -4;
-                    p = m_buffer[dst/2-1];
+                    p = m_buffer[dst / 2 - 1];
                     if ((p & 0xFF) == (p >> 8))
                         same_line = src != prev_src;
                 }
@@ -150,9 +150,9 @@ namespace GameRes.Formats.Ucom
                         }
                         while (GetNextBit() != 0);
                         int count = 1;
-                        while (bitlength --> 0)
+                        while (bitlength-- > 0)
                             count = count << 1 | GetNextBit();
-                        MovePixels (m_buffer, src, dst, count);
+                        MovePixels(m_buffer, src, dst, count);
                         dst += count << 1;
                         if (dst == buffer_size)
                         {
@@ -163,7 +163,7 @@ namespace GameRes.Formats.Ucom
                     }
                     else
                     {
-                        MovePixels (m_buffer, src, dst, 1);
+                        MovePixels(m_buffer, src, dst, 1);
                         dst += 2;
                         if (dst == buffer_size)
                         {
@@ -175,11 +175,11 @@ namespace GameRes.Formats.Ucom
                 }
                 else
                 {
-                    p = m_buffer[dst/2-1];
+                    p = m_buffer[dst / 2 - 1];
                     do
                     {
                         byte prev = (byte)(p >> 8);
-                        p = ReadPair (prev);
+                        p = ReadPair(prev);
                         m_buffer[dst >> 1] = p;
                         dst += 2;
                         if (dst == buffer_size)
@@ -195,29 +195,29 @@ namespace GameRes.Formats.Ucom
             }
         }
 
-        bool FlushBuffer ()
+        bool FlushBuffer()
         {
-            int height   = m_info.iHeight;
+            int height = m_info.iHeight;
             int src_line = height << 1;
-            int dst      = m_dst;
+            int dst = m_dst;
             for (int i = 0; i < height; ++i)
             {
                 int src = src_line;
                 for (int j = 0; j < 4; ++j)
                 {
                     ushort p = m_buffer[src];
-                    m_pixels[dst+j] = (byte)((p & 0xF0) | p >> 12);
+                    m_pixels[dst + j] = (byte)((p & 0xF0) | p >> 12);
                     src += height;
                 }
                 src_line++;
                 dst += m_output_stride;
             }
             m_dst += 4;
-            MovePixels (m_buffer, height << 3, 0, height << 1);
+            MovePixels(m_buffer, height << 3, 0, height << 1);
             return m_dst >= m_output_stride;
         }
 
-        BitmapPalette ReadPalette ()
+        BitmapPalette ReadPalette()
         {
             var colors = new Color[16];
             for (int i = 0; i < 16; ++i)
@@ -226,9 +226,9 @@ namespace GameRes.Formats.Ucom
                 int b = (rgb & 0xF) * 0x11;
                 int r = ((rgb >> 4) & 0xF) * 0x11;
                 int g = ((rgb >> 8) & 0xF) * 0x11;
-                colors[i] = Color.FromRgb ((byte)r, (byte)g, (byte)b);
+                colors[i] = Color.FromRgb((byte)r, (byte)g, (byte)b);
             }
-            return new BitmapPalette (colors);
+            return new BitmapPalette(colors);
         }
     }
 }

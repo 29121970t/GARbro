@@ -35,25 +35,25 @@ namespace GameRes.Formats.Eushully
     internal class GpMetaData : ImageMetaData
     {
         public bool HasAlpha;
-        public int  Method;
-        public int  ElementSize;
-        public int  PixelsPerElement;
-        public int  PaletteSize;
+        public int Method;
+        public int ElementSize;
+        public int PixelsPerElement;
+        public int PaletteSize;
     }
 
     [Export(typeof(ImageFormat))]
     public class GpFormat : ImageFormat
     {
-        public override string         Tag { get { return "GP/EUSHULLY"; } }
+        public override string Tag { get { return "GP/EUSHULLY"; } }
         public override string Description { get { return "Old Eushully graphic format"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public GpFormat ()
+        public GpFormat()
         {
             Extensions = new string[] { "gpcf" }; // made-up, real files have no extension
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
             int alpha_channel = stream.ReadByte();
             int method = stream.ReadByte();
@@ -74,46 +74,46 @@ namespace GameRes.Formats.Eushully
                 return null;
             return new GpMetaData
             {
-                Width   = width,
-                Height  = height,
-                BPP     = bpp == 0 ? 24 : bpp,
+                Width = width,
+                Height = height,
+                BPP = bpp == 0 ? 24 : bpp,
                 HasAlpha = alpha_channel != 0,
-                Method  = method,
+                Method = method,
                 ElementSize = align1,
                 PixelsPerElement = align2,
                 PaletteSize = palette_size,
             };
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
             var meta = (GpMetaData)info;
-            using (var reader = new GpReader (stream, meta))
+            using (var reader = new GpReader(stream, meta))
             {
                 reader.Unpack();
-                return ImageData.Create (info, reader.Format, reader.Palette, reader.Data, reader.Stride);
+                return ImageData.Create(info, reader.Format, reader.Palette, reader.Data, reader.Stride);
             }
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("GpFormat.Write not implemented");
+            throw new System.NotImplementedException("GpFormat.Write not implemented");
         }
     }
 
     internal sealed class GpReader : IDisposable
     {
-        IBinaryStream   m_input;
-        GpMetaData      m_info;
-        int             m_width;
-        int             m_height;
+        IBinaryStream m_input;
+        GpMetaData m_info;
+        int m_width;
+        int m_height;
 
-        public PixelFormat    Format { get; private set; }
+        public PixelFormat Format { get; private set; }
         public BitmapPalette Palette { get; private set; }
-        public byte[]           Data { get; private set; }
-        public int            Stride { get; private set; }
+        public byte[] Data { get; private set; }
+        public int Stride { get; private set; }
 
-        public GpReader (IBinaryStream input, GpMetaData info)
+        public GpReader(IBinaryStream input, GpMetaData info)
         {
             m_info = info;
             m_width = (int)m_info.Width;
@@ -121,15 +121,15 @@ namespace GameRes.Formats.Eushully
             m_input = input;
         }
 
-        public void Unpack ()
+        public void Unpack()
         {
             m_input.Position = 0xD;
             switch (m_info.Method)
             {
-            case 0: UnpackV0(); break;
-            case 1: UnpackV1(); break;
-            case 2: UnpackV2(); break;
-            default: throw new NotSupportedException ("Not supported GPC image format");
+                case 0: UnpackV0(); break;
+                case 1: UnpackV1(); break;
+                case 2: UnpackV2(); break;
+                default: throw new NotSupportedException("Not supported GPC image format");
             }
             if (m_info.HasAlpha)
             {
@@ -138,17 +138,17 @@ namespace GameRes.Formats.Eushully
             }
         }
 
-        void UnpackV0 ()
+        void UnpackV0()
         {
-            var image = m_input.ReadBytes (m_height * m_width * 3);
+            var image = m_input.ReadBytes(m_height * m_width * 3);
             Stride = m_width * 4;
             var pixels = new byte[Stride * m_height];
             int src = 0;
             int dst = 0;
             while (src < image.Length)
             {
-                pixels[dst++] = image[src+2];
-                pixels[dst++] = image[src+1];
+                pixels[dst++] = image[src + 2];
+                pixels[dst++] = image[src + 1];
                 pixels[dst++] = image[src];
                 src += 3;
                 dst++;
@@ -157,45 +157,45 @@ namespace GameRes.Formats.Eushully
             Format = PixelFormats.Bgr32;
         }
 
-        void UnpackV1 ()
+        void UnpackV1()
         {
-            var palette = m_input.ReadBytes (3 * m_info.PaletteSize);
+            var palette = m_input.ReadBytes(3 * m_info.PaletteSize);
             if (8 == m_info.BPP && !m_info.HasAlpha)
             {
-                SetPalette (palette, m_info.PaletteSize);
-                Data = m_input.ReadBytes (m_width*m_height);
+                SetPalette(palette, m_info.PaletteSize);
+                Data = m_input.ReadBytes(m_width * m_height);
                 Format = PixelFormats.Indexed8;
                 Stride = m_width;
             }
             else
             {
-                Data = ReadIndexedImage (palette);
+                Data = ReadIndexedImage(palette);
                 Format = PixelFormats.Bgr32;
                 Stride = m_width * 4;
             }
         }
 
-        byte[] ReadIndexedImage (byte[] palette)
+        byte[] ReadIndexedImage(byte[] palette)
         {
             int rgb_mask = (1 << m_info.BPP) - 1;
             var chunk = new byte[4];
-            var pixels = new byte[m_width*m_height*4];
+            var pixels = new byte[m_width * m_height * 4];
             int dst = 0;
             for (int y = 0; y < m_height; ++y)
             {
                 int x = 0;
                 while (x < m_width)
                 {
-                    m_input.Read (chunk, 0, m_info.ElementSize);
-                    int color = LittleEndian.ToInt32 (chunk, 0);
+                    m_input.Read(chunk, 0, m_info.ElementSize);
+                    int color = LittleEndian.ToInt32(chunk, 0);
                     for (int i = 0; i < m_info.PixelsPerElement & x < m_width; ++i)
                     {
                         int index = 3 * (color & rgb_mask);
                         if (index >= palette.Length)
                             throw new InvalidFormatException();
                         color >>= m_info.BPP;
-                        pixels[dst++] = palette[index+2];
-                        pixels[dst++] = palette[index+1];
+                        pixels[dst++] = palette[index + 2];
+                        pixels[dst++] = palette[index + 1];
                         pixels[dst++] = palette[index];
                         ++dst;
                         ++x;
@@ -205,21 +205,21 @@ namespace GameRes.Formats.Eushully
             return pixels;
         }
 
-        void SetPalette (byte[] palette_data, int colors)
+        void SetPalette(byte[] palette_data, int colors)
         {
             var palette = new Color[colors];
             for (int i = 0; i < palette.Length; ++i)
             {
                 int c = i * 3;
-                palette[i] = Color.FromRgb (palette_data[c], palette_data[c+1], palette_data[c+2]);
+                palette[i] = Color.FromRgb(palette_data[c], palette_data[c + 1], palette_data[c + 2]);
             }
-            Palette = new BitmapPalette (palette);
+            Palette = new BitmapPalette(palette);
         }
 
-        void UnpackV2 ()
+        void UnpackV2()
         {
             Stride = m_width * 4;
-            var palette = m_input.ReadBytes (3 * m_info.PaletteSize);
+            var palette = m_input.ReadBytes(3 * m_info.PaletteSize);
 
             int back1 = m_input.ReadInt32() * 3; // index within palette
             int back2 = m_input.ReadInt32();
@@ -230,7 +230,7 @@ namespace GameRes.Formats.Eushully
 
             int rgb_mask = (1 << m_info.BPP) - 1;
 
-            var pixels = new byte[Stride*m_height];
+            var pixels = new byte[Stride * m_height];
             int dst = 0;
             var chunk = new byte[4];
             for (int y = 0; y < m_height; ++y)
@@ -253,8 +253,8 @@ namespace GameRes.Formats.Eushully
                     int i;
                     for (i = 0; i < background_length; ++i)
                     {
-                        pixels[dst++] = palette[color+2];
-                        pixels[dst++] = palette[color+1];
+                        pixels[dst++] = palette[color + 2];
+                        pixels[dst++] = palette[color + 1];
                         pixels[dst++] = palette[color];
                         ++dst;
                         ++x;
@@ -262,14 +262,14 @@ namespace GameRes.Formats.Eushully
                     i = 0;
                     while (i < foreground_length && x < m_width)
                     {
-                        m_input.Read (chunk, 0, m_info.ElementSize);
-                        int element = LittleEndian.ToInt32 (chunk, 0);
+                        m_input.Read(chunk, 0, m_info.ElementSize);
+                        int element = LittleEndian.ToInt32(chunk, 0);
                         for (int j = 0; j != m_info.PixelsPerElement && x < m_width && i < foreground_length; ++j)
                         {
                             color = 3 * (element & rgb_mask);
                             element >>= m_info.BPP;
-                            pixels[dst++] = palette[color+2];
-                            pixels[dst++] = palette[color+1];
+                            pixels[dst++] = palette[color + 2];
+                            pixels[dst++] = palette[color + 1];
                             pixels[dst++] = palette[color];
                             ++dst;
                             ++x;
@@ -282,7 +282,7 @@ namespace GameRes.Formats.Eushully
             Format = PixelFormats.Bgr32;
         }
 
-        bool ReadAlpha ()
+        bool ReadAlpha()
         {
             var w = m_input.ReadInt32();
             var h = m_input.ReadInt32();
@@ -303,7 +303,7 @@ namespace GameRes.Formats.Eushully
         }
 
         #region IDisposable Members
-        public void Dispose ()
+        public void Dispose()
         {
         }
         #endregion

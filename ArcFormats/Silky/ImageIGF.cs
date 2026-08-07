@@ -35,24 +35,24 @@ namespace GameRes.Formats.Silky
 {
     internal class IgfMetaData : ImageMetaData
     {
-        public int  UnpackedSize;
+        public int UnpackedSize;
         public bool IsPacked;
     }
 
     [Export(typeof(ImageFormat))]
     public class IgfFormat : ImageFormat
     {
-        public override string         Tag { get { return "IGF"; } }
+        public override string Tag { get { return "IGF"; } }
         public override string Description { get { return "Silky's image format"; } }
-        public override uint     Signature { get { return 0x5355455Au; } } // 'ZEUS'
+        public override uint Signature { get { return 0x5355455Au; } } // 'ZEUS'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
-            var header = stream.ReadHeader (0x14);
-            uint width  = header.ToUInt32 (4);
-            uint height = header.ToUInt32 (8);
-            int unpacked_size  = header.ToInt32 (0xC);
-            int flags = header.ToInt32 (0x10);
+            var header = stream.ReadHeader(0x14);
+            uint width = header.ToUInt32(4);
+            uint height = header.ToUInt32(8);
+            int unpacked_size = header.ToInt32(0xC);
+            int flags = header.ToInt32(0x10);
             int bpp = flags & 0xff;
             if (0 == bpp)
                 bpp = 32;
@@ -66,17 +66,17 @@ namespace GameRes.Formats.Silky
             };
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
             var meta = (IgfMetaData)info as IgfMetaData;
 
-            int stride = (int)info.Width*info.BPP/8;
+            int stride = (int)info.Width * info.BPP / 8;
             stream.Position = 0x14;
             byte[] pixels;
             if (meta.IsPacked)
             {
                 int in_size = (int)(stream.Length - 0x14);
-                using (var lzss = new LzssReader (stream.AsStream, in_size, meta.UnpackedSize))
+                using (var lzss = new LzssReader(stream.AsStream, in_size, meta.UnpackedSize))
                 {
                     lzss.FrameFill = 0x20;
                     lzss.Unpack();
@@ -85,9 +85,9 @@ namespace GameRes.Formats.Silky
             }
             else
             {
-                pixels = new byte[info.Height*stride];
-                if (pixels.Length != stream.Read (pixels, 0, pixels.Length))
-                    throw new InvalidFormatException ("Unexpected end of file");
+                pixels = new byte[info.Height * stride];
+                if (pixels.Length != stream.Read(pixels, 0, pixels.Length))
+                    throw new InvalidFormatException("Unexpected end of file");
             }
             PixelFormat format;
             if (24 == info.BPP)
@@ -96,12 +96,12 @@ namespace GameRes.Formats.Silky
                 format = PixelFormats.Bgra32;
             else
                 format = PixelFormats.Gray8;
-            return ImageData.CreateFlipped (info, format, null, pixels, stride);
+            return ImageData.CreateFlipped(info, format, null, pixels, stride);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new NotImplementedException ("IgfFormat.Write not implemented");
+            throw new NotImplementedException("IgfFormat.Write not implemented");
         }
     }
 }

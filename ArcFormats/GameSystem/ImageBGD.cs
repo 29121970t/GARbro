@@ -32,17 +32,17 @@ namespace GameRes.Formats.GameSystem
     [Export(typeof(ImageFormat))]
     public class BgdFormat : ImageFormat
     {
-        public override string         Tag { get { return "BGD"; } }
+        public override string Tag { get { return "BGD"; } }
         public override string Description { get { return "'GameSystem' background image format"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            if (file.Signature+0x10 != file.Length)
+            if (file.Signature + 0x10 != file.Length)
                 return null;
-            var header = file.ReadHeader (0x10);
-            uint width = header.ToUInt32 (4);
-            uint height = header.ToUInt32 (8);
+            var header = file.ReadHeader(0x10);
+            uint width = header.ToUInt32(4);
+            uint height = header.ToUInt32(8);
             if (0 == width || width > 0x8000 || 0 == height || height > 0x8000)
                 return null;
             return new ImageMetaData
@@ -53,7 +53,7 @@ namespace GameRes.Formats.GameSystem
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
             int total_pixels = (int)info.Width * (int)info.Height;
             var pixels = new byte[total_pixels * 3];
@@ -87,12 +87,12 @@ namespace GameRes.Formats.GameSystem
                 s2 = ShiftTable[s2];
                 s3 = ShiftTable[s3];
             }
-            return ImageData.CreateFlipped (info, PixelFormats.Bgr24, null, pixels, (int)info.Width*3);
+            return ImageData.CreateFlipped(info, PixelFormats.Bgr24, null, pixels, (int)info.Width * 3);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("BgdFormat.Write not implemented");
+            throw new System.NotImplementedException("BgdFormat.Write not implemented");
         }
 
         static readonly byte[] ShiftTable = {

@@ -31,11 +31,11 @@ namespace GameRes.Utility
 
         public uint Value { get { return m_value; } }
 
-        public void Update (byte[] buf, int pos, int len)
+        public void Update(byte[] buf, int pos, int len)
         {
             for (int i = 0; i < len; ++i)
             {
-                m_value = (ushort)(Crc16Table[(m_value^buf[pos+i]) & 0xff] ^ (m_value >> 8));
+                m_value = (ushort)(Crc16Table[(m_value ^ buf[pos + i]) & 0xff] ^ (m_value >> 8));
             }
         }
 

@@ -32,22 +32,22 @@ namespace GameRes.Formats.GameSystem
     [Export(typeof(ImageFormat))]
     public class CgdFormat : ImageFormat
     {
-        public override string         Tag { get { return "CGD"; } }
+        public override string Tag { get { return "CGD"; } }
         public override string Description { get { return "'GameSystem' CG image format"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public CgdFormat ()
+        public CgdFormat()
         {
             Extensions = new string[] { "cgd", "crgb" };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            if (file.Signature != file.Length && file.Signature != file.Length-0x10)
+            if (file.Signature != file.Length && file.Signature != file.Length - 0x10)
                 return null;
-            var header = file.ReadHeader (0x10);
-            uint width = header.ToUInt32 (4);
-            uint height = header.ToUInt32 (8);
+            var header = file.ReadHeader(0x10);
+            uint width = header.ToUInt32(4);
+            uint height = header.ToUInt32(8);
             if (0 == width || width > 0x8000 || 0 == height || height > 0x8000)
                 return null;
             return new ImageMetaData
@@ -58,39 +58,39 @@ namespace GameRes.Formats.GameSystem
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
             file.Position = 0x10;
-            var reader = new CgdReader (file, info);
+            var reader = new CgdReader(file, info);
             return reader.Image;
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("CgdFormat.Write not implemented");
+            throw new System.NotImplementedException("CgdFormat.Write not implemented");
         }
     }
 
     internal sealed class CgdReader : BinaryImageDecoder
     {
-        byte[]          m_output;
+        byte[] m_output;
 
-        public int         Stride { get; private set; }
+        public int Stride { get; private set; }
         public PixelFormat Format { get { return PixelFormats.Bgr24; } }
 
-        public CgdReader (IBinaryStream input, ImageMetaData info) : base (input, info)
+        public CgdReader(IBinaryStream input, ImageMetaData info) : base(input, info)
         {
             Stride = 3 * (int)info.Width;
             m_output = new byte[Stride * (int)info.Height];
         }
 
-        protected override ImageData GetImageData ()
+        protected override ImageData GetImageData()
         {
             var pixels = Unpack();
-            return ImageData.CreateFlipped (Info, Format, null, pixels, Stride);
+            return ImageData.CreateFlipped(Info, Format, null, pixels, Stride);
         }
 
-        byte[] Unpack ()
+        byte[] Unpack()
         {
             int dst = 0;
             byte r = 0, g = 0, b = 0;
@@ -100,9 +100,9 @@ namespace GameRes.Formats.GameSystem
                 if (ctl < 0x80)
                 {
                     int src = m_input.ReadUInt8() | ctl << 8;
-                    b += ColorTable[src,0];
-                    g += ColorTable[src,1];
-                    r += ColorTable[src,2];
+                    b += ColorTable[src, 0];
+                    g += ColorTable[src, 1];
+                    r += ColorTable[src, 2];
                     m_output[dst++] = b;
                     m_output[dst++] = g;
                     m_output[dst++] = r;
@@ -110,7 +110,7 @@ namespace GameRes.Formats.GameSystem
                 else if (ctl < 0xC0)
                 {
                     int count = ctl - 0x7F;
-                    while (count --> 0)
+                    while (count-- > 0)
                     {
                         m_output[dst++] = b;
                         m_output[dst++] = g;
@@ -124,11 +124,11 @@ namespace GameRes.Formats.GameSystem
                 else
                 {
                     int count = (ctl - 0xBF) * 3;
-                    m_input.Read (m_output, dst, count);
+                    m_input.Read(m_output, dst, count);
                     dst += count;
-                    b = m_output[dst-3];
-                    g = m_output[dst-2];
-                    r = m_output[dst-1];
+                    b = m_output[dst - 3];
+                    g = m_output[dst - 2];
+                    r = m_output[dst - 1];
                 }
             }
             return m_output;
@@ -136,9 +136,9 @@ namespace GameRes.Formats.GameSystem
 
         internal static readonly byte[,] ColorTable = InitColorTable();
 
-        private static byte[,] InitColorTable ()
+        private static byte[,] InitColorTable()
         {
-            var table = new byte[0x8000,3];
+            var table = new byte[0x8000, 3];
             for (int i = 0; i < 0x8000; ++i)
             {
                 int r = (i >> 10) & 0x1F;
@@ -148,11 +148,11 @@ namespace GameRes.Formats.GameSystem
                     r -= 32;
                 if (g > 15)
                     g -= 32;
-                if ( b > 15 )
+                if (b > 15)
                     b -= 32;
-                table[i,0] = (byte)b;
-                table[i,1] = (byte)g;
-                table[i,2] = (byte)r;
+                table[i, 0] = (byte)b;
+                table[i, 1] = (byte)g;
+                table[i, 2] = (byte)r;
             }
             return table;
         }

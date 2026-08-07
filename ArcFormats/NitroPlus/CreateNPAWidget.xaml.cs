@@ -8,16 +8,16 @@ namespace GameRes.Formats.GUI
     /// </summary>
     public partial class CreateNPAWidget : Grid
     {
-        public CreateNPAWidget ()
+        public CreateNPAWidget()
         {
-            InitializeComponent ();
+            InitializeComponent();
         }
 
-        private void Reset_Click (object sender, System.Windows.RoutedEventArgs e)
+        private void Reset_Click(object sender, System.Windows.RoutedEventArgs e)
         {
             this.EncryptionWidget.Scheme.SelectedIndex = 0;
-            this.Key1Box.Text = NpaOpener.DefaultKey1.ToString ("X8");
-            this.Key2Box.Text = NpaOpener.DefaultKey2.ToString ("X8");
+            this.Key1Box.Text = NpaOpener.DefaultKey1.ToString("X8");
+            this.Key2Box.Text = NpaOpener.DefaultKey2.ToString("X8");
             this.CompressContents.IsChecked = false;
         }
     }

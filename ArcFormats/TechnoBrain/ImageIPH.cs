@@ -33,36 +33,36 @@ namespace GameRes.Formats.TechnoBrain
 {
     internal class IphMetaData : ImageMetaData
     {
-        public int  PackedSize;
+        public int PackedSize;
         public bool IsCompressed;
     }
 
     [Export(typeof(ImageFormat))]
     public class IphFormat : ImageFormat
     {
-        public override string         Tag { get { return "IPH"; } }
+        public override string Tag { get { return "IPH"; } }
         public override string Description { get { return "TechnoBrain's 'Inteligent Picture Format'"; } }
-        public override uint     Signature { get { return 0; } } // 'RIFF'
+        public override uint Signature { get { return 0; } } // 'RIFF'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
             // 'RIFF' isn't included into signature to avoid auto-detection of the WAV files as IPH images.
             if (0x46464952 != file.Signature) // 'RIFF'
                 return null;
-            var header = file.ReadHeader (0x10);
-            if (0x38 != header.ToInt32 (4))
+            var header = file.ReadHeader(0x10);
+            if (0x38 != header.ToInt32(4))
                 return null;
-            var signature = header.ToInt32 (8);
+            var signature = header.ToInt32(8);
             if (signature != 0x20485049 && signature != 0x00485049) // 'IPH'
                 return null;
-            if (0x20746D66 != header.ToInt32 (12)) // 'fmt '
+            if (0x20746D66 != header.ToInt32(12)) // 'fmt '
                 return null;
             file.Position = 0x38;
             if (0x20706D62 != file.ReadInt32()) // 'bmp '
                 return null;
             var info = new IphMetaData();
             info.PackedSize = file.ReadInt32();
-            info.Width  = file.ReadUInt16();
+            info.Width = file.ReadUInt16();
             info.Height = file.ReadUInt16();
             file.Position = 0x50;
             info.BPP = file.ReadUInt16();
@@ -71,49 +71,49 @@ namespace GameRes.Formats.TechnoBrain
             return info;
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
             if (info.BPP != 16)
-                throw new NotSupportedException ("Not supported IPH color depth");
-            using (var reader = new IphReader (stream, (IphMetaData)info))
+                throw new NotSupportedException("Not supported IPH color depth");
+            using (var reader = new IphReader(stream, (IphMetaData)info))
             {
                 reader.Unpack();
-                return ImageData.Create (info, reader.Format, null, reader.Data);
+                return ImageData.Create(info, reader.Format, null, reader.Data);
             }
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("IphFormat.Write not implemented");
+            throw new System.NotImplementedException("IphFormat.Write not implemented");
         }
     }
 
     internal sealed class IphReader : IDisposable
     {
-        IBinaryStream       m_input;
-        byte[]              m_output;
-        int                 m_width;
-        int                 m_height;
-        IphMetaData         m_info;
+        IBinaryStream m_input;
+        byte[] m_output;
+        int m_width;
+        int m_height;
+        IphMetaData m_info;
 
         public PixelFormat Format { get { return PixelFormats.Bgr555; } }
-        public byte[]        Data { get { return m_output; } }
+        public byte[] Data { get { return m_output; } }
 
-        public IphReader (IBinaryStream input, IphMetaData info)
+        public IphReader(IBinaryStream input, IphMetaData info)
         {
             m_info = info;
             m_input = input;
             m_width = (int)info.Width;
             m_height = (int)info.Height;
-            m_output = new byte[m_width*m_height*2];
+            m_output = new byte[m_width * m_height * 2];
         }
 
-        public void Unpack ()
+        public void Unpack()
         {
             m_input.Position = 0x58;
             if (!m_info.IsCompressed)
             {
-                m_input.Read (m_output, 0, m_output.Length);
+                m_input.Read(m_output, 0, m_output.Length);
                 return;
             }
             int stride = m_width * 2;
@@ -137,7 +137,7 @@ namespace GameRes.Formats.TechnoBrain
                             pixel = m_input.ReadUInt16();
                             for (int j = 0; j < count; ++j)
                             {
-                                LittleEndian.Pack ((ushort)pixel, m_output, dst);
+                                LittleEndian.Pack((ushort)pixel, m_output, dst);
                                 dst += 2;
                             }
                         }
@@ -157,21 +157,21 @@ namespace GameRes.Formats.TechnoBrain
                             pixel = (b + ctl / 25 % 5 - 2)
                                   | (g + ctl / 5 % 5 - 2) << 5
                                   | (r + ctl % 5 - 2) << 10;
-                            LittleEndian.Pack ((ushort)pixel, m_output, dst);
+                            LittleEndian.Pack((ushort)pixel, m_output, dst);
                             dst += 2;
                         }
                     }
                 }
                 else
                 {
-                    m_input.Read (m_output, row, stride);
+                    m_input.Read(m_output, row, stride);
                     m_input.ReadByte();
                 }
                 ctl = m_input.ReadUInt8();
                 if (0 != ctl)
                 {
                     int dst = 0;
-                    for (;;)
+                    for (; ; )
                     {
                         ctl = m_input.ReadUInt8();
                         if (0xFF == ctl)
@@ -207,7 +207,7 @@ namespace GameRes.Formats.TechnoBrain
         }
 
         #region IDisposable Members
-        public void Dispose ()
+        public void Dispose()
         {
         }
         #endregion

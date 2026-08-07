@@ -32,47 +32,48 @@ namespace GameRes.Formats.KAAS
     [Export(typeof(AudioFormat))]
     public class KaasAudio : AudioFormat
     {
-        public override string         Tag { get { return "PCM/KAAS"; } }
+        public override string Tag { get { return "PCM/KAAS"; } }
         public override string Description { get { return "KAAS engine audio format"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool CanWrite { get { return false; } }
 
-        public KaasAudio ()
+        public KaasAudio()
         {
             Extensions = new string[] { "" };
         }
 
-        public override SoundInput TryOpen (IBinaryStream file)
+        public override SoundInput TryOpen(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x10);
-            var length = header.ToInt32 (0);
-            if (header.ToUInt16 (4) != 0x800 || file.Length != length + 0x10
-                || header.ToUInt32 (0xC) != 0x84BE2329)
+            var header = file.ReadHeader(0x10);
+            var length = header.ToInt32(0);
+            if (header.ToUInt16(4) != 0x800 || file.Length != length + 0x10
+                || header.ToUInt32(0xC) != 0x84BE2329)
                 return null;
-            ushort channels = header.ToUInt16 (6);
+            ushort channels = header.ToUInt16(6);
             if (channels > 1)
                 return null;
             ++channels;
-            var format = new WaveFormat {
-                FormatTag       = 1,
-                Channels        = channels,
-                SamplesPerSecond = header.ToUInt32 (8),
-                BlockAlign      = (ushort)(2 * channels),
-                BitsPerSample   = 16,
+            var format = new WaveFormat
+            {
+                FormatTag = 1,
+                Channels = channels,
+                SamplesPerSecond = header.ToUInt32(8),
+                BlockAlign = (ushort)(2 * channels),
+                BitsPerSample = 16,
             };
             format.SetBPS();
-            var pcm = new MemoryStream (length * 2);
-            using (var pcm_writer = new BinaryWriter (pcm, System.Text.Encoding.Default, true))
+            var pcm = new MemoryStream(length * 2);
+            using (var pcm_writer = new BinaryWriter(pcm, System.Text.Encoding.Default, true))
             {
                 for (int i = 0; i < length; ++i)
                 {
                     ushort sample = SampleTable[file.ReadUInt8()];
-                    pcm_writer.Write (sample);
+                    pcm_writer.Write(sample);
                 }
             }
             file.Dispose();
             pcm.Position = 0;
-            return new RawPcmInput (pcm, format);
+            return new RawPcmInput(pcm, format);
         }
 
         static readonly ushort[] SampleTable = {

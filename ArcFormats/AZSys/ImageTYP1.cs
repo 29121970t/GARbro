@@ -41,21 +41,21 @@ namespace GameRes.Formats.AZSys
     [Export(typeof(ImageFormat))]
     public class Typ1Format : ImageFormat
     {
-        public override string         Tag { get { return "CPB/TYP1"; } }
+        public override string Tag { get { return "CPB/TYP1"; } }
         public override string Description { get { return "AZ system image format"; } }
-        public override uint     Signature { get { return 0x31505954; } } // 'TYP1'
+        public override uint Signature { get { return 0x31505954; } } // 'TYP1'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
             stream.Position = 4;
             int bpp = stream.ReadByte();
             bool has_palette = stream.ReadByte() != 0;
             var info = new Typ1MetaData { BPP = bpp };
-            info.Width  = stream.ReadUInt16();
+            info.Width = stream.ReadUInt16();
             info.Height = stream.ReadUInt16();
             uint packed_size = stream.ReadUInt32();
             uint palette_size = 8 == bpp ? 0x400u : 0u;
-            if (packed_size+palette_size+0xE == stream.Length)
+            if (packed_size + palette_size + 0xE == stream.Length)
             {
                 info.SeparateChannels = false;
                 info.HasPalette = palette_size > 0;
@@ -73,33 +73,33 @@ namespace GameRes.Formats.AZSys
             return info;
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
             var meta = (Typ1MetaData)info;
-            var reader = new Reader (stream.AsStream, meta);
+            var reader = new Reader(stream.AsStream, meta);
             reader.Unpack();
-            return ImageData.Create (meta, reader.Format, reader.Palette, reader.Data);
+            return ImageData.Create(meta, reader.Format, reader.Palette, reader.Data);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("Typ1Format.Write not implemented");
+            throw new System.NotImplementedException("Typ1Format.Write not implemented");
         }
 
         internal class Reader
         {
-            int             m_width;
-            int             m_height;
-            int             m_pixel_size;
-            Stream          m_input;
-            byte[]          m_output;
-            Typ1MetaData    m_info;
+            int m_width;
+            int m_height;
+            int m_pixel_size;
+            Stream m_input;
+            byte[] m_output;
+            Typ1MetaData m_info;
 
-            public PixelFormat    Format { get; private set; }
+            public PixelFormat Format { get; private set; }
             public BitmapPalette Palette { get; private set; }
-            public byte[]           Data { get { return m_output; } }
+            public byte[] Data { get { return m_output; } }
 
-            public Reader (Stream input, Typ1MetaData info)
+            public Reader(Stream input, Typ1MetaData info)
             {
                 m_width = (int)info.Width;
                 m_height = (int)info.Height;
@@ -113,22 +113,22 @@ namespace GameRes.Formats.AZSys
                 else if (32 == m_info.BPP)
                     Format = PixelFormats.Bgra32;
                 else
-                    throw new InvalidFormatException ("Invalid CPB color depth");
+                    throw new InvalidFormatException("Invalid CPB color depth");
                 m_input = input;
             }
 
-            public void Unpack ()
+            public void Unpack()
             {
                 if (m_info.HasPalette)
                 {
                     m_input.Position = m_info.SeparateChannels ? 0x1E : 0x0E;
-                    Palette = ImageFormat.ReadPalette (m_input);
+                    Palette = ImageFormat.ReadPalette(m_input);
                 }
                 if (!m_info.SeparateChannels)
                 {
                     m_input.Position = m_info.HasPalette ? 0x40E : 0xE;
-                    using (var z = new ZLibStream (m_input, CompressionMode.Decompress, true))
-                        z.Read (m_output, 0, m_output.Length);
+                    using (var z = new ZLibStream(m_input, CompressionMode.Decompress, true))
+                        z.ReadExactly(m_output);
                 }
                 else if (8 == m_info.BPP)
                     UnpackIndexed();
@@ -136,31 +136,31 @@ namespace GameRes.Formats.AZSys
                     UnpackRGB();
             }
 
-            void UnpackIndexed ()
+            void UnpackIndexed()
             {
                 if (null == Palette)
                     m_input.Position = 0x22;
                 else
                     m_input.Position = 0x422;
-                using (var input = new ZLibStream (m_input, CompressionMode.Decompress, true))
-                    input.Read (m_output, 0, m_output.Length);
+                using (var input = new ZLibStream(m_input, CompressionMode.Decompress, true))
+                    input.ReadExactly(m_output);
             }
 
-            static byte[] StreamMap  = new byte[] { 3, 2, 1, 0 };
+            static byte[] StreamMap = new byte[] { 3, 2, 1, 0 };
             static byte[] ChannelMap = new byte[] { 3, 0, 1, 2 };
 
-            void UnpackRGB ()
+            void UnpackRGB()
             {
-                byte[] channel = new byte[m_width*m_height];
+                byte[] channel = new byte[m_width * m_height];
                 long start_pos = 0x1E;
                 for (int i = 0; i < 4; ++i)
                 {
                     if (0 == m_info.Channel[StreamMap[i]])
                         continue;
                     m_input.Position = start_pos + 4; // skip crc32
-                    using (var input = new ZLibStream (m_input, CompressionMode.Decompress, true))
+                    using (var input = new ZLibStream(m_input, CompressionMode.Decompress, true))
                     {
-                        int channel_size = input.Read (channel, 0, channel.Length);
+                        int channel_size = input.Read(channel, 0, channel.Length);
                         int dst = ChannelMap[i];
                         for (int j = 0; j < channel_size; ++j)
                         {

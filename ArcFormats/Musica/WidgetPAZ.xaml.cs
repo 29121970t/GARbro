@@ -9,10 +9,10 @@ namespace GameRes.Formats.GUI
     /// </summary>
     public partial class WidgetPAZ : StackPanel
     {
-        public WidgetPAZ (PazOpener paz)
+        public WidgetPAZ(PazOpener paz)
         {
             InitializeComponent();
-            Scheme.ItemsSource = paz.KnownTitles.Keys.OrderBy (x => x);
+            Scheme.ItemsSource = paz.KnownTitles.Keys.OrderBy(x => x);
         }
     }
 }

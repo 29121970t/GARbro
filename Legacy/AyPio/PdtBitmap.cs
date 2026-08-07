@@ -38,36 +38,36 @@ namespace GameRes.Formats.AyPio
     [Export(typeof(ImageFormat))]
     public class PdtBmpFormat : ImageFormat
     {
-        public override string         Tag => "PDT/BMP";
+        public override string Tag => "PDT/BMP";
         public override string Description => "UK2 engine compressed bitmap";
-        public override uint     Signature => 0x544450; // 'PDT'
+        public override uint Signature => 0x544450; // 'PDT'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (8);
-            if (header.ToInt32 (4) != 0x118)
+            var header = file.ReadHeader(8);
+            if (header.ToInt32(4) != 0x118)
                 return null;
             return new ImageMetaData { Width = 640, Height = 480, BPP = 32 };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var decoder = new PdtBmpDecoder (file, info);
+            var decoder = new PdtBmpDecoder(file, info);
             return decoder.Unpack();
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("PdtFormat.Write not implemented");
+            throw new System.NotImplementedException("PdtFormat.Write not implemented");
         }
     }
 
     internal sealed class PdtBmpDecoder
     {
-        IBinaryStream   m_input;
-        ImageMetaData   m_info;
+        IBinaryStream m_input;
+        ImageMetaData m_info;
 
-        public PdtBmpDecoder (IBinaryStream input, ImageMetaData info)
+        public PdtBmpDecoder(IBinaryStream input, ImageMetaData info)
         {
             m_input = input;
             m_info = info;
@@ -76,70 +76,70 @@ namespace GameRes.Formats.AyPio
         int m_unpacked_size;
         int m_packed_size;
 
-        public ImageData Unpack ()
+        public ImageData Unpack()
         {
             long offset = 0;
-            var bitmap = UnpackBitmap (offset);
-            m_info.Width  = (uint)bitmap.PixelWidth;
+            var bitmap = UnpackBitmap(offset);
+            m_info.Width = (uint)bitmap.PixelWidth;
             m_info.Height = (uint)bitmap.PixelHeight;
             m_info.BPP = bitmap.Format.BitsPerPixel;
             offset += m_packed_size;
-            var signature = m_input.ReadBytes (4);
-            if (signature.Length != 4 || !signature.AsciiEqual ("PDT\0"))
-                return new ImageData (bitmap, m_info);
-            var alpha = UnpackBitmap (offset);
+            var signature = m_input.ReadBytes(4);
+            if (signature.Length != 4 || !signature.AsciiEqual("PDT\0"))
+                return new ImageData(bitmap, m_info);
+            var alpha = UnpackBitmap(offset);
             if (alpha.Format != PixelFormats.Gray8)
-                alpha = new FormatConvertedBitmap (alpha, PixelFormats.Gray8, null, 0);
+                alpha = new FormatConvertedBitmap(alpha, PixelFormats.Gray8, null, 0);
             if (m_info.BPP != 32)
-                bitmap = new FormatConvertedBitmap (bitmap, PixelFormats.Bgr32, null, 0);
+                bitmap = new FormatConvertedBitmap(bitmap, PixelFormats.Bgr32, null, 0);
 
             int stride = m_info.iWidth * 4;
             var pixels = new byte[stride * m_info.iHeight];
-            bitmap.CopyPixels (pixels, stride, 0);
-            var rect = new Int32Rect (0, 0, Math.Min (m_info.iWidth, alpha.PixelWidth),
-                                      Math.Min (m_info.iHeight, alpha.PixelHeight));
+            bitmap.CopyPixels(pixels, stride, 0);
+            var rect = new Int32Rect(0, 0, Math.Min(m_info.iWidth, alpha.PixelWidth),
+                                      Math.Min(m_info.iHeight, alpha.PixelHeight));
             var a = new byte[m_info.iWidth * m_info.iHeight];
-            alpha.CopyPixels (rect, a, m_info.iWidth, 0);
+            alpha.CopyPixels(rect, a, m_info.iWidth, 0);
             int src = 0;
             for (int dst = 3; dst < pixels.Length; dst += 4)
             {
                 pixels[dst] = a[src++];
             }
-            return ImageData.Create (m_info, PixelFormats.Bgra32, null, pixels, stride);
+            return ImageData.Create(m_info, PixelFormats.Bgra32, null, pixels, stride);
         }
 
-        byte[]  m_bits;
-        byte[]  m_output;
+        byte[] m_bits;
+        byte[] m_output;
 
-        BitmapSource UnpackBitmap (long offset)
+        BitmapSource UnpackBitmap(long offset)
         {
-            m_input.Position = offset+8;
+            m_input.Position = offset + 8;
             m_unpacked_size = m_input.ReadInt32();
             m_packed_size = m_input.ReadInt32();
             long data_offset = m_input.ReadUInt32() + offset;
             long bits_offset = m_input.ReadUInt32() + offset;
-            string name = m_input.ReadCString (0x100);
+            string name = m_input.ReadCString(0x100);
 
             if (null == m_output || m_unpacked_size > m_output.Length)
                 m_output = new byte[m_unpacked_size];
             int bits_length = (int)(data_offset - bits_offset);
             if (null == m_bits || bits_length > m_bits.Length)
-                m_bits = new byte[bits_length+4];
+                m_bits = new byte[bits_length + 4];
 
             m_input.Position = bits_offset;
-            m_input.Read (m_bits, 0, bits_length);
+            m_input.Read(m_bits, 0, bits_length);
 
             m_input.Position = data_offset;
             UnpackBits();
 
-            using (var bmp_input = new BinMemoryStream (m_output, name))
+            using (var bmp_input = new BinMemoryStream(m_output, name))
             {
-                var decoder = new BmpBitmapDecoder (bmp_input, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+                var decoder = new BmpBitmapDecoder(bmp_input, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
                 return decoder.Frames[0];
             }
         }
 
-        public void UnpackBits ()
+        public void UnpackBits()
         {
             InitBitReader();
             int dst = 0;
@@ -151,38 +151,38 @@ namespace GameRes.Formats.AyPio
                     ++ctl;
                 switch (ctl)
                 {
-                case 0:
-                    last_byte = m_output[dst++] = m_input.ReadUInt8();
-                    break;
-                case 1:
-                    {
-                        int off = GetInteger();
-                        int count = GetInteger();
-                        Binary.CopyOverlapped (m_output, dst - off, dst, count);
-                        dst += count;
+                    case 0:
+                        last_byte = m_output[dst++] = m_input.ReadUInt8();
                         break;
-                    }
-                case 2:
-                    {
-                        int count = GetInteger();
-                        int step = GetInteger();
-                        int pos = 0;
-                        for (int i = 0; i < step; i += count)
+                    case 1:
                         {
-                            Binary.CopyOverlapped (m_output, dst - count, dst + pos, count);
-                            pos += count * count;
+                            int off = GetInteger();
+                            int count = GetInteger();
+                            Binary.CopyOverlapped(m_output, dst - off, dst, count);
+                            dst += count;
+                            break;
                         }
-                        dst += count * step;
+                    case 2:
+                        {
+                            int count = GetInteger();
+                            int step = GetInteger();
+                            int pos = 0;
+                            for (int i = 0; i < step; i += count)
+                            {
+                                Binary.CopyOverlapped(m_output, dst - count, dst + pos, count);
+                                pos += count * count;
+                            }
+                            dst += count * step;
+                            break;
+                        }
+                    case 3:
+                        m_output[dst++] = last_byte;
                         break;
-                    }
-                case 3:
-                    m_output[dst++] = last_byte;
-                    break;
                 }
             }
         }
 
-        int GetInteger ()
+        int GetInteger()
         {
             int i = 0;
             while (GetNextBit() != 0)
@@ -199,17 +199,17 @@ namespace GameRes.Formats.AyPio
         int m_bit_count;
         int m_bit_pos;
 
-        void InitBitReader ()
+        void InitBitReader()
         {
             m_bit_pos = 0;
             m_bit_count = 0;
         }
 
-        byte GetNextBit ()
+        byte GetNextBit()
         {
             if (0 == m_bit_count--)
             {
-                m_current_bits = m_bits.ToUInt32 (m_bit_pos);
+                m_current_bits = m_bits.ToUInt32(m_bit_pos);
                 m_bit_pos += 4;
                 m_bit_count = 31;
             }

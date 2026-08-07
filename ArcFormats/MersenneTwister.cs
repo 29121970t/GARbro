@@ -11,25 +11,25 @@ namespace GameRes.Cryptography
 {
     public class MersenneTwister
     {
-        const uint  DefaultSeed     = 4357;
+        const uint DefaultSeed = 4357;
 
-        const int   StateLength     = 624;
-        const int   StateM          = 397;
-        const uint  MatrixA         = 0x9908B0DF;
-        const uint  SignMask        = 0x80000000;
-        const uint  LowerMask       = 0x7FFFFFFF;
-        const uint  TemperingMaskB  = 0x9D2C5680;
-        const uint  TemperingMaskC  = 0xEFC60000;
+        const int StateLength = 624;
+        const int StateM = 397;
+        const uint MatrixA = 0x9908B0DF;
+        const uint SignMask = 0x80000000;
+        const uint LowerMask = 0x7FFFFFFF;
+        const uint TemperingMaskB = 0x9D2C5680;
+        const uint TemperingMaskC = 0xEFC60000;
 
-        uint[]  mt = new uint[StateLength];
-        int     mti = StateLength;
+        uint[] mt = new uint[StateLength];
+        int mti = StateLength;
 
-        public MersenneTwister (uint seed)
+        public MersenneTwister(uint seed)
         {
-            SRand (seed);
+            SRand(seed);
         }
 
-        public void SRand (uint seed)
+        public void SRand(uint seed)
         {
             for (mti = 0; mti < mt.Length; ++mti)
             {
@@ -42,7 +42,7 @@ namespace GameRes.Cryptography
 
         uint[] mag01 = { 0, MatrixA };
 
-        public uint Rand ()
+        public uint Rand()
         {
             uint y;
 
@@ -51,27 +51,27 @@ namespace GameRes.Cryptography
                 int kk;
                 for (kk = 0; kk < StateLength - StateM; kk++)
                 {
-                    y = (mt[kk] & SignMask) | (mt[kk+1] & LowerMask);
+                    y = (mt[kk] & SignMask) | (mt[kk + 1] & LowerMask);
                     mt[kk] = mt[kk + StateM] ^ (y >> 1) ^ mag01[y & 1];
                 }
-                for (; kk < StateLength-1; kk++)
+                for (; kk < StateLength - 1; kk++)
                 {
-                    y = (mt[kk] & SignMask) | (mt[kk+1] & LowerMask);
+                    y = (mt[kk] & SignMask) | (mt[kk + 1] & LowerMask);
                     mt[kk] = mt[kk + StateM - StateLength] ^ (y >> 1) ^ mag01[y & 1];
                 }
-                y = (mt[StateLength-1] & SignMask) | (mt[0] & LowerMask);
-                mt[StateLength-1] = mt[StateM-1] ^ (y >> 1) ^ mag01[y & 1];
+                y = (mt[StateLength - 1] & SignMask) | (mt[0] & LowerMask);
+                mt[StateLength - 1] = mt[StateM - 1] ^ (y >> 1) ^ mag01[y & 1];
 
                 mti = 0;
             }
-        
+
             y = mt[mti++];
             y ^= y >> 11;
-            y ^= (y << 7)  & TemperingMaskB;
+            y ^= (y << 7) & TemperingMaskB;
             y ^= (y << 15) & TemperingMaskC;
             y ^= y >> 18;
 
-            return y; 
+            return y;
         }
     }
 }

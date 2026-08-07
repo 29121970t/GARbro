@@ -32,16 +32,16 @@ namespace GameRes.Formats.Malie
     [Serializable]
     public abstract class LibScheme
     {
-        uint     DataAlign;
+        uint DataAlign;
 
-        public LibScheme (uint align)
+        public LibScheme(uint align)
         {
             DataAlign = align;
         }
 
-        public abstract IMalieDecryptor CreateDecryptor ();
+        public abstract IMalieDecryptor CreateDecryptor();
 
-        public virtual long GetAlignedOffset (long offset)
+        public virtual long GetAlignedOffset(long offset)
         {
             long align = DataAlign - 1;
             return (offset + align) & ~align;
@@ -53,26 +53,26 @@ namespace GameRes.Formats.Malie
     {
         public uint[] Key { get; set; }
 
-        public LibCamelliaScheme (uint[] key) : this (0x1000, key)
+        public LibCamelliaScheme(uint[] key) : this(0x1000, key)
         {
         }
 
-        public LibCamelliaScheme (uint align, uint[] key) : base (align)
+        public LibCamelliaScheme(uint align, uint[] key) : base(align)
         {
             Key = key;
         }
 
-        public LibCamelliaScheme (string key) : this (Camellia.GenerateKey (key))
+        public LibCamelliaScheme(string key) : this(Camellia.GenerateKey(key))
         {
         }
 
-        public LibCamelliaScheme (uint align, string key) : this (align, Camellia.GenerateKey (key))
+        public LibCamelliaScheme(uint align, string key) : this(align, Camellia.GenerateKey(key))
         {
         }
 
-        public override IMalieDecryptor CreateDecryptor ()
+        public override IMalieDecryptor CreateDecryptor()
         {
-            return new CamelliaDecryptor (Key);
+            return new CamelliaDecryptor(Key);
         }
     }
 
@@ -82,15 +82,15 @@ namespace GameRes.Formats.Malie
         public byte[] Key { get; set; }
         public uint[] RotateKey { get; set; }
 
-        public LibCfiScheme (uint align, byte[] key, uint[] rot_key) : base (align)
+        public LibCfiScheme(uint align, byte[] key, uint[] rot_key) : base(align)
         {
             Key = key;
             RotateKey = rot_key;
         }
 
-        public override IMalieDecryptor CreateDecryptor ()
+        public override IMalieDecryptor CreateDecryptor()
         {
-            return new CfiDecryptor (Key, RotateKey);
+            return new CfiDecryptor(Key, RotateKey);
         }
     }
 

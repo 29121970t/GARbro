@@ -33,29 +33,29 @@ namespace GARbro.Shell
 {
     static class File
     {
-        [DllImport("kernel32.dll", EntryPoint="MoveFileExW", SetLastError=true, CharSet=CharSet.Unicode)]
-        public static extern bool MoveFileEx (string lpExistingFileName, string lpNewFileName, MoveFileFlags dwFlags);
+        [DllImport("kernel32.dll", EntryPoint = "MoveFileExW", SetLastError = true, CharSet = CharSet.Unicode)]
+        public static extern bool MoveFileEx(string lpExistingFileName, string lpNewFileName, MoveFileFlags dwFlags);
 
         [Flags]
         public enum MoveFileFlags : uint
         {
-            ReplaceExisting         = 0x00000001,
-            CopyAllowed             = 0x00000002,
-            DelayUntilReboot        = 0x00000004,
-            WriteThrough            = 0x00000008,
-            CreateHardlink          = 0x00000010,
-            FailIfNotTrackable      = 0x00000020
+            ReplaceExisting = 0x00000001,
+            CopyAllowed = 0x00000002,
+            DelayUntilReboot = 0x00000004,
+            WriteThrough = 0x00000008,
+            CreateHardlink = 0x00000010,
+            FailIfNotTrackable = 0x00000020
         }
 
         /// <summary>
         /// Wrapper around MoveFileEx WINAPI call.
         /// </summary>
-        public static bool Rename (string szFrom, string szTo)
+        public static bool Rename(string szFrom, string szTo)
         {
-            return MoveFileEx (szFrom, szTo, MoveFileFlags.ReplaceExisting);
+            return MoveFileEx(szFrom, szTo, MoveFileFlags.ReplaceExisting);
         }
 
-        public static int GetLastError ()
+        public static int GetLastError()
         {
             return Marshal.GetLastWin32Error();
         }
@@ -155,12 +155,12 @@ namespace GARbro.Shell
         }
 
         [DllImport("shell32.dll", EntryPoint = "SHFileOperationW", CharSet = CharSet.Unicode)]
-        private static extern int SHFileOperation32 (ref SHFILEOPSTRUCT32 FileOp);
+        private static extern int SHFileOperation32(ref SHFILEOPSTRUCT32 FileOp);
 
         [DllImport("shell32.dll", EntryPoint = "SHFileOperationW", CharSet = CharSet.Unicode)]
-        private static extern int SHFileOperation64 (ref SHFILEOPSTRUCT64 lpFileOp);
+        private static extern int SHFileOperation64(ref SHFILEOPSTRUCT64 lpFileOp);
 
-        private static int SHFileOperation (FileOperationType func, string path, FileOperationFlags flags, IntPtr parent)
+        private static int SHFileOperation(FileOperationType func, string path, FileOperationFlags flags, IntPtr parent)
         {
             if (Marshal.SizeOf(typeof(IntPtr)) == 4)
             {
@@ -171,7 +171,7 @@ namespace GARbro.Shell
                     pFrom = path,
                     fFlags = flags
                 };
-                return SHFileOperation32 (ref fs);
+                return SHFileOperation32(ref fs);
             }
             else
             {
@@ -182,7 +182,7 @@ namespace GARbro.Shell
                     pFrom = path,
                     fFlags = flags
                 };
-                return SHFileOperation64 (ref fs);
+                return SHFileOperation64(ref fs);
             }
         }
 
@@ -192,63 +192,63 @@ namespace GARbro.Shell
         /// </summary>
         /// <param name="path">Location of directory or file to recycle</param>
         /// <param name="flags">FileOperationFlags to add in addition to FOF_ALLOWUNDO</param>
-        public static bool Delete (string path, FileOperationFlags flags, IntPtr parent = default(IntPtr))
+        public static bool Delete(string path, FileOperationFlags flags, IntPtr parent = default(IntPtr))
         {
-            return 0 == SHFileOperation (FileOperationType.FO_DELETE, path+'\0'+'\0',
+            return 0 == SHFileOperation(FileOperationType.FO_DELETE, path + '\0' + '\0',
                                          FileOperationFlags.FOF_ALLOWUNDO | flags, parent);
         }
 
-        public static bool Delete (IEnumerable<string> file_list, FileOperationFlags flags, IntPtr parent = default(IntPtr))
+        public static bool Delete(IEnumerable<string> file_list, FileOperationFlags flags, IntPtr parent = default(IntPtr))
         {
             var files = new StringBuilder();
             foreach (var file in file_list)
             {
-                files.Append (file);
-                files.Append ('\0');
+                files.Append(file);
+                files.Append('\0');
             }
             if (0 == files.Length)
                 return false;
-            files.Append ('\0');
-            return 0 == SHFileOperation (FileOperationType.FO_DELETE, files.ToString(),
+            files.Append('\0');
+            return 0 == SHFileOperation(FileOperationType.FO_DELETE, files.ToString(),
                                          FileOperationFlags.FOF_ALLOWUNDO | flags, parent);
         }
 
-        public static bool Delete (IEnumerable<string> file_list, IntPtr parent = default(IntPtr))
+        public static bool Delete(IEnumerable<string> file_list, IntPtr parent = default(IntPtr))
         {
-            return Delete (file_list, FileOperationFlags.FOF_WANTNUKEWARNING, parent);
+            return Delete(file_list, FileOperationFlags.FOF_WANTNUKEWARNING, parent);
         }
 
         /// <summary>
         /// Send file to recycle bin.  Display dialog, display warning if files are too big to fit (FOF_WANTNUKEWARNING)
         /// </summary>
         /// <param name="path">Location of directory or file to recycle</param>
-        public static bool Delete (string path, IntPtr parent = default(IntPtr))
+        public static bool Delete(string path, IntPtr parent = default(IntPtr))
         {
-            return Delete (path, FileOperationFlags.FOF_NOCONFIRMATION | FileOperationFlags.FOF_WANTNUKEWARNING, parent);
+            return Delete(path, FileOperationFlags.FOF_NOCONFIRMATION | FileOperationFlags.FOF_WANTNUKEWARNING, parent);
         }
 
         /// <summary>
         /// Send file silently to recycle bin.  Surpress dialog, surpress errors, delete if too large.
         /// </summary>
         /// <param name="path">Location of directory or file to recycle</param>
-        public static bool MoveToRecycleBin (string path, IntPtr parent = default(IntPtr))
+        public static bool MoveToRecycleBin(string path, IntPtr parent = default(IntPtr))
         {
-            return Delete (path, FileOperationFlags.FOF_NOCONFIRMATION | FileOperationFlags.FOF_NOERRORUI | FileOperationFlags.FOF_SILENT, parent);
+            return Delete(path, FileOperationFlags.FOF_NOCONFIRMATION | FileOperationFlags.FOF_NOERRORUI | FileOperationFlags.FOF_SILENT, parent);
 
         }
 
-        [DllImport("shlwapi.dll", EntryPoint="PathCompactPathExW", CharSet = CharSet.Unicode)]
-        static extern bool PathCompactPathEx ([Out] StringBuilder pszOut, string szPath, int cchMax, int dwFlags);
+        [DllImport("shlwapi.dll", EntryPoint = "PathCompactPathExW", CharSet = CharSet.Unicode)]
+        static extern bool PathCompactPathEx([Out] StringBuilder pszOut, string szPath, int cchMax, int dwFlags);
 
         const int MAX_PATH = 0x104;
 
         /// <summary>
         /// Truncates a path to fit within a certain number of characters by replacing path components with ellipses.
         /// </summary>
-        public static string CompactPath (string name, int length)
+        public static string CompactPath(string name, int length)
         {
-            var sb = new StringBuilder (MAX_PATH);
-            PathCompactPathEx (sb, name, Math.Min (length+1, MAX_PATH), 0);
+            var sb = new StringBuilder(MAX_PATH);
+            PathCompactPathEx(sb, name, Math.Min(length + 1, MAX_PATH), 0);
             return sb.ToString();
         }
     }
@@ -258,37 +258,37 @@ namespace GARbro.Shell
         private string m_name;
         public string Name { get { return m_name; } }
 
-        public TemporaryFile ()
+        public TemporaryFile()
         {
             m_name = Path.GetRandomFileName();
         }
 
-        public TemporaryFile (string filename)
+        public TemporaryFile(string filename)
         {
             m_name = filename;
         }
 
-        public TemporaryFile (string path, string filename)
+        public TemporaryFile(string path, string filename)
         {
-            m_name = Path.Combine (path, filename);
+            m_name = Path.Combine(path, filename);
         }
 
         #region IDisposable Members
         bool disposed = false;
 
-        public void Dispose ()
+        public void Dispose()
         {
-            Dispose (true);
-            GC.SuppressFinalize (this);
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
-        protected virtual void Dispose (bool disposing)
+        protected virtual void Dispose(bool disposing)
         {
             if (!disposed)
             {
                 if (disposing)
                 {
-                    System.IO.File.Delete (m_name);
+                    System.IO.File.Delete(m_name);
                 }
                 disposed = true;
             }
@@ -301,7 +301,7 @@ namespace GARbro.Shell
     /// </summary>
     class FileInfo
     {
-        [DllImport("shell32.dll", CharSet=CharSet.Auto)]
+        [DllImport("shell32.dll", CharSet = CharSet.Auto)]
         public static extern IntPtr SHGetFileInfo(
                 string pszPath, Int32 dwFileAttributes,
                 ref SHFILEINFO psfi, int cbFileInfo, int uFlags);
@@ -309,75 +309,75 @@ namespace GARbro.Shell
         [DllImport("User32.dll")]
         public static extern int DestroyIcon(IntPtr hIcon);
 
-        [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Auto)]
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
         public struct SHFILEINFO
         {
-             public IntPtr hIcon;
-             public int iIcon;
-             public uint dwAttributes;
+            public IntPtr hIcon;
+            public int iIcon;
+            public uint dwAttributes;
 
-             [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
-             public string szDisplayName;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
+            public string szDisplayName;
 
-             [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 80)]
-             public string szTypeName;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 80)]
+            public string szTypeName;
 
-             public SHFILEINFO(bool b)
-             {
-                 hIcon = IntPtr.Zero;
-                 iIcon = 0;
-                 dwAttributes = 0;
-                 szDisplayName = "";
-                 szTypeName = "";
-             }
+            public SHFILEINFO(bool b)
+            {
+                hIcon = IntPtr.Zero;
+                iIcon = 0;
+                dwAttributes = 0;
+                szDisplayName = "";
+                szTypeName = "";
+            }
         };
 
         [Flags]
         public enum SHGFI : uint
         {
             /// <summary>get icon</summary>
-            Icon            = 0x000000100,  
+            Icon = 0x000000100,
             /// <summary>get display name</summary>
-            DisplayName     = 0x000000200,
+            DisplayName = 0x000000200,
             /// <summary>get type name</summary>
-            TypeName        = 0x000000400,
+            TypeName = 0x000000400,
             /// <summary>get attributes</summary>
-            Attributes      = 0x000000800,
+            Attributes = 0x000000800,
             /// <summary>get icon location</summary>
-            IconLocation    = 0x000001000,  
+            IconLocation = 0x000001000,
             /// <summary>return exe type</summary>
-            ExeType         = 0x000002000,  
+            ExeType = 0x000002000,
             /// <summary>get system icon index</summary>
-            SysIconIndex    = 0x000004000,  
+            SysIconIndex = 0x000004000,
             /// <summary>put a link overlay on icon</summary>
-            LinkOverlay     = 0x000008000,  
+            LinkOverlay = 0x000008000,
             /// <summary>show icon in selected state</summary>
-            Selected        = 0x000010000,  
+            Selected = 0x000010000,
             /// <summary>get only specified attributes</summary>
-            Attr_Specified  = 0x000020000,  
+            Attr_Specified = 0x000020000,
             /// <summary>get large icon</summary>
-            LargeIcon       = 0x000000000,  
+            LargeIcon = 0x000000000,
             /// <summary>get small icon</summary>
-            SmallIcon       = 0x000000001,  
+            SmallIcon = 0x000000001,
             /// <summary>get open icon</summary>
-            OpenIcon        = 0x000000002,  
+            OpenIcon = 0x000000002,
             /// <summary>get shell size icon</summary>
-            ShellIconSize   = 0x000000004,  
+            ShellIconSize = 0x000000004,
             /// <summary>pszPath is a pidl</summary>
-            PIDL            = 0x000000008,  
+            PIDL = 0x000000008,
             /// <summary>use passed dwFileAttribute</summary>
-            UseFileAttributes= 0x000000010,  
+            UseFileAttributes = 0x000000010,
             /// <summary>apply the appropriate overlays</summary>
-            AddOverlays     = 0x000000020,  
+            AddOverlays = 0x000000020,
             /// <summary>Get the index of the overlay in the upper 8 bits of the iIcon</summary>
-            OverlayIndex    = 0x000000040,  
+            OverlayIndex = 0x000000040,
         }
 
-        public static string GetTypeName (string filename)
+        public static string GetTypeName(string filename)
         {
             SHFILEINFO info = new SHFILEINFO(true);
-            int szInfo = Marshal.SizeOf (info);
-            int result = (int)SHGetFileInfo (filename, 0, ref info, szInfo, (int)SHGFI.TypeName);
+            int szInfo = Marshal.SizeOf(info);
+            int result = (int)SHGetFileInfo(filename, 0, ref info, szInfo, (int)SHGFI.TypeName);
 
             // If uFlags does not contain SHGFI_EXETYPE or SHGFI_SYSICONINDEX,
             // the return value is nonzero if successful, or zero otherwise.
@@ -387,13 +387,13 @@ namespace GARbro.Shell
                 return string.Empty;
         }
 
-        public static SHFILEINFO? GetInfo (string filename, SHGFI flags)
+        public static SHFILEINFO? GetInfo(string filename, SHGFI flags)
         {
             SHFILEINFO info = new SHFILEINFO(true);
-            int szInfo = Marshal.SizeOf (info);
-            int result = (int)SHGetFileInfo (filename, 0, ref info, szInfo, (int)flags);
+            int szInfo = Marshal.SizeOf(info);
+            int result = (int)SHGetFileInfo(filename, 0, ref info, szInfo, (int)flags);
 
-            return result != 0? new Nullable<SHFILEINFO> (info): null;
+            return result != 0 ? new Nullable<SHFILEINFO>(info) : null;
         }
     }
 }

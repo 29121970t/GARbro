@@ -36,22 +36,22 @@ namespace GameRes.Formats.RealLive
 {
     internal class G00MetaData : ImageMetaData
     {
-        public int  Type;
+        public int Type;
     }
 
     [Export(typeof(ImageFormat))]
     public class G00Format : ImageFormat
     {
-        public override string         Tag { get { return "G00"; } }
+        public override string Tag { get { return "G00"; } }
         public override string Description { get { return "RealLive engine image format"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
             int type = file.ReadByte();
             if (type > 2)
                 return null;
-            uint width  = file.ReadUInt16();
+            uint width = file.ReadUInt16();
             uint height = file.ReadUInt16();
             if (0 == width || width > 0x8000 || 0 == height || height > 0x8000)
                 return null;
@@ -67,50 +67,51 @@ namespace GameRes.Formats.RealLive
                 if (length + 5 != file.Length)
                     return null;
             }
-            return new G00MetaData {
-                Width  = width,
+            return new G00MetaData
+            {
+                Width = width,
                 Height = height,
-                BPP    = 1 == type ? 8 : 24,
-                Type   = type,
+                BPP = 1 == type ? 8 : 24,
+                Type = type,
             };
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
-            using (var reader = new G00Reader (stream, (G00MetaData)info))
+            using (var reader = new G00Reader(stream, (G00MetaData)info))
             {
                 reader.Unpack();
-                return ImageData.Create (info, reader.Format, reader.Palette, reader.Data);
+                return ImageData.Create(info, reader.Format, reader.Palette, reader.Data);
             }
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new NotImplementedException ("G00Format.Write not implemented");
+            throw new NotImplementedException("G00Format.Write not implemented");
         }
     }
 
     internal class Tile
     {
-        public int  X;
-        public int  Y;
+        public int X;
+        public int Y;
         public uint Offset;
-        public int  Length;
+        public int Length;
     }
 
     internal sealed class G00Reader : IDisposable
     {
-        IBinaryStream   m_input;
-        byte[]          m_output;
-        int             m_width;
-        int             m_height;
-        int             m_type;
+        IBinaryStream m_input;
+        byte[] m_output;
+        int m_width;
+        int m_height;
+        int m_type;
 
-        public byte[]           Data { get { return m_output; } }
-        public PixelFormat    Format { get; private set; }
+        public byte[] Data { get { return m_output; } }
+        public PixelFormat Format { get; private set; }
         public BitmapPalette Palette { get; private set; }
 
-        public G00Reader (IBinaryStream input, G00MetaData info)
+        public G00Reader(IBinaryStream input, G00MetaData info)
         {
             m_width = (int)info.Width;
             m_height = (int)info.Height;
@@ -118,7 +119,7 @@ namespace GameRes.Formats.RealLive
             m_input = input;
         }
 
-        public void Unpack ()
+        public void Unpack()
         {
             m_input.Position = 5;
             if (0 == m_type)
@@ -129,42 +130,42 @@ namespace GameRes.Formats.RealLive
                 UnpackV2();
         }
 
-        void UnpackV0 ()
+        void UnpackV0()
         {
-            m_output = LzDecompress (m_input, 1, 3);
+            m_output = LzDecompress(m_input, 1, 3);
             Format = PixelFormats.Bgr24;
         }
 
-        void UnpackV1 ()
+        void UnpackV1()
         {
-            m_output = LzDecompress (m_input, 2, 1);
-            int colors = LittleEndian.ToUInt16 (m_output, 0);
+            m_output = LzDecompress(m_input, 2, 1);
+            int colors = LittleEndian.ToUInt16(m_output, 0);
             int src = 2;
             var palette = new Color[colors];
             for (int i = 0; i < colors; ++i)
             {
-                palette[i] = Color.FromArgb (m_output[src+3], m_output[src+2], m_output[src+1], m_output[src]);
+                palette[i] = Color.FromArgb(m_output[src + 3], m_output[src + 2], m_output[src + 1], m_output[src]);
                 src += 4;
             }
-            Palette = new BitmapPalette (palette);
+            Palette = new BitmapPalette(palette);
             Format = PixelFormats.Indexed8;
-            Buffer.BlockCopy (m_output, src, m_output, 0, m_output.Length-src);
+            Buffer.BlockCopy(m_output, src, m_output, 0, m_output.Length - src);
         }
 
-        void UnpackV2 ()
+        void UnpackV2()
         {
             Format = PixelFormats.Bgra32;
             int tile_count = m_input.ReadInt32();
-            var tiles = new List<Tile> (tile_count);
+            var tiles = new List<Tile>(tile_count);
             for (int i = 0; i < tile_count; ++i)
             {
                 var tile = new Tile();
                 tile.X = m_input.ReadInt32();
                 tile.Y = m_input.ReadInt32();
-                tiles.Add (tile);
-                m_input.Seek (0x10, SeekOrigin.Current);
+                tiles.Add(tile);
+                m_input.Seek(0x10, SeekOrigin.Current);
             }
-            using (var input = new BinMemoryStream (LzDecompress (m_input, 2, 1)))
+            using (var input = new BinMemoryStream(LzDecompress(m_input, 2, 1)))
             {
                 if (input.ReadInt32() != tile_count)
                     throw new InvalidFormatException();
@@ -175,14 +176,14 @@ namespace GameRes.Formats.RealLive
                     tiles[i].Offset = input.ReadUInt32();
                     tiles[i].Length = input.ReadInt32();
                 }
-                var tile = tiles.First (t => t.Length != 0);
+                var tile = tiles.First(t => t.Length != 0);
 
                 input.Position = tile.Offset;
                 int tile_type = input.ReadUInt16();
                 int count = input.ReadUInt16();
                 if (tile_type != 1)
                     throw new InvalidFormatException();
-                input.Seek (0x70, SeekOrigin.Current);
+                input.Seek(0x70, SeekOrigin.Current);
                 for (int i = 0; i < count; ++i)
                 {
                     int tile_x = input.ReadUInt16();
@@ -190,7 +191,7 @@ namespace GameRes.Formats.RealLive
                     input.ReadInt16();
                     int tile_width = input.ReadUInt16();
                     int tile_height = input.ReadUInt16();
-                    input.Seek (0x52, SeekOrigin.Current);
+                    input.Seek(0x52, SeekOrigin.Current);
 
                     tile_x += tile.X;
                     tile_y += tile.Y;
@@ -200,14 +201,14 @@ namespace GameRes.Formats.RealLive
                     int tile_stride = tile_width * 4;
                     for (int row = 0; row < tile_height; ++row)
                     {
-                        input.Read (m_output, dst, tile_stride);
+                        input.ReadExactly(m_output, dst, tile_stride);
                         dst += dst_stride;
                     }
                 }
             }
         }
 
-        public static byte[] LzDecompress (IBinaryStream input, int min_count, int bytes_pp)
+        public static byte[] LzDecompress(IBinaryStream input, int min_count, int bytes_pp)
         {
             int packed_size = input.ReadInt32() - 8;
             int output_size = input.ReadInt32();
@@ -224,7 +225,7 @@ namespace GameRes.Formats.RealLive
                 }
                 if (0 != (bits & 1))
                 {
-                    input.Read (output, dst, bytes_pp);
+                    input.Read(output, dst, bytes_pp);
                     dst += bytes_pp;
                     packed_size -= bytes_pp;
                 }
@@ -238,7 +239,7 @@ namespace GameRes.Formats.RealLive
                     offset >>= 4;
                     offset *= bytes_pp;
                     count *= bytes_pp;
-                    Binary.CopyOverlapped (output, dst-offset, dst, count);
+                    Binary.CopyOverlapped(output, dst - offset, dst, count);
                     dst += count;
                 }
             }
@@ -246,7 +247,7 @@ namespace GameRes.Formats.RealLive
         }
 
         #region IDisposable Members
-        public void Dispose ()
+        public void Dispose()
         {
         }
         #endregion

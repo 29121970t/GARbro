@@ -7,9 +7,9 @@ namespace GameRes.Formats.GUI
     /// </summary>
     public partial class CreatePDWidget : Grid
     {
-        public CreatePDWidget ()
+        public CreatePDWidget()
         {
-            InitializeComponent ();
+            InitializeComponent();
         }
     }
 }

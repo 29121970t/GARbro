@@ -34,44 +34,44 @@ namespace GameRes.Formats.Ivory
 {
     internal class MmdMetaData : ImageMetaData
     {
-        public int  Colors;
-        public int  Size1;
-        public int  Size2;
-        public int  Size3;
+        public int Colors;
+        public int Size1;
+        public int Size2;
+        public int Size3;
     }
 
     [Export(typeof(ImageFormat))]
     public class MmdFormat : ImageFormat
     {
-        public override string         Tag { get { return "MOE/MMD"; } }
+        public override string Tag { get { return "MOE/MMD"; } }
         public override string Description { get { return "Ivory image format"; } }
-        public override uint     Signature { get { return 0x1A444D4D; } } // 'MMD'
+        public override uint Signature { get { return 0x1A444D4D; } } // 'MMD'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
-            var header = stream.ReadHeader (0x18);
+            var header = stream.ReadHeader(0x18);
             var info = new MmdMetaData
             {
-                Width   = header.ToUInt16 (4),
-                Height  = header.ToUInt16 (6),
-                BPP     = 8,
-                Size1   = header.ToInt32 (8),
-                Size2   = header.ToInt32 (0x0C),
-                Size3   = header.ToInt32 (0x10),
-                Colors  = header.ToInt32 (0x14),
+                Width = header.ToUInt16(4),
+                Height = header.ToUInt16(6),
+                BPP = 8,
+                Size1 = header.ToInt32(8),
+                Size2 = header.ToInt32(0x0C),
+                Size3 = header.ToInt32(0x10),
+                Colors = header.ToInt32(0x14),
             };
             if (info.Size1 <= 0 || info.Size2 <= info.Size1 || info.Size3 <= 0)
                 return null;
             return info;
         }
 
-        public override ImageData Read (IBinaryStream input, ImageMetaData info)
+        public override ImageData Read(IBinaryStream input, ImageMetaData info)
         {
             var meta = (MmdMetaData)info;
             var pixels = new byte[info.Width * info.Height];
             input.Position = 0x18;
-            var buf1 = input.ReadBytes (meta.Size1);
-            var buf2 = input.ReadBytes (meta.Size2 - meta.Size1);
+            var buf1 = input.ReadBytes(meta.Size1);
+            var buf2 = input.ReadBytes(meta.Size2 - meta.Size1);
             int w = (int)info.Width / 4;
             var line = new byte[w];
             int mask = 0x80;
@@ -101,11 +101,11 @@ namespace GameRes.Formats.Ivory
                             int offset = ShiftTable[q + 16] + (int)info.Width * ShiftTable[q];
                             int src = dst - offset;
                             pixels[dst++] = pixels[src];
-                            pixels[dst++] = pixels[src+1];
+                            pixels[dst++] = pixels[src + 1];
                         }
                         else
                         {
-                            input.Read (pixels, dst, 2);
+                            input.Read(pixels, dst, 2);
                             dst += 2;
                         }
                         q = p & 0xF;
@@ -113,8 +113,8 @@ namespace GameRes.Formats.Ivory
                 }
             }
             input.Position = 0x18 + meta.Size2 + meta.Size3;
-            var palette = ReadPalette (input.AsStream, Math.Min (0x100, meta.Colors), PaletteFormat.Rgb);
-            return ImageData.Create (info, PixelFormats.Indexed8, palette, pixels);
+            var palette = ReadPalette(input.AsStream, Math.Min(0x100, meta.Colors), PaletteFormat.Rgb);
+            return ImageData.Create(info, PixelFormats.Indexed8, palette, pixels);
         }
 
         static readonly byte[] ShiftTable = {
@@ -122,9 +122,9 @@ namespace GameRes.Formats.Ivory
             0, 2, 4, 8, 0, 2, 0, 2, 4, 0, 2, 4, 0, 2, 4, 0,
         };
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("MmdFormat.Write not implemented");
+            throw new System.NotImplementedException("MmdFormat.Write not implemented");
         }
     }
 }

@@ -31,22 +31,22 @@ namespace GameRes.Formats.Macromedia
     [Export(typeof(AudioFormat))]
     public class SndAudio : AudioFormat
     {
-        public override string         Tag => "SND";
+        public override string Tag => "SND";
         public override string Description => "Macromedia Director audio resource";
-        public override uint     Signature => 0;
-        public override bool      CanWrite => false;
+        public override uint Signature => 0;
+        public override bool CanWrite => false;
 
-        static readonly ResourceInstance<AudioFormat> Mp3 = new ResourceInstance<AudioFormat> ("MP3");
+        static readonly ResourceInstance<AudioFormat> Mp3 = new ResourceInstance<AudioFormat>("MP3");
 
-        public override SoundInput TryOpen (IBinaryStream file)
+        public override SoundInput TryOpen(IBinaryStream file)
         {
-            if (!file.Name.HasExtension (".snd"))
+            if (!file.Name.HasExtension(".snd"))
                 return null;
             int type = file.ReadUInt16();
             if (type != 0x0200)
                 return null;
-            var reader = new Reader (file.AsStream, ByteOrder.BigEndian);
-            reader.Skip (2);
+            var reader = new Reader(file.AsStream, ByteOrder.BigEndian);
+            reader.Skip(2);
             int count = reader.ReadU16();
             if (0 == count)
                 return null;
@@ -59,10 +59,10 @@ namespace GameRes.Formats.Macromedia
                 return null;
             ushort channels = 1;
             ushort bps = 8;
-            reader.Skip (4);
+            reader.Skip(4);
             int param = reader.ReadI32();
             ushort sample_rate = reader.ReadU16();
-            reader.Skip (10);
+            reader.Skip(10);
             byte encoding = reader.ReadU8();
             byte freq = reader.ReadU8();
             if (freq != 0x3C)
@@ -76,23 +76,24 @@ namespace GameRes.Formats.Macromedia
             {
                 channels = (ushort)param;
                 frames_count = reader.ReadI32();
-                reader.Skip (22);
+                reader.Skip(22);
                 bps = reader.ReadU16();
-                reader.Skip (14);
+                reader.Skip(14);
             }
             else
-                throw new NotSupportedException (string.Format ("Not supported 'snd' encoding {0:X2}", encoding));
+                throw new NotSupportedException(string.Format("Not supported 'snd' encoding {0:X2}", encoding));
             if (bps != 16 && bps != 8)
                 return null;
 
             // try mp3
-            var samples_stream = new StreamRegion (reader.Source, reader.Position);
-            var mp3_input = new BinaryStream (samples_stream, file.Name);
-            var mp3 = Mp3.Value.TryOpen (mp3_input);
+            var samples_stream = new StreamRegion(reader.Source, reader.Position);
+            var mp3_input = new BinaryStream(samples_stream, file.Name);
+            var mp3 = Mp3.Value.TryOpen(mp3_input);
             if (mp3 != null)
                 return mp3;
 
-            var format = new WaveFormat {
+            var format = new WaveFormat
+            {
                 FormatTag = 1,
                 Channels = channels,
                 SamplesPerSecond = sample_rate,
@@ -102,19 +103,19 @@ namespace GameRes.Formats.Macromedia
             format.SetBPS();
             if (8 == bps)
             {
-                return new RawPcmInput (samples_stream, format);
+                return new RawPcmInput(samples_stream, format);
             }
             int sample_count = frames_count * channels;
-            var samples = file.ReadBytes (sample_count);
+            var samples = file.ReadBytes(sample_count);
             for (int i = 1; i < samples.Length; i += 2)
             {
-                byte s = samples[i-1];
-                samples[i-1] = samples[i];
+                byte s = samples[i - 1];
+                samples[i - 1] = samples[i];
                 samples[i] = s;
             }
-            var raw = new BinMemoryStream (samples);
+            var raw = new BinMemoryStream(samples);
             file.Dispose();
-            return new RawPcmInput (raw, format);
+            return new RawPcmInput(raw, format);
         }
     }
 }

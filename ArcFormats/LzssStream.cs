@@ -39,37 +39,38 @@ namespace GameRes.Compression
 
     public class LzssSettings
     {
-        public int     FrameSize { get; set; }
-        public byte    FrameFill { get; set; }
-        public int  FrameInitPos { get; set; }
+        public int FrameSize { get; set; }
+        public byte FrameFill { get; set; }
+        public int FrameInitPos { get; set; }
     }
 
     public sealed class LzssCoroutine : Decompressor
     {
-        Stream          m_input;
-        LzssSettings    m_settings;
+        Stream m_input;
+        LzssSettings m_settings;
 
         public LzssSettings Settings { get { return m_settings; } }
 
-        public override void Initialize (Stream input)
+        public override void Initialize(Stream input)
         {
             m_input = input;
-            m_settings = new LzssSettings {
+            m_settings = new LzssSettings
+            {
                 FrameSize = 0x1000,
                 FrameFill = 0,
                 FrameInitPos = 0xFEE,
             };
         }
 
-        protected override IEnumerator<int> Unpack ()
+        protected override IEnumerator<int> Unpack()
         {
             byte[] frame = new byte[Settings.FrameSize];
             if (Settings.FrameFill != 0)
                 for (int i = 0; i < frame.Length; ++i)
                     frame[i] = Settings.FrameFill;
             int frame_pos = Settings.FrameInitPos;
-            int frame_mask = Settings.FrameSize-1;
-            for (;;)
+            int frame_mask = Settings.FrameSize - 1;
+            for (; ; )
             {
                 int ctl = m_input.ReadByte();
                 if (-1 == ctl)
@@ -111,31 +112,31 @@ namespace GameRes.Compression
 
     public class LzssStream : PackedStream<LzssCoroutine>
     {
-        public LzssStream (Stream input, LzssMode mode = LzssMode.Decompress, bool leave_open = false)
-            : base (input, leave_open)
+        public LzssStream(Stream input, LzssMode mode = LzssMode.Decompress, bool leave_open = false)
+            : base(input, leave_open)
         {
             if (mode != LzssMode.Decompress)
-                throw new NotImplementedException ("LzssStream compression not implemented");
+                throw new NotImplementedException("LzssStream compression not implemented");
         }
 
-        public LzssSettings   Config  { get { return Reader.Settings; } }
+        public LzssSettings Config { get { return Reader.Settings; } }
     }
 
     public class LzssReader : IDisposable
     {
-        BinaryReader    m_input;
-        byte[]          m_output;
-        int             m_size;
+        BinaryReader m_input;
+        byte[] m_output;
+        int m_size;
 
         public BinaryReader Input { get { return m_input; } }
-        public byte[]        Data { get { return m_output; } }
-        public int      FrameSize { get; set; }
-        public byte     FrameFill { get; set; }
-        public int   FrameInitPos { get; set; }
+        public byte[] Data { get { return m_output; } }
+        public int FrameSize { get; set; }
+        public byte FrameFill { get; set; }
+        public int FrameInitPos { get; set; }
 
-        public LzssReader (Stream input, int input_length, int output_length)
+        public LzssReader(Stream input, int input_length, int output_length)
         {
-            m_input = new BinaryReader (input, System.Text.Encoding.ASCII, true);
+            m_input = new BinaryReader(input, System.Text.Encoding.ASCII, true);
             m_output = new byte[output_length];
             m_size = input_length;
 
@@ -144,7 +145,7 @@ namespace GameRes.Compression
             FrameInitPos = 0xfee;
         }
 
-        public void Unpack ()
+        public void Unpack()
         {
             int dst = 0;
             var frame = new byte[FrameSize];
@@ -152,7 +153,7 @@ namespace GameRes.Compression
                 for (int i = 0; i < frame.Length; ++i)
                     frame[i] = FrameFill;
             int frame_pos = FrameInitPos;
-            int frame_mask = FrameSize-1;
+            int frame_mask = FrameSize - 1;
             int remaining = (int)m_size;
             while (remaining > 0)
             {
@@ -196,13 +197,13 @@ namespace GameRes.Compression
         #region IDisposable Members
         bool disposed = false;
 
-        public void Dispose ()
+        public void Dispose()
         {
-            Dispose (true);
-            GC.SuppressFinalize (this);
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
-        protected virtual void Dispose (bool disposing)
+        protected virtual void Dispose(bool disposing)
         {
             if (!disposed)
             {

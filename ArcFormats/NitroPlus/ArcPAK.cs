@@ -36,41 +36,41 @@ namespace GameRes.Formats.Magi
     [Export(typeof(ArchiveFormat))]
     public class PakOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "PAK/MAGI"; } }
+        public override string Tag { get { return "PAK/MAGI"; } }
         public override string Description { get { return "MAGI resource archive"; } }
-        public override uint     Signature { get { return 3; } }
-        public override bool  IsHierarchic { get { return true; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 3; } }
+        public override bool IsHierarchic { get { return true; } }
+        public override bool CanWrite { get { return false; } }
 
-        public PakOpener ()
+        public PakOpener()
         {
             Signatures = new uint[] { 3, 4 };
         }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            int version = file.View.ReadInt32 (0);
-            int count = file.View.ReadInt32 (4);
-            if (!IsSaneCount (count))
+            int version = file.View.ReadInt32(0);
+            int count = file.View.ReadInt32(4);
+            if (!IsSaneCount(count))
                 return null;
-            uint index_size = file.View.ReadUInt32 (0xC);
+            uint index_size = file.View.ReadUInt32(0xC);
             if (index_size < 2 || index_size > file.MaxOffset)
                 return null;
 
             long base_offset = 0x118 + index_size;
 
-            using (var mem = file.CreateStream (0x118, index_size))
-            using (var z = new ZLibStream (mem, CompressionMode.Decompress))
-            using (var index = new BinaryStream (z, file.Name))
+            using (var mem = file.CreateStream(0x118, index_size))
+            using (var z = new ZLibStream(mem, CompressionMode.Decompress))
+            using (var index = new BinaryStream(z, file.Name))
             {
-                var dir = new List<Entry> (count);
+                var dir = new List<Entry>(count);
                 string cur_dir = "";
                 for (int i = 0; i < count; ++i)
                 {
                     int name_length = index.ReadInt32();
                     if (name_length <= 0)
                         return null;
-                    var name = index.ReadCString (name_length);
+                    var name = index.ReadCString(name_length);
                     if (version > 3)
                     {
                         bool is_dir = index.ReadInt32() != 0;
@@ -83,34 +83,34 @@ namespace GameRes.Formats.Magi
                             continue;
                         }
                         if (cur_dir.Length > 0)
-                            name = Path.Combine (cur_dir, name);
+                            name = Path.Combine(cur_dir, name);
                     }
-                    var entry = Create<PackedEntry> (name);
-                    entry.Offset        = index.ReadUInt32() + base_offset;
-                    entry.UnpackedSize  = index.ReadUInt32();
+                    var entry = Create<PackedEntry>(name);
+                    entry.Offset = index.ReadUInt32() + base_offset;
+                    entry.UnpackedSize = index.ReadUInt32();
                     index.ReadUInt32();
-                    uint is_packed      = index.ReadUInt32();
-                    uint packed_size    = index.ReadUInt32();
+                    uint is_packed = index.ReadUInt32();
+                    uint packed_size = index.ReadUInt32();
                     entry.IsPacked = is_packed != 0 && packed_size != 0;
                     if (entry.IsPacked)
                         entry.Size = packed_size;
                     else
                         entry.Size = entry.UnpackedSize;
 
-                    if (!entry.CheckPlacement (file.MaxOffset))
+                    if (!entry.CheckPlacement(file.MaxOffset))
                         return null;
-                    dir.Add (entry);
+                    dir.Add(entry);
                 }
-                return new ArcFile (file, this, dir);
+                return new ArcFile(file, this, dir);
             }
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
-            Stream input = arc.File.CreateStream (entry.Offset, entry.Size, entry.Name);
+            Stream input = arc.File.CreateStream(entry.Offset, entry.Size, entry.Name);
             var pentry = entry as PackedEntry;
             if (null != pentry && pentry.IsPacked)
-                input = new ZLibStream (input, CompressionMode.Decompress);
+                input = new ZLibStream(input, CompressionMode.Decompress);
             return input;
         }
     }

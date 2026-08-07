@@ -36,121 +36,121 @@ namespace GameRes.Formats.Ankh
     [ExportMetadata("Priority", -1)]
     public class GrpOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "GRP/ICE"; } }
+        public override string Tag { get { return "GRP/ICE"; } }
         public override string Description { get { return "Ice Soft resource archive"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public GrpOpener ()
+        public GrpOpener()
         {
             Extensions = new string[] { "grp", "bin", "dat", "vc" };
         }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            uint first_offset = file.View.ReadUInt32 (0);
+            uint first_offset = file.View.ReadUInt32(0);
             if (first_offset < 8 || first_offset >= file.MaxOffset || 0 != (first_offset & 3))
                 return null;
             int count = (int)(first_offset - 4) / 4;
-            if (!IsSaneCount (count))
+            if (!IsSaneCount(count))
                 return null;
 
-            var base_name = Path.GetFileNameWithoutExtension (file.Name);
+            var base_name = Path.GetFileNameWithoutExtension(file.Name);
             uint index_offset = 0;
             uint next_offset = first_offset;
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count && next_offset < file.MaxOffset; ++i)
             {
                 var entry = new PackedEntry { Offset = next_offset };
                 index_offset += 4;
-                next_offset = file.View.ReadUInt32 (index_offset);
+                next_offset = file.View.ReadUInt32(index_offset);
                 if (next_offset < entry.Offset)
                     return null;
                 entry.Size = (uint)(next_offset - entry.Offset);
                 entry.UnpackedSize = entry.Size;
                 if (entry.Size != 0)
                 {
-                    if (!entry.CheckPlacement (file.MaxOffset))
+                    if (!entry.CheckPlacement(file.MaxOffset))
                         return null;
-                    entry.Name = string.Format ("{0}#{1:D4}", base_name, i);
-                    dir.Add (entry);
+                    entry.Name = string.Format("{0}#{1:D4}", base_name, i);
+                    dir.Add(entry);
                 }
             }
             if (0 == dir.Count)
                 return null;
-            DetectFileTypes (file, dir);
-            return new ArcFile (file, this, dir);
+            DetectFileTypes(file, dir);
+            return new ArcFile(file, this, dir);
         }
 
-        internal void DetectFileTypes (ArcView file, List<Entry> dir)
+        internal void DetectFileTypes(ArcView file, List<Entry> dir)
         {
             var header = new byte[16];
             foreach (PackedEntry entry in dir)
             {
                 if (entry.Size <= 8)
                     continue;
-                file.View.Read (entry.Offset, header, 0, 16);
-                if (header.AsciiEqual ("TPW"))
+                file.View.Read(entry.Offset, header, 0, 16);
+                if (header.AsciiEqual("TPW"))
                 {
-                    entry.IsPacked =header[3] != 0;
-                    long start_offset = entry.Offset+4;
+                    entry.IsPacked = header[3] != 0;
+                    long start_offset = entry.Offset + 4;
                     if (entry.IsPacked)
                     {
-                        entry.UnpackedSize = file.View.ReadUInt32 (start_offset);
-                        start_offset = entry.Offset+11;
+                        entry.UnpackedSize = file.View.ReadUInt32(start_offset);
+                        start_offset = entry.Offset + 11;
                     }
                     else
                     {
                         entry.Offset = start_offset;
                         entry.Size -= 4;
                     }
-                    if (file.View.AsciiEqual (start_offset, "BM"))
-                        entry.ChangeType (ImageFormat.Bmp);
+                    if (file.View.AsciiEqual(start_offset, "BM"))
+                        entry.ChangeType(ImageFormat.Bmp);
                 }
-                else if (header.AsciiEqual (4, "HDJ\0"))
+                else if (header.AsciiEqual(4, "HDJ\0"))
                 {
-                    if (header.AsciiEqual (12, "BM"))
-                        entry.ChangeType (ImageFormat.Bmp);
-                    else if (header.AsciiEqual (12, "MThd"))
-                        entry.Name = Path.ChangeExtension (entry.Name, "mid");
+                    if (header.AsciiEqual(12, "BM"))
+                        entry.ChangeType(ImageFormat.Bmp);
+                    else if (header.AsciiEqual(12, "MThd"))
+                        entry.Name = Path.ChangeExtension(entry.Name, "mid");
 
-                    entry.UnpackedSize = header.ToUInt32 (0);
+                    entry.UnpackedSize = header.ToUInt32(0);
                     entry.IsPacked = true;
                 }
-                else if (header.AsciiEqual (0, "zfd "))
+                else if (header.AsciiEqual(0, "zfd "))
                 {
-                    entry.ChangeType (ImageFormat.Tga);
-                    entry.UnpackedSize = header.ToUInt32 (4);
+                    entry.ChangeType(ImageFormat.Tga);
+                    entry.UnpackedSize = header.ToUInt32(4);
                     entry.IsPacked = true;
                 }
-                else if (header.AsciiEqual (4, "OggS"))
+                else if (header.AsciiEqual(4, "OggS"))
                 {
-                    entry.ChangeType (OggAudio.Instance);
+                    entry.ChangeType(OggAudio.Instance);
                     entry.Offset += 4;
-                    entry.Size   -= 4;
+                    entry.Size -= 4;
                 }
                 else if (entry.Size > 12 &&
-                         (header.AsciiEqual (8, "RIFF") ||
-                          ((header[4] & 0xF) == 0xF && header.AsciiEqual (5, "RIFF"))))
+                         (header.AsciiEqual(8, "RIFF") ||
+                          ((header[4] & 0xF) == 0xF && header.AsciiEqual(5, "RIFF"))))
                 {
-                    entry.ChangeType (AudioFormat.Wav);
-                    entry.UnpackedSize = header.ToUInt32 (0);
+                    entry.ChangeType(AudioFormat.Wav);
+                    entry.UnpackedSize = header.ToUInt32(0);
                     entry.IsPacked = true;
                 }
                 else
                 {
-                    uint signature = header.ToUInt32 (0);
-                    var res = AutoEntry.DetectFileType (signature);
+                    uint signature = header.ToUInt32(0);
+                    var res = AutoEntry.DetectFileType(signature);
                     if (res != null)
                     {
-                        entry.ChangeType (res);
+                        entry.ChangeType(res);
                     }
                     else if ((signature & 0xFFFF) == 0xFBFF)
                     {
-                        entry.ChangeType (Mp3Format.Value);
+                        entry.ChangeType(Mp3Format.Value);
                     }
-                    else if (entry.Size > 0x16 && IsAudioEntry (file, entry))
+                    else if (entry.Size > 0x16 && IsAudioEntry(file, entry))
                     {
                         entry.Type = "audio";
                     }
@@ -158,106 +158,106 @@ namespace GameRes.Formats.Ankh
             }
         }
 
-        internal static ResourceInstance<AudioFormat> Mp3Format = new ResourceInstance<AudioFormat> ("MP3");
+        internal static ResourceInstance<AudioFormat> Mp3Format = new ResourceInstance<AudioFormat>("MP3");
 
-        bool IsAudioEntry (ArcView file, Entry entry)
+        bool IsAudioEntry(ArcView file, Entry entry)
         {
-            uint signature = file.View.ReadUInt32 (entry.Offset);
+            uint signature = file.View.ReadUInt32(entry.Offset);
             if (signature != 0x010001 && signature != 0x020001)
                 return false;
-            int extra = file.View.ReadUInt16 (entry.Offset+0x10);
+            int extra = file.View.ReadUInt16(entry.Offset + 0x10);
             if (extra != 0)
                 return false;
-            uint size = file.View.ReadUInt32 (entry.Offset+0x12);
+            uint size = file.View.ReadUInt32(entry.Offset + 0x12);
             return 0x16 + size == entry.Size;
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var pent = entry as PackedEntry;
             if (pent != null && pent.IsPacked && pent.Size > 8)
             {
                 try
                 {
-                    if (arc.File.View.AsciiEqual (entry.Offset, "TPW"))
-                        return OpenTpw (arc, pent);
-                    if (arc.File.View.AsciiEqual (entry.Offset+4, "HDJ\0"))
-                        return OpenImage (arc, pent);
-                    if (arc.File.View.AsciiEqual (entry.Offset, "zfd "))
-                        return OpenZfd (arc, pent);
+                    if (arc.File.View.AsciiEqual(entry.Offset, "TPW"))
+                        return OpenTpw(arc, pent);
+                    if (arc.File.View.AsciiEqual(entry.Offset + 4, "HDJ\0"))
+                        return OpenImage(arc, pent);
+                    if (arc.File.View.AsciiEqual(entry.Offset, "zfd "))
+                        return OpenZfd(arc, pent);
                     if (entry.Size > 12)
                     {
-                        byte type = arc.File.View.ReadByte (entry.Offset+4);
+                        byte type = arc.File.View.ReadByte(entry.Offset + 4);
                         if ('W' == type
-                            && arc.File.View.AsciiEqual (entry.Offset+8, "RIFF"))
-                            return OpenAudio (arc, entry);
+                            && arc.File.View.AsciiEqual(entry.Offset + 8, "RIFF"))
+                            return OpenAudio(arc, entry);
                         if ((type & 0xF) == 0xF
-                            && arc.File.View.AsciiEqual (entry.Offset+5, "RIFF"))
+                            && arc.File.View.AsciiEqual(entry.Offset + 5, "RIFF"))
                         {
-                            var input = arc.File.CreateStream (entry.Offset+4, entry.Size-4);
-                            return new LzssStream (input);
+                            var input = arc.File.CreateStream(entry.Offset + 4, entry.Size - 4);
+                            return new LzssStream(input);
                         }
                     }
                 }
                 catch (Exception X)
                 {
-                    System.Diagnostics.Trace.WriteLine (X.Message, "[GRP]");
+                    System.Diagnostics.Trace.WriteLine(X.Message, "[GRP]");
                 }
             }
-            return base.OpenEntry (arc, entry);
+            return base.OpenEntry(arc, entry);
         }
 
-        Stream OpenImage (ArcFile arc, PackedEntry entry)
+        Stream OpenImage(ArcFile arc, PackedEntry entry)
         {
-            using (var packed = arc.File.CreateStream (entry.Offset+8, entry.Size-8))
-            using (var reader = new GrpUnpacker (packed))
+            using (var packed = arc.File.CreateStream(entry.Offset + 8, entry.Size - 8))
+            using (var reader = new GrpUnpacker(packed))
             {
                 var unpacked = new byte[entry.UnpackedSize];
-                reader.UnpackHDJ (unpacked, 0);
-                return new BinMemoryStream (unpacked, entry.Name);
+                reader.UnpackHDJ(unpacked, 0);
+                return new BinMemoryStream(unpacked, entry.Name);
             }
         }
 
-        Stream OpenAudio (ArcFile arc, Entry entry)
+        Stream OpenAudio(ArcFile arc, Entry entry)
         {
-            int unpacked_size = arc.File.View.ReadInt32 (entry.Offset);
-            byte pack_type = arc.File.View.ReadByte (entry.Offset+5);
-            byte channels = arc.File.View.ReadByte (entry.Offset+6);
-            byte header_size = arc.File.View.ReadByte (entry.Offset+7);
+            int unpacked_size = arc.File.View.ReadInt32(entry.Offset);
+            byte pack_type = arc.File.View.ReadByte(entry.Offset + 5);
+            byte channels = arc.File.View.ReadByte(entry.Offset + 6);
+            byte header_size = arc.File.View.ReadByte(entry.Offset + 7);
             if (unpacked_size <= 0 || header_size > unpacked_size
                 || !('A' == pack_type || 'S' == pack_type))
-                return base.OpenEntry (arc, entry);
+                return base.OpenEntry(arc, entry);
             var unpacked = new byte[unpacked_size];
-            arc.File.View.Read (entry.Offset+8, unpacked, 0, header_size);
+            arc.File.View.Read(entry.Offset + 8, unpacked, 0, header_size);
             uint packed_size = entry.Size - 8 - header_size;
-            using (var packed = arc.File.CreateStream (entry.Offset+8+header_size, packed_size))
-            using (var reader = new GrpUnpacker (packed))
+            using (var packed = arc.File.CreateStream(entry.Offset + 8 + header_size, packed_size))
+            using (var reader = new GrpUnpacker(packed))
             {
                 if ('A' == pack_type)
-                    reader.UnpackA (unpacked, header_size, channels);
+                    reader.UnpackA(unpacked, header_size, channels);
                 else
-                    reader.UnpackS (unpacked, header_size, channels);
-                return new BinMemoryStream (unpacked, entry.Name);
+                    reader.UnpackS(unpacked, header_size, channels);
+                return new BinMemoryStream(unpacked, entry.Name);
             }
         }
 
-        Stream OpenTpw (ArcFile arc, PackedEntry entry)
+        Stream OpenTpw(ArcFile arc, PackedEntry entry)
         {
-            using (var input = arc.File.CreateStream (entry.Offset, entry.Size))
+            using (var input = arc.File.CreateStream(entry.Offset, entry.Size))
             {
                 var output = new byte[entry.UnpackedSize];
-                UnpackTpw (input, output);
-                return new BinMemoryStream (output, entry.Name);
+                UnpackTpw(input, output);
+                return new BinMemoryStream(output, entry.Name);
             }
         }
 
-        Stream OpenZfd (ArcFile arc, PackedEntry entry)
+        Stream OpenZfd(ArcFile arc, PackedEntry entry)
         {
-            var input = arc.File.CreateStream (entry.Offset+8, entry.Size-8);
-            return new ZLibStream (input, CompressionMode.Decompress);
+            var input = arc.File.CreateStream(entry.Offset + 8, entry.Size - 8);
+            return new ZLibStream(input, CompressionMode.Decompress);
         }
 
-        internal static void UnpackTpw (IBinaryStream input, byte[] output)
+        internal static void UnpackTpw(IBinaryStream input, byte[] output)
         {
             input.Position = 8;
             var offsets = new int[4];
@@ -275,8 +275,8 @@ namespace GameRes.Formats.Ankh
                 int count;
                 if (ctl < 0x40)
                 {
-                    count = Math.Min (ctl, remaining);
-                    input.Read (output, dst, count);
+                    count = Math.Min(ctl, remaining);
+                    input.Read(output, dst, count);
                     dst += count;
                 }
                 else if (ctl <= 0x6F)
@@ -285,23 +285,23 @@ namespace GameRes.Formats.Ankh
                         count = input.ReadUInt16();
                     else
                         count = (byte)(ctl - 0x3D);
-                    count = Math.Min (count, remaining);
+                    count = Math.Min(count, remaining);
                     byte v = input.ReadUInt8();
-                    while (count --> 0)
+                    while (count-- > 0)
                         output[dst++] = v;
                 }
                 else if (ctl <= 0x9F)
                 {
                     if (ctl == 0x9F)
                         count = input.ReadUInt16();
-                    else 
+                    else
                         count = (byte)(ctl - 0x6E);
-                    dst += input.Read (output, dst, Math.Min (2, remaining));
+                    dst += input.Read(output, dst, Math.Min(2, remaining));
                     --count;
                     if (count > 0 && remaining > 2)
                     {
-                        count = Math.Min (count * 2, remaining - 2);
-                        Binary.CopyOverlapped (output, dst-2, dst, count);
+                        count = Math.Min(count * 2, remaining - 2);
+                        Binary.CopyOverlapped(output, dst - 2, dst, count);
                         dst += count;
                     }
                 }
@@ -311,21 +311,21 @@ namespace GameRes.Formats.Ankh
                         count = input.ReadUInt16();
                     else
                         count = (byte)(ctl - 0x9E);
-                    dst += input.Read (output, dst, Math.Min (3, remaining));
+                    dst += input.Read(output, dst, Math.Min(3, remaining));
                     --count;
                     if (count > 0 && remaining > 3)
                     {
-                        count = Math.Min (count * 3, remaining - 3);
-                        Binary.CopyOverlapped (output, dst-3, dst, count);
+                        count = Math.Min(count * 3, remaining - 3);
+                        Binary.CopyOverlapped(output, dst - 3, dst, count);
                         dst += count;
                     }
                 }
                 else
                 {
-                    count = Math.Min ((ctl & 0x3F) + 3, remaining);
+                    count = Math.Min((ctl & 0x3F) + 3, remaining);
                     int offset = input.ReadUInt8();
                     offset = (offset & 0x3F) - offsets[offset >> 6];
-                    Binary.CopyOverlapped (output, dst+offset, dst, count);
+                    Binary.CopyOverlapped(output, dst + offset, dst, count);
                     dst += count;
                 }
             }
@@ -334,11 +334,11 @@ namespace GameRes.Formats.Ankh
 
     internal sealed class GrpUnpacker : IDisposable
     {
-        IBinaryStream       m_input;
-        uint                m_bits;
-        int                 m_cached_bits;
+        IBinaryStream m_input;
+        uint m_bits;
+        int m_cached_bits;
 
-        public GrpUnpacker (IBinaryStream input)
+        public GrpUnpacker(IBinaryStream input)
         {
             m_input = input;
         }
@@ -349,27 +349,27 @@ namespace GameRes.Formats.Ankh
 
         static GrpVariant LastUsedMethod = GrpVariant.Default;
 
-        static GrpVariant GetOppositeVariant ()
+        static GrpVariant GetOppositeVariant()
         {
             return GrpVariant.Default == LastUsedMethod ? GrpVariant.BoD : GrpVariant.Default;
         }
 
-        public void UnpackHDJ (byte[] output, int dst)
+        public void UnpackHDJ(byte[] output, int dst)
         {
             try
             {
-                if (UnpackHDJVariant (output, dst, LastUsedMethod))
+                if (UnpackHDJVariant(output, dst, LastUsedMethod))
                     return;
             }
             catch { /* ignore unpack errors */ }
             var method = GetOppositeVariant();
             m_input.Position = 0;
-            if (!UnpackHDJVariant (output, dst, method))
+            if (!UnpackHDJVariant(output, dst, method))
                 throw new InvalidFormatException();
             LastUsedMethod = method;
         }
 
-        private bool UnpackHDJVariant (byte[] output, int dst, GrpVariant method)
+        private bool UnpackHDJVariant(byte[] output, int dst, GrpVariant method)
         {
             ResetBits();
             int word_count = 0;
@@ -399,14 +399,14 @@ namespace GameRes.Formats.Ankh
                     else
                     {
                         if (method == GrpVariant.Default)
-                            count = GetBits (2);
+                            count = GetBits(2);
                         if (0 == byte_count)
                         {
                             next_byte = m_input.ReadUInt32();
                             byte_count = 4;
                         }
                         if (method != GrpVariant.Default)
-                            count = GetBits (2);
+                            count = GetBits(2);
                         count += 2;
                         long_count = 5 == count;
                         offset = (int)(next_byte | 0xFFFFFF00);
@@ -420,12 +420,12 @@ namespace GameRes.Formats.Ankh
                             ++n;
 
                         if (n != 0)
-                            count += GetBits (n) + 1;
+                            count += GetBits(n) + 1;
                     }
                     int src = dst + offset;
                     if (src < 0 || src >= dst || dst + count > output.Length)
                         return false;
-                    Binary.CopyOverlapped (output, src, dst, count);
+                    Binary.CopyOverlapped(output, src, dst, count);
                     dst += count;
                 }
                 else
@@ -443,30 +443,30 @@ namespace GameRes.Formats.Ankh
             return true;
         }
 
-        public void UnpackS (byte[] output, int dst, int channels)
+        public void UnpackS(byte[] output, int dst, int channels)
         {
             try
             {
-                if (UnpackSVariant (output, dst, channels, LastUsedMethod))
+                if (UnpackSVariant(output, dst, channels, LastUsedMethod))
                     return;
             }
             catch { /* ignore parse errors */ }
             var method = GetOppositeVariant();
             m_input.Position = 0;
-            if (UnpackSVariant (output, dst, channels, method))
+            if (UnpackSVariant(output, dst, channels, method))
                 LastUsedMethod = method;
         }
 
-        bool UnpackSVariant (byte[] output, int dst, int channels, GrpVariant method)
+        bool UnpackSVariant(byte[] output, int dst, int channels, GrpVariant method)
         {
             if (GrpVariant.Default == method)
-                UnpackSv2 (output, dst, channels);
+                UnpackSv2(output, dst, channels);
             else
-                UnpackSv1 (output, dst, channels);
+                UnpackSv1(output, dst, channels);
             return m_input.PeekByte() == -1; // rather loose test, but whatever
         }
 
-        void UnpackSv1 (byte[] output, int dst, int channels)
+        void UnpackSv1(byte[] output, int dst, int channels)
         {
             ResetBits();
             short last_word = 0;
@@ -476,27 +476,27 @@ namespace GameRes.Formats.Ankh
                 if (GetNextBit() != 0)
                 {
                     if (GetNextBit() != 0)
-                        word = GetBits (10) << 6;
+                        word = GetBits(10) << 6;
                     else
                         word = 0;
                 }
                 else
                 {
-                    int adjust = GetBits (5) << 6;
+                    int adjust = GetBits(5) << 6;
                     if (0 != (adjust & 0x400))
                         adjust = -(adjust & 0x3FF);
                     word = last_word + adjust;
                 }
                 last_word = (short)word;
-                LittleEndian.Pack (last_word, output, dst);
+                LittleEndian.Pack(last_word, output, dst);
                 dst += 2;
             }
         }
 
-        void UnpackSv2 (byte[] output, int dst, int channels)
+        void UnpackSv2(byte[] output, int dst, int channels)
         {
             if (channels != 1)
-                m_input.Seek ((channels-1) * 4, SeekOrigin.Current);
+                m_input.Seek((channels - 1) * 4, SeekOrigin.Current);
             int step = channels * 2;
             for (int i = 0; i < channels; ++i)
             {
@@ -510,7 +510,7 @@ namespace GameRes.Formats.Ankh
                     {
                         if (GetNextBit() != 0)
                         {
-                            word = GetBits (10) << 6;
+                            word = GetBits(10) << 6;
                         }
                         else
                         {
@@ -523,27 +523,27 @@ namespace GameRes.Formats.Ankh
                                     ++bit_length;
                                 }
                                 while (GetNextBit() != 0);
-                                repeat = GetBits (bit_length) + 4;
+                                repeat = GetBits(bit_length) + 4;
                             }
                             else
                             {
-                                repeat = GetBits (2);
+                                repeat = GetBits(2);
                             }
                             word = 0;
-                            while (repeat --> 0)
+                            while (repeat-- > 0)
                             {
-                                output[pos]   = 0;
-                                output[pos+1] = 0;
+                                output[pos] = 0;
+                                output[pos + 1] = 0;
                                 pos += step;
                             }
                         }
                     }
                     else
                     {
-                        int adjust = (short)(GetBits (5) << 11) >> 5;
+                        int adjust = (short)(GetBits(5) << 11) >> 5;
                         word = last_word + adjust;
                     }
-                    LittleEndian.Pack ((short)word, output, pos);
+                    LittleEndian.Pack((short)word, output, pos);
                     last_word = (short)word;
                     pos += step;
                 }
@@ -551,10 +551,10 @@ namespace GameRes.Formats.Ankh
             }
         }
 
-        public void UnpackA (byte[] output, int dst, int channels)
+        public void UnpackA(byte[] output, int dst, int channels)
         {
             if (channels != 1)
-                m_input.Seek ((channels-1) * 4, SeekOrigin.Current);
+                m_input.Seek((channels - 1) * 4, SeekOrigin.Current);
             int step = 2 * channels;
             for (int i = 0; i < channels; ++i)
             {
@@ -562,25 +562,25 @@ namespace GameRes.Formats.Ankh
                 ResetBits();
                 while (pos < output.Length)
                 {
-                    int word = GetBits (10) << 6;;
-                    LittleEndian.Pack ((short)word, output, pos);
+                    int word = GetBits(10) << 6; ;
+                    LittleEndian.Pack((short)word, output, pos);
                     pos += step;
                 }
                 dst += 2;
             }
         }
 
-        void ResetBits ()
+        void ResetBits()
         {
             m_cached_bits = 0;
         }
 
-        int GetNextBit ()
+        int GetNextBit()
         {
-            return GetBits (1);
+            return GetBits(1);
         }
 
-        int GetBits (int count)
+        int GetBits(int count)
         {
             if (0 == m_cached_bits)
             {
@@ -606,7 +606,7 @@ namespace GameRes.Formats.Ankh
 
         #region IDisposable Members
         bool _disposed = false;
-        public void Dispose ()
+        public void Dispose()
         {
             if (!_disposed)
             {

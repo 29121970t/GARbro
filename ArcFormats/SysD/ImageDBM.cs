@@ -33,28 +33,29 @@ namespace GameRes.Formats.SysD
     [Export(typeof(ImageFormat))]
     public class DbmFormat : ImageFormat
     {
-        public override string         Tag { get { return "DBM"; } }
+        public override string Tag { get { return "DBM"; } }
         public override string Description { get { return "SYSD engine bitmap format"; } }
-        public override uint     Signature { get { return 0x4D44; } } // 'DM'
+        public override uint Signature { get { return 0x4D44; } } // 'DM'
 
-        public DbmFormat ()
+        public DbmFormat()
         {
             Signatures = new uint[] { 0x004D44, 0x014D44, 0x044D44 };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x18);
-            if (header.ToUInt32 (4) != file.Length)
+            var header = file.ReadHeader(0x18);
+            if (header.ToUInt32(4) != file.Length)
                 return null;
-            return new ImageMetaData {
-                Width  = header.ToUInt16 (0xA),
-                Height = header.ToUInt16 (0xC),
+            return new ImageMetaData
+            {
+                Width = header.ToUInt16(0xA),
+                Height = header.ToUInt16(0xC),
                 BPP = 24,
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
             file.Position = 0x18;
             bool is_packed = file.ReadByte() != 0;
@@ -63,22 +64,22 @@ namespace GameRes.Formats.SysD
             var pixels = new byte[unpacked_size];
             if (is_packed)
             {
-                using (var lzss = new LzssStream (file.AsStream, LzssMode.Decompress, true))
+                using (var lzss = new LzssStream(file.AsStream, LzssMode.Decompress, true))
                 {
-                    lzss.Read (pixels, 0, pixels.Length);
+                    lzss.ReadExactly(pixels);
                 }
             }
             else
             {
-                file.Read (pixels, 0, pixels.Length);
+                file.Read(pixels, 0, pixels.Length);
             }
             int stride = (int)info.Width * info.BPP / 8;
-            return ImageData.CreateFlipped (info, PixelFormats.Bgr24, null, pixels, stride);
+            return ImageData.CreateFlipped(info, PixelFormats.Bgr24, null, pixels, stride);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("DbmFormat.Write not implemented");
+            throw new System.NotImplementedException("DbmFormat.Write not implemented");
         }
     }
 }

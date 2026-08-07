@@ -11,11 +11,11 @@ namespace GameRes.Formats.GUI
     /// </summary>
     public partial class WidgetAGS : StackPanel
     {
-        public WidgetAGS (IEnumerable<string> known_titles)
+        public WidgetAGS(IEnumerable<string> known_titles)
         {
             InitializeComponent();
             var keys = new string[] { arcStrings.ArcNoEncryption };
-            Scheme.ItemsSource = keys.Concat (known_titles.OrderBy (x => x));
+            Scheme.ItemsSource = keys.Concat(known_titles.OrderBy(x => x));
             if (-1 == Scheme.SelectedIndex)
                 Scheme.SelectedIndex = 0;
         }

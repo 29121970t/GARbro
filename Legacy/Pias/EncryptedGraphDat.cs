@@ -36,39 +36,39 @@ namespace GameRes.Formats.Pias
 {
     internal class PiasEncryptedArchive : ArcFile
     {
-        public PiasEncryptedArchive (ArcView arc, ArchiveFormat impl, ICollection<Entry> dir)
-            : base (arc, impl, dir)
+        public PiasEncryptedArchive(ArcView arc, ArchiveFormat impl, ICollection<Entry> dir)
+            : base(arc, impl, dir)
         {
         }
     }
 
     internal class EncryptedIndexReader : IndexReader
     {
-        public EncryptedIndexReader (ArcView arc, ResourceType res) : base (arc, res)
+        public EncryptedIndexReader(ArcView arc, ResourceType res) : base(arc, res)
         {
         }
 
-        new public List<Entry> GetIndex ()
+        new public List<Entry> GetIndex()
         {
             if (m_res > 0)
             {
-                var text_name = VFS.ChangeFileName (m_arc.Name, "text.dat");
-                if (!VFS.FileExists (text_name))
+                var text_name = VFS.ChangeFileName(m_arc.Name, "text.dat");
+                if (!VFS.FileExists(text_name))
                     return null;
-                IBinaryStream input = VFS.OpenBinaryStream (text_name);
+                IBinaryStream input = VFS.OpenBinaryStream(text_name);
                 try
                 {
-                    if (!DatOpener.EncryptedSignatures.Contains (input.Signature))
+                    if (!DatOpener.EncryptedSignatures.Contains(input.Signature))
                         return null;
 
                     input.Position = 4;
-                    var rnd = new KeyGenerator (1);
-                    rnd.Seed (input.Signature);
-                    var crypto = new InputCryptoStream (input.AsStream, new PiasTransform (rnd));
-                    input = new BinaryStream (crypto, text_name);
+                    var rnd = new KeyGenerator(1);
+                    rnd.Seed(input.Signature);
+                    var crypto = new InputCryptoStream(input.AsStream, new PiasTransform(rnd));
+                    input = new BinaryStream(crypto, text_name);
 
-                    var reader = new TextReader (input);
-                    m_dir = reader.GetResourceList ((int)m_res);
+                    var reader = new TextReader(input);
+                    m_dir = reader.GetResourceList((int)m_res);
                 }
                 finally
                 {
@@ -87,49 +87,50 @@ namespace GameRes.Formats.Pias
                 return m_dir;
             }
             var buffer = new byte[4];
-            var key = new KeyGenerator (0);
+            var key = new KeyGenerator(0);
             for (int i = m_dir.Count - 1; i >= 0; --i)
             {
                 var entry = m_dir[i];
-                uint seed = m_arc.View.ReadUInt32 (entry.Offset);
-                m_arc.View.Read (entry.Offset+4, buffer, 0, 4);
-                key.Seed (seed);
-                Decrypt (buffer, 0, 4, key);
-                entry.Size = (buffer.ToUInt32 (0) & 0xFFFFFu) + 8u;
-                entry.Name = GetName (entry.Offset, i);
+                uint seed = m_arc.View.ReadUInt32(entry.Offset);
+                m_arc.View.Read(entry.Offset + 4, buffer, 0, 4);
+                key.Seed(seed);
+                Decrypt(buffer, 0, 4, key);
+                entry.Size = (buffer.ToUInt32(0) & 0xFFFFFu) + 8u;
+                entry.Name = GetName(entry.Offset, i);
                 entry.Type = "image";
             }
-            var known_offsets = new HashSet<long> (m_dir.Select (e => e.Offset));
+            var known_offsets = new HashSet<long>(m_dir.Select(e => e.Offset));
             long offset = 0;
             while (offset < m_arc.MaxOffset)
             {
-                uint seed = m_arc.View.ReadUInt32 (offset);
-                m_arc.View.Read (offset+4, buffer, 0, 4);
-                key.Seed (seed);
-                Decrypt (buffer, 0, 4, key);
-                uint entry_size = (buffer.ToUInt32 (0) & 0xFFFFFu) + 8u;
-                if (!known_offsets.Contains (offset))
+                uint seed = m_arc.View.ReadUInt32(offset);
+                m_arc.View.Read(offset + 4, buffer, 0, 4);
+                key.Seed(seed);
+                Decrypt(buffer, 0, 4, key);
+                uint entry_size = (buffer.ToUInt32(0) & 0xFFFFFu) + 8u;
+                if (!known_offsets.Contains(offset))
                 {
-                    var entry = new Entry {
-                        Name = GetName (offset, m_dir.Count) + "_",
+                    var entry = new Entry
+                    {
+                        Name = GetName(offset, m_dir.Count) + "_",
                         Type = "image",
                         Offset = offset,
                         Size = entry_size,
                     };
-                    if (!entry.CheckPlacement (m_arc.MaxOffset))
+                    if (!entry.CheckPlacement(m_arc.MaxOffset))
                         return null;
-                    m_dir.Add (entry);
+                    m_dir.Add(entry);
                 }
                 offset += entry_size + 4;
             }
             return m_dir;
         }
 
-        internal static void Decrypt (byte[] data, int pos, int length, KeyGenerator key)
+        internal static void Decrypt(byte[] data, int pos, int length, KeyGenerator key)
         {
             for (int i = 0; i < length; ++i)
             {
-                data[pos+i] ^= (byte)key.Next();
+                data[pos + i] ^= (byte)key.Next();
             }
         }
     }
@@ -137,19 +138,19 @@ namespace GameRes.Formats.Pias
     [Export(typeof(ArchiveFormat))]
     public class EncryptedDatOpener : DatOpener
     {
-        public override string         Tag => "DAT/PIAS/ENC";
+        public override string Tag => "DAT/PIAS/ENC";
         public override string Description => "Pias encrypted resource archive";
-        public override uint     Signature => 0;
-        public override bool      CanWrite => false;
+        public override uint Signature => 0;
+        public override bool CanWrite => false;
 
-        public EncryptedDatOpener ()
+        public EncryptedDatOpener()
         {
             Signatures = new[] { 0x02F3A62Bu, 0u };
         }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            var arc_name = Path.GetFileName (file.Name).ToLowerInvariant();
+            var arc_name = Path.GetFileName(file.Name).ToLowerInvariant();
 
             ResourceType resource_type = ResourceType.Undefined;
             if ("sound.dat" == arc_name)
@@ -159,26 +160,26 @@ namespace GameRes.Formats.Pias
             else
                 return null;
 
-            var index = new EncryptedIndexReader (file, resource_type);
+            var index = new EncryptedIndexReader(file, resource_type);
             var dir = index.GetIndex();
             if (null == dir)
                 return null;
             if (index.IsEncrypted)
-                return new PiasEncryptedArchive (file, this, dir);
+                return new PiasEncryptedArchive(file, this, dir);
             else
-                return new ArcFile (file, this, dir);
+                return new ArcFile(file, this, dir);
         }
 
-        public override IImageDecoder OpenImage (ArcFile arc, Entry entry)
+        public override IImageDecoder OpenImage(ArcFile arc, Entry entry)
         {
-            var input = arc.OpenBinaryEntry (entry);
-            return new EncryptedGraphDecoder (input);
+            var input = arc.OpenBinaryEntry(entry);
+            return new EncryptedGraphDecoder(input);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             if (entry.Type != "audio")
-                return OpenEncrypted (arc, entry);
+                return OpenEncrypted(arc, entry);
             var format = new WaveFormat
             {
                 FormatTag = 1,
@@ -188,40 +189,40 @@ namespace GameRes.Formats.Pias
                 BitsPerSample = 16,
                 BlockAlign = 4,
             };
-            return OpenAudioEntry (arc, entry, format);
+            return OpenAudioEntry(arc, entry, format);
         }
 
-        public Stream OpenEncrypted (ArcFile arc, Entry entry)
+        public Stream OpenEncrypted(ArcFile arc, Entry entry)
         {
-            uint seed = arc.File.View.ReadUInt32 (entry.Offset);
-            var stream = arc.File.CreateStream (entry.Offset+4, entry.Size);
-            var key = new KeyGenerator (0);
-            key.Seed (seed);
-            return new InputCryptoStream (stream, new PiasTransform (key));
+            uint seed = arc.File.View.ReadUInt32(entry.Offset);
+            var stream = arc.File.CreateStream(entry.Offset + 4, entry.Size);
+            var key = new KeyGenerator(0);
+            key.Seed(seed);
+            return new InputCryptoStream(stream, new PiasTransform(key));
         }
     }
 
     internal class KeyGenerator
     {
-        int     m_type;
-        uint    m_seed;
+        int m_type;
+        uint m_seed;
 
         // 0 -> graph.dat
         // 1 -> text.dat
         // 2 -> save.dat
 
-        public KeyGenerator (int type)
+        public KeyGenerator(int type)
         {
             m_type = type;
             m_seed = 0;
         }
 
-        public void Seed (uint seed)
+        public void Seed(uint seed)
         {
             m_seed = seed;
         }
 
-        public uint Next ()
+        public uint Next()
         {
             uint y, x;
             if (0 == m_type)
@@ -259,19 +260,19 @@ namespace GameRes.Formats.Pias
 
     internal sealed class PiasTransform : ByteTransform
     {
-        KeyGenerator     m_key;
+        KeyGenerator m_key;
 
-        public PiasTransform (KeyGenerator key)
+        public PiasTransform(KeyGenerator key)
         {
             m_key = key;
         }
 
-        public override int TransformBlock (byte[] inputBuffer, int inputOffset, int inputCount,
+        public override int TransformBlock(byte[] inputBuffer, int inputOffset, int inputCount,
                                    byte[] outputBuffer, int outputOffset)
         {
             for (int i = 0; i < inputCount; ++i)
             {
-                outputBuffer[outputOffset++] = (byte)(m_key.Next() ^ inputBuffer[inputOffset+i]);
+                outputBuffer[outputOffset++] = (byte)(m_key.Next() ^ inputBuffer[inputOffset + i]);
             }
             return inputCount;
         }
@@ -279,14 +280,14 @@ namespace GameRes.Formats.Pias
 
     internal class EncryptedGraphDecoder : BinaryImageDecoder
     {
-        public EncryptedGraphDecoder (IBinaryStream input) : base (input, new ImageMetaData { BPP = 16 })
+        public EncryptedGraphDecoder(IBinaryStream input) : base(input, new ImageMetaData { BPP = 16 })
         {
             m_input.ReadInt32(); // skip size
-            Info.Width  = m_input.ReadUInt16() & 0x3FFu;
+            Info.Width = m_input.ReadUInt16() & 0x3FFu;
             Info.Height = m_input.ReadUInt16() & 0x3FFu;
         }
 
-        protected override ImageData GetImageData ()
+        protected override ImageData GetImageData()
         {
             m_input.Position = 8;
             int width = Info.iWidth;
@@ -311,14 +312,14 @@ namespace GameRes.Formats.Pias
                     int hidword = p >> 31;
                     p = (p & ~0xFF) | ((hidword & 0xFF) ^ (m + 16));
                     int src = dst + n - (hidword ^ ((p - hidword) & 0x1F) - hidword);
-                    count = Math.Min (count, output_size - dst);
+                    count = Math.Min(count, output_size - dst);
                     if (step_vertical)
                     {
                         if (step_back)
                         {
                             for (int i = 0; i < count; ++i)
                             {
-                                pixels[dst+i] = pixels[src];
+                                pixels[dst + i] = pixels[src];
                                 src -= width;
                             }
                         }
@@ -327,7 +328,7 @@ namespace GameRes.Formats.Pias
                             int step = width;
                             for (int i = 0; i < count; ++i)
                             {
-                                pixels[dst+i] = pixels[src];
+                                pixels[dst + i] = pixels[src];
                                 src += width;
                             }
                         }
@@ -336,14 +337,14 @@ namespace GameRes.Formats.Pias
                     {
                         for (int i = 0; i < count; ++i)
                         {
-                            pixels[dst+i] = pixels[src--];
+                            pixels[dst + i] = pixels[src--];
                         }
                     }
                     else
                     {
                         for (int i = 0; i < count; ++i)
                         {
-                            pixels[dst+i] = pixels[src++];
+                            pixels[dst + i] = pixels[src++];
                         }
                     }
                 }
@@ -355,7 +356,7 @@ namespace GameRes.Formats.Pias
                 dst += count;
             }
             int stride = width * 2;
-            return ImageData.Create (Info, PixelFormats.Bgr555, null, pixels, stride);
+            return ImageData.Create(Info, PixelFormats.Bgr555, null, pixels, stride);
         }
 
         static readonly ushort[] OffsetMask2 = {

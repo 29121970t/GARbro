@@ -35,8 +35,8 @@ namespace GameRes.Formats.Aims
     {
         public readonly byte[] Key;
 
-        public LunaArchive (ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, byte[] key)
-            : base (arc, impl, dir)
+        public LunaArchive(ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, byte[] key)
+            : base(arc, impl, dir)
         {
             Key = key;
         }
@@ -45,13 +45,13 @@ namespace GameRes.Formats.Aims
     [Export(typeof(ArchiveFormat))]
     public class PackOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "PACK/AIMS"; } }
+        public override string Tag { get { return "PACK/AIMS"; } }
         public override string Description { get { return "AIMS engine resource archive"; } }
-        public override uint     Signature { get { return 0x4B434150; } } // 'PACK'
-        public override bool  IsHierarchic { get { return true; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x4B434150; } } // 'PACK'
+        public override bool IsHierarchic { get { return true; } }
+        public override bool CanWrite { get { return false; } }
 
-        public PackOpener ()
+        public PackOpener()
         {
             Extensions = new string[] { "p", "mus", "pac" };
         }
@@ -63,45 +63,45 @@ namespace GameRes.Formats.Aims
         // 0x48 offset
         // 0x4C size
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            int count = file.View.ReadInt32 (4);
-            if (!IsSaneCount (count))
+            int count = file.View.ReadInt32(4);
+            if (!IsSaneCount(count))
                 return null;
 
             uint index_offset = 8;
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
-                var name = file.View.ReadString (index_offset, 0x40);
-                var entry = FormatCatalog.Instance.Create<PackedEntry> (name);
-                entry.Offset = file.View.ReadUInt32 (index_offset+0x48);
-                entry.Size   = file.View.ReadUInt32 (index_offset+0x4C);
-                if (!entry.CheckPlacement (file.MaxOffset))
+                var name = file.View.ReadString(index_offset, 0x40);
+                var entry = FormatCatalog.Instance.Create<PackedEntry>(name);
+                entry.Offset = file.View.ReadUInt32(index_offset + 0x48);
+                entry.Size = file.View.ReadUInt32(index_offset + 0x4C);
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
-                dir.Add (entry);
+                dir.Add(entry);
                 index_offset += 0x50;
             }
-            return new LunaArchive (file, this, dir, DefaultKey);
+            return new LunaArchive(file, this, dir, DefaultKey);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var larc = arc as LunaArchive;
-            if (null == arc || !arc.File.View.AsciiEqual (entry.Offset, "LZSS"))
-                return base.OpenEntry (arc, entry);
+            if (null == arc || !arc.File.View.AsciiEqual(entry.Offset, "LZSS"))
+                return base.OpenEntry(arc, entry);
 
-            uint unpacked_size = arc.File.View.ReadUInt32 (entry.Offset+4);
-            Stream input = arc.File.CreateStream (entry.Offset+8, entry.Size-8);
+            uint unpacked_size = arc.File.View.ReadUInt32(entry.Offset + 4);
+            Stream input = arc.File.CreateStream(entry.Offset + 8, entry.Size - 8);
             if (larc.Key != null)
             {
-                var bf = new Blowfish (larc.Key);
-                input = new InputCryptoStream (input, bf.CreateDecryptor());
-                return new LimitStream (input, unpacked_size);
+                var bf = new Blowfish(larc.Key);
+                input = new InputCryptoStream(input, bf.CreateDecryptor());
+                return new LimitStream(input, unpacked_size);
             }
             else
             {
-                var lz = new LzssStream (input);
+                var lz = new LzssStream(input);
                 lz.Config.FrameInitPos = 0xFF0;
                 return lz;
             }

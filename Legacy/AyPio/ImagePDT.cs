@@ -42,31 +42,32 @@ namespace GameRes.Formats.AyPio
     [Export(typeof(ImageFormat))]
     public class PdtFormat : ImageFormat
     {
-        public override string         Tag => "PDT/UK2";
+        public override string Tag => "PDT/UK2";
         public override string Description => "UK2 engine image format";
-        public override uint     Signature => 0;
+        public override uint Signature => 0;
 
-        public PdtFormat ()
+        public PdtFormat()
         {
             Extensions = new[] { "pdt", "anm" };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
             if (file.ReadByte() != 0x34)
                 return null;
             file.Position = 0x21;
-            byte rle1  = file.ReadUInt8();
-            byte rle2  = file.ReadUInt8();
-            int left   = file.ReadUInt16();
-            int top    = file.ReadUInt16();
-            int right  = file.ReadUInt16();
+            byte rle1 = file.ReadUInt8();
+            byte rle2 = file.ReadUInt8();
+            int left = file.ReadUInt16();
+            int top = file.ReadUInt16();
+            int right = file.ReadUInt16();
             int bottom = file.ReadUInt16();
             int width = (right - left + 1) << 3;
             int height = (((bottom - top) >> 1) + 1) << 1;
             if (width <= 0 || height <= 0 || width > 2048 || height > 512)
                 return null;
-            return new PdtMetaData {
+            return new PdtMetaData
+            {
                 Width = (uint)width,
                 Height = (uint)height,
                 OffsetX = left << 3,
@@ -77,24 +78,24 @@ namespace GameRes.Formats.AyPio
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new Pdt4Reader (file, (PdtMetaData)info);
+            var reader = new Pdt4Reader(file, (PdtMetaData)info);
             return reader.Unpack();
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("PdtFormat.Write not implemented");
+            throw new System.NotImplementedException("PdtFormat.Write not implemented");
         }
     }
 
     internal class Pdt4Reader
     {
-        IBinaryStream   m_input;
-        PdtMetaData     m_info;
+        IBinaryStream m_input;
+        PdtMetaData m_info;
 
-        public Pdt4Reader (IBinaryStream input, PdtMetaData info)
+        public Pdt4Reader(IBinaryStream input, PdtMetaData info)
         {
             m_input = input;
             m_info = info;
@@ -103,7 +104,7 @@ namespace GameRes.Formats.AyPio
         int m_stride;
         int m_rows;
 
-        public ImageData Unpack ()
+        public ImageData Unpack()
         {
             m_input.Position = 1;
             var palette = ReadPalette();
@@ -117,13 +118,13 @@ namespace GameRes.Formats.AyPio
                 new byte[plane_size], new byte[plane_size], new byte[plane_size], new byte[plane_size]
             };
             for (int i = 0; i < 4; ++i)
-                UnpackPlane (planes[i]);
+                UnpackPlane(planes[i]);
             var pixels = new byte[output_stride * height];
-            FlattenPlanes (planes, pixels);
-            return ImageData.Create (m_info, PixelFormats.Indexed4, palette, pixels, output_stride);
+            FlattenPlanes(planes, pixels);
+            return ImageData.Create(m_info, PixelFormats.Indexed4, palette, pixels, output_stride);
         }
 
-        void UnpackPlane (byte[] output)
+        void UnpackPlane(byte[] output)
         {
             for (int x = 0; x < m_stride; ++x)
             {
@@ -150,7 +151,7 @@ namespace GameRes.Formats.AyPio
                         p0 = ctl;
                         p1 = m_input.ReadUInt8();
                     }
-                    while (count --> 0)
+                    while (count-- > 0)
                     {
                         output[dst] = p0;
                         dst += m_stride;
@@ -162,7 +163,7 @@ namespace GameRes.Formats.AyPio
             }
         }
 
-        void FlattenPlanes (byte[][] planes, byte[] output)
+        void FlattenPlanes(byte[][] planes, byte[] output)
         {
             int plane_size = planes[0].Length;
             int dst = 0;
@@ -177,7 +178,7 @@ namespace GameRes.Formats.AyPio
                     byte px = (byte)((((b0 << j) & 0x80) >> 3)
                                    | (((b1 << j) & 0x80) >> 2)
                                    | (((b2 << j) & 0x80) >> 1)
-                                   | (((b3 << j) & 0x80)     ));
+                                   | (((b3 << j) & 0x80)));
                     px |= (byte)((((b0 << j) & 0x40) >> 6)
                                | (((b1 << j) & 0x40) >> 5)
                                | (((b2 << j) & 0x40) >> 4)
@@ -187,7 +188,7 @@ namespace GameRes.Formats.AyPio
             }
         }
 
-        BitmapPalette ReadPalette ()
+        BitmapPalette ReadPalette()
         {
             var colors = new Color[16];
             for (int i = 0; i < 16; ++i)
@@ -196,9 +197,9 @@ namespace GameRes.Formats.AyPio
                 int b = (rgb & 0xF) * 0x11;
                 int r = ((rgb >> 4) & 0xF) * 0x11;
                 int g = ((rgb >> 8) & 0xF) * 0x11;
-                colors[i] = Color.FromRgb ((byte)r, (byte)g, (byte)b);
+                colors[i] = Color.FromRgb((byte)r, (byte)g, (byte)b);
             }
-            return new BitmapPalette (colors);
+            return new BitmapPalette(colors);
         }
     }
 }

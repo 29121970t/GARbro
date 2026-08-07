@@ -38,68 +38,69 @@ namespace GameRes.Formats.HyperWorks
     [Export(typeof(ImageFormat))]
     public class GFormat : ImageFormat
     {
-        public override string         Tag => "G";
+        public override string Tag => "G";
         public override string Description => "HyperWorks indexed image format";
-        public override uint     Signature => 0x1A477D00;
+        public override uint Signature => 0x1A477D00;
 
-        public GFormat ()
+        public GFormat()
         {
             Signatures = new[] { 0x1A477D00u, 0u };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (12);
-            if (header.ToUInt16 (2) != 0x1A47)
+            var header = file.ReadHeader(12);
+            if (header.ToUInt16(2) != 0x1A47)
                 return null;
             // not sure if 0x7D00 is a required signature, so rely on filename
-            if (header.ToUInt16 (0) != 0x7D00 && !file.Name.HasExtension (".G"))
+            if (header.ToUInt16(0) != 0x7D00 && !file.Name.HasExtension(".G"))
                 return null;
-            return new ImageMetaData {
-                Width = header.ToUInt16 (8),
-                Height = header.ToUInt16 (10),
-                OffsetX = header.ToInt16 (4),
-                OffsetY = header.ToInt16 (6),
+            return new ImageMetaData
+            {
+                Width = header.ToUInt16(8),
+                Height = header.ToUInt16(10),
+                OffsetX = header.ToInt16(4),
+                OffsetY = header.ToInt16(6),
                 BPP = 8,
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new GReader (file, info);
+            var reader = new GReader(file, info);
             return reader.Unpack();
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("GFormat.Write not implemented");
+            throw new System.NotImplementedException("GFormat.Write not implemented");
         }
     }
 
     internal sealed class GReader
     {
-        IBinaryStream   m_input;
-        ImageMetaData   m_info;
-        int             m_stride;
-        byte[]          m_palette_data;
-        byte[]          m_output;
-        ushort[]        m_buffer;
-        int[]           m_line_ptr;
+        IBinaryStream m_input;
+        ImageMetaData m_info;
+        int m_stride;
+        byte[] m_palette_data;
+        byte[] m_output;
+        ushort[] m_buffer;
+        int[] m_line_ptr;
 
-        public GReader (IBinaryStream input, ImageMetaData info)
+        public GReader(IBinaryStream input, ImageMetaData info)
         {
             m_input = input;
             m_info = info;
             m_stride = (m_info.iWidth * m_info.BPP / 8 + 1) & -2;
-            int s = Math.Max (0x142, m_stride / 2 + 2); // line buffer size
+            int s = Math.Max(0x142, m_stride / 2 + 2); // line buffer size
             m_buffer = new ushort[s * 3 + 1];
-            m_line_ptr = new int[3] { 1, 1 + s, 1 + s*2 };
+            m_line_ptr = new int[3] { 1, 1 + s, 1 + s * 2 };
         }
 
-        public ImageData Unpack ()
+        public ImageData Unpack()
         {
             m_input.Position = 0x0C;
-            m_palette_data = m_input.ReadBytes (0x30);
+            m_palette_data = m_input.ReadBytes(0x30);
             m_input.Position = 0x40;
             int width = ((m_info.iWidth + 7) & -8);
             int rows = ((m_info.iHeight + 1) & -2);
@@ -119,31 +120,31 @@ namespace GameRes.Formats.HyperWorks
                 {
                     if (GetNextBit() != 0)
                     {
-                        m_buffer[dst++] = GetColorFromTable (x);
+                        m_buffer[dst++] = GetColorFromTable(x);
                         ++x;
                     }
                     else
                     {
-                        int count = ExtractBits (BitTable1);
+                        int count = ExtractBits(BitTable1);
                         if (count >= 0x40)
-                            count += ExtractBits (BitTable1);
-                        int idx = ExtractBits (BitTable2) * 2;
+                            count += ExtractBits(BitTable1);
+                        int idx = ExtractBits(BitTable2) * 2;
                         int src = m_line_ptr[OffTable[idx + 1]];
                         src += OffTable[idx] + x;
                         x += count;
-                        while (count --> 0)
+                        while (count-- > 0)
                         {
                             m_buffer[dst++] = m_buffer[src++];
                         }
                     }
                 }
-                UnpackRow (y, blockW, m_line_ptr[0]);
+                UnpackRow(y, blockW, m_line_ptr[0]);
             }
             var palette = UnpackPalette();
-            return ImageData.Create (m_info, PixelFormats.Indexed8, palette, m_output, m_stride);
+            return ImageData.Create(m_info, PixelFormats.Indexed8, palette, m_output, m_stride);
         }
 
-        void UnpackRow (int y, int width, int buf_pos)
+        void UnpackRow(int y, int width, int buf_pos)
         {
             int row1 = m_stride * y * 2;
             int row2 = row1 + m_stride;
@@ -151,50 +152,50 @@ namespace GameRes.Formats.HyperWorks
             {
                 ushort v = m_buffer[buf_pos++];
                 ushort v0 = (ushort)((v & 0xF00 | ((v & 0xF000) >> 12)) + 0xA0A);
-                LittleEndian.Pack (v0, m_output, row2);
+                LittleEndian.Pack(v0, m_output, row2);
                 row2 += 2;
                 ushort v1 = (ushort)((((v & 0xF) << 8) | ((v & 0xF0) >> 4)) + 0xA0A);
-                LittleEndian.Pack (v1, m_output, row1);
+                LittleEndian.Pack(v1, m_output, row1);
                 row1 += 2;
             }
         }
 
         byte[] g_palIndexes = { 0, 1, 4, 5, 2, 3, 6, 7, 8, 9, 0xC, 0xD, 0xA, 0xB, 0xE, 0xF };
 
-        BitmapPalette UnpackPalette ()
+        BitmapPalette UnpackPalette()
         {
             var colors = new Color[42];
             for (int i = 0; i < 16; ++i)
             {
-                int R = m_palette_data[3 * g_palIndexes[i]    ]; R |= R << 4;
+                int R = m_palette_data[3 * g_palIndexes[i]]; R |= R << 4;
                 int G = m_palette_data[3 * g_palIndexes[i] + 1]; G |= G << 4;
                 int B = m_palette_data[3 * g_palIndexes[i] + 2]; B |= B << 4;
-                colors[i+10] = Color.FromRgb ((byte)R, (byte)G, (byte)B);
+                colors[i + 10] = Color.FromRgb((byte)R, (byte)G, (byte)B);
 
                 int b = R & 1;
                 int c = (sbyte)R >> 1;
                 if (c < 0)
                     c += b;
-                colors[i+26].R = (byte)c;
+                colors[i + 26].R = (byte)c;
 
                 b = G & 1;
                 c = (sbyte)G >> 1;
                 if (c < 0)
                     c += b;
-                colors[i+26].G = (byte)c;
+                colors[i + 26].G = (byte)c;
 
                 b = B & 1;
                 c = (sbyte)B >> 1;
                 if (c < 0)
                     c += b;
-                colors[i+26].B = (byte)c;
+                colors[i + 26].B = (byte)c;
             }
-            return new BitmapPalette (colors);
+            return new BitmapPalette(colors);
         }
 
         byte[] g_colorTable = new byte[256];
 
-        void InitColorTable ()
+        void InitColorTable()
         {
             int dst = 0;
             for (int i = 0; i < 16; ++i)
@@ -202,22 +203,22 @@ namespace GameRes.Formats.HyperWorks
                     g_colorTable[dst++] = (byte)((j + i + 1) & 0xF);
         }
 
-        ushort GetColorFromTable (int x)
+        ushort GetColorFromTable(int x)
         {
             ushort b0 = m_buffer[m_line_ptr[1] + x];
-            int n0 =  b0 & 0xF;
+            int n0 = b0 & 0xF;
             int n1 = (b0 >> 4) & 0xF;
             int n2 = (b0 >> 8) & 0xF;
             int n3 = (b0 >> 12) & 0xF;
 
             ushort b1 = m_buffer[m_line_ptr[1] + x - 1];
-            int m0 =  b1 & 0xF;
+            int m0 = b1 & 0xF;
             int m1 = (b1 >> 4) & 0xF;
             int m2 = (b1 >> 8) & 0xF;
             int m3 = (b1 >> 12) & 0xF;
 
             ushort b2 = m_buffer[m_line_ptr[0] + x - 1];
-            int p0 =  b2 & 0xF;
+            int p0 = b2 & 0xF;
             int p1 = (b2 >> 4) & 0xF;
             int p2 = (b2 >> 8) & 0xF;
             int p3 = (b2 >> 12) & 0xF;
@@ -231,7 +232,7 @@ namespace GameRes.Formats.HyperWorks
                     r1 = m2;
             }
             if (GetNextBit() != 0)
-                r1 = AdjustColorTable (r1);
+                r1 = AdjustColorTable(r1);
 
             int r0 = n0;
             if (n0 != n2 && (n0 != m0 || n0 != p0))
@@ -242,7 +243,7 @@ namespace GameRes.Formats.HyperWorks
                     r0 = n3;
             }
             if (GetNextBit() != 0)
-                r0 = AdjustColorTable (r0);
+                r0 = AdjustColorTable(r0);
 
             int r3 = n3;
             if (r1 != n3 && (n3 != m3 || n3 != p3))
@@ -253,7 +254,7 @@ namespace GameRes.Formats.HyperWorks
                     r3 = p0;
             }
             if (GetNextBit() != 0)
-                r3 = AdjustColorTable (r3);
+                r3 = AdjustColorTable(r3);
 
             int r2 = n2;
             if (n2 != r0 && (n2 != m2 || n2 != p2))
@@ -264,21 +265,21 @@ namespace GameRes.Formats.HyperWorks
                     r2 = r1;
             }
             if (GetNextBit() != 0)
-                r2 = AdjustColorTable (r2);
+                r2 = AdjustColorTable(r2);
 
             return (ushort)((r3 << 12) | (r2 << 8) | (r1 << 4) | r0);
         }
 
-        byte AdjustColorTable (int idx)
+        byte AdjustColorTable(int idx)
         {
-            int shift_count = ExtractBits (BitTable3);
+            int shift_count = ExtractBits(BitTable3);
             int i = 16 * idx + shift_count;
             byte c = g_colorTable[i];
             if (shift_count != 0)
             {
-                while (shift_count --> 0)
+                while (shift_count-- > 0)
                 {
-                    g_colorTable[i] = g_colorTable[i-1];
+                    g_colorTable[i] = g_colorTable[i - 1];
                     --i;
                 }
                 g_colorTable[i] = c;
@@ -286,7 +287,7 @@ namespace GameRes.Formats.HyperWorks
             return c;
         }
 
-        int ExtractBits (byte[] table)
+        int ExtractBits(byte[] table)
         {
             int idx = ((bits >> 8) & 0xFF) << 1;
             int n = table[idx];
@@ -303,7 +304,7 @@ namespace GameRes.Formats.HyperWorks
                 }
                 bits <<= n;
                 bitCount -= n;
-                return table[idx+1];
+                return table[idx + 1];
             }
             else
             {
@@ -312,7 +313,7 @@ namespace GameRes.Formats.HyperWorks
                 if (b != -1) // XXX ignore EOF
                     bits |= b;
                 bits <<= 8 - bitCount;
-                int t = table[idx+1];
+                int t = table[idx + 1];
                 do
                 {
                     int i = GetNextBit();
@@ -326,14 +327,14 @@ namespace GameRes.Formats.HyperWorks
         int bits;
         int bitCount;
 
-        private void SetupBitReader ()
+        private void SetupBitReader()
         {
-            bits  = m_input.ReadUInt8() << 8;
+            bits = m_input.ReadUInt8() << 8;
             bits |= m_input.ReadUInt8();
             bitCount = 8;
         }
 
-        private int GetNextBit ()
+        private int GetNextBit()
         {
             bits <<= 1;
             if (0 == --bitCount)

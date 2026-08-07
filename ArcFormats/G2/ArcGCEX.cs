@@ -35,107 +35,107 @@ namespace GameRes.Formats.G2
     [Export(typeof(ArchiveFormat))]
     public class PakOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "PAK/G2"; } }
+        public override string Tag { get { return "PAK/G2"; } }
         public override string Description { get { return "G2 engine resource archive"; } }
-        public override uint     Signature { get { return 0x58454347; } } // 'GCEX'
-        public override bool  IsHierarchic { get { return true; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x58454347; } } // 'GCEX'
+        public override bool IsHierarchic { get { return true; } }
+        public override bool CanWrite { get { return false; } }
 
-        public PakOpener ()
+        public PakOpener()
         {
             Extensions = new string[] { "pak" };
         }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            if (0 != file.View.ReadInt32 (4))
+            if (0 != file.View.ReadInt32(4))
                 return null;
-            long index_offset = file.View.ReadInt64 (8);
+            long index_offset = file.View.ReadInt64(8);
             if (index_offset >= file.MaxOffset)
                 return null;
-            if (!file.View.AsciiEqual (index_offset, "GCE3"))
+            if (!file.View.AsciiEqual(index_offset, "GCE3"))
                 return null;
-            int count = file.View.ReadInt32 (index_offset+0x18);
-            if (!IsSaneCount (count))
+            int count = file.View.ReadInt32(index_offset + 0x18);
+            if (!IsSaneCount(count))
                 return null;
-            bool index_packed = 0x11 == file.View.ReadInt32 (index_offset+4);
-            uint index_size = file.View.ReadUInt32 (index_offset+8);
+            bool index_packed = 0x11 == file.View.ReadInt32(index_offset + 4);
+            uint index_size = file.View.ReadUInt32(index_offset + 8);
             byte[] index = null;
             if (index_packed)
             {
                 index_size -= 0x28;
-                int unpacked_size = file.View.ReadInt32 (index_offset+0x20);
-                using (var input = file.CreateStream (index_offset+0x28, index_size))
-                using (var reader = new GceReader (input, unpacked_size))
+                int unpacked_size = file.View.ReadInt32(index_offset + 0x20);
+                using (var input = file.CreateStream(index_offset + 0x28, index_size))
+                using (var reader = new GceReader(input, unpacked_size))
                     index = reader.Data;
             }
             else
             {
                 index_size -= 0x20;
                 index = new byte[index_size];
-                if (index.Length != file.View.Read (index_offset+0x20, index, 0, index_size))
+                if (index.Length != file.View.Read(index_offset + 0x20, index, 0, index_size))
                     return null;
             }
             int current_index = 0;
-            int current_filename = 0x20*count;
+            int current_filename = 0x20 * count;
             long current_offset = 0x10;
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
-                int name_length = LittleEndian.ToUInt16 (index, current_filename);
-                if (current_filename+2+name_length > index.Length)
+                int name_length = LittleEndian.ToUInt16(index, current_filename);
+                if (current_filename + 2 + name_length > index.Length)
                     return null;
-                uint size = LittleEndian.ToUInt32 (index, current_index+0x18);
+                uint size = LittleEndian.ToUInt32(index, current_index + 0x18);
                 if (size != 0)
                 {
-                    string name = Encodings.cp932.GetString (index, current_filename+2, name_length);
+                    string name = Encodings.cp932.GetString(index, current_filename + 2, name_length);
                     var entry = new PackedEntry
                     {
                         Name = name,
-                        Type = FormatCatalog.Instance.GetTypeFromName (name),
+                        Type = FormatCatalog.Instance.GetTypeFromName(name),
                         Offset = current_offset,
                         Size = size,
-                        UnpackedSize = LittleEndian.ToUInt32 (index, current_index+0x10),
+                        UnpackedSize = LittleEndian.ToUInt32(index, current_index + 0x10),
                     };
-                    if (!entry.CheckPlacement (file.MaxOffset))
+                    if (!entry.CheckPlacement(file.MaxOffset))
                         return null;
                     entry.IsPacked = entry.Size != entry.UnpackedSize;
                     current_offset += entry.Size;
-                    dir.Add (entry);
+                    dir.Add(entry);
                 }
                 current_index += 0x20;
                 current_filename += 2 + name_length;
             }
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             if (0 == entry.Size)
                 return Stream.Null;
-            var input = arc.File.CreateStream (entry.Offset, entry.Size);
+            var input = arc.File.CreateStream(entry.Offset, entry.Size);
             var pentry = entry as PackedEntry;
             if (null == pentry || !pentry.IsPacked)
                 return input;
-            if (!arc.File.View.AsciiEqual (entry.Offset, "GCE"))
+            if (!arc.File.View.AsciiEqual(entry.Offset, "GCE"))
             {
-                Trace.WriteLine ("Packed entry is not GCE", entry.Name);
+                Trace.WriteLine("Packed entry is not GCE", entry.Name);
                 return input;
             }
             using (input)
-            using (var reader = new GceReader (input, (int)pentry.UnpackedSize))
+            using (var reader = new GceReader(input, (int)pentry.UnpackedSize))
             {
-                return new BinMemoryStream (reader.Data, entry.Name);
+                return new BinMemoryStream(reader.Data, entry.Name);
             }
         }
     }
 
     internal class GceReader : IDisposable
     {
-        IBinaryStream   m_input;
-        int             m_unpacked_size;
-        byte[]          m_output = null;
-        int             m_dst;
+        IBinaryStream m_input;
+        int m_unpacked_size;
+        byte[] m_output = null;
+        int m_dst;
 
         public byte[] Data
         {
@@ -150,20 +150,20 @@ namespace GameRes.Formats.G2
             }
         }
 
-        public GceReader (IBinaryStream input, int unpacked_size)
+        public GceReader(IBinaryStream input, int unpacked_size)
         {
             m_input = input;
             m_unpacked_size = unpacked_size;
         }
 
-        private void Unpack ()
+        private void Unpack()
         {
             m_dst = 0;
             byte[] id = new byte[4];
-            while (4 == m_input.Read (id, 0, 4))
+            while (4 == m_input.Read(id, 0, 4))
             {
                 int segment_length = m_input.ReadInt32();
-                if (Binary.AsciiEqual (id, "GCE1"))
+                if (Binary.AsciiEqual(id, "GCE1"))
                 {
                     m_input.ReadInt32();
                     int data_length = m_input.ReadInt32();
@@ -171,36 +171,36 @@ namespace GameRes.Formats.G2
                     m_input.ReadInt32();
                     int cmd_len = m_input.ReadInt32();
                     long cmd_pos = m_input.Position + data_length;
-                    ReadControlStream (cmd_pos, cmd_len);
+                    ReadControlStream(cmd_pos, cmd_len);
 
                     int next = m_dst + segment_length;
-                    UnpackGce1Segment (segment_length);
+                    UnpackGce1Segment(segment_length);
                     m_dst = next;
                     m_input.Position = cmd_pos + cmd_len;
                 }
-                else if (Binary.AsciiEqual (id, "GCE0"))
+                else if (Binary.AsciiEqual(id, "GCE0"))
                 {
-                    if (segment_length != m_input.Read (m_output, m_dst, segment_length))
+                    if (segment_length != m_input.Read(m_output, m_dst, segment_length))
                         throw new EndOfStreamException();
                     m_dst += segment_length;
                 }
                 else
                 {
-                    throw new InvalidFormatException ("Unknown compression type in GCE stream");
+                    throw new InvalidFormatException("Unknown compression type in GCE stream");
                 }
             }
         }
 
         int[] m_frame = new int[0x10000];
 
-        void UnpackGce1Segment (int segment_length)
+        void UnpackGce1Segment(int segment_length)
         {
             int frame_pos = 0;
             int dst_end = m_dst + segment_length;
             while (m_dst < dst_end)
             {
                 int n = GetLength();
-                while (n --> 0)
+                while (n-- > 0)
                 {
                     m_frame[frame_pos] = m_dst;
                     byte b = m_input.ReadUInt8();
@@ -211,7 +211,7 @@ namespace GameRes.Formats.G2
                     break;
                 n = GetLength() + 1;
                 int src = m_frame[frame_pos];
-                while (n --> 0)
+                while (n-- > 0)
                 {
                     m_frame[frame_pos] = m_dst;
                     frame_pos = ((frame_pos << 8) | m_output[src]) & 0xFFFF;
@@ -220,7 +220,7 @@ namespace GameRes.Formats.G2
             }
         }
 
-        int GetLength ()
+        int GetLength()
         {
             int v = 0;
             if (0 == GetBit())
@@ -229,24 +229,24 @@ namespace GameRes.Formats.G2
                 while (0 == GetBit())
                     ++digits;
                 v = 1 << digits;
-                while (digits --> 0)
+                while (digits-- > 0)
                     v |= GetBit() << digits;
             }
             return v;
         }
 
-        byte[]  m_control;
-        int     m_control_pos;
-        int     m_control_len;
-        int     m_bit_pos;
+        byte[] m_control;
+        int m_control_pos;
+        int m_control_len;
+        int m_bit_pos;
 
-        void ReadControlStream (long pos, int length)
+        void ReadControlStream(long pos, int length)
         {
             var data_pos = m_input.Position;
             if (null == m_control || m_control.Length < length)
                 m_control = new byte[length];
             m_input.Position = pos;
-            if (length != m_input.Read (m_control, 0, length))
+            if (length != m_input.Read(m_control, 0, length))
                 throw new EndOfStreamException();
             m_control_pos = 0;
             m_control_len = length;
@@ -254,7 +254,7 @@ namespace GameRes.Formats.G2
             m_bit_pos = 8;
         }
 
-        int GetBit ()
+        int GetBit()
         {
             if (0 == m_bit_pos--)
             {
@@ -268,7 +268,7 @@ namespace GameRes.Formats.G2
         }
 
         #region IDisposable Members
-        public void Dispose ()
+        public void Dispose()
         {
         }
         #endregion

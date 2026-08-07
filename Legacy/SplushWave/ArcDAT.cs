@@ -41,61 +41,62 @@ namespace GameRes.Formats.SplushWave
     [Export(typeof(ArchiveFormat))]
     public class DatOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "DAT/FLK"; } }
+        public override string Tag { get { return "DAT/FLK"; } }
         public override string Description { get { return "Splush Wave resource archive"; } }
-        public override uint     Signature { get { return 0x4B4C46; } } // 'FLK'
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x4B4C46; } } // 'FLK'
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            uint arc_size = file.View.ReadUInt32 (0x14);
+            uint arc_size = file.View.ReadUInt32(0x14);
             if (arc_size != file.MaxOffset)
                 return null;
-            int count = file.View.ReadInt32 (0x18);
-            if (!IsSaneCount (count))
+            int count = file.View.ReadInt32(0x18);
+            if (!IsSaneCount(count))
                 return null;
 
             uint index_offset = 0x20;
-            var base_name = Path.GetFileNameWithoutExtension (file.Name);
-            var dir = new List<Entry> (count);
+            var base_name = Path.GetFileNameWithoutExtension(file.Name);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
-                var entry = new FlkEntry {
-                    Name = string.Format ("{0}#{1:D4}", base_name, i),
-                    Offset = file.View.ReadUInt32 (index_offset),
-                    Size = file.View.ReadUInt32 (index_offset+4),
-                    Flags = file.View.ReadByte (index_offset+0xF),
+                var entry = new FlkEntry
+                {
+                    Name = string.Format("{0}#{1:D4}", base_name, i),
+                    Offset = file.View.ReadUInt32(index_offset),
+                    Size = file.View.ReadUInt32(index_offset + 4),
+                    Flags = file.View.ReadByte(index_offset + 0xF),
                 };
-                if (!entry.CheckPlacement (file.MaxOffset))
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
-                dir.Add (entry);
+                dir.Add(entry);
                 index_offset += 0x10;
             }
             foreach (var entry in dir)
             {
-                var type = file.View.ReadUInt32 (entry.Offset);
+                var type = file.View.ReadUInt32(entry.Offset);
                 if (0x475753 == type || 0x475753 == (type >> 8))
                     entry.Type = "image";
             }
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var fent = (FlkEntry)entry;
-            var input = arc.File.CreateStream (entry.Offset, entry.Size);
+            var input = arc.File.CreateStream(entry.Offset, entry.Size);
             if ((fent.Flags & 1) != 0)
             {
                 using (input)
                 {
-                    return LzssUnpack (input);
+                    return LzssUnpack(input);
                 }
             }
             return input;
         }
 
-        internal Stream LzssUnpack (IBinaryStream input)
+        internal Stream LzssUnpack(IBinaryStream input)
         {
             var frame = new byte[0x400];
             var output = new byte[0x200000];
@@ -124,30 +125,30 @@ namespace GameRes.Formats.SplushWave
                         break;
                     int offset = lo + ((hi & 0xC0) << 2);
                     int count = (hi & 0x3F) + 3;
-                    while (count --> 0)
+                    while (count-- > 0)
                     {
                         output[dst++] = frame[frame_pos++ & 0x3FF] = frame[offset++ & 0x3FF];
                     }
                 }
             }
-            return new BinMemoryStream (output, 0, dst);
+            return new BinMemoryStream(output, 0, dst);
         }
 
-        public override IImageDecoder OpenImage (ArcFile arc, Entry entry)
+        public override IImageDecoder OpenImage(ArcFile arc, Entry entry)
         {
             var fent = (FlkEntry)entry;
-            var input = BinaryStream.FromStream (OpenEntry (arc, fent), fent.Name);
+            var input = BinaryStream.FromStream(OpenEntry(arc, fent), fent.Name);
             if ((fent.Flags & 0x10) == 0)
-                return ImageFormatDecoder.Create (input);
+                return ImageFormatDecoder.Create(input);
             try
             {
-                var info = Swg.ReadMetaData (input) as SwgMetaData;
+                var info = Swg.ReadMetaData(input) as SwgMetaData;
                 if (null == info)
                 {
                     input.Position = 0;
                     return new ImageFormatDecoder(input);
                 }
-                return new Swg1ImageDecoder (input, info);
+                return new Swg1ImageDecoder(input, info);
             }
             catch
             {
@@ -156,16 +157,16 @@ namespace GameRes.Formats.SplushWave
             }
         }
 
-        static readonly ResourceInstance<SwgFormat> s_swg = new ResourceInstance<SwgFormat> ("SWG");
+        static readonly ResourceInstance<SwgFormat> s_swg = new ResourceInstance<SwgFormat>("SWG");
 
         internal static SwgFormat Swg { get => s_swg.Value; }
     }
 
     internal sealed class Swg1ImageDecoder : BinaryImageDecoder
     {
-        SwgMetaData     m_info;
+        SwgMetaData m_info;
 
-        public Swg1ImageDecoder (IBinaryStream input, SwgMetaData info) : base (input, info)
+        public Swg1ImageDecoder(IBinaryStream input, SwgMetaData info) : base(input, info)
         {
             SourceFormat = DatOpener.Swg;
             m_info = info;
@@ -173,7 +174,7 @@ namespace GameRes.Formats.SplushWave
 
         static readonly byte[] PlaneMap = { 3, 2, 1, 0 };
 
-        protected override ImageData GetImageData ()
+        protected override ImageData GetImageData()
         {
             m_input.Position = m_info.DataOffset;
             int stride = 4 * m_info.iWidth;
@@ -190,7 +191,7 @@ namespace GameRes.Formats.SplushWave
                     {
                         for (int x = 0; x < stride; x += 4)
                         {
-                            output[dst+x] = m_input.ReadUInt8();
+                            output[dst + x] = m_input.ReadUInt8();
                         }
                         dst -= stride;
                     }
@@ -207,14 +208,14 @@ namespace GameRes.Formats.SplushWave
                 {
                     int dst = row;
                     int row_size = ctl_buf[y];
-                    SwgFormat.DecompressRow (m_input, row_size, output, dst, 4);
+                    SwgFormat.DecompressRow(m_input, row_size, output, dst, 4);
                     row += stride;
                 }
             }
-            return ImageData.Create (m_info, PixelFormats.Bgra32, null, output, stride);
+            return ImageData.Create(m_info, PixelFormats.Bgra32, null, output, stride);
         }
 
-        ushort ReadU16BE ()
+        ushort ReadU16BE()
         {
             ushort le = m_input.ReadUInt16();
             return (ushort)(le >> 8 | le << 8);

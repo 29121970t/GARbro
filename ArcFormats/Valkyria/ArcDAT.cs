@@ -31,36 +31,36 @@ namespace GameRes.Formats.Valkyria
     [Export(typeof(ArchiveFormat))]
     public class DatOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "DAT/VALKYRIA"; } }
+        public override string Tag { get { return "DAT/VALKYRIA"; } }
         public override string Description { get { return "Valkyria resource archive"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            uint index_size = file.View.ReadUInt32 (0);
+            uint index_size = file.View.ReadUInt32(0);
             if (0 == index_size || index_size >= file.MaxOffset)
                 return null;
             int count = (int)index_size / 0x10C;
-            if (index_size != (uint)count * 0x10Cu || !IsSaneCount (count))
+            if (index_size != (uint)count * 0x10Cu || !IsSaneCount(count))
                 return null;
             uint index_offset = 4;
             long base_offset = index_offset + index_size;
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
-                var name = file.View.ReadString (index_offset, 0x104);
+                var name = file.View.ReadString(index_offset, 0x104);
                 index_offset += 0x104;
-                var entry = FormatCatalog.Instance.Create<Entry> (name);
-                entry.Offset = base_offset + file.View.ReadUInt32 (index_offset);
-                entry.Size   = file.View.ReadUInt32 (index_offset+4);
-                if (!entry.CheckPlacement (file.MaxOffset))
+                var entry = FormatCatalog.Instance.Create<Entry>(name);
+                entry.Offset = base_offset + file.View.ReadUInt32(index_offset);
+                entry.Size = file.View.ReadUInt32(index_offset + 4);
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
                 index_offset += 8;
-                dir.Add (entry);
+                dir.Add(entry);
             }
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
     }
 }

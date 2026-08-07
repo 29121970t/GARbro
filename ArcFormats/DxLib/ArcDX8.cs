@@ -33,13 +33,13 @@ namespace GameRes.Formats.DxLib
     [Export(typeof(ArchiveFormat))]
     public class Dx8Opener : DxOpener
     {
-        public override string         Tag { get { return "BIN/DXLIB"; } }
+        public override string Tag { get { return "BIN/DXLIB"; } }
         public override string Description { get { return "DxLib archive version 8"; } }
-        public override uint     Signature { get { return 0x00085844; } }
-        public override bool  IsHierarchic { get { return true; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x00085844; } }
+        public override bool IsHierarchic { get { return true; } }
+        public override bool CanWrite { get { return false; } }
 
-        public Dx8Opener ()
+        public Dx8Opener()
         {
             Extensions = new[] { "bin" };
             Signatures = new[] { 0x00085844u };
@@ -47,21 +47,22 @@ namespace GameRes.Formats.DxLib
 
         static readonly byte[] DefaultKey = new byte[] { 0xBE, 0xC8, 0x8A, 0xF5, 0x28, 0x50, 0xC9 };
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            var dx = new DxHeader {
-                IndexSize  = file.View.ReadUInt32 (4),
-                BaseOffset = file.View.ReadInt64 (8),
-                IndexOffset = file.View.ReadInt64 (0x10),
-                FileTable  = (uint)file.View.ReadInt64 (0x18),
-                DirTable   = (uint)file.View.ReadInt64 (0x20),
-                CodePage   = file.View.ReadInt32 (0x28),
+            var dx = new DxHeader
+            {
+                IndexSize = file.View.ReadUInt32(4),
+                BaseOffset = file.View.ReadInt64(8),
+                IndexOffset = file.View.ReadInt64(0x10),
+                FileTable = (uint)file.View.ReadInt64(0x18),
+                DirTable = (uint)file.View.ReadInt64(0x20),
+                CodePage = file.View.ReadInt32(0x28),
             };
             if (dx.DirTable >= dx.IndexSize || dx.FileTable >= dx.IndexSize)
                 return null;
             var key = DefaultKey;
-            var index = file.View.ReadBytes (dx.IndexOffset, dx.IndexSize);
-            Decrypt (index, 0, index.Length, 0, key);
+            var index = file.View.ReadBytes(dx.IndexOffset, dx.IndexSize);
+            Decrypt(index, 0, index.Length, 0, key);
             // decrypt-2
             // decompress
             return null;

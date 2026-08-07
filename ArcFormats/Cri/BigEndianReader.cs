@@ -32,8 +32,8 @@ namespace GameRes.Formats.Cri
 {
     public class BigEndianReader : IDisposable
     {
-        BinaryReader    m_input;
-        byte[]          m_buffer = new byte[8];
+        BinaryReader m_input;
+        byte[] m_buffer = new byte[8];
 
         public long Position
         {
@@ -43,83 +43,83 @@ namespace GameRes.Formats.Cri
 
         public Stream BaseStream { get { return m_input.BaseStream; } }
 
-        public BigEndianReader (Stream input) : this (input, Encoding.UTF8, false)
+        public BigEndianReader(Stream input) : this(input, Encoding.UTF8, false)
         {
         }
 
-        public BigEndianReader (Stream input, Encoding enc, bool leave_open = false)
+        public BigEndianReader(Stream input, Encoding enc, bool leave_open = false)
         {
-            m_input = new BinaryReader (input, enc, leave_open);
+            m_input = new BinaryReader(input, enc, leave_open);
         }
 
-        public int Read (byte[] buffer, int index, int count)
+        public int Read(byte[] buffer, int index, int count)
         {
-            return m_input.Read (buffer, index, count);
+            return m_input.Read(buffer, index, count);
         }
 
-        public void Skip (int amount)
+        public void Skip(int amount)
         {
-            m_input.BaseStream.Seek (amount, SeekOrigin.Current);
+            m_input.BaseStream.Seek(amount, SeekOrigin.Current);
         }
 
-        public byte ReadByte ()
+        public byte ReadByte()
         {
             return m_input.ReadByte();
         }
 
-        public sbyte ReadSByte ()
+        public sbyte ReadSByte()
         {
             return m_input.ReadSByte();
         }
 
-        public short ReadInt16 ()
+        public short ReadInt16()
         {
-            return Binary.BigEndian (m_input.ReadInt16());
+            return Binary.BigEndian(m_input.ReadInt16());
         }
 
-        public ushort ReadUInt16 ()
+        public ushort ReadUInt16()
         {
-            return Binary.BigEndian (m_input.ReadUInt16());
+            return Binary.BigEndian(m_input.ReadUInt16());
         }
 
-        public int ReadInt32 ()
+        public int ReadInt32()
         {
-            return Binary.BigEndian (m_input.ReadInt32());
+            return Binary.BigEndian(m_input.ReadInt32());
         }
 
-        public uint ReadUInt32 ()
+        public uint ReadUInt32()
         {
-            return Binary.BigEndian (m_input.ReadUInt32());
+            return Binary.BigEndian(m_input.ReadUInt32());
         }
 
-        public long ReadInt64 ()
+        public long ReadInt64()
         {
-            return Binary.BigEndian (m_input.ReadInt64());
+            return Binary.BigEndian(m_input.ReadInt64());
         }
 
-        public ulong ReadUInt64 ()
+        public ulong ReadUInt64()
         {
-            return Binary.BigEndian (m_input.ReadUInt64());
+            return Binary.BigEndian(m_input.ReadUInt64());
         }
 
-        public float ReadSingle ()
+        public float ReadSingle()
         {
-            if (4 != m_input.Read (m_buffer, 0, 4))
+            if (4 != m_input.Read(m_buffer, 0, 4))
                 throw new EndOfStreamException();
             if (BitConverter.IsLittleEndian)
-                Array.Reverse (m_buffer, 0, 4);
-            return BitConverter.ToSingle (m_buffer, 0);
+                Array.Reverse(m_buffer, 0, 4);
+            return BitConverter.ToSingle(m_buffer, 0);
         }
 
         #region IDisposable Members
         bool _disposed = false;
-        public void Dispose ()
+        public void Dispose()
         {
-            Dispose (true);
-            GC.SuppressFinalize (this);
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
-        protected virtual void Dispose (bool disposing)
+        protected virtual void Dispose(bool disposing)
         {
             if (!_disposed)
             {

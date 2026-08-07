@@ -44,64 +44,64 @@ namespace GameRes.Formats.Circus
     [Export(typeof(ImageFormat))]
     public class CrxFormat : ImageFormat
     {
-        public override string         Tag { get { return "CRX"; } }
+        public override string Tag { get { return "CRX"; } }
         public override string Description { get { return "Circus image format"; } }
-        public override uint     Signature { get { return 0x47585243; } } // 'CRXG'
+        public override uint Signature { get { return 0x47585243; } } // 'CRXG'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
-            var header = stream.ReadHeader (0x14);
-            int compression = header.ToUInt16 (0xC);
+            var header = stream.ReadHeader(0x14);
+            int compression = header.ToUInt16(0xC);
             if (compression < 1 || compression > 3)
                 return null;
-            int depth = header.ToInt16 (0x10);
+            int depth = header.ToInt16(0x10);
             var info = new CrxMetaData
             {
-                Width = header.ToUInt16 (8),
-                Height = header.ToUInt16 (10),
-                OffsetX = header.ToInt16 (4),
-                OffsetY = header.ToInt16 (6),
+                Width = header.ToUInt16(8),
+                Height = header.ToUInt16(10),
+                OffsetX = header.ToInt16(4),
+                OffsetY = header.ToInt16(6),
                 BPP = 0 == depth ? 24 : 1 == depth ? 32 : 8,
                 Compression = compression,
-                CompressionFlags = header.ToUInt16 (0xE),
+                CompressionFlags = header.ToUInt16(0xE),
                 Colors = depth,
-                Mode = header.ToUInt16 (0x12),
+                Mode = header.ToUInt16(0x12),
             };
             return info;
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
-            using (var reader = new Reader (stream, (CrxMetaData)info))
+            using (var reader = new Reader(stream, (CrxMetaData)info))
             {
                 reader.Unpack();
-                return ImageData.Create (info, reader.Format, reader.Palette, reader.Data, reader.Stride);
+                return ImageData.Create(info, reader.Format, reader.Palette, reader.Data, reader.Stride);
             }
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new NotImplementedException ("CrxFormat.Write not implemented");
+            throw new NotImplementedException("CrxFormat.Write not implemented");
         }
 
         internal sealed class Reader : IDisposable
         {
-            IBinaryStream   m_input;
-            byte[]          m_output;
-            int             m_width;
-            int             m_height;
-            int             m_stride;
-            int             m_bpp;
-            int             m_compression;
-            int             m_flags;
-            int             m_mode;
+            IBinaryStream m_input;
+            byte[] m_output;
+            int m_width;
+            int m_height;
+            int m_stride;
+            int m_bpp;
+            int m_compression;
+            int m_flags;
+            int m_mode;
 
-            public byte[]           Data { get { return m_output; } }
-            public PixelFormat    Format { get; private set; }
+            public byte[] Data { get { return m_output; } }
+            public PixelFormat Format { get; private set; }
             public BitmapPalette Palette { get; private set; }
-            public int            Stride { get { return m_stride; } }
+            public int Stride { get { return m_stride; } }
 
-            public Reader (IBinaryStream input, CrxMetaData info)
+            public Reader(IBinaryStream input, CrxMetaData info)
             {
                 m_width = (int)info.Width;
                 m_height = (int)info.Height;
@@ -111,20 +111,20 @@ namespace GameRes.Formats.Circus
                 m_mode = info.Mode;
                 switch (m_bpp)
                 {
-                case 24: Format = PixelFormats.Bgr24; break;
-                case 32: Format = PixelFormats.Bgra32; break;
-                case 8:  Format = PixelFormats.Indexed8; break;
-                default: throw new InvalidFormatException();
+                    case 24: Format = PixelFormats.Bgr24; break;
+                    case 32: Format = PixelFormats.Bgra32; break;
+                    case 8: Format = PixelFormats.Indexed8; break;
+                    default: throw new InvalidFormatException();
                 }
                 m_stride = (m_width * m_bpp / 8 + 3) & ~3;
-                m_output = new byte[m_height*m_stride];
+                m_output = new byte[m_height * m_stride];
                 m_input = input;
                 m_input.Position = 0x14;
                 if (8 == m_bpp)
-                    ReadPalette (info.Colors);
+                    ReadPalette(info.Colors);
             }
 
-            private void ReadPalette (int colors)
+            private void ReadPalette(int colors)
             {
                 int color_size = 0x102 == colors ? 4 : 3;
                 if (colors > 0x100)
@@ -133,29 +133,29 @@ namespace GameRes.Formats.Circus
                 }
                 int palette_size = colors * color_size;
                 var palette_data = new byte[palette_size];
-                if (palette_size != m_input.Read (palette_data, 0, palette_size))
+                if (palette_size != m_input.Read(palette_data, 0, palette_size))
                     throw new InvalidFormatException();
                 var palette = new Color[colors];
                 int color_pos = 0;
                 for (int i = 0; i < palette.Length; ++i)
                 {
                     byte r = palette_data[color_pos];
-                    byte g = palette_data[color_pos+1];
-                    byte b = palette_data[color_pos+2];
+                    byte g = palette_data[color_pos + 1];
+                    byte b = palette_data[color_pos + 2];
                     if (0xff == b && 0 == g && 0xff == r)
                         g = 0xff;
-                    palette[i] = Color.FromRgb (r, g, b);
+                    palette[i] = Color.FromRgb(r, g, b);
                     color_pos += color_size;
                 }
-                Palette = new BitmapPalette (palette);
+                Palette = new BitmapPalette(palette);
             }
 
-            public void Unpack (bool is_diff = false)
+            public void Unpack(bool is_diff = false)
             {
                 if (m_compression >= 3)
                 {
                     int count = m_input.ReadInt32();
-                    m_input.Seek (count * 0x10, SeekOrigin.Current);
+                    m_input.Seek(count * 0x10, SeekOrigin.Current);
                 }
                 if (0 != (m_flags & 0x10))
                 {
@@ -172,24 +172,24 @@ namespace GameRes.Formats.Circus
                     int line = 0;
                     for (int h = 0; h < m_height; h++)
                     {
-                        for (int w = 0;	w < m_width; w++)
+                        for (int w = 0; w < m_width; w++)
                         {
                             int pixel = line + w * 4;
                             var alpha = m_output[pixel];
-                            var b = m_output[pixel+1];
-                            var g = m_output[pixel+2];
-                            var r = m_output[pixel+3];
-                            m_output[pixel]   = b;
-                            m_output[pixel+1] = g;
-                            m_output[pixel+2] = r;
-                            m_output[pixel+3] = (byte)(alpha ^ alpha_flip);
+                            var b = m_output[pixel + 1];
+                            var g = m_output[pixel + 2];
+                            var r = m_output[pixel + 3];
+                            m_output[pixel] = b;
+                            m_output[pixel + 1] = g;
+                            m_output[pixel + 2] = r;
+                            m_output[pixel + 3] = (byte)(alpha ^ alpha_flip);
                         }
                         line += m_stride;
                     }
                 }
             }
 
-            private void UnpackV1 ()
+            private void UnpackV1()
             {
                 byte[] window = new byte[0x10000];
                 int flag = 0;
@@ -248,12 +248,12 @@ namespace GameRes.Formats.Circus
                 }
             }
 
-            private void UnpackV2 ()
+            private void UnpackV2()
             {
                 int pixel_size = m_bpp / 8;
                 int src_stride = m_width * pixel_size;
-                using (var zlib = new ZLibStream (m_input.AsStream, CompressionMode.Decompress, true))
-                using (var src = new BinaryReader (zlib))
+                using (var zlib = new ZLibStream(m_input.AsStream, CompressionMode.Decompress, true))
+                using (var src = new BinaryReader(zlib))
                 {
                     if (m_bpp >= 24)
                     {
@@ -264,57 +264,57 @@ namespace GameRes.Formats.Circus
                             int prev_row = dst - m_stride;
                             switch (ctl)
                             {
-                            case 0:
-                                src.Read (m_output, dst, pixel_size);
-                                for (int x = pixel_size; x < src_stride; ++x)
-                                    m_output[dst+x] = (byte)(src.ReadByte() + m_output[dst+x - pixel_size]);
-                                break;
-                            case 1:
-                                for (int x = 0; x < src_stride; ++x)
-                                    m_output[dst+x] = (byte)(src.ReadByte() + m_output[prev_row+x]);
-                                break;
-                            case 2:
-                                src.Read (m_output, dst, pixel_size);
-                                for (int x = pixel_size; x < src_stride; ++x)
-                                    m_output[dst+x] = (byte)(src.ReadByte() + m_output[prev_row+x - pixel_size]);
-                                break;
-                            case 3:
-                                for (int x = src_stride - pixel_size; x > 0; --x)
-                                    m_output[dst++] = (byte)(src.ReadByte() + m_output[prev_row++ + pixel_size]);
-                                src.Read (m_output, dst, pixel_size);
-                                break;
-                            case 4:
-                                for (int i = 0; i < pixel_size; ++i)
-                                {
-                                    int w = m_width;
-                                    byte val = src.ReadByte();
-                                    while (w > 0)
+                                case 0:
+                                    src.Read(m_output, dst, pixel_size);
+                                    for (int x = pixel_size; x < src_stride; ++x)
+                                        m_output[dst + x] = (byte)(src.ReadByte() + m_output[dst + x - pixel_size]);
+                                    break;
+                                case 1:
+                                    for (int x = 0; x < src_stride; ++x)
+                                        m_output[dst + x] = (byte)(src.ReadByte() + m_output[prev_row + x]);
+                                    break;
+                                case 2:
+                                    src.Read(m_output, dst, pixel_size);
+                                    for (int x = pixel_size; x < src_stride; ++x)
+                                        m_output[dst + x] = (byte)(src.ReadByte() + m_output[prev_row + x - pixel_size]);
+                                    break;
+                                case 3:
+                                    for (int x = src_stride - pixel_size; x > 0; --x)
+                                        m_output[dst++] = (byte)(src.ReadByte() + m_output[prev_row++ + pixel_size]);
+                                    src.Read(m_output, dst, pixel_size);
+                                    break;
+                                case 4:
+                                    for (int i = 0; i < pixel_size; ++i)
                                     {
-                                        m_output[dst] = val;
-                                        dst += pixel_size;
-                                        if (0 == --w)
-                                            break;
-                                        byte next = src.ReadByte();
-                                        if (val == next)
+                                        int w = m_width;
+                                        byte val = src.ReadByte();
+                                        while (w > 0)
                                         {
-                                            int count = src.ReadByte();
-                                            for (int j = 0; j < count; ++j)
+                                            m_output[dst] = val;
+                                            dst += pixel_size;
+                                            if (0 == --w)
+                                                break;
+                                            byte next = src.ReadByte();
+                                            if (val == next)
                                             {
-                                                m_output[dst] = val;
-                                                dst += pixel_size;
+                                                int count = src.ReadByte();
+                                                for (int j = 0; j < count; ++j)
+                                                {
+                                                    m_output[dst] = val;
+                                                    dst += pixel_size;
+                                                }
+                                                w -= count;
+                                                if (w > 0)
+                                                    val = src.ReadByte();
                                             }
-                                            w -= count;
-                                            if (w > 0)
-                                                val = src.ReadByte();
+                                            else
+                                                val = next;
                                         }
-                                        else
-                                            val = next;
+                                        dst -= src_stride - 1;
                                     }
-                                    dst -= src_stride - 1;
-                                }
-                                break;
-                            default:
-                                break;
+                                    break;
+                                default:
+                                    break;
                             }
                         }
                     }
@@ -323,7 +323,7 @@ namespace GameRes.Formats.Circus
                         int dst = 0;
                         for (int y = 0; y < m_height; ++y)
                         {
-                            src.Read (m_output, dst, src_stride);
+                            src.Read(m_output, dst, src_stride);
                             dst += m_stride;
                         }
                     }
@@ -331,7 +331,7 @@ namespace GameRes.Formats.Circus
             }
 
             #region IDisposable Members
-            public void Dispose ()
+            public void Dispose()
             {
             }
             #endregion

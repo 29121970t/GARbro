@@ -35,92 +35,93 @@ namespace GameRes.Formats.Succubus
 {
     internal class GhpMetaData : ImageMetaData
     {
-        public int  Version;
-        public int  Colors;
+        public int Version;
+        public int Colors;
         public uint PaletteOffset;
         public uint DataOffset;
-        public int  ChunkCount;
+        public int ChunkCount;
     }
 
     [Export(typeof(ImageFormat))]
     public class GhFormat : ImageFormat
     {
-        public override string         Tag { get { return "GH"; } }
+        public override string Tag { get { return "GH"; } }
         public override string Description { get { return "Succubus image format"; } }
-        public override uint     Signature { get { return 0x33504847; } }
+        public override uint Signature { get { return 0x33504847; } }
 
-        public GhFormat ()
+        public GhFormat()
         {
             Signatures = new uint[] { 0x33504847, 0x32504847 }; // 'GHP3', 'GHP2'
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x28);
+            var header = file.ReadHeader(0x28);
             int version = header[3] - '0';
-            var info = new GhpMetaData {
-                Width = header.ToUInt16 (0xC),
-                Height = header.ToUInt16 (0xE),
+            var info = new GhpMetaData
+            {
+                Width = header.ToUInt16(0xC),
+                Height = header.ToUInt16(0xE),
                 BPP = 8,
-                Colors = header.ToUInt16 (0x10),
+                Colors = header.ToUInt16(0x10),
                 Version = version,
             };
             if (2 == version)
             {
-                info.PaletteOffset = header.ToUInt32 (0x14);
-                info.ChunkCount = header.ToInt32 (0x18);
-                info.DataOffset = header.ToUInt32 (0x1C);
+                info.PaletteOffset = header.ToUInt32(0x14);
+                info.ChunkCount = header.ToInt32(0x18);
+                info.DataOffset = header.ToUInt32(0x1C);
             }
             else
             {
-                info.PaletteOffset = header.ToUInt32 (0x18);
-                info.DataOffset = header.ToUInt32 (0x24);
+                info.PaletteOffset = header.ToUInt32(0x18);
+                info.DataOffset = header.ToUInt32(0x24);
             }
             return info;
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new GhpReader (file, (GhpMetaData)info);
+            var reader = new GhpReader(file, (GhpMetaData)info);
             return reader.Unpack();
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("GhFormat.Write not implemented");
+            throw new System.NotImplementedException("GhFormat.Write not implemented");
         }
     }
 
     internal class GhpReader
     {
-        IBinaryStream       m_input;
-        GhpMetaData         m_info;
-        byte[]              m_output;
-        int                 m_stride;
-        int                 m_depth;
+        IBinaryStream m_input;
+        GhpMetaData m_info;
+        byte[] m_output;
+        int m_stride;
+        int m_depth;
 
-        public GhpReader (IBinaryStream input, GhpMetaData info)
+        public GhpReader(IBinaryStream input, GhpMetaData info)
         {
             m_input = input;
             m_info = info;
             m_stride = ((int)info.Width + 3) & ~3;
-            m_depth = GetColorDepth (m_info.Colors);
+            m_depth = GetColorDepth(m_info.Colors);
             m_output = new byte[m_stride * (int)m_info.Height];
         }
 
-        public ImageData Unpack ()
+        public ImageData Unpack()
         {
             m_input.Position = m_info.PaletteOffset;
-            var palette = ImageFormat.ReadPalette (m_input.AsStream, m_info.Colors, PaletteFormat.Rgb);
+            var palette = ImageFormat.ReadPalette(m_input.AsStream, m_info.Colors, PaletteFormat.Rgb);
             m_input.Position = m_info.DataOffset;
             if (2 == m_info.Version)
                 Unpack2();
             else
                 Unpack3();
-            return ImageData.Create (m_info, PixelFormats.Indexed8, palette, m_output, m_stride);
+            return ImageData.Create(m_info, PixelFormats.Indexed8, palette, m_output, m_stride);
         }
 
-        void Unpack2 ()
+        void Unpack2()
         {
             int width = (int)m_info.Width;
             var repeat_table = new uint[(width * (int)m_info.Height + 31) / 32];
@@ -129,16 +130,16 @@ namespace GameRes.Formats.Succubus
             int x = 0, y = 0;
             int next_x = 0, next_y = 0;
             ReadPos();
-            int pix = ReadBits (m_depth);
-            for (int i = 0; i < m_info.ChunkCount; )
+            int pix = ReadBits(m_depth);
+            for (int i = 0; i < m_info.ChunkCount;)
             {
                 if (count <= 0)
                 {
-                    int ctl = ReadBits (2);
+                    int ctl = ReadBits(2);
                     if (ctl > 2)
                         count = ReadCount() - 1;
                     else
-                        skip = ReadBits (1) + 2 * ctl;
+                        skip = ReadBits(1) + 2 * ctl;
                 }
                 else
                 {
@@ -150,8 +151,8 @@ namespace GameRes.Formats.Succubus
                 if (skip >= 5)
                 {
                     int pos = ReadPos() + next_x;
-                    next_y += Math.DivRem (pos, width, out next_x);
-                    pix = ReadBits (m_depth);
+                    next_y += Math.DivRem(pos, width, out next_x);
+                    pix = ReadBits(m_depth);
                     y = next_y;
                     x = next_x;
                     ++i;
@@ -166,20 +167,20 @@ namespace GameRes.Formats.Succubus
             int src = 0;
             uint bitmap = 0;
             for (y = 0; y < (int)m_info.Height; ++y)
-            for (x = 0; x < width; ++x)
-            {
-                if ((src & 0x1F) == 0)
-                    bitmap = repeat_table[src >> 5];
-                if ((bitmap & 1) != 0)
-                    pix = m_output[m_stride * y + x];
-                else
-                    m_output[m_stride * y + x] = (byte)pix;
-                bitmap >>= 1;
-                ++src;
-            }
+                for (x = 0; x < width; ++x)
+                {
+                    if ((src & 0x1F) == 0)
+                        bitmap = repeat_table[src >> 5];
+                    if ((bitmap & 1) != 0)
+                        pix = m_output[m_stride * y + x];
+                    else
+                        m_output[m_stride * y + x] = (byte)pix;
+                    bitmap >>= 1;
+                    ++src;
+                }
         }
 
-        void Unpack3 ()
+        void Unpack3()
         {
             int image_size = (m_stride * (int)m_info.Height + 0x1F) & ~0x1F;
             int table_size = image_size >> 3;
@@ -193,7 +194,7 @@ namespace GameRes.Formats.Succubus
             throw new NotImplementedException();
         }
 
-        internal static int GetColorDepth (int colors)
+        internal static int GetColorDepth(int colors)
         {
             int depth = 0;
             for (int bit = 1; bit < colors && depth < 24; bit <<= 1)
@@ -203,28 +204,28 @@ namespace GameRes.Formats.Succubus
             return depth;
         }
 
-        int ReadPos ()
+        int ReadPos()
         {
             int pos = ReadBitCount();
             if (pos > 0)
-                return BitTable[2 * pos + 3] + ReadBits (BitTable[2 * pos + 2]) + 1;
+                return BitTable[2 * pos + 3] + ReadBits(BitTable[2 * pos + 2]) + 1;
             else
-                return ReadBits (2) + 1;
+                return ReadBits(2) + 1;
         }
 
-        int ReadCount ()
+        int ReadCount()
         {
             int count = 0;
             int x = ReadBitCount();
             if (x > 0)
-                count = BitTable[2 * x + 1] + ReadBits (BitTable[2 * x]) + 1;
+                count = BitTable[2 * x + 1] + ReadBits(BitTable[2 * x]) + 1;
             return count + 2;
         }
 
-        uint      m_bits = 0;
-        int       m_cached_bits = 0;
+        uint m_bits = 0;
+        int m_cached_bits = 0;
 
-        int ReadBits (int count)
+        int ReadBits(int count)
         {
             uint bits = 0;
             if (count > m_cached_bits)
@@ -242,10 +243,10 @@ namespace GameRes.Formats.Succubus
             return (int)bits;
         }
 
-        int ReadBitCount ()
+        int ReadBitCount()
         {
             uint count = 0;
-            for (;;)
+            for (; ; )
             {
                 if (0 == m_cached_bits)
                     FillBitsCache();
@@ -259,7 +260,7 @@ namespace GameRes.Formats.Succubus
             return (int)count;
         }
 
-        void FillBitsCache ()
+        void FillBitsCache()
         {
             m_bits = 0;
             for (int shift = 0; shift < 32; shift += 8)

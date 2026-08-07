@@ -35,11 +35,11 @@ namespace GameRes.Formats.Elf
     [Export(typeof(ImageFormat))]
     public class Gp8Format : ImageFormat
     {
-        public override string         Tag { get { return "GP8"; } }
+        public override string Tag { get { return "GP8"; } }
         public override string Description { get { return "Ai5 engine indexed image format"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
             if (file.Length <= 0x408)
                 return null;
@@ -51,45 +51,46 @@ namespace GameRes.Formats.Elf
             int h = file.ReadInt16();
             if (w <= 0 || w > 0x1000 || h <= 0 || h > 0x1000)
                 return null;
-            return new ImageMetaData {
+            return new ImageMetaData
+            {
                 Width = (uint)w,
                 Height = (uint)h,
                 BPP = 8,
             };
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
             stream.Position = 8;
-            var palette = ReadPalette (stream.AsStream);
+            var palette = ReadPalette(stream.AsStream);
             var pixels = new byte[info.Width * info.Height];
-            using (var reader = new LzssStream (stream.AsStream, LzssMode.Decompress, true))
+            using (var reader = new LzssStream(stream.AsStream, LzssMode.Decompress, true))
             {
-                if (pixels.Length != reader.Read (pixels, 0, pixels.Length))
+                if (pixels.Length != reader.Read(pixels, 0, pixels.Length))
                     throw new InvalidFormatException();
-                return ImageData.CreateFlipped (info, PixelFormats.Indexed8, palette, pixels, (int)info.Width);
+                return ImageData.CreateFlipped(info, PixelFormats.Indexed8, palette, pixels, (int)info.Width);
             }
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("Gp8Format.Write not implemented");
+            throw new System.NotImplementedException("Gp8Format.Write not implemented");
         }
     }
 
     [Export(typeof(ImageFormat))]
     public class MskFormat : ImageFormat
     {
-        public override string         Tag { get { return "MSK/AI5"; } }
+        public override string Tag { get { return "MSK/AI5"; } }
         public override string Description { get { return "Ai5 engine image mask"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public MskFormat ()
+        public MskFormat()
         {
             Extensions = new string[] { "msk" };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream input)
+        public override ImageMetaData ReadMetaData(IBinaryStream input)
         {
             int x = input.ReadInt16();
             int y = input.ReadInt16();
@@ -98,7 +99,8 @@ namespace GameRes.Formats.Elf
             if (w <= 0 || w > 0x1000 || h <= 0 || h > 0x1000
                 || x < 0 || x > 0x800 || y < 0 || y > 0x800)
                 return null;
-            return new ImageMetaData {
+            return new ImageMetaData
+            {
                 Width = (uint)w,
                 Height = (uint)h,
                 OffsetX = x,
@@ -107,21 +109,21 @@ namespace GameRes.Formats.Elf
             };
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
             stream.Position = 8;
             var pixels = new byte[info.Width * info.Height];
-            using (var reader = new LzssStream (stream.AsStream, LzssMode.Decompress, true))
+            using (var reader = new LzssStream(stream.AsStream, LzssMode.Decompress, true))
             {
-                if (pixels.Length != reader.Read (pixels, 0, pixels.Length))
+                if (pixels.Length != reader.Read(pixels, 0, pixels.Length))
                     throw new InvalidFormatException();
-                return ImageData.CreateFlipped (info, PixelFormats.Gray8, null, pixels, (int)info.Width);
+                return ImageData.CreateFlipped(info, PixelFormats.Gray8, null, pixels, (int)info.Width);
             }
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("MskFormat.Write not implemented");
+            throw new System.NotImplementedException("MskFormat.Write not implemented");
         }
     }
 }

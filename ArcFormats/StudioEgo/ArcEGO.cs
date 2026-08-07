@@ -36,47 +36,47 @@ namespace GameRes.Formats.Ego
     [Export(typeof(ArchiveFormat))]
     public class DatOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "DAT/EGO/1"; } }
+        public override string Tag { get { return "DAT/EGO/1"; } }
         public override string Description { get { return "Studio e.go! engine resource archive"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool  IsHierarchic { get { return true; } }
-        public override bool      CanWrite { get { return true; } }
+        public override uint Signature { get { return 0; } }
+        public override bool IsHierarchic { get { return true; } }
+        public override bool CanWrite { get { return true; } }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            uint data_offset = 4 + file.View.ReadUInt32 (0);
+            uint data_offset = 4 + file.View.ReadUInt32(0);
             if (data_offset <= 0x14 || data_offset >= file.MaxOffset)
                 return null;
             var dir = new List<Entry>();
             long index_offset = 4;
             while (index_offset < data_offset)
             {
-                uint entry_len = file.View.ReadUInt32 (index_offset);
+                uint entry_len = file.View.ReadUInt32(index_offset);
                 if (entry_len <= 0x10 || entry_len > 0x100 || index_offset + entry_len > data_offset)
                     return null;
-                var name = file.View.ReadString (index_offset+0x10, entry_len-0x10);
-                var entry = FormatCatalog.Instance.Create<Entry> (name);
-                entry.Offset = file.View.ReadUInt32 (index_offset+8);
-                entry.Size   = file.View.ReadUInt32 (index_offset+12);
-                if (entry.Offset < data_offset || !entry.CheckPlacement (file.MaxOffset))
+                var name = file.View.ReadString(index_offset + 0x10, entry_len - 0x10);
+                var entry = FormatCatalog.Instance.Create<Entry>(name);
+                entry.Offset = file.View.ReadUInt32(index_offset + 8);
+                entry.Size = file.View.ReadUInt32(index_offset + 12);
+                if (entry.Offset < data_offset || !entry.CheckPlacement(file.MaxOffset))
                     return null;
-                dir.Add (entry);
+                dir.Add(entry);
                 index_offset += entry_len;
             }
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
 
-        public override void Create (Stream output, IEnumerable<Entry> list, ResourceOptions options,
+        public override void Create(Stream output, IEnumerable<Entry> list, ResourceOptions options,
                                      EntryCallback callback)
         {
-            using (var writer = new BinaryWriter (output, Encoding.ASCII, true))
+            using (var writer = new BinaryWriter(output, Encoding.ASCII, true))
             {
                 var encoding = Encodings.cp932.WithFatalFallback();
                 int callback_count = 0;
                 if (null != callback)
-                    callback (callback_count++, null, arcStrings.MsgWritingIndex);
+                    callback(callback_count++, null, arcStrings.MsgWritingIndex);
 
-                writer.Write (0);
+                writer.Write(0);
                 byte[] name_buf = new byte[256];
                 uint index_size = 0;
                 var entry_sizes = new List<int>();
@@ -86,24 +86,24 @@ namespace GameRes.Formats.Ego
                 {
                     try
                     {
-                        int size = encoding.GetBytes (entry.Name, 0, entry.Name.Length, name_buf, 0);
+                        int size = encoding.GetBytes(entry.Name, 0, entry.Name.Length, name_buf, 0);
                         if (name_buf.Length == size)
-                            throw new InvalidFileName (entry.Name, arcStrings.MsgFileNameTooLong);
+                            throw new InvalidFileName(entry.Name, arcStrings.MsgFileNameTooLong);
                         name_buf[size] = 0;
-                        int entry_size = size+17;
-                        writer.Write (entry_size);
-                        writer.BaseStream.Seek (12, SeekOrigin.Current);
-                        writer.Write (name_buf, 0, size+1);
-                        entry_sizes.Add (entry_size);
+                        int entry_size = size + 17;
+                        writer.Write(entry_size);
+                        writer.BaseStream.Seek(12, SeekOrigin.Current);
+                        writer.Write(name_buf, 0, size + 1);
+                        entry_sizes.Add(entry_size);
                         index_size += (uint)entry_size;
                     }
                     catch (EncoderFallbackException X)
                     {
-                        throw new InvalidFileName (entry.Name, arcStrings.MsgIllegalCharacters, X);
+                        throw new InvalidFileName(entry.Name, arcStrings.MsgIllegalCharacters, X);
                     }
                     catch (ArgumentException X)
                     {
-                        throw new InvalidFileName (entry.Name, arcStrings.MsgFileNameTooLong, X);
+                        throw new InvalidFileName(entry.Name, arcStrings.MsgFileNameTooLong, X);
                     }
                 }
 
@@ -112,35 +112,35 @@ namespace GameRes.Formats.Ego
                 foreach (var entry in list)
                 {
                     if (null != callback)
-                        callback (callback_count++, entry, arcStrings.MsgAddingFile);
+                        callback(callback_count++, entry, arcStrings.MsgAddingFile);
 
                     entry.Offset = current_offset;
-                    using (var input = File.OpenRead (entry.Name))
+                    using (var input = File.OpenRead(entry.Name))
                     {
                         var file_size = input.Length;
                         if (file_size > uint.MaxValue || current_offset + file_size > uint.MaxValue)
                             throw new FileSizeException();
                         current_offset += file_size;
                         entry.Size = (uint)file_size;
-                        input.CopyTo (output);
+                        input.CopyTo(output);
                     }
                 }
 
                 if (null != callback)
-                    callback (callback_count++, null, arcStrings.MsgUpdatingIndex);
+                    callback(callback_count++, null, arcStrings.MsgUpdatingIndex);
 
                 // at last, go back to directory and write offset/sizes
                 writer.BaseStream.Position = 0;
-                writer.Write (index_size);
-                long index_offset = 4+8;
+                writer.Write(index_size);
+                long index_offset = 4 + 8;
                 int i = 0;
                 foreach (var entry in list)
                 {
                     writer.BaseStream.Position = index_offset;
                     int entry_size = entry_sizes[i++];
                     index_offset += entry_size;
-                    writer.Write ((uint)entry.Offset);
-                    writer.Write (entry.Size);
+                    writer.Write((uint)entry.Offset);
+                    writer.Write(entry.Size);
                 }
             }
         }
@@ -149,34 +149,34 @@ namespace GameRes.Formats.Ego
     [Export(typeof(ArchiveFormat))]
     public class OldDatOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "DAT/EGO/0"; } }
+        public override string Tag { get { return "DAT/EGO/0"; } }
         public override string Description { get { return "Studio e.go! engine resource archive"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool  IsHierarchic { get { return true; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool IsHierarchic { get { return true; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            uint data_offset = 4 + file.View.ReadUInt32 (0);
+            uint data_offset = 4 + file.View.ReadUInt32(0);
             if (data_offset <= 0x14 || data_offset >= file.MaxOffset)
                 return null;
             var dir = new List<Entry>();
             long index_offset = 4;
             while (index_offset < data_offset)
             {
-                uint entry_len = file.View.ReadUInt32 (index_offset);
+                uint entry_len = file.View.ReadUInt32(index_offset);
                 if (entry_len <= 0xC || entry_len > 0x100 || index_offset + entry_len > data_offset)
                     return null;
-                var name = file.View.ReadString (index_offset+0xC, entry_len-0xC);
-                var entry = FormatCatalog.Instance.Create<Entry> (name);
-                entry.Offset = file.View.ReadUInt32 (index_offset+4);
-                entry.Size   = file.View.ReadUInt32 (index_offset+8);
-                if (entry.Offset < data_offset || !entry.CheckPlacement (file.MaxOffset))
+                var name = file.View.ReadString(index_offset + 0xC, entry_len - 0xC);
+                var entry = FormatCatalog.Instance.Create<Entry>(name);
+                entry.Offset = file.View.ReadUInt32(index_offset + 4);
+                entry.Size = file.View.ReadUInt32(index_offset + 8);
+                if (entry.Offset < data_offset || !entry.CheckPlacement(file.MaxOffset))
                     return null;
-                dir.Add (entry);
+                dir.Add(entry);
                 index_offset += entry_len;
             }
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
     }
 }

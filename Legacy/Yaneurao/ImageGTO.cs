@@ -34,62 +34,62 @@ namespace GameRes.Formats.Yaneurao
     [Export(typeof(ImageFormat))]
     public class GtoFormat : ImageFormat
     {
-        public override string         Tag { get { return "GTO"; } }
+        public override string Tag { get { return "GTO"; } }
         public override string Description { get { return "Yaneurao obfuscated bitmap"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (2);
-            if (!header.AsciiEqual ("NY"))
+            var header = file.ReadHeader(2);
+            if (!header.AsciiEqual("NY"))
                 return null;
             file.Position = 0;
-            using (var input = OpenGtoStream (file))
-                return Bmp.ReadMetaData (input);
+            using (var input = OpenGtoStream(file))
+                return Bmp.ReadMetaData(input);
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            using (var input = OpenGtoStream (file))
-                return Bmp.Read (input, info);
+            using (var input = OpenGtoStream(file))
+                return Bmp.Read(input, info);
         }
 
-        internal IBinaryStream OpenGtoStream (IBinaryStream file)
+        internal IBinaryStream OpenGtoStream(IBinaryStream file)
         {
-            var input = new SubFilterStream (file.AsStream, 0xC, true);
-            return new BinaryStream (input, file.Name);
+            var input = new SubFilterStream(file.AsStream, 0xC, true);
+            return new BinaryStream(input, file.Name);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("GtoFormat.Write not implemented");
+            throw new System.NotImplementedException("GtoFormat.Write not implemented");
         }
     }
 
     public class SubFilterStream : ProxyStream
     {
-        private byte        m_key;
+        private byte m_key;
 
         public override bool CanWrite { get { return false; } }
 
-        public SubFilterStream (Stream stream, byte key, bool leave_open = false)
-            : base (stream, leave_open)
+        public SubFilterStream(Stream stream, byte key, bool leave_open = false)
+            : base(stream, leave_open)
         {
             m_key = key;
         }
 
         #region System.IO.Stream methods
-        public override int Read (byte[] buffer, int offset, int count)
+        public override int Read(byte[] buffer, int offset, int count)
         {
-            int read = BaseStream.Read (buffer, offset, count);
+            int read = BaseStream.Read(buffer, offset, count);
             for (int i = 0; i < read; ++i)
             {
-                buffer[offset+i] -= m_key;
+                buffer[offset + i] -= m_key;
             }
             return read;
         }
 
-        public override int ReadByte ()
+        public override int ReadByte()
         {
             int b = BaseStream.ReadByte();
             if (-1 != b)

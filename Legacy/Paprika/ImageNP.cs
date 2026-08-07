@@ -40,60 +40,61 @@ namespace GameRes.Formats.Paprika
     [Export(typeof(ImageFormat))]
     public class NpFormat : ImageFormat
     {
-        public override string         Tag { get { return "PIC/NP"; } }
+        public override string Tag { get { return "PIC/NP"; } }
         public override string Description { get { return "Paprika image format"; } }
-        public override uint     Signature { get { return 0x0001504E; } } // 'NP'
+        public override uint Signature { get { return 0x0001504E; } } // 'NP'
 
-        public NpFormat ()
+        public NpFormat()
         {
             Signatures = new[] { 0x0001504Eu, 0u };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x10);
-            if (!header.AsciiEqual (0, "NP"))
+            var header = file.ReadHeader(0x10);
+            if (!header.AsciiEqual(0, "NP"))
                 return null;
-            int frame_count = header.ToUInt16 (2);
+            int frame_count = header.ToUInt16(2);
             if (frame_count == 0)
                 return null;
-            return new NpMetaData {
-                Width  = header.ToUInt32 (4),
-                Height = header.ToUInt32 (8),
+            return new NpMetaData
+            {
+                Width = header.ToUInt32(4),
+                Height = header.ToUInt32(8),
                 BPP = 24,
-                DataOffset = header.ToUInt32 (12),
+                DataOffset = header.ToUInt32(12),
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new NpReader (file, (NpMetaData)info);
+            var reader = new NpReader(file, (NpMetaData)info);
             var pixels = reader.Unpack();
-            return ImageData.Create (info, PixelFormats.Bgr24, null, pixels);
+            return ImageData.Create(info, PixelFormats.Bgr24, null, pixels);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("NpFormat.Write not implemented");
+            throw new System.NotImplementedException("NpFormat.Write not implemented");
         }
     }
 
     internal class NpReader
     {
-        IBinaryStream   m_input;
-        NpMetaData      m_info;
-        byte[]          m_output;
+        IBinaryStream m_input;
+        NpMetaData m_info;
+        byte[] m_output;
 
-        public NpReader (IBinaryStream input, NpMetaData info)
+        public NpReader(IBinaryStream input, NpMetaData info)
         {
             m_input = input;
             m_info = info;
         }
 
-        int     bitCount;
-        uint    bits;
+        int bitCount;
+        uint bits;
 
-        static readonly int[]   bitMap = new int[] {
+        static readonly int[] bitMap = new int[] {
             2, 0x00, 3, 0x04, 3, 0x0C, 4, 0x14, 4, 0x24, 4, 0x34, 4, 0x44, 4, 0x54,
             4, 0x64, 4, 0x74, 4, 0x84, 4, 0x94, 4, 0xA4, 5, 0xB4, 5, 0xD4, 5, 0xF4,
         };
@@ -121,13 +122,13 @@ namespace GameRes.Formats.Paprika
             0x110, 0x111,
         };
 
-        byte[]      field_0 = new byte[0x10000];
-        int         field_4;
-        ushort[]    field_8;
-        int[]       field_C;
-        ushort[]    field_8C;
+        byte[] field_0 = new byte[0x10000];
+        int field_4;
+        ushort[] field_8;
+        int[] field_C;
+        ushort[] field_8C;
 
-        public byte[] Unpack ()
+        public byte[] Unpack()
         {
             m_input.Position = m_info.DataOffset;
             int unpacked_size = m_input.ReadInt32();
@@ -135,25 +136,25 @@ namespace GameRes.Formats.Paprika
             m_output = new byte[unpacked_size];
 
             field_4 = 0;
-            field_8  = new ushort[0x112];
-            field_C  = bitMap.Clone() as int[];
+            field_8 = new ushort[0x112];
+            field_C = bitMap.Clone() as int[];
             field_8C = wordList.Clone() as ushort[];
             int dst = 0;
-            while (dst < unpacked_size && UnpackBits (ref dst))
+            while (dst < unpacked_size && UnpackBits(ref dst))
                 ;
             var pixels = new byte[unpacked_size - 0x1C];
-            Buffer.BlockCopy (m_output, 0x1C, pixels, 0, pixels.Length);
+            Buffer.BlockCopy(m_output, 0x1C, pixels, 0, pixels.Length);
             return pixels;
         }
 
         ushort[] v74 = new ushort[0x225];
 
-        bool UnpackBits (ref int dst)
+        bool UnpackBits(ref int dst)
         {
             bitCount = 0;
             while (m_input.PeekByte() != -1)
             {
-                int v9 = GetBits (4) * 2;
+                int v9 = GetBits(4) * 2;
                 int v12 = field_C[v9];
                 int word;
                 if (0 == v12)
@@ -162,7 +163,7 @@ namespace GameRes.Formats.Paprika
                 }
                 else
                 {
-                    int v17 = GetBits (v12) + field_C[v9 + 1];
+                    int v17 = GetBits(v12) + field_C[v9 + 1];
                     if (v17 >= 274)
                         return false;
                     word = field_8C[v17];
@@ -179,7 +180,7 @@ namespace GameRes.Formats.Paprika
                 }
                 else if (word == 272)
                 {
-                    sub_416E80 (v74);
+                    sub_416E80(v74);
                     int j = 0;
                     for (int i = 0; i < 0x112; ++i)
                     {
@@ -194,7 +195,7 @@ namespace GameRes.Formats.Paprika
                         int n;
                         for (n = 0; ; ++n)
                         {
-                            int v26 = GetBits (1);
+                            int v26 = GetBits(1);
                             if (v26 != 0)
                                 break;
                         }
@@ -217,19 +218,19 @@ namespace GameRes.Formats.Paprika
                 else
                 {
                     int v29 = dword_4257CC[2 * (word - 264)];
-                    int v31 = GetBits (v29);
+                    int v31 = GetBits(v29);
                     count = v31 + dword_4257CC[2 * (word - 264) + 1];
                 }
-                int v70 = GetBits (3);
+                int v70 = GetBits(3);
                 int v64 = 0;
                 int v37 = dword_425810[2 * v70] + 9;
                 if (v37 > 8)
                 {
                     v37 -= 8;
-                    int v39 = GetBits (8);
+                    int v39 = GetBits(8);
                     v64 = v39 << v37;
                 }
-                int v43 = GetBits (v37) | v64;
+                int v43 = GetBits(v37) | v64;
                 int v46 = (dword_425810[2 * v70 + 1] << 9) + v43;
                 count += 4;
                 int v45 = dst; // output;
@@ -249,18 +250,18 @@ namespace GameRes.Formats.Paprika
                     else
                     {
                         int v50 = 0x10000 - (src & 0xFFFF);
-                        Buffer.BlockCopy (field_0, src & 0xFFFF, m_output, dst, v50);
-//                        qmemcpy(output, &this->field_0[src & 0xFFFF], v50);
+                        Buffer.BlockCopy(field_0, src & 0xFFFF, m_output, dst, v50);
+                        //                        qmemcpy(output, &this->field_0[src & 0xFFFF], v50);
                         v51 = 0; // this->field_0;
                         v52 = v46 - v50;
                         v45 += v50; // &output[v50];
                     }
-                    Buffer.BlockCopy (field_0, v51, m_output, v45, v52);
-//                    qmemcpy(v45, v51, v52);
+                    Buffer.BlockCopy(field_0, v51, m_output, v45, v52);
+                    //                    qmemcpy(v45, v51, v52);
                     int v54 = count - v46;
                     if (v54 > 0)
                     {
-                        Binary.CopyOverlapped (m_output, dst, dst + v46, v54);
+                        Binary.CopyOverlapped(m_output, dst, dst + v46, v54);
                         /*
                         int v53 = 0;
                         int v55 = dst + v46; // &output[v46];
@@ -275,8 +276,8 @@ namespace GameRes.Formats.Paprika
                 }
                 else if ((src & 0xFFFF) + count <= 0x10000)
                 {
-                    Buffer.BlockCopy (field_0, src & 0xFFFF, m_output, dst, count);
-//                    qmemcpy(output, &this->field_0[(unsigned __int16)src], count);
+                    Buffer.BlockCopy(field_0, src & 0xFFFF, m_output, dst, count);
+                    //                    qmemcpy(output, &this->field_0[(unsigned __int16)src], count);
                 }
                 else
                 {
@@ -313,7 +314,7 @@ namespace GameRes.Formats.Paprika
             return false;
         }
 
-        int GetBits (int count)
+        int GetBits(int count)
         {
             if (bitCount < count)
             {
@@ -326,7 +327,7 @@ namespace GameRes.Formats.Paprika
             return (int)b;
         }
 
-        int sub_416E80 (ushort[] a2)
+        int sub_416E80(ushort[] a2)
         {
             int v2 = 0; // a2;
             int v3 = 0;
@@ -341,14 +342,14 @@ namespace GameRes.Formats.Paprika
                 ++v4;
             }
             while (v4 < 0x112);
-            sub_416DC0 (a2, -2, 0x112);
+            sub_416DC0(a2, -2, 0x112);
             return v3;
         }
 
         byte[] dword0 = new byte[4];
         byte[] dword1 = new byte[4];
 
-        void sub_416DC0 (ushort[] w, int a1, int count)
+        void sub_416DC0(ushort[] w, int a1, int count)
         {
             int v2 = a1;
             int v3 = count;
@@ -363,26 +364,26 @@ namespace GameRes.Formats.Paprika
                     {
                         int v6 = 4 * v5;
                         int v9 = v5;
-//                        v11 = *(_DWORD *)&v2[v6];
-                        Buffer.BlockCopy (w, v2 + v6, dword0, 0, 4);
+                        //                        v11 = *(_DWORD *)&v2[v6];
+                        Buffer.BlockCopy(w, v2 + v6, dword0, 0, 4);
                         if (v5 > v4)
                         {
                             int v7 = 4 * v4;
                             int v8;
                             do
                             {
-//                                v8 = *(_WORD *)&v2[v6 - v7 + 2] - SHIWORD(v11);
-                                Buffer.BlockCopy (w, v2 + v6 - v7, dword1, 0, 4);
-                                v8 = LittleEndian.ToInt16 (dword1, 2) - LittleEndian.ToInt16 (dword0, 2);
+                                //                                v8 = *(_WORD *)&v2[v6 - v7 + 2] - SHIWORD(v11);
+                                Buffer.BlockCopy(w, v2 + v6 - v7, dword1, 0, 4);
+                                v8 = LittleEndian.ToInt16(dword1, 2) - LittleEndian.ToInt16(dword0, 2);
                                 if (v8 == 0)
                                 {
-//                                    v8 = *(_WORD *)&v2[v6 - v7] - (signed __int16)v11;
-                                    v8 = LittleEndian.ToInt16 (dword1, 0) - LittleEndian.ToInt16 (dword0, 0);
+                                    //                                    v8 = *(_WORD *)&v2[v6 - v7] - (signed __int16)v11;
+                                    v8 = LittleEndian.ToInt16(dword1, 0) - LittleEndian.ToInt16(dword0, 0);
                                 }
                                 if (v8 >= 0)
                                     break;
-//                                *(_DWORD *)&v2[v6] = *(_DWORD *)&v2[v6 - v7];
-                                Buffer.BlockCopy (w, v2 + v6 - v7, w, v2 + v6, 4);
+                                //                                *(_DWORD *)&v2[v6] = *(_DWORD *)&v2[v6 - v7];
+                                Buffer.BlockCopy(w, v2 + v6 - v7, w, v2 + v6, 4);
                                 v6 -= v7;
                                 v9 -= v4;
                             }
@@ -390,8 +391,8 @@ namespace GameRes.Formats.Paprika
                             v5 = v10;
                         }
                         ++v5;
-//                        *(_DWORD *)&v2[4 * v9] = v11;
-                        Buffer.BlockCopy (dword0, 0, w, v2 + v9 * 4, 4);
+                        //                        *(_DWORD *)&v2[4 * v9] = v11;
+                        Buffer.BlockCopy(dword0, 0, w, v2 + v9 * 4, 4);
                         v3 = count;
                         v10 = v5;
                     }

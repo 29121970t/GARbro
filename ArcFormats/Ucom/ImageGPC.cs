@@ -33,33 +33,34 @@ namespace GameRes.Formats.Ucom
 {
     internal class GpcMetaData : ImageMetaData
     {
-        public int  PaletteColors;
+        public int PaletteColors;
     }
 
     [Export(typeof(ImageFormat))]
     public class GpcFormat : ImageFormat
     {
-        public override string         Tag { get { return "GPC"; } }
+        public override string Tag { get { return "GPC"; } }
         public override string Description { get { return "For/Ucom image format"; } }
-        public override uint     Signature { get { return 0x00285047; } } // 'GP('
+        public override uint Signature { get { return 0x00285047; } } // 'GP('
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x26);
-            int header_length = header.ToInt32 (2);
-            uint width = header.ToUInt32 (6);
-            uint height = header.ToUInt32 (0xA);
-            int bpp = header.ToUInt16 (0x10);
+            var header = file.ReadHeader(0x26);
+            int header_length = header.ToInt32(2);
+            uint width = header.ToUInt32(6);
+            uint height = header.ToUInt32(0xA);
+            int bpp = header.ToUInt16(0x10);
             if (bpp != 8 && bpp != 24 && bpp != 32)
                 return null;
             int colors = 0;
             if (8 == bpp)
             {
-                colors = header.ToInt32 (0x22);
+                colors = header.ToInt32(0x22);
                 if (0 == colors)
                     colors = 0x100;
             }
-            return new GpcMetaData {
+            return new GpcMetaData
+            {
                 Width = width,
                 Height = height,
                 BPP = bpp,
@@ -67,35 +68,35 @@ namespace GameRes.Formats.Ucom
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var gpc = new GpcReader (file, (GpcMetaData)info);
+            var gpc = new GpcReader(file, (GpcMetaData)info);
             gpc.Unpack();
-            return ImageData.Create (info, gpc.Format, gpc.Palette, gpc.Data, gpc.Stride);
+            return ImageData.Create(info, gpc.Format, gpc.Palette, gpc.Data, gpc.Stride);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("GpcFormat.Write not implemented");
+            throw new System.NotImplementedException("GpcFormat.Write not implemented");
         }
     }
 
     internal sealed class GpcReader
     {
-        IBinaryStream   m_input;
-        int             m_width;
-        int             m_height;
-        int             m_stride;
-        int             m_colors;
-        int             m_pixel_size;
-        byte[]          m_output;
+        IBinaryStream m_input;
+        int m_width;
+        int m_height;
+        int m_stride;
+        int m_colors;
+        int m_pixel_size;
+        byte[] m_output;
 
         public BitmapPalette Palette { get; private set; }
-        public PixelFormat    Format { get; private set; }
-        public byte[]           Data { get { return m_output; } }
-        public int            Stride { get { return m_stride; } }
+        public PixelFormat Format { get; private set; }
+        public byte[] Data { get { return m_output; } }
+        public int Stride { get { return m_stride; } }
 
-        public GpcReader (IBinaryStream input, GpcMetaData info)
+        public GpcReader(IBinaryStream input, GpcMetaData info)
         {
             m_input = input;
             m_width = (int)info.Width;
@@ -112,11 +113,11 @@ namespace GameRes.Formats.Ucom
                 Format = PixelFormats.Bgra32;
         }
 
-        public void Unpack ()
+        public void Unpack()
         {
             m_input.Position = 0x2A;
             if (1 == m_pixel_size)
-                Palette = ImageFormat.ReadPalette (m_input.AsStream, m_colors);
+                Palette = ImageFormat.ReadPalette(m_input.AsStream, m_colors);
             int gap = m_stride - m_width * m_pixel_size;
             for (int dst_row = m_output.Length - m_stride; dst_row >= 0; dst_row -= m_stride)
             {
@@ -129,18 +130,18 @@ namespace GameRes.Formats.Ucom
                     int pixel_count = m_pixel_size * count;
                     if (0 == (ctl & 1))
                     {
-                        m_input.Read (m_output, dst, pixel_count);
+                        m_input.Read(m_output, dst, pixel_count);
                     }
                     else
                     {
-                        m_input.Read (m_output, dst, m_pixel_size);
-                        Binary.CopyOverlapped (m_output, dst, dst+m_pixel_size, pixel_count - m_pixel_size);
+                        m_input.Read(m_output, dst, m_pixel_size);
+                        Binary.CopyOverlapped(m_output, dst, dst + m_pixel_size, pixel_count - m_pixel_size);
                     }
                     dst += pixel_count;
                     x += count;
                 }
                 if (gap != 0)
-                    m_input.Read (m_output, dst, gap);
+                    m_input.Read(m_output, dst, gap);
             }
         }
     }

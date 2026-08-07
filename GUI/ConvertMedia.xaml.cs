@@ -12,13 +12,13 @@ namespace GARbro.GUI
     /// </summary>
     public partial class ConvertMedia : Window
     {
-        public ConvertMedia ()
+        public ConvertMedia()
         {
-            InitializeComponent ();
-            ImageConversionFormat.ItemsSource = FormatCatalog.Instance.ImageFormats.Where (f => f.CanWrite);
+            InitializeComponent();
+            ImageConversionFormat.ItemsSource = FormatCatalog.Instance.ImageFormats.Where(f => f.CanWrite);
         }
 
-        private void BrowseExec (object sender, ExecutedRoutedEventArgs e)
+        private void BrowseExec(object sender, ExecutedRoutedEventArgs e)
         {
             var dlg = new CommonOpenFileDialog
             {
@@ -35,21 +35,21 @@ namespace GARbro.GUI
                 Multiselect = false,
                 ShowPlacesList = true,
             };
-            if (dlg.ShowDialog (this) == CommonFileDialogResult.Ok)
+            if (dlg.ShowDialog(this) == CommonFileDialogResult.Ok)
                 DestinationDir.Text = dlg.FileName;
         }
 
-        public void CanExecuteAlways (object sender, CanExecuteRoutedEventArgs e)
+        public void CanExecuteAlways(object sender, CanExecuteRoutedEventArgs e)
         {
             e.CanExecute = true;
         }
 
-        private void ConvertButton_Click (object sender, RoutedEventArgs e)
+        private void ConvertButton_Click(object sender, RoutedEventArgs e)
         {
             this.DialogResult = true;
         }
 
-        private void acb_OnEnterKeyDown (object sender, KeyEventArgs e)
+        private void acb_OnEnterKeyDown(object sender, KeyEventArgs e)
         {
             this.DialogResult = true;
         }

@@ -34,62 +34,63 @@ namespace GameRes.Formats.CsWare
     [Export(typeof(ArchiveFormat))]
     public class PakOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "DAT/CSWARE"; } }
+        public override string Tag { get { return "DAT/CSWARE"; } }
         public override string Description { get { return "C's Ware BLITZ resource archive"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            int count = file.View.ReadInt32 (0);
-            if (!IsSaneCount (count))
+            int count = file.View.ReadInt32(0);
+            if (!IsSaneCount(count))
                 return null;
-            uint packed_size = file.View.ReadUInt32 (4);
+            uint packed_size = file.View.ReadUInt32(4);
             if (packed_size >= file.MaxOffset)
                 return null;
-            if (file.View.ReadByte (8) != 0x78) // zlib stream signature
+            if (file.View.ReadByte(8) != 0x78) // zlib stream signature
                 return null;
             long data_offset = 8 + packed_size;
-            using (var input = file.CreateStream (8, packed_size))
-            using (var unpacked = new ZLibStream (input, CompressionMode.Decompress))
-            using (var index = new BinaryStream (unpacked, file.Name))
+            using (var input = file.CreateStream(8, packed_size))
+            using (var unpacked = new ZLibStream(input, CompressionMode.Decompress))
+            using (var index = new BinaryStream(unpacked, file.Name))
             {
-                var dir = new List<Entry> (count);
+                var dir = new List<Entry>(count);
                 for (int i = 0; i < count; ++i)
                 {
-                    var name = index.ReadCString (0x18);
-                    if (string.IsNullOrEmpty (name))
+                    var name = index.ReadCString(0x18);
+                    if (string.IsNullOrEmpty(name))
                         return null;
-                    var entry = FormatCatalog.Instance.Create<Entry> (name);
+                    var entry = FormatCatalog.Instance.Create<Entry>(name);
                     entry.Offset = index.ReadUInt32() + data_offset;
-                    entry.Size   = index.ReadUInt32();
-                    if (!entry.CheckPlacement (file.MaxOffset))
+                    entry.Size = index.ReadUInt32();
+                    if (!entry.CheckPlacement(file.MaxOffset))
                         return null;
-                    dir.Add (entry);
+                    dir.Add(entry);
                 }
-                return new ArcFile (file, this, dir);
+                return new ArcFile(file, this, dir);
             }
         }
 
-        public override IImageDecoder OpenImage (ArcFile arc, Entry entry)
+        public override IImageDecoder OpenImage(ArcFile arc, Entry entry)
         {
-            if (entry.Size < 0x36 || !arc.File.View.AsciiEqual (entry.Offset, "BM"))
-                return base.OpenImage (arc, entry);
-            uint header_size = arc.File.View.ReadUInt32 (entry.Offset + 0xA);
+            if (entry.Size < 0x36 || !arc.File.View.AsciiEqual(entry.Offset, "BM"))
+                return base.OpenImage(arc, entry);
+            uint header_size = arc.File.View.ReadUInt32(entry.Offset + 0xA);
             if (header_size < 0x36 || header_size > entry.Size)
-                return base.OpenImage (arc, entry);
-            int height = arc.File.View.ReadInt32 (entry.Offset + 0x16);
-            var info = new BmMetaData {
-                Width = arc.File.View.ReadUInt32 (entry.Offset + 0x12),
-                Height = (uint)Math.Abs (height),
-                BPP = arc.File.View.ReadUInt16 (entry.Offset + 0x1C),
+                return base.OpenImage(arc, entry);
+            int height = arc.File.View.ReadInt32(entry.Offset + 0x16);
+            var info = new BmMetaData
+            {
+                Width = arc.File.View.ReadUInt32(entry.Offset + 0x12),
+                Height = (uint)Math.Abs(height),
+                BPP = arc.File.View.ReadUInt16(entry.Offset + 0x1C),
                 DataOffset = header_size,
                 IsFlipped = height > 0,
-                IsCompressed = arc.File.View.ReadUInt32 (0x32) != 0,
+                IsCompressed = arc.File.View.ReadUInt32(0x32) != 0,
             };
-            var input = arc.File.CreateStream (entry.Offset, entry.Size);
-            return new BmpDecoder (input, info);
+            var input = arc.File.CreateStream(entry.Offset, entry.Size);
+            return new BmpDecoder(input, info);
         }
     }
 
@@ -102,11 +103,11 @@ namespace GameRes.Formats.CsWare
 
     internal class BmpDecoder : BinaryImageDecoder
     {
-        public BmpDecoder (IBinaryStream input, BmMetaData info) : base (input, info)
+        public BmpDecoder(IBinaryStream input, BmMetaData info) : base(input, info)
         {
         }
 
-        protected override ImageData GetImageData ()
+        protected override ImageData GetImageData()
         {
             var meta = (BmMetaData)Info;
             m_input.Position = meta.DataOffset;
@@ -114,12 +115,12 @@ namespace GameRes.Formats.CsWare
             var pixels = new byte[stride * (int)Info.Height];
             if (meta.IsCompressed)
             {
-                using (var unpacked = new ZLibStream (m_input.AsStream, CompressionMode.Decompress, true))
-                    unpacked.Read (pixels, 0, pixels.Length);
+                using (var unpacked = new ZLibStream(m_input.AsStream, CompressionMode.Decompress, true))
+                    unpacked.ReadExactly(pixels);
             }
             else
             {
-                m_input.Read (pixels, 0, pixels.Length);
+                m_input.Read(pixels, 0, pixels.Length);
             }
             PixelFormat format;
             if (24 == Info.BPP)
@@ -129,9 +130,9 @@ namespace GameRes.Formats.CsWare
             else
                 throw new InvalidFormatException();
             if (meta.IsFlipped)
-                return ImageData.CreateFlipped (Info, format, null, pixels, stride);
+                return ImageData.CreateFlipped(Info, format, null, pixels, stride);
             else
-                return ImageData.Create (Info, format, null, pixels, stride);
+                return ImageData.Create(Info, format, null, pixels, stride);
         }
     }
 }

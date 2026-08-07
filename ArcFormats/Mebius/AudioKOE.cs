@@ -35,34 +35,34 @@ namespace GameRes.Formats.Mebius
     [ExportMetadata("Priority", 1)]
     public class KoeAudio : AudioFormat
     {
-        public override string         Tag { get { return "KOE/MEBIUS"; } }
+        public override string Tag { get { return "KOE/MEBIUS"; } }
         public override string Description { get { return "Mebius engine encrypted WAVE file"; } }
-        public override uint     Signature { get { return 0x46464952; } } // 'RIFF'
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x46464952; } } // 'RIFF'
+        public override bool CanWrite { get { return false; } }
 
         static readonly string[] RequiredExtensions = { "koe", "mse", "bgm" };
 
-        public KoeAudio ()
+        public KoeAudio()
         {
             Extensions = RequiredExtensions;
         }
 
-        public override SoundInput TryOpen (IBinaryStream file)
+        public override SoundInput TryOpen(IBinaryStream file)
         {
-            if (!file.Name.HasAnyOfExtensions (RequiredExtensions))
+            if (!file.Name.HasAnyOfExtensions(RequiredExtensions))
                 return null;
-            var ext = Path.GetExtension (file.Name).TrimStart ('.').ToLowerInvariant();
+            var ext = Path.GetExtension(file.Name).TrimStart('.').ToLowerInvariant();
             byte[] key;
-            if (!DefaultKeys.TryGetValue (ext, out key))
+            if (!DefaultKeys.TryGetValue(ext, out key))
                 return null;
-            var header = file.ReadHeader (0x14);
-            int fmt_length = header.ToInt32 (0x10);
+            var header = file.ReadHeader(0x14);
+            int fmt_length = header.ToInt32(0x10);
             int data_pos = 0x14 + fmt_length;
-            var wav_header = file.ReadHeader (data_pos + 8).ToArray();
-            Stream data = new StreamRegion (file.AsStream, file.Position);
-            data = new ByteStringEncryptedStream (data, key);
-            data = new PrefixStream (wav_header, data);
-            return new WaveInput (data);
+            var wav_header = file.ReadHeader(data_pos + 8).ToArray();
+            Stream data = new StreamRegion(file.AsStream, file.Position);
+            data = new ByteStringEncryptedStream(data, key);
+            data = new PrefixStream(wav_header, data);
+            return new WaveInput(data);
         }
 
         Dictionary<string, byte[]> DefaultKeys => SchemeMap["Mebinya!"];

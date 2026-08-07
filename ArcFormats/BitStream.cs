@@ -31,22 +31,22 @@ namespace GameRes.Formats
 {
     public class BitStream : IDisposable
     {
-        protected Stream    m_input;
-        private   bool      m_should_dispose;
+        protected Stream m_input;
+        private bool m_should_dispose;
 
-        protected int       m_bits = 0;
-        protected int       m_cached_bits = 0;
+        protected int m_bits = 0;
+        protected int m_cached_bits = 0;
 
-        public Stream  Input { get { return m_input; } }
+        public Stream Input { get { return m_input; } }
         public int CacheSize { get { return m_cached_bits; } }
 
-        protected BitStream (Stream file, bool leave_open)
+        protected BitStream(Stream file, bool leave_open)
         {
             m_input = file;
             m_should_dispose = !leave_open;
         }
 
-        public void Reset ()
+        public void Reset()
         {
             m_cached_bits = 0;
         }
@@ -54,13 +54,13 @@ namespace GameRes.Formats
         #region IDisposable Members
         bool m_disposed = false;
 
-        public void Dispose ()
+        public void Dispose()
         {
-            Dispose (true);
-            GC.SuppressFinalize (this);
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
-        protected virtual void Dispose (bool disposing)
+        protected virtual void Dispose(bool disposing)
         {
             if (!m_disposed)
             {
@@ -74,21 +74,21 @@ namespace GameRes.Formats
 
     public interface IBitStream
     {
-        int GetBits (int count);
-        int GetNextBit ();
-        void Reset ();
+        int GetBits(int count);
+        int GetNextBit();
+        void Reset();
     }
 
     public class MsbBitStream : BitStream, IBitStream
     {
-        public MsbBitStream (Stream file, bool leave_open = false)
-            : base (file, leave_open)
+        public MsbBitStream(Stream file, bool leave_open = false)
+            : base(file, leave_open)
         {
         }
 
-        public int GetBits (int count)
+        public int GetBits(int count)
         {
-            Debug.Assert (count <= 24, "MsbBitStream does not support sequences longer than 24 bits");
+            Debug.Assert(count <= 24, "MsbBitStream does not support sequences longer than 24 bits");
             while (m_cached_bits < count)
             {
                 int b = m_input.ReadByte();
@@ -102,22 +102,22 @@ namespace GameRes.Formats
             return (m_bits >> m_cached_bits) & mask;
         }
 
-        public int GetNextBit ()
+        public int GetNextBit()
         {
-            return GetBits (1);
+            return GetBits(1);
         }
     }
 
     public class LsbBitStream : BitStream, IBitStream
     {
-        public LsbBitStream (Stream file, bool leave_open = false)
-            : base (file, leave_open)
+        public LsbBitStream(Stream file, bool leave_open = false)
+            : base(file, leave_open)
         {
         }
 
-        public int GetBits (int count)
+        public int GetBits(int count)
         {
-            Debug.Assert (count <= 32, "LsbBitStream does not support sequences longer than 32 bits");
+            Debug.Assert(count <= 32, "LsbBitStream does not support sequences longer than 32 bits");
             int value;
             if (m_cached_bits >= count)
             {
@@ -154,9 +154,9 @@ namespace GameRes.Formats
             return value;
         }
 
-        public int GetNextBit ()
+        public int GetNextBit()
         {
-            return GetBits (1);
+            return GetBits(1);
         }
     }
 }

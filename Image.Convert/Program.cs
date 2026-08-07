@@ -17,7 +17,7 @@ namespace GARbro
             }
         }
 
-        void Usage ()
+        void Usage()
         {
             Console.WriteLine("Usage: {0} [OPTIONS] IMAGE", ProgramName);
             Console.WriteLine("    -l          list recognized image FormatCatalog.Instance");
@@ -25,60 +25,60 @@ namespace GARbro
             Console.WriteLine("Without options image metadata is displayed.");
         }
 
-        void ListFormats ()
+        void ListFormats()
         {
             Console.WriteLine("Supported image formats:");
             foreach (var impl in FormatCatalog.Instance.ImageFormats)
             {
-                Console.Write ("{0,-4} ", impl.Tag);
-                if (impl.IsBuiltin) Console.Write ("[builtin] ");
-                Console.WriteLine (impl.Description);
+                Console.Write("{0,-4} ", impl.Tag);
+                if (impl.IsBuiltin) Console.Write("[builtin] ");
+                Console.WriteLine(impl.Description);
             }
         }
 
-        ImageFormat FindFormat (string format)
+        ImageFormat FindFormat(string format)
         {
-            var range = FormatCatalog.Instance.LookupExtension<ImageFormat> (format);
+            var range = FormatCatalog.Instance.LookupExtension<ImageFormat>(format);
             return range.FirstOrDefault();
         }
 
-        void PrintMetaData (string filename)
+        void PrintMetaData(string filename)
         {
-            using (var file = BinaryStream.FromFile (filename))
+            using (var file = BinaryStream.FromFile(filename))
             {
-                var format = ImageFormat.FindFormat (file);
+                var format = ImageFormat.FindFormat(file);
                 if (null == format)
                 {
-                    Console.Error.WriteLine ("{0}: file format not recognized", filename);
+                    Console.Error.WriteLine("{0}: file format not recognized", filename);
                     return;
                 }
                 var image = format.Item2;
-                Console.WriteLine ("{0,16} [{4}] {1}x{2} {3}bpp", filename, image.Width, image.Height, image.BPP, format.Item1.Tag);
+                Console.WriteLine("{0,16} [{4}] {1}x{2} {3}bpp", filename, image.Width, image.Height, image.BPP, format.Item1.Tag);
             }
         }
 
-        void ConvertFile (string filename, ImageFormat format)
+        void ConvertFile(string filename, ImageFormat format)
         {
             ImageData image;
-            using (var file = BinaryStream.FromFile (filename))
+            using (var file = BinaryStream.FromFile(filename))
             {
-                image = ImageFormat.Read (file);
+                image = ImageFormat.Read(file);
                 if (null == image)
                 {
-                    Console.Error.WriteLine ("{0}: Unknown image format", filename);
+                    Console.Error.WriteLine("{0}: Unknown image format", filename);
                     return;
                 }
             }
             string target_ext = format.Extensions.First();
-            string outname = Path.GetFileNameWithoutExtension (filename)+'.'+target_ext;
-            Console.WriteLine ("{0} => {1}", filename, outname);
-            using (var outfile = new FileStream (outname, FileMode.Create, FileAccess.Write))
+            string outname = Path.GetFileNameWithoutExtension(filename) + '.' + target_ext;
+            Console.WriteLine("{0} => {1}", filename, outname);
+            using (var outfile = new FileStream(outname, FileMode.Create, FileAccess.Write))
             {
-                format.Write (outfile, image);
+                format.Write(outfile, image);
             }
         }
 
-        void Run (string[] args)
+        void Run(string[] args)
         {
             if (args.Length < 1 || args[0] == "/?" || args[0] == "--help")
             {
@@ -95,21 +95,21 @@ namespace GARbro
                     Usage();
                     return;
                 }
-                ImageFormat format = FindFormat (args[1]);
+                ImageFormat format = FindFormat(args[1]);
                 if (null == format)
                 {
-                    Console.Error.WriteLine ("{0}: unknown format specified", args[1]);
+                    Console.Error.WriteLine("{0}: unknown format specified", args[1]);
                     return;
                 }
                 for (int i = 2; i < args.Length; ++i)
                 {
                     try
                     {
-                        ConvertFile (args[i], format);
+                        ConvertFile(args[i], format);
                     }
                     catch (Exception X)
                     {
-                        Console.Error.WriteLine ("{0}: {1}", args[i], X.Message);
+                        Console.Error.WriteLine("{0}: {1}", args[i], X.Message);
                     }
                 }
             }
@@ -117,7 +117,7 @@ namespace GARbro
             {
                 foreach (var filename in args)
                 {
-                    PrintMetaData (filename);
+                    PrintMetaData(filename);
                 }
             }
         }
@@ -127,11 +127,11 @@ namespace GARbro
             try
             {
                 var program = new ImageConverter();
-                program.Run (args);
+                program.Run(args);
             }
             catch (Exception X)
             {
-                Console.Error.WriteLine ("{0}: {1}", ProgramName, X.Message);
+                Console.Error.WriteLine("{0}: {1}", ProgramName, X.Message);
             }
         }
     }

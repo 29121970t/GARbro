@@ -36,8 +36,8 @@ namespace GameRes.Formats.Weapon
 {
     internal class CgEntry : Entry
     {
-        public uint     Width;
-        public uint     Height;
+        public uint Width;
+        public uint Height;
     }
 
 #if DEBUG
@@ -45,29 +45,30 @@ namespace GameRes.Formats.Weapon
 #endif
     public class DatOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "DAT/WEAPON"; } }
+        public override string Tag { get { return "DAT/WEAPON"; } }
         public override string Description { get { return "Weapon resource archive"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
         const uint DefaultWidth = 800;
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            var arc_name = Path.GetFileName (file.Name);
+            var arc_name = Path.GetFileName(file.Name);
             Size[] dim_table;
-            if (!KnownFileTables.TryGetValue (arc_name, out dim_table))
+            if (!KnownFileTables.TryGetValue(arc_name, out dim_table))
                 return null;
             uint offset = 0;
-            var base_name = Path.GetFileNameWithoutExtension (arc_name);
-            var dir = new List<Entry> (dim_table.Length);
+            var base_name = Path.GetFileNameWithoutExtension(arc_name);
+            var dir = new List<Entry>(dim_table.Length);
             for (int i = 0; i < dim_table.Length; ++i)
             {
-                var name = string.Format ("{0}#{1:D4}", base_name, i);
+                var name = string.Format("{0}#{1:D4}", base_name, i);
                 uint width = (uint)dim_table[i].Width;
                 uint height = (uint)dim_table[i].Height;
-                var entry = new CgEntry {
+                var entry = new CgEntry
+                {
                     Name = name,
                     Type = "image",
                     Offset = offset,
@@ -75,23 +76,23 @@ namespace GameRes.Formats.Weapon
                     Width = width,
                     Height = height,
                 };
-                if (!entry.CheckPlacement (file.MaxOffset))
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
-                dir.Add (entry);
+                dir.Add(entry);
                 offset += entry.Size;
             }
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
 
-        public override IImageDecoder OpenImage (ArcFile arc, Entry entry)
+        public override IImageDecoder OpenImage(ArcFile arc, Entry entry)
         {
             var cgent = (CgEntry)entry;
-            var input = arc.File.CreateStream (entry.Offset, entry.Size);
+            var input = arc.File.CreateStream(entry.Offset, entry.Size);
             var info = new ImageMetaData { Width = cgent.Width, Height = cgent.Height, BPP = 16 };
-            return new CgDecoder (input, info);
+            return new CgDecoder(input, info);
         }
 
-        static readonly Dictionary<string, Size[]> KnownFileTables = new Dictionary<string, Size[]> (StringComparer.OrdinalIgnoreCase) {
+        static readonly Dictionary<string, Size[]> KnownFileTables = new Dictionary<string, Size[]>(StringComparer.OrdinalIgnoreCase) {
             { "eventcg.dat",
                 new Size[] {
                     new Size (800, 600), new Size (800, 600), new Size (800, 600), new Size (800, 600),
@@ -403,22 +404,22 @@ namespace GameRes.Formats.Weapon
 
     internal class CgDecoder : BinaryImageDecoder
     {
-        public CgDecoder (IBinaryStream input, ImageMetaData info) : base (input, info)
+        public CgDecoder(IBinaryStream input, ImageMetaData info) : base(input, info)
         {
         }
 
-        protected override ImageData GetImageData ()
+        protected override ImageData GetImageData()
         {
             int stride = (int)Info.Width * 2;
-            var pixels = m_input.ReadBytes (stride * (int)Info.Height);
+            var pixels = m_input.ReadBytes(stride * (int)Info.Height);
             for (int i = 0; i < pixels.Length; i += 2)
             {
-                int hi = pixels[i] << 2 | (pixels[i+1] & 3);
-                int lo = pixels[i+1] >> 2 | (pixels[i] & ~0x1F);
+                int hi = pixels[i] << 2 | (pixels[i + 1] & 3);
+                int lo = pixels[i + 1] >> 2 | (pixels[i] & ~0x1F);
                 pixels[i] = (byte)lo;
-                pixels[i+1] = (byte)hi;
+                pixels[i + 1] = (byte)hi;
             }
-            return ImageData.Create (Info, PixelFormats.Bgr555, null, pixels, stride);
+            return ImageData.Create(Info, PixelFormats.Bgr555, null, pixels, stride);
         }
     }
 }

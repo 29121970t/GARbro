@@ -32,72 +32,72 @@ namespace GameRes.Formats.Leaf
 {
     internal class Ar21Entry : Entry
     {
-        public byte     Key;
+        public byte Key;
     }
 
     [Export(typeof(ArchiveFormat))]
     public class Ar2Opener : ArchiveFormat
     {
-        public override string         Tag { get { return "AR2"; } }
+        public override string Tag { get { return "AR2"; } }
         public override string Description { get { return "Leaf ar21 resource archive"; } }
-        public override uint     Signature { get { return 0x31327261; } } // 'ar21'
-        public override bool  IsHierarchic { get { return true; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x31327261; } } // 'ar21'
+        public override bool IsHierarchic { get { return true; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            int count = file.View.ReadInt32 (4);
-            if (!IsSaneCount (count))
+            int count = file.View.ReadInt32(4);
+            if (!IsSaneCount(count))
                 return null;
 
             int index_pos = 8;
             var name_buffer = new byte[0x100];
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
-                byte name_length = file.View.ReadByte (index_pos++);
-                file.View.Read (index_pos, name_buffer, 0, (uint)name_length * 2);
-                var name = DecryptName (name_buffer, name_length);
-                var entry = Create<Ar21Entry> (name);
+                byte name_length = file.View.ReadByte(index_pos++);
+                file.View.Read(index_pos, name_buffer, 0, (uint)name_length * 2);
+                var name = DecryptName(name_buffer, name_length);
+                var entry = Create<Ar21Entry>(name);
                 index_pos += name_length * 2;
-                entry.Offset = file.View.ReadUInt32 (index_pos);
-                entry.Size   = file.View.ReadUInt32 (index_pos+4);
-                entry.Key    = file.View.ReadByte (index_pos+8);
-                dir.Add (entry);
+                entry.Offset = file.View.ReadUInt32(index_pos);
+                entry.Size = file.View.ReadUInt32(index_pos + 4);
+                entry.Key = file.View.ReadByte(index_pos + 8);
+                dir.Add(entry);
                 index_pos += 12;
             }
             foreach (var entry in dir)
             {
                 entry.Offset += index_pos;
-                if (!entry.CheckPlacement (file.MaxOffset))
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
             }
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var arent = (Ar21Entry)entry;
-            using (var input = arc.File.CreateStream (entry.Offset, entry.Size))
+            using (var input = arc.File.CreateStream(entry.Offset, entry.Size))
             {
-                var data = input.ReadBytes ((int)entry.Size);
+                var data = input.ReadBytes((int)entry.Size);
                 int key_pos = arent.Key;
                 for (int i = 0; i < data.Length; ++i)
                 {
                     data[i] ^= DefaultKey[key_pos + (i & 0xFF)];
                 }
-                return new BinMemoryStream (data, entry.Name);
+                return new BinMemoryStream(data, entry.Name);
             }
         }
 
-        internal static string DecryptName (byte[] buffer, int length)
+        internal static string DecryptName(byte[] buffer, int length)
         {
             int count = length * 2;
             for (int i = 0; i < count; i += 2)
             {
                 buffer[i] ^= (byte)length;
             }
-            return Encoding.Unicode.GetString (buffer, 0, count);
+            return Encoding.Unicode.GetString(buffer, 0, count);
         }
 
         static readonly byte[] DefaultKey = {

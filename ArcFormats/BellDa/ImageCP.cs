@@ -33,59 +33,59 @@ namespace GameRes.Formats.BellDa
     [Export(typeof(ImageFormat))]
     public class CpFormat : ImageFormat
     {
-        public override string         Tag { get { return "BMP/CP"; } }
+        public override string Tag { get { return "BMP/CP"; } }
         public override string Description { get { return "BELL-DA compressed bitmap"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public CpFormat ()
+        public CpFormat()
         {
             Signatures = new uint[] { 0x42FD5043, 0 };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (5);
-            if (!header.AsciiEqual (0, "CP") || (header[2] & 0xC0) != 0xC0 ||
-                !header.AsciiEqual (3, "BM"))
+            var header = file.ReadHeader(5);
+            if (!header.AsciiEqual(0, "CP") || (header[2] & 0xC0) != 0xC0 ||
+                !header.AsciiEqual(3, "BM"))
                 return null;
-            using (var bmp = OpenCompressed (file))
-                return Bmp.ReadMetaData (bmp);
+            using (var bmp = OpenCompressed(file))
+                return Bmp.ReadMetaData(bmp);
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            using (var bmp = OpenCompressed (file))
-                return Bmp.Read (bmp, info);
+            using (var bmp = OpenCompressed(file))
+                return Bmp.Read(bmp, info);
         }
 
-        internal IBinaryStream OpenCompressed (IBinaryStream file)
+        internal IBinaryStream OpenCompressed(IBinaryStream file)
         {
-            Stream input = new StreamRegion (file.AsStream, 2, true);
-            input = new PackedStream<CpLzssDecompressor> (input);
-            return new BinaryStream (input, file.Name);
+            Stream input = new StreamRegion(file.AsStream, 2, true);
+            input = new PackedStream<CpLzssDecompressor>(input);
+            return new BinaryStream(input, file.Name);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("CpFormat.Write not implemented");
+            throw new System.NotImplementedException("CpFormat.Write not implemented");
         }
     }
 
     internal class CpLzssDecompressor : Decompressor
     {
-        Stream          m_input;
+        Stream m_input;
 
-        public override void Initialize (Stream input)
+        public override void Initialize(Stream input)
         {
             m_input = input;
         }
 
-        protected override IEnumerator<int> Unpack ()
+        protected override IEnumerator<int> Unpack()
         {
             byte[] frame = new byte[0x1000];
             int frame_pos = 1;
             const int frame_mask = 0xFFF;
-            for (;;)
+            for (; ; )
             {
                 int ctl = m_input.ReadByte();
                 if (-1 == ctl)
@@ -105,7 +105,7 @@ namespace GameRes.Formats.BellDa
                     else
                     {
                         int hi = m_input.ReadByte();
-                        if (-1 ==hi)
+                        if (-1 == hi)
                             yield break;
                         int lo = m_input.ReadByte();
                         if (-1 == lo)

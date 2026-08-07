@@ -34,37 +34,37 @@ namespace GameRes.Formats.TopCat
 {
     internal class SpdMetaData : ImageMetaData
     {
-        public Compression  Method;
-        public uint         UnpackedSize;
-        public byte         SpdType;
+        public Compression Method;
+        public uint UnpackedSize;
+        public byte SpdType;
     }
 
     internal enum Compression
     {
-        LzRle       = 0,
-        Lz          = 1,
-        LzRleAlpha  = 2,
-        LzRle2      = 0x100,
-        Spdc        = 0x101,
+        LzRle = 0,
+        Lz = 1,
+        LzRleAlpha = 2,
+        LzRle2 = 0x100,
+        Spdc = 0x101,
         LzRleAlpha2 = 0x102,
-        Jpeg        = 0x103,
+        Jpeg = 0x103,
     }
 
     [Export(typeof(ImageFormat))]
     public class SpdFormat : ImageFormat
     {
-        public override string         Tag { get { return "SPD"; } }
+        public override string Tag { get { return "SPD"; } }
         public override string Description { get { return "TopCat compressed image format"; } }
-        public override uint     Signature { get { return 0x43445053; } } // 'SPDC'
+        public override uint Signature { get { return 0x43445053; } } // 'SPDC'
 
-        public SpdFormat ()
+        public SpdFormat()
         {
             Signatures = new uint[] { 0x43445053, 0x38445053, 0x37445053 }; // 'SPD8', 'SPD7'
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
-            var header = stream.ReadHeader (0x14).ToArray();
+            var header = stream.ReadHeader(0x14).ToArray();
             unsafe
             {
                 fixed (byte* raw = header)
@@ -75,9 +75,9 @@ namespace GameRes.Formats.TopCat
                     dw[1] -= (dw[4] << 4) & 0xFFFF;
                     return new SpdMetaData
                     {
-                        Width  = dw[2],
+                        Width = dw[2],
                         Height = dw[3],
-                        BPP    = (int)(dw[1] >> 16),
+                        BPP = (int)(dw[1] >> 16),
                         Method = (Compression)(dw[1] & 0xFFFF),
                         UnpackedSize = dw[4],
                         SpdType = header[3],
@@ -86,29 +86,29 @@ namespace GameRes.Formats.TopCat
             }
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
             var meta = (SpdMetaData)info;
             if (Compression.Jpeg == meta.Method)
-                return ReadJpeg (stream.AsStream, meta);
+                return ReadJpeg(stream.AsStream, meta);
 
-            using (var reader = new SpdReader (stream.AsStream, meta))
+            using (var reader = new SpdReader(stream.AsStream, meta))
             {
                 reader.Unpack();
-                return ImageData.Create (info, reader.Format, null, reader.Data);
+                return ImageData.Create(info, reader.Format, null, reader.Data);
             }
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("SpdFormat.Write not implemented");
+            throw new System.NotImplementedException("SpdFormat.Write not implemented");
         }
 
-        private ImageData ReadJpeg (Stream file, SpdMetaData info)
+        private ImageData ReadJpeg(Stream file, SpdMetaData info)
         {
             file.Position = 0x18;
             var header = new byte[0x3C];
-            if (header.Length != file.Read (header, 0, header.Length))
+            if (header.Length != file.Read(header, 0, header.Length))
                 throw new EndOfStreamException();
             unsafe
             {
@@ -119,28 +119,28 @@ namespace GameRes.Formats.TopCat
                         dw[i] += 0xA8961EF1;
                 }
             }
-            using (var rest = new StreamRegion (file, file.Position, true))
-            using (var jpeg = new PrefixStream (header, rest))
+            using (var rest = new StreamRegion(file, file.Position, true))
+            using (var jpeg = new PrefixStream(header, rest))
             {
-                var decoder = new JpegBitmapDecoder (jpeg,
+                var decoder = new JpegBitmapDecoder(jpeg,
                     BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
                 var frame = decoder.Frames[0];
                 frame.Freeze();
-                return new ImageData (frame, info);
+                return new ImageData(frame, info);
             }
         }
     }
 
     internal sealed class SpdReader : IDisposable
     {
-        Stream          m_input;
-        byte[]          m_output;
-        SpdMetaData     m_info;
+        Stream m_input;
+        byte[] m_output;
+        SpdMetaData m_info;
 
         public PixelFormat Format { get; private set; }
-        public byte[]        Data { get { return m_output; } }
+        public byte[] Data { get { return m_output; } }
 
-        public SpdReader (Stream input, SpdMetaData info)
+        public SpdReader(Stream input, SpdMetaData info)
         {
             m_input = input;
             m_output = new byte[info.UnpackedSize];
@@ -150,50 +150,50 @@ namespace GameRes.Formats.TopCat
             else if (32 == info.BPP)
                 Format = PixelFormats.Bgra32;
             else
-                throw new NotSupportedException ("Not supported SPD image bitdepth");
+                throw new NotSupportedException("Not supported SPD image bitdepth");
         }
 
-        public void Unpack ()
+        public void Unpack()
         {
             m_input.Position = 0x14;
             switch (m_info.Method)
             {
-            case Compression.Spdc:
-                UnpackSpdc();
-                break;
-            case Compression.Lz:
-                UnpackLz();
-                break;
-            case Compression.LzRle:
-            case Compression.LzRle2:
-            case Compression.LzRleAlpha:
-            case Compression.LzRleAlpha2:
-                {
-                    UnpackLz();
-                    var rgb = new byte[m_info.Height * m_info.Width * 4];
-                    if (Compression.LzRle == m_info.Method || Compression.LzRle2 == m_info.Method)
-                    {
-                        if ('7' == m_info.SpdType)
-                            UnpackRle (rgb, 4, 0, 8);
-                        else
-                            UnpackRle (rgb, 0, 8, 12);
-                    }
-                    else if ('8' == m_info.SpdType)
-                        UnpackSpdAlpha (rgb, 8);
-                    else if ('7' == m_info.SpdType)
-                        UnpackSpdAlpha (rgb, 4);
-                    else
-                        UnpackRleAlpha (rgb);
-                    m_output = rgb;
-                    Format = PixelFormats.Bgra32;
+                case Compression.Spdc:
+                    UnpackSpdc();
                     break;
-                }
-            default:
-                throw new NotImplementedException ("SPD compression method not implemented");
+                case Compression.Lz:
+                    UnpackLz();
+                    break;
+                case Compression.LzRle:
+                case Compression.LzRle2:
+                case Compression.LzRleAlpha:
+                case Compression.LzRleAlpha2:
+                    {
+                        UnpackLz();
+                        var rgb = new byte[m_info.Height * m_info.Width * 4];
+                        if (Compression.LzRle == m_info.Method || Compression.LzRle2 == m_info.Method)
+                        {
+                            if ('7' == m_info.SpdType)
+                                UnpackRle(rgb, 4, 0, 8);
+                            else
+                                UnpackRle(rgb, 0, 8, 12);
+                        }
+                        else if ('8' == m_info.SpdType)
+                            UnpackSpdAlpha(rgb, 8);
+                        else if ('7' == m_info.SpdType)
+                            UnpackSpdAlpha(rgb, 4);
+                        else
+                            UnpackRleAlpha(rgb);
+                        m_output = rgb;
+                        Format = PixelFormats.Bgra32;
+                        break;
+                    }
+                default:
+                    throw new NotImplementedException("SPD compression method not implemented");
             }
         }
 
-        void UnpackLz ()
+        void UnpackLz()
         {
             int dst = 0;
             while (dst < m_output.Length)
@@ -219,22 +219,22 @@ namespace GameRes.Formats.TopCat
                         if (-1 == hi)
                             return;
                         int src = lo >> 4 | hi << 4;
-                        int count = Math.Min (3 + (lo & 0xF), m_output.Length - dst);
-                        Binary.CopyOverlapped (m_output, dst-src, dst, count);
+                        int count = Math.Min(3 + (lo & 0xF), m_output.Length - dst);
+                        Binary.CopyOverlapped(m_output, dst - src, dst, count);
                         dst += count;
                     }
                 }
             }
         }
 
-        void UnpackRle (byte[] rgb, int rgb_pos, int skip_pos, int ctl_src)
+        void UnpackRle(byte[] rgb, int rgb_pos, int skip_pos, int ctl_src)
         {
-            int rgb_src = LittleEndian.ToInt32 (m_output, rgb_pos);
-            bool skip = 0 == LittleEndian.ToInt32 (m_output, skip_pos);
+            int rgb_src = LittleEndian.ToInt32(m_output, rgb_pos);
+            bool skip = 0 == LittleEndian.ToInt32(m_output, skip_pos);
             int dst = 0;
             while (dst < rgb.Length)
             {
-                int n = LittleEndian.ToInt32 (m_output, ctl_src);
+                int n = LittleEndian.ToInt32(m_output, ctl_src);
                 ctl_src += 4;
                 if (skip)
                 {
@@ -254,14 +254,14 @@ namespace GameRes.Formats.TopCat
             }
         }
 
-        void UnpackRleAlpha (byte[] rgb)
+        void UnpackRleAlpha(byte[] rgb)
         {
-            int rgb_src = LittleEndian.ToInt32 (m_output, 0);
+            int rgb_src = LittleEndian.ToInt32(m_output, 0);
             int ctl_src = 8;
             int dst = 0;
             while (dst < rgb.Length)
             {
-                int count = LittleEndian.ToUInt16 (m_output, ctl_src);
+                int count = LittleEndian.ToUInt16(m_output, ctl_src);
                 ctl_src += 2;
 
                 int control = count >> 14;
@@ -286,9 +286,9 @@ namespace GameRes.Formats.TopCat
             }
         }
 
-        void UnpackSpdAlpha (byte[] rgb, int ctl_src)
+        void UnpackSpdAlpha(byte[] rgb, int ctl_src)
         {
-            int rgb_src = LittleEndian.ToInt32 (m_output, 0);
+            int rgb_src = LittleEndian.ToInt32(m_output, 0);
             int dst = 0;
             while (dst < rgb.Length)
             {
@@ -319,7 +319,7 @@ namespace GameRes.Formats.TopCat
             }
         }
 
-        void UnpackSpdc ()
+        void UnpackSpdc()
         {
             int pixel_size = m_info.BPP / 8;
             int stride = pixel_size * (int)m_info.Width;
@@ -336,37 +336,37 @@ namespace GameRes.Formats.TopCat
 
             int dst = 0;
             for (i = 0; i < pixel_size; ++i)
-                m_output[dst++] = (byte)GetBits (8);
+                m_output[dst++] = (byte)GetBits(8);
 
             while (dst < m_output.Length)
             {
-                int x = GetBits (5, true);
+                int x = GetBits(5, true);
                 if (x > 0x1B)
                 {
-                    GetBits (3);
-                    m_output[dst+2] = (byte)GetBits (8);
-                    m_output[dst+1] = (byte)GetBits (8);
-                    m_output[dst]   = (byte)GetBits (8);
+                    GetBits(3);
+                    m_output[dst + 2] = (byte)GetBits(8);
+                    m_output[dst + 1] = (byte)GetBits(8);
+                    m_output[dst] = (byte)GetBits(8);
                 }
                 else
                 {
                     int src = dst + offset_table[x];
-                    m_output[dst]   = m_output[src];
-                    m_output[dst+1] = m_output[src+1];
-                    m_output[dst+2] = m_output[src+2];
+                    m_output[dst] = m_output[src];
+                    m_output[dst + 1] = m_output[src + 1];
+                    m_output[dst + 2] = m_output[src + 2];
 
-                    GetBits (DiffPrefixTable[x] >> 1);
+                    GetBits(DiffPrefixTable[x] >> 1);
                     if (0 != (DiffPrefixTable[x] & 1))
                     {
-                        int i1 = GetBits (8, true);
-                        int i2 = GetBits (8 + DiffLengthsTable[i1], true) & 0xFF;
-                        int i3 = GetBits (8 + DiffLengthsTable[i1] + DiffLengthsTable[i2], true) & 0xFF;
+                        int i1 = GetBits(8, true);
+                        int i2 = GetBits(8 + DiffLengthsTable[i1], true) & 0xFF;
+                        int i3 = GetBits(8 + DiffLengthsTable[i1] + DiffLengthsTable[i2], true) & 0xFF;
 
-                        m_output[dst]   += DiffTable[i1];
-                        m_output[dst+1] += (byte)(DiffTable[i1] + DiffTable[i2]);
-                        m_output[dst+2] += (byte)(DiffTable[i1] + DiffTable[i3]);
+                        m_output[dst] += DiffTable[i1];
+                        m_output[dst + 1] += (byte)(DiffTable[i1] + DiffTable[i2]);
+                        m_output[dst + 2] += (byte)(DiffTable[i1] + DiffTable[i3]);
 
-                        GetBits (DiffLengthsTable[i1] + DiffLengthsTable[i2] + DiffLengthsTable[i3]);
+                        GetBits(DiffLengthsTable[i1] + DiffLengthsTable[i2] + DiffLengthsTable[i3]);
                     }
                 }
                 dst += pixel_size;
@@ -377,7 +377,7 @@ namespace GameRes.Formats.TopCat
         int m_cached_bits = 0;
 
         // FIXME: add 'peek' feature to MsbBitStream class
-        int GetBits (int count, bool peek = false)
+        int GetBits(int count, bool peek = false)
         {
             while (m_cached_bits < count)
             {
@@ -439,7 +439,7 @@ namespace GameRes.Formats.TopCat
 
         #region IDisposable Members
         bool _disposed = false;
-        public void Dispose ()
+        public void Dispose()
         {
             if (!_disposed)
             {

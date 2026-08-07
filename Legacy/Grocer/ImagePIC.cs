@@ -37,50 +37,50 @@ namespace GameRes.Formats.Grocer
     [Export(typeof(ImageFormat))]
     public class PicFormat : ImageFormat
     {
-        public override string         Tag => "PIC/GROCER";
+        public override string Tag => "PIC/GROCER";
         public override string Description => "Grocer image format";
-        public override uint     Signature => 1;
+        public override uint Signature => 1;
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x57);
-            if (!header.AsciiEqual (0x10, "Actor98"))
+            var header = file.ReadHeader(0x57);
+            if (!header.AsciiEqual(0x10, "Actor98"))
                 return null;
-            uint width = (uint)header.ToUInt16 (0x53) << 3;
+            uint width = (uint)header.ToUInt16(0x53) << 3;
             if (width > 640)
                 return null;
             return new ImageMetaData
             {
                 Width = width,
-                Height = header.ToUInt16 (0x55),
+                Height = header.ToUInt16(0x55),
                 BPP = 4,
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new PicReader (file, info);
+            var reader = new PicReader(file, info);
             return reader.Unpack();
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("PicFormat.Write not implemented");
+            throw new System.NotImplementedException("PicFormat.Write not implemented");
         }
     }
 
     internal class PicReader
     {
-        IBinaryStream   m_input;
-        ImageMetaData   m_info;
+        IBinaryStream m_input;
+        ImageMetaData m_info;
 
-        public PicReader (IBinaryStream input, ImageMetaData info)
+        public PicReader(IBinaryStream input, ImageMetaData info)
         {
             m_input = input;
             m_info = info;
         }
 
-        public ImageData Unpack ()
+        public ImageData Unpack()
         {
             m_input.Position = 0x21;
             var palette = ReadPalette();
@@ -103,44 +103,44 @@ namespace GameRes.Formats.Grocer
                             int count = m_input.ReadUInt8();
                             switch (cur_byte)
                             {
-                            case 1:
-                                {
-                                    cur_byte = m_input.ReadUInt8();
-                                    int dst = plane * 0x50 + x + 0x280;
-                                    for (int i = 0; i < count; ++i)
+                                case 1:
                                     {
-                                        buffer[dst+i] = cur_byte;
+                                        cur_byte = m_input.ReadUInt8();
+                                        int dst = plane * 0x50 + x + 0x280;
+                                        for (int i = 0; i < count; ++i)
+                                        {
+                                            buffer[dst + i] = cur_byte;
+                                        }
+                                        break;
                                     }
-                                    break;
-                                }
-                            case 2:
-                                {
-                                    int src = plane * 0x50 + x;
-                                    int dst = src + 0x280;
-                                    Buffer.BlockCopy (buffer, src, buffer, dst, count);
-                                    break;
-                                }
-                            case 3:
-                                {
-                                    int src = x + 0x280;
-                                    int dst = plane * 0x50 + src;
-                                    Buffer.BlockCopy (buffer, src, buffer, dst, count);
-                                    break;
-                                }
-                            case 4:
-                                {
-                                    int src = x + 0x2D0;
-                                    int dst = plane * 0x50 + x + 0x280;
-                                    Buffer.BlockCopy (buffer, src, buffer, dst, count);
-                                    break;
-                                }
-                            case 5:
-                                {
-                                    int src = x + 0x320;
-                                    int dst = plane * 0x50 + x + 0x280;
-                                    Buffer.BlockCopy (buffer, src, buffer, dst, count);
-                                    break;
-                                }
+                                case 2:
+                                    {
+                                        int src = plane * 0x50 + x;
+                                        int dst = src + 0x280;
+                                        Buffer.BlockCopy(buffer, src, buffer, dst, count);
+                                        break;
+                                    }
+                                case 3:
+                                    {
+                                        int src = x + 0x280;
+                                        int dst = plane * 0x50 + src;
+                                        Buffer.BlockCopy(buffer, src, buffer, dst, count);
+                                        break;
+                                    }
+                                case 4:
+                                    {
+                                        int src = x + 0x2D0;
+                                        int dst = plane * 0x50 + x + 0x280;
+                                        Buffer.BlockCopy(buffer, src, buffer, dst, count);
+                                        break;
+                                    }
+                                case 5:
+                                    {
+                                        int src = x + 0x320;
+                                        int dst = plane * 0x50 + x + 0x280;
+                                        Buffer.BlockCopy(buffer, src, buffer, dst, count);
+                                        break;
+                                    }
                             }
                             x += count;
                         }
@@ -170,13 +170,13 @@ namespace GameRes.Formats.Grocer
                         mask >>= 1;
                     }
                 }
-                Buffer.BlockCopy (buffer, 0x140, buffer, 0, 0x280);
+                Buffer.BlockCopy(buffer, 0x140, buffer, 0, 0x280);
                 output_pos += m_info.iWidth;
             }
-            return ImageData.Create (m_info, PixelFormats.Indexed8, palette, pixels);
+            return ImageData.Create(m_info, PixelFormats.Indexed8, palette, pixels);
         }
 
-        BitmapPalette ReadPalette ()
+        BitmapPalette ReadPalette()
         {
             const int count = 16;
             var colors = new Color[count];
@@ -185,9 +185,9 @@ namespace GameRes.Formats.Grocer
                 byte g = m_input.ReadUInt8();
                 byte r = m_input.ReadUInt8();
                 byte b = m_input.ReadUInt8();
-                colors[i] = Color.FromRgb ((byte)(r * 0x11), (byte)(g * 0x11), (byte)(b * 0x11));
+                colors[i] = Color.FromRgb((byte)(r * 0x11), (byte)(g * 0x11), (byte)(b * 0x11));
             }
-            return new BitmapPalette (colors);
+            return new BitmapPalette(colors);
         }
     }
 }

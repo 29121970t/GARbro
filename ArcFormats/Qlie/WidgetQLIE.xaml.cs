@@ -10,11 +10,11 @@ namespace GameRes.Formats.GUI
     /// </summary>
     public partial class WidgetQLIE : StackPanel
     {
-        public WidgetQLIE ()
+        public WidgetQLIE()
         {
-            InitializeComponent ();
+            InitializeComponent();
             var keys = new string[] { arcStrings.QLIEDefaultScheme };
-            Scheme.ItemsSource = keys.Concat (PackOpener.KnownKeys.Keys.OrderBy (x => x));
+            Scheme.ItemsSource = keys.Concat(PackOpener.KnownKeys.Keys.OrderBy(x => x));
             if (-1 == Scheme.SelectedIndex)
                 Scheme.SelectedIndex = 0;
         }

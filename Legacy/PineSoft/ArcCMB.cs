@@ -34,70 +34,71 @@ namespace GameRes.Formats.PineSoft
     [Export(typeof(ArchiveFormat))]
     public class CmbOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "CMB"; } }
+        public override string Tag { get { return "CMB"; } }
         public override string Description { get { return "PineSoft resource archive"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            if (!file.Name.HasExtension (".cmb"))
+            if (!file.Name.HasExtension(".cmb"))
                 return null;
-            var arc_name = Path.GetFileNameWithoutExtension (file.Name);
-            int arc_num = Int32.Parse (arc_name);
-            var scheme = QueryScheme (file.Name);
+            var arc_name = Path.GetFileNameWithoutExtension(file.Name);
+            int arc_num = Int32.Parse(arc_name);
+            var scheme = QueryScheme(file.Name);
             if (scheme.Length <= arc_num)
                 return null;
             var offsets = scheme[arc_num];
-            uint last_offset = offsets[offsets.Length-1];
+            uint last_offset = offsets[offsets.Length - 1];
             if (last_offset != file.MaxOffset)
                 return null;
             int count = offsets.Length - 1;
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
                 if (offsets[i] == uint.MaxValue)
                     continue;
-                var entry = new PackedEntry {
-                    Name = i.ToString ("D5"),
+                var entry = new PackedEntry
+                {
+                    Name = i.ToString("D5"),
                     Offset = offsets[i],
                 };
-                dir.Add (entry);
+                dir.Add(entry);
             }
             for (int i = 1; i < dir.Count; ++i)
             {
-                var entry = dir[i-1];
+                var entry = dir[i - 1];
                 entry.Size = (uint)(dir[i].Offset - entry.Offset);
             }
-            dir[dir.Count-1].Size = (uint)(last_offset - dir[dir.Count-1].Offset);
-            DetectFileTypes (file, dir);
-            return new ArcFile (file, this, dir);
+            dir[dir.Count - 1].Size = (uint)(last_offset - dir[dir.Count - 1].Offset);
+            DetectFileTypes(file, dir);
+            return new ArcFile(file, this, dir);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
-            var input = arc.File.CreateStream (entry.Offset, entry.Size);
+            var input = arc.File.CreateStream(entry.Offset, entry.Size);
             var pent = entry as PackedEntry;
             if (null == pent || !pent.IsPacked)
                 return input;
-            return new LzssStream (input);
+            return new LzssStream(input);
         }
 
-        void DetectFileTypes (ArcView file, List<Entry> dir)
+        void DetectFileTypes(ArcView file, List<Entry> dir)
         {
             foreach (PackedEntry entry in dir)
             {
-                uint signature = file.View.ReadUInt32 (entry.Offset);
+                uint signature = file.View.ReadUInt32(entry.Offset);
                 if (0x5367674F == signature)
                 {
-                    entry.ChangeType (OggAudio.Instance);
+                    entry.ChangeType(OggAudio.Instance);
                     continue;
                 }
-                uint id2 = file.View.ReadUInt32 (entry.Offset+4);
+                uint id2 = file.View.ReadUInt32(entry.Offset + 4);
                 if (0x4450420F == (id2 & 0xFFFFFF0F))
                 {
-                    entry.ChangeType (s_BpdFormat.Value);
+                    entry.ChangeType(s_BpdFormat.Value);
                     entry.IsPacked = true;
                     entry.UnpackedSize = signature;
                     entry.Offset += 4;
@@ -113,7 +114,7 @@ namespace GameRes.Formats.PineSoft
                 {
                     continue;
                 }
-                int count = file.View.ReadInt32 (entry.Offset+0x24);
+                int count = file.View.ReadInt32(entry.Offset + 0x24);
                 if ((count + 1) * 4 + 0x28 == signature)
                 {
                     entry.Type = "archive";
@@ -121,12 +122,12 @@ namespace GameRes.Formats.PineSoft
             }
         }
 
-        uint[][] QueryScheme (string arc_name)
+        uint[][] QueryScheme(string arc_name)
         {
             return DefaultLayout;
         }
 
-        static readonly ResourceInstance<ImageFormat> s_BpdFormat = new ResourceInstance<ImageFormat> ("BPD");
+        static readonly ResourceInstance<ImageFormat> s_BpdFormat = new ResourceInstance<ImageFormat>("BPD");
 
         // [051125][PineSoft] Close-up!
         static uint[][] DefaultLayout = new uint[][] {
@@ -194,7 +195,7 @@ namespace GameRes.Formats.PineSoft
                 0x05E9E3AE, 0x05F4D84D, 0x05FD4496, 0x06064564, 0x0612A7CD, 0x061FDC0E, 0x062FBCD4, 0x063B85A9,
                 0x064C3744, 0x065877B1, 0x06657813, 0x0673AADD, 0x0682B1D9, 0x068D5124, 0x0698C275, 0x06A7A19A,
                 0x06B24CB4, 0x06C1359D, 0x06D4028F, 0x06E29495, 0x06EDDC3F, 0x06FBDF2E, 0x070C75D5, 0x0718853D,
-                0x0723F192, 0x073039D1, 0x073D453B, 
+                0x0723F192, 0x073039D1, 0x073D453B,
             },
             new uint[] {
                 0x00000000, 0xFFFFFFFF, 0x00038D3E, 0x00173FF2, 0x0028715D, 0x00399F0F, 0x004C010B, 0x005E6202,
@@ -206,7 +207,7 @@ namespace GameRes.Formats.PineSoft
                 0x00F60E5A, 0x00FCDEA2, 0x01040CB2, 0x010B2F13, 0x01124ED7, 0x01198006, 0x01210E7A, 0x01289C10,
                 0x012FF8C4, 0x0137165F, 0x013EAF7E, 0x01464FB3, 0x014DAFEC, 0x01551340, 0x015CD333, 0x01649395,
                 0x016C41F2, 0x0173BFAD, 0x017B741F, 0x01830C76, 0x018AAD44, 0x0192174F, 0x019A849F, 0x01A2F1A7,
-                0x01AB4F7B, 0x01AED7A6, 0x01AF0230, 0x01B7E2DD, 
+                0x01AB4F7B, 0x01AED7A6, 0x01AF0230, 0x01B7E2DD,
             },
             new uint[] {
                 0x00000000, 0x0015FD2E, 0x002F9195, 0x002F91C1, 0x002F91ED, 0x002F9219, 0x002F9245, 0x002F9271,
@@ -261,7 +262,7 @@ namespace GameRes.Formats.PineSoft
                 0x09A49495, 0x09A8BA1E, 0x09B19DB6, 0x09B5CCF3, 0x09BB99C1, 0x09C16D5C, 0x0A028547, 0x0A060985,
                 0x0A086FC5, 0x0A0D4C41, 0x0A10ED71, 0x0A138902, 0x0A14C3CE, 0x0A1A447C, 0x0A1F30B8, 0x0A2561F0,
                 0x0A273374, 0x0A27D5D8, 0x0A2EF9E0, 0x0A3139AF, 0x0A35F0FF, 0x0A3AF01A, 0x0A3D7378, 0x0A3F64A5,
-                0x0A4375A6, 
+                0x0A4375A6,
             },
             new uint[] {
                 0x00000000, 0x00002788, 0x00006D9D, 0x00008DFC, 0x0000DD31, 0x00013E16, 0x00017091, 0x00019F53,
@@ -328,7 +329,7 @@ namespace GameRes.Formats.PineSoft
                 0x00061EC7, 0x00062178, 0x0006266E, 0x00062ACB, 0x00063054, 0x000632AC, 0x000647C4, 0x00064AD4,
                 0x00064CEA, 0x00064F3C, 0x0006512B, 0x000652A7, 0x0006556D, 0x0006587A, 0x00065B8B, 0x00065E17,
                 0x00065FCC, 0x00066321, 0x00066694, 0x00066952, 0x00066BA7, 0x00066E9B, 0x00067074, 0x000671A1,
-                0x000673ED, 0x00068EEE, 
+                0x000673ED, 0x00068EEE,
             },
             new uint[] {
                 0x00000000, 0x0004581C, 0x00048652, 0x0005906C, 0x00074888
@@ -339,6 +340,6 @@ namespace GameRes.Formats.PineSoft
     [Serializable]
     public class CmbScheme : ResourceScheme
     {
-        public IDictionary<string, uint[][]>   KnownSchemes;
+        public IDictionary<string, uint[][]> KnownSchemes;
     }
 }

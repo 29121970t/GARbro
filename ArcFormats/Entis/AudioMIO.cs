@@ -38,40 +38,40 @@ namespace GameRes.Formats.Entis
     [Export(typeof(AudioFormat))]
     public class MioAudio : AudioFormat
     {
-        public override string         Tag { get { return "MIO"; } }
+        public override string Tag { get { return "MIO"; } }
         public override string Description { get { return "Entis engine compressed audio format"; } }
-        public override uint     Signature { get { return 0x69746e45u; } } // 'Enti'
+        public override uint Signature { get { return 0x69746e45u; } } // 'Enti'
 
-        public override SoundInput TryOpen (IBinaryStream file)
+        public override SoundInput TryOpen(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x40);
-            if (0x03000100 != header.ToUInt32 (8))
+            var header = file.ReadHeader(0x40);
+            if (0x03000100 != header.ToUInt32(8))
                 return null;
-            if (!header.AsciiEqual (0x10, "Music Interleaved"))
+            if (!header.AsciiEqual(0x10, "Music Interleaved"))
                 return null;
 
-            return new MioInput (file.AsStream);
+            return new MioInput(file.AsStream);
         }
     }
 
     public class MioInput : SoundInput
     {
-        MioInfoHeader           m_info;
-        long                    m_stream_pos;
-        int                     m_bitrate;
-        uint                    m_total_samples;
-        ERISADecodeContext      m_pmioc;
-        MioDecoder              m_pmiod;
-        Stream                  m_decoded_stream;
+        MioInfoHeader m_info;
+        long m_stream_pos;
+        int m_bitrate;
+        uint m_total_samples;
+        ERISADecodeContext m_pmioc;
+        MioDecoder m_pmiod;
+        Stream m_decoded_stream;
 
-        public int   ChannelCount { get { return m_info.ChannelCount; } }
+        public int ChannelCount { get { return m_info.ChannelCount; } }
         public uint BitsPerSample { get { return m_info.BitsPerSample; } }
 
-        public override int   SourceBitrate { get { return m_bitrate; } }
+        public override int SourceBitrate { get { return m_bitrate; } }
         public override string SourceFormat { get { return "mio"; } }
 
         #region Stream Members
-        public override bool        CanSeek { get { return m_decoded_stream.CanSeek; } }
+        public override bool CanSeek { get { return m_decoded_stream.CanSeek; } }
 
         public override long Position
         {
@@ -79,16 +79,16 @@ namespace GameRes.Formats.Entis
             set { m_decoded_stream.Position = value; }
         }
 
-        public override int Read (byte[] buffer, int offset, int count)
+        public override int Read(byte[] buffer, int offset, int count)
         {
-            return Read_Threaded (buffer, offset, count);
+            return Read_Threaded(buffer, offset, count);
         }
         #endregion
 
-        public MioInput (Stream file) : base (file)
+        public MioInput(Stream file) : base(file)
         {
             file.Position = 0x40;
-            using (var erif = new EriFile (file))
+            using (var erif = new EriFile(file))
             {
                 var section = erif.ReadSection();
                 if (section.Id != "Header  " || section.Length <= 0 || section.Length > int.MaxValue)
@@ -104,44 +104,44 @@ namespace GameRes.Formats.Entis
                     if ("SoundInf" == section.Id)
                     {
                         m_info = new MioInfoHeader();
-                        m_info.Version        = erif.ReadInt32();
+                        m_info.Version = erif.ReadInt32();
                         m_info.Transformation = (CvType)erif.ReadInt32();
-                        m_info.Architecture   = (EriCode)erif.ReadInt32();
-                        m_info.ChannelCount   = erif.ReadInt32();
-                        m_info.SamplesPerSec  = erif.ReadUInt32();
-                        m_info.BlocksetCount  = erif.ReadUInt32();
-                        m_info.SubbandDegree  = erif.ReadInt32();
+                        m_info.Architecture = (EriCode)erif.ReadInt32();
+                        m_info.ChannelCount = erif.ReadInt32();
+                        m_info.SamplesPerSec = erif.ReadUInt32();
+                        m_info.BlocksetCount = erif.ReadUInt32();
+                        m_info.SubbandDegree = erif.ReadInt32();
                         m_info.AllSampleCount = erif.ReadUInt32();
-                        m_info.LappedDegree   = erif.ReadUInt32();
-                        m_info.BitsPerSample  = erif.ReadUInt32();
+                        m_info.LappedDegree = erif.ReadUInt32();
+                        m_info.BitsPerSample = erif.ReadUInt32();
                         break;
                     }
                     header_size -= (int)section.Length;
-                    erif.BaseStream.Seek (section.Length, SeekOrigin.Current);
+                    erif.BaseStream.Seek(section.Length, SeekOrigin.Current);
                 }
                 if (null == m_info)
-                    throw new InvalidFormatException ("MIO sound header not found");
+                    throw new InvalidFormatException("MIO sound header not found");
 
                 erif.BaseStream.Position = m_stream_pos;
-                var stream_size = erif.FindSection ("Stream  ");
+                var stream_size = erif.FindSection("Stream  ");
                 m_stream_pos = erif.BaseStream.Position;
 
-                m_pmiod = new MioDecoder (m_info);
+                m_pmiod = new MioDecoder(m_info);
                 if (EriCode.Nemesis != m_info.Architecture)
-                    m_pmioc = new HuffmanDecodeContext (0x10000);
+                    m_pmioc = new HuffmanDecodeContext(0x10000);
                 else
-                    throw new NotImplementedException ("MIO Nemesis encoding not implemented");
+                    throw new NotImplementedException("MIO Nemesis encoding not implemented");
 
                 int pcm_bitrate = (int)(m_info.SamplesPerSec * BitsPerSample * ChannelCount);
                 var format = new GameRes.WaveFormat();
-                format.FormatTag                = 1;
-                format.Channels                 = (ushort)ChannelCount;
-                format.SamplesPerSecond         = m_info.SamplesPerSec;
-                format.BitsPerSample            = (ushort)BitsPerSample;
-                format.BlockAlign               = (ushort)(BitsPerSample/8*format.Channels);
-                format.AverageBytesPerSecond    = (uint)pcm_bitrate/8;
+                format.FormatTag = 1;
+                format.Channels = (ushort)ChannelCount;
+                format.SamplesPerSecond = m_info.SamplesPerSec;
+                format.BitsPerSample = (ushort)BitsPerSample;
+                format.BlockAlign = (ushort)(BitsPerSample / 8 * format.Channels);
+                format.AverageBytesPerSecond = (uint)pcm_bitrate / 8;
                 this.Format = format;
-                m_decoded_stream = LoadChunks (erif);
+                m_decoded_stream = LoadChunks(erif);
 
                 if (0 != m_total_samples)
                     m_bitrate = (int)(stream_size * 8 * m_info.SamplesPerSec / m_total_samples);
@@ -159,24 +159,24 @@ namespace GameRes.Formats.Entis
 
         class ChunkStream : InputProxyStream
         {
-            MioChunk    m_chunk;
+            MioChunk m_chunk;
 
-            public ChunkStream (Stream source, MioChunk chunk) : base (source, true)
+            public ChunkStream(Stream source, MioChunk chunk) : base(source, true)
             {
                 m_chunk = chunk;
                 BaseStream.Position = m_chunk.Position;
             }
 
-            public override bool  CanRead { get { return true; } }
-            public override long   Length { get { return m_chunk.Size; } }
+            public override bool CanRead { get { return true; } }
+            public override long Length { get { return m_chunk.Size; } }
 
             public override long Position
             {
-                get { return BaseStream.Position-m_chunk.Position; }
-                set { Seek (value, SeekOrigin.Begin); }
+                get { return BaseStream.Position - m_chunk.Position; }
+                set { Seek(value, SeekOrigin.Begin); }
             }
 
-            public override long Seek (long offset, SeekOrigin origin)
+            public override long Seek(long offset, SeekOrigin origin)
             {
                 if (origin == SeekOrigin.Begin)
                     offset += m_chunk.Position;
@@ -190,40 +190,40 @@ namespace GameRes.Formats.Entis
                 return offset - m_chunk.Position;
             }
 
-            public override int Read (byte[] buf, int index, int count)
+            public override int Read(byte[] buf, int index, int count)
             {
                 long remaining = (m_chunk.Position + m_chunk.Size) - BaseStream.Position;
                 if (count > remaining)
                     count = (int)remaining;
                 if (count <= 0)
                     return 0;
-                return BaseStream.Read (buf, index, count);
+                return BaseStream.Read(buf, index, count);
             }
         }
 
-        private Stream LoadChunks (EriFile erif)
+        private Stream LoadChunks(EriFile erif)
         {
             uint current_sample = 0;
             List<MioChunk> chunks = new List<MioChunk>();
             try
             {
                 erif.BaseStream.Position = m_stream_pos;
-                for (;;)
+                for (; ; )
                 {
-                    long chunk_length = erif.FindSection ("SoundStm");
+                    long chunk_length = erif.FindSection("SoundStm");
                     if (chunk_length > int.MaxValue)
                         throw new FileSizeException();
                     var chunk = new MioChunk();
                     chunk.FirstSample = current_sample;
-                    chunk.Version     = erif.ReadByte();
-                    chunk.Flags       = erif.ReadByte();
+                    chunk.Version = erif.ReadByte();
+                    chunk.Flags = erif.ReadByte();
                     erif.ReadInt16();
                     chunk.SampleCount = erif.ReadUInt32();
-                    chunk.Position    = erif.BaseStream.Position;
-                    chunk.Size        = (uint)(chunk_length - 8);
+                    chunk.Position = erif.BaseStream.Position;
+                    chunk.Size = (uint)(chunk_length - 8);
                     current_sample += chunk.SampleCount;
-                    chunks.Add (chunk);
-                    erif.BaseStream.Seek (chunk.Size, SeekOrigin.Current);
+                    chunks.Add(chunk);
+                    erif.BaseStream.Seek(chunk.Size, SeekOrigin.Current);
                 }
             }
             catch (EndOfStreamException) { /* ignore EOF errors */ }
@@ -241,20 +241,20 @@ namespace GameRes.Formats.Entis
             m_worker = new BackgroundWorker();
             m_worker.WorkerSupportsCancellation = true;
             m_worker.DoWork += DoWork_Decode;
-            m_worker.RunWorkerAsync (chunks);
-            return new MemoryStream ((int)total_bytes);
+            m_worker.RunWorkerAsync(chunks);
+            return new MemoryStream((int)total_bytes);
         }
 
-        bool                    m_decode_finished = false;
-        AutoResetEvent          m_decode_complete = new AutoResetEvent (false);
-        AutoResetEvent          m_available_chunk = new AutoResetEvent (false);
-        WaitHandle[]            m_wait_handles;
+        bool m_decode_finished = false;
+        AutoResetEvent m_decode_complete = new AutoResetEvent(false);
+        AutoResetEvent m_available_chunk = new AutoResetEvent(false);
+        WaitHandle[] m_wait_handles;
 
         ConcurrentQueue<byte[]> m_chunk_queue;
-        BackgroundWorker        m_worker;
-        Exception               m_decode_error = null;
+        BackgroundWorker m_worker;
+        Exception m_decode_error = null;
 
-        private void DoWork_Decode (object sender, DoWorkEventArgs e)
+        private void DoWork_Decode(object sender, DoWorkEventArgs e)
         {
             try
             {
@@ -268,20 +268,20 @@ namespace GameRes.Formats.Entis
                         e.Cancel = true;
                         break;
                     }
-                    using (var input = new ChunkStream (Source, chunk))
+                    using (var input = new ChunkStream(Source, chunk))
                     {
                         var wave_buf = new byte[chunk.SampleCount * sample_bytes];
-                        m_pmioc.AttachInputFile (input);
-                        if (!m_pmiod.DecodeSound (m_pmioc, chunk, wave_buf, 0))
+                        m_pmioc.AttachInputFile(input);
+                        if (!m_pmiod.DecodeSound(m_pmioc, chunk, wave_buf, 0))
                             throw new InvalidFormatException();
-                        m_chunk_queue.Enqueue (wave_buf);
+                        m_chunk_queue.Enqueue(wave_buf);
                         m_available_chunk.Set();
                     }
                 }
             }
             catch (Exception X)
             {
-                Trace.WriteLine (X.Message, "[MIO]");
+                Trace.WriteLine(X.Message, "[MIO]");
                 m_decode_error = X;
             }
             finally
@@ -290,14 +290,14 @@ namespace GameRes.Formats.Entis
             }
         }
 
-        private int Read_Threaded (byte[] buf, int idx, int count)
+        private int Read_Threaded(byte[] buf, int idx, int count)
         {
             var current_pos = Position;
             int total_read = 0;
             if (current_pos < m_decoded_stream.Length)
             {
                 int available_bytes = (int)(m_decoded_stream.Length - current_pos);
-                int read = m_decoded_stream.Read (buf, idx, Math.Min (count, available_bytes));
+                int read = m_decoded_stream.Read(buf, idx, Math.Min(count, available_bytes));
                 idx += read;
                 count -= read;
                 total_read += read;
@@ -305,19 +305,19 @@ namespace GameRes.Formats.Entis
             if (count > 0 && (!m_decode_finished || m_chunk_queue.Count > 0))
             {
                 current_pos = Position;
-                m_decoded_stream.Seek (0, SeekOrigin.End);
-                for (;;)
+                m_decoded_stream.Seek(0, SeekOrigin.End);
+                for (; ; )
                 {
                     byte[] wave_buf = null;
-                    while (m_chunk_queue.TryDequeue (out wave_buf))
+                    while (m_chunk_queue.TryDequeue(out wave_buf))
                     {
-                        m_decoded_stream.Write (wave_buf, 0, wave_buf.Length);
+                        m_decoded_stream.Write(wave_buf, 0, wave_buf.Length);
                         if (current_pos + count <= m_decoded_stream.Length)
                             break;
                     }
                     if (m_decode_finished || (current_pos + count <= m_decoded_stream.Length))
                         break;
-                    int evt = WaitHandle.WaitAny (m_wait_handles);
+                    int evt = WaitHandle.WaitAny(m_wait_handles);
                     if (1 == evt)
                     {
                         m_decode_finished = true;
@@ -329,14 +329,14 @@ namespace GameRes.Formats.Entis
                     }
                 }
                 m_decoded_stream.Position = current_pos;
-                total_read += m_decoded_stream.Read (buf, idx, count);
+                total_read += m_decoded_stream.Read(buf, idx, count);
             }
             return total_read;
         }
 
         #region IDisposable Members
         bool _mio_disposed = false;
-        protected override void Dispose (bool disposing)
+        protected override void Dispose(bool disposing)
         {
             if (!_mio_disposed)
             {
@@ -354,7 +354,7 @@ namespace GameRes.Formats.Entis
                     m_worker.Dispose();
                 }
                 _mio_disposed = true;
-                base.Dispose (disposing);
+                base.Dispose(disposing);
             }
         }
         #endregion

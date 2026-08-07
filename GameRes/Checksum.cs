@@ -30,7 +30,7 @@ namespace GameRes.Utility
     public interface ICheckSum
     {
         uint Value { get; }
-        void Update (byte[] buf, int pos, int len);
+        void Update(byte[] buf, int pos, int len);
     }
 
     public sealed class Crc32 : ICheckSum
@@ -41,7 +41,7 @@ namespace GameRes.Utility
         public static uint[] Table { get { return crc_table; } }
 
         /* Make the table for a fast CRC. */
-        private static uint[] InitializeTable ()
+        private static uint[] InitializeTable()
         {
             uint[] table = new uint[256];
             for (uint n = 0; n < 256; n++)
@@ -58,31 +58,31 @@ namespace GameRes.Utility
             }
             return table;
         }
-   
+
         /* Update a running CRC with the bytes buf[0..len-1]--the CRC
            should be initialized to all 1's, and the transmitted value
            is the 1's complement of the final running CRC (see the
            crc() routine below)). */
-        public static uint UpdateCrc (uint crc, byte[] buf, int pos, int len)
+        public static uint UpdateCrc(uint crc, byte[] buf, int pos, int len)
         {
             uint c = crc;
             for (int n = 0; n < len; n++)
-                c = crc_table[(c ^ buf[pos+n]) & 0xff] ^ (c >> 8);
+                c = crc_table[(c ^ buf[pos + n]) & 0xff] ^ (c >> 8);
             return c;
         }
-   
+
         /* Return the CRC of the bytes buf[0..len-1]. */
-        public static uint Compute (byte[] buf, int pos, int len)
+        public static uint Compute(byte[] buf, int pos, int len)
         {
-            return UpdateCrc (0xffffffff, buf, pos, len) ^ 0xffffffff;
+            return UpdateCrc(0xffffffff, buf, pos, len) ^ 0xffffffff;
         }
 
         private uint m_crc = 0xffffffff;
-        public  uint Value { get { return m_crc^0xffffffff; } }
+        public uint Value { get { return m_crc ^ 0xffffffff; } }
 
-        public void Update (byte[] buf, int pos, int len)
+        public void Update(byte[] buf, int pos, int len)
         {
-            m_crc = UpdateCrc (m_crc, buf, pos, len);
+            m_crc = UpdateCrc(m_crc, buf, pos, len);
         }
     }
 
@@ -110,9 +110,9 @@ namespace GameRes.Utility
     public sealed class Adler32 : ICheckSum
     {
         const uint BASE = 65521;      /* largest prime smaller than 65536 */
-        const int  NMAX = 5552;
+        const int NMAX = 5552;
 
-        public static uint Compute (byte[] buf, int pos, int len)
+        public static uint Compute(byte[] buf, int pos, int len)
         {
             if (0 == len)
                 return 1;
@@ -120,24 +120,25 @@ namespace GameRes.Utility
             {
                 fixed (byte* ptr = &buf[pos])
                 {
-                    return Update (1, ptr, len);
+                    return Update(1, ptr, len);
                 }
             }
         }
 
-        public unsafe static uint Compute (byte* buf, int len)
+        public unsafe static uint Compute(byte* buf, int len)
         {
-            return Update (1, buf, len);
+            return Update(1, buf, len);
         }
 
-        private unsafe static uint Update (uint adler, byte* buf, int len)
+        private unsafe static uint Update(uint adler, byte* buf, int len)
         {
             /* split Adler-32 into component sums */
             uint sum2 = (adler >> 16) & 0xffff;
             adler &= 0xffff;
 
             /* in case user likes doing a byte at a time, keep it fast */
-            if (1 == len) {
+            if (1 == len)
+            {
                 adler += *buf;
                 if (adler >= BASE)
                     adler -= BASE;
@@ -148,8 +149,10 @@ namespace GameRes.Utility
             }
 
             /* in case short lengths are provided, keep it somewhat fast */
-            if (len < 16) {
-                while (0 != len--) {
+            if (len < 16)
+            {
+                while (0 != len--)
+                {
                     adler += *buf++;
                     sum2 += adler;
                 }
@@ -160,21 +163,23 @@ namespace GameRes.Utility
             }
 
             /* do length NMAX blocks -- requires just one modulo operation */
-            while (len >= NMAX) {
+            while (len >= NMAX)
+            {
                 len -= NMAX;
                 int n = NMAX / 16;          /* NMAX is divisible by 16 */
-                do {
+                do
+                {
                     /* 16 sums unrolled */
-                    adler += buf[0];  sum2 += adler;
-                    adler += buf[1];  sum2 += adler;
-                    adler += buf[2];  sum2 += adler;
-                    adler += buf[3];  sum2 += adler;
-                    adler += buf[4];  sum2 += adler;
-                    adler += buf[5];  sum2 += adler;
-                    adler += buf[6];  sum2 += adler;
-                    adler += buf[7];  sum2 += adler;
-                    adler += buf[8];  sum2 += adler;
-                    adler += buf[9];  sum2 += adler;
+                    adler += buf[0]; sum2 += adler;
+                    adler += buf[1]; sum2 += adler;
+                    adler += buf[2]; sum2 += adler;
+                    adler += buf[3]; sum2 += adler;
+                    adler += buf[4]; sum2 += adler;
+                    adler += buf[5]; sum2 += adler;
+                    adler += buf[6]; sum2 += adler;
+                    adler += buf[7]; sum2 += adler;
+                    adler += buf[8]; sum2 += adler;
+                    adler += buf[9]; sum2 += adler;
                     adler += buf[10]; sum2 += adler;
                     adler += buf[11]; sum2 += adler;
                     adler += buf[12]; sum2 += adler;
@@ -188,19 +193,21 @@ namespace GameRes.Utility
             }
 
             /* do remaining bytes (less than NMAX, still just one modulo) */
-            if (0 != len) {                  /* avoid modulos if none remaining */
-                while (len >= 16) {
+            if (0 != len)
+            {                  /* avoid modulos if none remaining */
+                while (len >= 16)
+                {
                     len -= 16;
-                    adler += buf[0];  sum2 += adler;
-                    adler += buf[1];  sum2 += adler;
-                    adler += buf[2];  sum2 += adler;
-                    adler += buf[3];  sum2 += adler;
-                    adler += buf[4];  sum2 += adler;
-                    adler += buf[5];  sum2 += adler;
-                    adler += buf[6];  sum2 += adler;
-                    adler += buf[7];  sum2 += adler;
-                    adler += buf[8];  sum2 += adler;
-                    adler += buf[9];  sum2 += adler;
+                    adler += buf[0]; sum2 += adler;
+                    adler += buf[1]; sum2 += adler;
+                    adler += buf[2]; sum2 += adler;
+                    adler += buf[3]; sum2 += adler;
+                    adler += buf[4]; sum2 += adler;
+                    adler += buf[5]; sum2 += adler;
+                    adler += buf[6]; sum2 += adler;
+                    adler += buf[7]; sum2 += adler;
+                    adler += buf[8]; sum2 += adler;
+                    adler += buf[9]; sum2 += adler;
                     adler += buf[10]; sum2 += adler;
                     adler += buf[11]; sum2 += adler;
                     adler += buf[12]; sum2 += adler;
@@ -209,7 +216,8 @@ namespace GameRes.Utility
                     adler += buf[15]; sum2 += adler;
                     buf += 16;
                 }
-                while (0 != len--) {
+                while (0 != len--)
+                {
                     adler += *buf++;
                     sum2 += adler;
                 }
@@ -222,9 +230,9 @@ namespace GameRes.Utility
         }
 
         private uint m_adler = 1;
-        public  uint Value { get { return m_adler; } }
+        public uint Value { get { return m_adler; } }
 
-        public void Update (byte[] buf, int pos, int len)
+        public void Update(byte[] buf, int pos, int len)
         {
             if (0 == len)
                 return;
@@ -232,70 +240,70 @@ namespace GameRes.Utility
             {
                 fixed (byte* ptr = &buf[pos])
                 {
-                    m_adler = Update (m_adler, ptr, len);
+                    m_adler = Update(m_adler, ptr, len);
                 }
             }
         }
 
-        public unsafe uint Update (byte* buf, int len)
+        public unsafe uint Update(byte* buf, int len)
         {
-            m_adler = Update (m_adler, buf, len);
+            m_adler = Update(m_adler, buf, len);
             return m_adler;
         }
     }
 
     public class CheckedStream : Stream
     {
-        Stream      m_stream;
-        ICheckSum   m_checksum;
+        Stream m_stream;
+        ICheckSum m_checksum;
 
-		public override bool  CanRead { get { return m_stream.CanRead; } }
-		public override bool CanWrite { get { return m_stream.CanWrite; } }
-		public override bool  CanSeek { get { return m_stream.CanSeek; } }
-		public override long   Length { get { return m_stream.Length; } }
+        public override bool CanRead { get { return m_stream.CanRead; } }
+        public override bool CanWrite { get { return m_stream.CanWrite; } }
+        public override bool CanSeek { get { return m_stream.CanSeek; } }
+        public override long Length { get { return m_stream.Length; } }
 
-		public Stream  BaseStream { get { return m_stream; } }
-		public uint CheckSumValue { get { return m_checksum.Value; } }
+        public Stream BaseStream { get { return m_stream; } }
+        public uint CheckSumValue { get { return m_checksum.Value; } }
 
-        public CheckedStream (Stream stream, ICheckSum algorithm)
+        public CheckedStream(Stream stream, ICheckSum algorithm)
         {
             m_stream = stream;
             m_checksum = algorithm;
         }
 
-		public override int Read (byte[] buffer, int offset, int count)
-		{
-			int read = m_stream.Read (buffer, offset, count);
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            int read = m_stream.Read(buffer, offset, count);
             if (read > 0)
-                m_checksum.Update (buffer, offset, read);
-			return read;
-		}
+                m_checksum.Update(buffer, offset, read);
+            return read;
+        }
 
-		public override void Write (byte[] buffer, int offset, int count)
-		{
-			m_stream.Write (buffer, offset, count);
-            m_checksum.Update (buffer, offset, count);
-		}
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            m_stream.Write(buffer, offset, count);
+            m_checksum.Update(buffer, offset, count);
+        }
 
-		public override long Position
-		{
-			get { return m_stream.Position; }
-			set { m_stream.Position = value; }
-		}
+        public override long Position
+        {
+            get { return m_stream.Position; }
+            set { m_stream.Position = value; }
+        }
 
-		public override void SetLength (long value)
-		{
-			m_stream.SetLength (value);
-		}
+        public override void SetLength(long value)
+        {
+            m_stream.SetLength(value);
+        }
 
-		public override long Seek (long offset, SeekOrigin origin)
-		{
-			return m_stream.Seek (offset, origin);
-		}
+        public override long Seek(long offset, SeekOrigin origin)
+        {
+            return m_stream.Seek(offset, origin);
+        }
 
-		public override void Flush ()
-		{
-			m_stream.Flush();
-		}
+        public override void Flush()
+        {
+            m_stream.Flush();
+        }
     }
 }

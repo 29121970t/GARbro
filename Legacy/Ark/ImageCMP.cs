@@ -35,27 +35,27 @@ namespace GameRes.Formats.Ark
 {
     internal class CmpMetaData : ImageMetaData
     {
-        public bool     HasAlpha;
-        public int      AWidth;
-        public int      AHeight;
-        public uint[]   FreqTable;
-        public int      DataOffset;
+        public bool HasAlpha;
+        public int AWidth;
+        public int AHeight;
+        public uint[] FreqTable;
+        public int DataOffset;
     }
 
     [Export(typeof(ImageFormat))]
     public class CmpFormat : ImageFormat
     {
-        public override string         Tag { get { return "CMP/ARK"; } }
+        public override string Tag { get { return "CMP/ARK"; } }
         public override string Description { get { return "Ark image format"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            if (!file.Name.HasExtension (".cmp"))
+            if (!file.Name.HasExtension(".cmp"))
                 return null;
-            var header = file.ReadHeader (5);
-            uint width  = header.ToUInt16 (0);
-            uint height = header.ToUInt16 (2);
+            var header = file.ReadHeader(5);
+            uint width = header.ToUInt16(0);
+            uint height = header.ToUInt16(2);
             bool has_alpha = header[4] != 0;
             int aw = 0, ah = 0;
             if (has_alpha)
@@ -70,7 +70,8 @@ namespace GameRes.Formats.Ark
             long data_pos = file.Position;
             if (file.Length - data_pos != packed_length)
                 return null;
-            return new CmpMetaData {
+            return new CmpMetaData
+            {
                 Width = width,
                 Height = height,
                 BPP = 32,
@@ -82,29 +83,29 @@ namespace GameRes.Formats.Ark
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new CmpReader (file, (CmpMetaData)info);
+            var reader = new CmpReader(file, (CmpMetaData)info);
             var pixels = reader.Unpack();
-            return ImageData.Create (info, reader.Format, null, pixels, reader.Stride);
+            return ImageData.Create(info, reader.Format, null, pixels, reader.Stride);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("CmpFormat.Write not implemented");
+            throw new System.NotImplementedException("CmpFormat.Write not implemented");
         }
     }
 
     internal class CmpReader
     {
-        IBinaryStream   m_input;
-        CmpMetaData     m_info;
-        int             m_stride;
+        IBinaryStream m_input;
+        CmpMetaData m_info;
+        int m_stride;
 
         public PixelFormat Format { get; private set; }
-        public int         Stride { get { return m_stride; } }
+        public int Stride { get { return m_stride; } }
 
-        public CmpReader (IBinaryStream input, CmpMetaData info)
+        public CmpReader(IBinaryStream input, CmpMetaData info)
         {
             m_input = input;
             m_info = info;
@@ -112,13 +113,13 @@ namespace GameRes.Formats.Ark
             Format = PixelFormats.Bgr555;
         }
 
-        public Array Unpack ()
+        public Array Unpack()
         {
             m_input.Position = m_info.DataOffset;
             int plane_size = (int)m_info.Width * (int)m_info.Height;
             var planes = new byte[plane_size * 3];
-            using (var bits = new MsbBitStream (m_input.AsStream, true))
-                UnpackHuffman (bits, planes);
+            using (var bits = new MsbBitStream(m_input.AsStream, true))
+                UnpackHuffman(bits, planes);
 
             int rsrc = 0;
             int gsrc = plane_size;
@@ -139,9 +140,9 @@ namespace GameRes.Formats.Ark
             return output;
         }
 
-        void UnpackHuffman (MsbBitStream input, byte[] output)
+        void UnpackHuffman(MsbBitStream input, byte[] output)
         {
-            var root = BuildHuffmanTree (m_info.FreqTable);
+            var root = BuildHuffmanTree(m_info.FreqTable);
             int dst = 0;
             byte last_symbol = 0;
             while (dst < output.Length)
@@ -153,7 +154,7 @@ namespace GameRes.Formats.Ark
                         node = node.Left;
                     else
                         node = node.Right;
-                }      
+                }
                 byte symbol = (byte)(last_symbol + node.Symbol);
                 if (symbol > 0x1F)
                     symbol -= 0x20;
@@ -170,16 +171,16 @@ namespace GameRes.Formats.Ark
             public Node Right;
         }
 
-        Node BuildHuffmanTree (uint[] freq_table)
+        Node BuildHuffmanTree(uint[] freq_table)
         {
-            var tree = new List<Node> (256);
+            var tree = new List<Node>(256);
             for (byte i = 0; i < 32; ++i)
             {
-                tree.Add (new Node { Symbol = i, Freq = freq_table[i] });
+                tree.Add(new Node { Symbol = i, Freq = freq_table[i] });
             }
             for (byte i = 32; i < 255; ++i)
             {
-                tree.Add (new Node { Symbol = i });
+                tree.Add(new Node { Symbol = i });
             }
             while (tree.Count > 1)
             {
@@ -198,9 +199,10 @@ namespace GameRes.Formats.Ark
                         }
                     }
                     child[i] = last_node;
-                    tree.Remove (last_node);
+                    tree.Remove(last_node);
                 }
-                tree.Add (new Node {
+                tree.Add(new Node
+                {
                     Symbol = 0xFF,
                     Freq = child[0].Freq + child[1].Freq,
                     Left = child[0],

@@ -33,11 +33,13 @@ namespace GameRes.Formats.FrontWing
 {
     internal class FltEntry : PackedEntry
     {
-        public int  Compression;
+        public int Compression;
         public bool IsEncrypted;
 
-        public byte Key {
-            get {
+        public byte Key
+        {
+            get
+            {
                 long key = this.Offset;
                 return (byte)(key ^ (key >> 8) ^ (key >> 16) ^ (key >> 24)
                               ^ (key >> 32) ^ (key >> 40) ^ (key >> 48) ^ (key >> 56));
@@ -48,72 +50,72 @@ namespace GameRes.Formats.FrontWing
     [Export(typeof(ArchiveFormat))]
     public class FltOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "FLT"; } }
+        public override string Tag { get { return "FLT"; } }
         public override string Description { get { return "FrontWing resource archive"; } }
-        public override uint     Signature { get { return 0x5F42494C; } } // 'LIB_PACKDATA0000'
-        public override bool  IsHierarchic { get { return true; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x5F42494C; } } // 'LIB_PACKDATA0000'
+        public override bool IsHierarchic { get { return true; } }
+        public override bool CanWrite { get { return false; } }
 
         public FltOpener()
         {
             ContainedFormats = new[] { "FG/FWGI", "OGG", "DAT/GENERIC" };
         }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            if (!file.View.AsciiEqual (4, "PACKDATA0000"))
+            if (!file.View.AsciiEqual(4, "PACKDATA0000"))
                 return null;
-            int count = file.View.ReadInt32 (0x14);
-            if (!IsSaneCount (count))
+            int count = file.View.ReadInt32(0x14);
+            if (!IsSaneCount(count))
                 return null;
-            bool is_encrypted = file.View.ReadInt32 (0x1C) == 1;
-            var index = file.View.ReadBytes (0x100, (uint)count*0x100);
+            bool is_encrypted = file.View.ReadInt32(0x1C) == 1;
+            var index = file.View.ReadBytes(0x100, (uint)count * 0x100);
             if (is_encrypted)
-                DecryptIndex (index, 0, index.Length);
+                DecryptIndex(index, 0, index.Length);
             int index_pos = 0;
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
                 int name_len = 0;
                 while (name_len < 0xE8)
                 {
-                    if (index[index_pos+name_len] == 0 && index[index_pos+name_len+1] == 0)
+                    if (index[index_pos + name_len] == 0 && index[index_pos + name_len + 1] == 0)
                         break;
                     name_len += 2;
                 }
                 if (0 == name_len)
                     return null;
-                var name = Encoding.Unicode.GetString (index, index_pos, name_len);
-                var entry = Create<FltEntry> (name);
-                entry.Compression = index[index_pos+0xEA];
-                entry.IsEncrypted = index[index_pos+0xEB] == 1;
-                entry.Size = index.ToUInt32 (index_pos+0xF0);
-                entry.UnpackedSize = index.ToUInt32 (index_pos+0xF4);
-                entry.Offset = index.ToInt64 (index_pos+0xF8);
+                var name = Encoding.Unicode.GetString(index, index_pos, name_len);
+                var entry = Create<FltEntry>(name);
+                entry.Compression = index[index_pos + 0xEA];
+                entry.IsEncrypted = index[index_pos + 0xEB] == 1;
+                entry.Size = index.ToUInt32(index_pos + 0xF0);
+                entry.UnpackedSize = index.ToUInt32(index_pos + 0xF4);
+                entry.Offset = index.ToInt64(index_pos + 0xF8);
                 entry.IsPacked = entry.Compression == 1;
-                if (!entry.CheckPlacement (file.MaxOffset))
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
-                dir.Add (entry);
+                dir.Add(entry);
                 index_pos += 0x100;
             }
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var fent = (FltEntry)entry;
-            Stream input = arc.File.CreateStream (fent.Offset, fent.Size);
+            Stream input = arc.File.CreateStream(fent.Offset, fent.Size);
             if (fent.IsEncrypted)
-                input = new XoredStream (input, fent.Key);
+                input = new XoredStream(input, fent.Key);
             if (fent.IsPacked)
-                input = new ZLibStream (input, CompressionMode.Decompress);
+                input = new ZLibStream(input, CompressionMode.Decompress);
             return input;
         }
 
-        void DecryptIndex (byte[] data, int pos, int length)
+        void DecryptIndex(byte[] data, int pos, int length)
         {
             for (int i = 0; i < length; ++i)
-                data[pos+i] = DefaultNameKey[data[pos+i]];
+                data[pos + i] = DefaultNameKey[data[pos + i]];
         }
 
         static readonly byte[] DefaultNameKey = {

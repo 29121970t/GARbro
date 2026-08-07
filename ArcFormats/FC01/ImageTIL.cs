@@ -31,30 +31,31 @@ namespace GameRes.Formats.FC01
 {
     internal class TilMetaData : ImageMetaData
     {
-        public int  TileWidth;
-        public int  TileHeight;
+        public int TileWidth;
+        public int TileHeight;
     }
 
     [Export(typeof(ImageFormat))]
     public class TilFormat : ImageFormat
     {
-        public override string         Tag { get { return "TIL"; } }
+        public override string Tag { get { return "TIL"; } }
         public override string Description { get { return "AGSI tiled image format"; } }
-        public override uint     Signature { get { return 0x304C4954; } } // 'TIL0'
+        public override uint Signature { get { return 0x304C4954; } } // 'TIL0'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x14);
-            return new TilMetaData {
-                Width  = header.ToUInt32 (4),
-                Height = header.ToUInt32 (8),
-                TileWidth  = header.ToInt32 (0x0C),
-                TileHeight = header.ToInt32 (0x10),
+            var header = file.ReadHeader(0x14);
+            return new TilMetaData
+            {
+                Width = header.ToUInt32(4),
+                Height = header.ToUInt32(8),
+                TileWidth = header.ToInt32(0x0C),
+                TileHeight = header.ToInt32(0x10),
                 BPP = 32,
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
             var meta = (TilMetaData)info;
             int tile_w = (int)meta.Width / meta.TileWidth;
@@ -79,7 +80,7 @@ namespace GameRes.Formats.FC01
                         {
                             int offset = file.ReadInt32() * 4;
                             int length = file.ReadInt32() * 4;
-                            file.Read (pixels, dst + offset, length);
+                            file.Read(pixels, dst + offset, length);
                         }
                         dst += stride;
                     }
@@ -87,12 +88,12 @@ namespace GameRes.Formats.FC01
                 }
                 tile_y += tile_stride;
             }
-            return ImageData.Create (info, PixelFormats.Bgra32, null, pixels, stride);
+            return ImageData.Create(info, PixelFormats.Bgra32, null, pixels, stride);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("TilFormat.Write not implemented");
+            throw new System.NotImplementedException("TilFormat.Write not implemented");
         }
     }
 }

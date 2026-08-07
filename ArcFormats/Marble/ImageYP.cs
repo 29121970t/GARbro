@@ -32,7 +32,7 @@ namespace GameRes.Formats.DarkNiteSystem
 {
     internal class YpMetaData : ImageMetaData
     {
-        public int  UnpackedSize;
+        public int UnpackedSize;
     }
 
     /// <summary>
@@ -41,24 +41,25 @@ namespace GameRes.Formats.DarkNiteSystem
     [Export(typeof(ImageFormat))]
     public class YpFormat : ImageFormat
     {
-        public override string         Tag { get { return "PRS/YP"; } }
+        public override string Tag { get { return "PRS/YP"; } }
         public override string Description { get { return "DarkNiteSystem image format"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (8);
-            if (!header.AsciiEqual ("YP"))
+            var header = file.ReadHeader(8);
+            if (!header.AsciiEqual("YP"))
                 return null;
-            int unpacked_size = header.ToInt24 (2);
-            int packed_size = header.ToInt24 (5);
-            var data = LzUnpack (file, 0x36);
-            using (var bmp = new BinMemoryStream (data, file.Name))
+            int unpacked_size = header.ToInt24(2);
+            int packed_size = header.ToInt24(5);
+            var data = LzUnpack(file, 0x36);
+            using (var bmp = new BinMemoryStream(data, file.Name))
             {
-                var info = Bmp.ReadMetaData (bmp);
+                var info = Bmp.ReadMetaData(bmp);
                 if (null == info)
                     return info;
-                return new YpMetaData {
+                return new YpMetaData
+                {
                     Width = info.Width,
                     Height = info.Height,
                     BPP = info.BPP,
@@ -67,21 +68,21 @@ namespace GameRes.Formats.DarkNiteSystem
             }
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
             var meta = (YpMetaData)info;
             file.Position = 8;
-            var data = LzUnpack (file, meta.UnpackedSize);
-            using (var bmp = new BinMemoryStream (data, file.Name))
-                return Bmp.Read (bmp, info);
+            var data = LzUnpack(file, meta.UnpackedSize);
+            using (var bmp = new BinMemoryStream(data, file.Name))
+                return Bmp.Read(bmp, info);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("YpFormat.Write not implemented");
+            throw new System.NotImplementedException("YpFormat.Write not implemented");
         }
 
-        byte[] LzUnpack (IBinaryStream input, int unpacked_size)
+        byte[] LzUnpack(IBinaryStream input, int unpacked_size)
         {
             var output = new byte[unpacked_size];
             var frame = new byte[0x4000];
@@ -102,7 +103,7 @@ namespace GameRes.Formats.DarkNiteSystem
                 {
                     byte lo = input.ReadUInt8();
                     byte hi = input.ReadUInt8();
-                    int count = Math.Min (CountTable[lo & 0xF], unpacked_size - dst);
+                    int count = Math.Min(CountTable[lo & 0xF], unpacked_size - dst);
                     int offset = hi << 4 | lo >> 4;
                     int src = frame_pos - offset;
                     for (int i = 0; i < count; ++i)

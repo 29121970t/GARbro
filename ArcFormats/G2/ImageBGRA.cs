@@ -33,16 +33,16 @@ namespace GameRes.Formats.G2
     [Export(typeof(ImageFormat))]
     public class BgraFormat : ImageFormat
     {
-        public override string         Tag { get { return "BGRA"; } }
+        public override string Tag { get { return "BGRA"; } }
         public override string Description { get { return "G2 engine image format"; } }
-        public override uint     Signature { get { return 0x41524742; } } // 'BGRA'
+        public override uint Signature { get { return 0x41524742; } } // 'BGRA'
 
-        public BgraFormat ()
+        public BgraFormat()
         {
             Extensions = new string[] { "argb", "arg" };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
             stream.Position = 4;
             uint bitmap = stream.ReadUInt32();
@@ -56,18 +56,18 @@ namespace GameRes.Formats.G2
             };
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
             stream.Position = 0x10;
-            var pixels = new byte[info.Width*info.Height*4];
-            if (pixels.Length != stream.Read (pixels, 0, pixels.Length))
+            var pixels = new byte[info.Width * info.Height * 4];
+            if (pixels.Length != stream.Read(pixels, 0, pixels.Length))
                 throw new EndOfStreamException();
-            return ImageData.Create (info, PixelFormats.Bgra32, null, pixels);
+            return ImageData.Create(info, PixelFormats.Bgra32, null, pixels);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("BgraFormat.Write not implemented");
+            throw new System.NotImplementedException("BgraFormat.Write not implemented");
         }
     }
 }

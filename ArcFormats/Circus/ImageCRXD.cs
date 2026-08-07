@@ -32,70 +32,70 @@ namespace GameRes.Formats.Circus
 {
     internal class CrxdMetaData : ImageMetaData
     {
-        public string       BaseFileName;
-        public uint         BaseOffset;
-        public CrxMetaData  DiffInfo;
-        public uint         DiffOffset;
+        public string BaseFileName;
+        public uint BaseOffset;
+        public CrxMetaData DiffInfo;
+        public uint DiffOffset;
     }
 
     [Export(typeof(ImageFormat))]
     public class CrxdFormat : CrxFormat
     {
-        public override string         Tag { get { return "CRXD"; } }
+        public override string Tag { get { return "CRXD"; } }
         public override string Description { get { return "Circus differential image format"; } }
-        public override uint     Signature { get { return 0x44585243; } } // 'CRXD'
+        public override uint Signature { get { return 0x44585243; } } // 'CRXD'
 
-        public CrxdFormat ()
+        public CrxdFormat()
         {
             Extensions = new string[] { "crx" };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
-            var header = stream.ReadHeader (0x24);
+            var header = stream.ReadHeader(0x24);
             CrxdMetaData info = null;
-            if (header.AsciiEqual (0x20, "CRXJ"))
+            if (header.AsciiEqual(0x20, "CRXJ"))
             {
                 stream.Position = 0x28;
                 uint diff_offset = stream.ReadUInt32();
-                using (var crx = OpenByOffset (diff_offset))
+                using (var crx = OpenByOffset(diff_offset))
                 {
                     if (null == crx)
                         return null;
-                    info = ReadMetaData (crx) as CrxdMetaData;
+                    info = ReadMetaData(crx) as CrxdMetaData;
                     if (info != null)
                         info.DiffOffset = diff_offset;
                 }
             }
-            else if (header.AsciiEqual (0x20, "CRXG"))
+            else if (header.AsciiEqual(0x20, "CRXG"))
             {
-                using (var crx_input = new StreamRegion (stream.AsStream, 0x20, true))
-                using (var crx = new BinaryStream (crx_input, stream.Name))
+                using (var crx_input = new StreamRegion(stream.AsStream, 0x20, true))
+                using (var crx = new BinaryStream(crx_input, stream.Name))
                 {
-                    var diff_info = base.ReadMetaData (crx) as CrxMetaData;
+                    var diff_info = base.ReadMetaData(crx) as CrxMetaData;
                     if (null == diff_info)
                         return null;
                     info = new CrxdMetaData
                     {
-                        Width   = diff_info.Width,
-                        Height  = diff_info.Height,
+                        Width = diff_info.Width,
+                        Height = diff_info.Height,
                         OffsetX = diff_info.OffsetX,
                         OffsetY = diff_info.OffsetY,
-                        BPP     = diff_info.BPP,
-                        DiffInfo    = diff_info,
-                        DiffOffset  = 0,
+                        BPP = diff_info.BPP,
+                        DiffInfo = diff_info,
+                        DiffOffset = 0,
                     };
                 }
             }
             if (info != null)
             {
-                info.BaseOffset = header.ToUInt32 (8);
-                info.BaseFileName = header.GetCString (0xC, 0x14);
+                info.BaseOffset = header.ToUInt32(8);
+                info.BaseFileName = header.GetCString(0xC, 0x14);
             }
             return info;
         }
 
-        IBinaryStream OpenByOffset (uint offset)
+        IBinaryStream OpenByOffset(uint offset)
         {
             var vfs = VFS.Top as ArchiveFileSystem;
             if (null == vfs)
@@ -103,55 +103,55 @@ namespace GameRes.Formats.Circus
             var arc = vfs.Source as CrmArchive;
             if (null == arc)
                 return null;
-            return arc.OpenByOffset (offset);
+            return arc.OpenByOffset(offset);
         }
 
-        IBinaryStream OpenDiffStream (IBinaryStream diff, CrxdMetaData info)
+        IBinaryStream OpenDiffStream(IBinaryStream diff, CrxdMetaData info)
         {
             Stream input;
             if (0 == info.DiffOffset)
             {
-                input = new StreamRegion (diff.AsStream, 0x20, true);
+                input = new StreamRegion(diff.AsStream, 0x20, true);
             }
             else
             {
-                diff = OpenByOffset (info.DiffOffset);
+                diff = OpenByOffset(info.DiffOffset);
                 if (null == diff)
-                    throw new FileNotFoundException ("Referenced diff image not found");
-                input = new StreamRegion (diff.AsStream, 0x20);
+                    throw new FileNotFoundException("Referenced diff image not found");
+                input = new StreamRegion(diff.AsStream, 0x20);
             }
-            return new BinaryStream (input, diff.Name);
+            return new BinaryStream(input, diff.Name);
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
             var meta = (CrxdMetaData)info;
-            IBinaryStream base_file = OpenByOffset (meta.BaseOffset);
+            IBinaryStream base_file = OpenByOffset(meta.BaseOffset);
             if (null == base_file)
             {
-                var dir_name = VFS.GetDirectoryName (meta.FileName);
-                var name = VFS.CombinePath (dir_name, meta.BaseFileName);
-                if (!VFS.FileExists (name))
-                    throw new FileNotFoundException ("Base image not found", meta.BaseFileName);
-                base_file = VFS.OpenBinaryStream (name);
+                var dir_name = VFS.GetDirectoryName(meta.FileName);
+                var name = VFS.CombinePath(dir_name, meta.BaseFileName);
+                if (!VFS.FileExists(name))
+                    throw new FileNotFoundException("Base image not found", meta.BaseFileName);
+                base_file = VFS.OpenBinaryStream(name);
             }
             using (base_file)
             {
-                var base_info = base.ReadMetaData (base_file) as CrxMetaData;
+                var base_info = base.ReadMetaData(base_file) as CrxMetaData;
                 if (null == base_info || base_info.BPP != info.BPP)
-                    throw new InvalidFormatException ("Invalid base image");
-                using (var reader = new Reader (base_file, base_info))
-                using (var crx = OpenDiffStream (stream, meta))
-                using (var diff_reader = new Reader (crx, meta.DiffInfo))
+                    throw new InvalidFormatException("Invalid base image");
+                using (var reader = new Reader(base_file, base_info))
+                using (var crx = OpenDiffStream(stream, meta))
+                using (var diff_reader = new Reader(crx, meta.DiffInfo))
                 {
-                    reader.Unpack (true);
-                    diff_reader.Unpack (true);
-                    var diff_rect = new Rectangle (meta.OffsetX, meta.OffsetY, (int)meta.Width, (int)meta.Height);
-                    var base_rect = new Rectangle (base_info.OffsetX, base_info.OffsetY,
+                    reader.Unpack(true);
+                    diff_reader.Unpack(true);
+                    var diff_rect = new Rectangle(meta.OffsetX, meta.OffsetY, (int)meta.Width, (int)meta.Height);
+                    var base_rect = new Rectangle(base_info.OffsetX, base_info.OffsetY,
                                                    (int)base_info.Width, (int)base_info.Height);
-                    diff_rect = Rectangle.Intersect (diff_rect, base_rect);
+                    diff_rect = Rectangle.Intersect(diff_rect, base_rect);
                     if (diff_rect.IsEmpty)
-                        return ImageData.Create (base_info, reader.Format, reader.Palette, reader.Data, reader.Stride);
+                        return ImageData.Create(base_info, reader.Format, reader.Palette, reader.Data, reader.Stride);
 
                     int pixel_size = base_info.BPP / 8;
                     int x = diff_rect.X - base_rect.X;
@@ -169,23 +169,23 @@ namespace GameRes.Formats.Circus
                     {
                         for (int i = 0; i < blend_stride; i += pixel_size)
                         {
-                            image[dst+i  ] += diff[src+i];
-                            image[dst+i+1] += diff[src+i+1];
-                            image[dst+i+2] += diff[src+i+2];
+                            image[dst + i] += diff[src + i];
+                            image[dst + i + 1] += diff[src + i + 1];
+                            image[dst + i + 2] += diff[src + i + 2];
                             if (4 == pixel_size)
-                                image[dst+i+3] -= diff[src+i+3];
+                                image[dst + i + 3] -= diff[src + i + 3];
                         }
                         dst += reader.Stride;
                         src += diff_reader.Stride;
                     }
-                    return ImageData.Create (base_info, reader.Format, reader.Palette, image, reader.Stride);
+                    return ImageData.Create(base_info, reader.Format, reader.Palette, image, reader.Stride);
                 }
             }
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("CrxdFormat.Write not implemented");
+            throw new System.NotImplementedException("CrxdFormat.Write not implemented");
         }
     }
 }

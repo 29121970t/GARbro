@@ -8,7 +8,7 @@ namespace GameRes.Formats.GUI
     /// </summary>
     public partial class WidgetGYU : StackPanel
     {
-        public WidgetGYU (IEnumerable<string> titles)
+        public WidgetGYU(IEnumerable<string> titles)
         {
             InitializeComponent();
             Title.ItemsSource = titles;

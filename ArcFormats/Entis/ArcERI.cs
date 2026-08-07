@@ -37,49 +37,49 @@ namespace GameRes.Formats.Entis
     [Export(typeof(ArchiveFormat))]
     public class EriOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "ERI/MULTI"; } }
+        public override string Tag { get { return "ERI/MULTI"; } }
         public override string Description { get { return "Entis multi-frame image format"; } }
-        public override uint     Signature { get { return 0x69746e45u; } } // 'Enti'
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x69746e45u; } } // 'Enti'
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public EriOpener ()
+        public EriOpener()
         {
             Extensions = new string[] { "eri" };
         }
 
-        static readonly Lazy<ImageFormat> s_EriFormat = new Lazy<ImageFormat> (() => ImageFormat.FindByTag ("ERI"));
+        static readonly Lazy<ImageFormat> s_EriFormat = new Lazy<ImageFormat>(() => ImageFormat.FindByTag("ERI"));
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            if (!file.View.AsciiEqual (0x10, "Entis Rasterized Image")
-                && !file.View.AsciiEqual (0x10, "Moving Entis Image"))
+            if (!file.View.AsciiEqual(0x10, "Entis Rasterized Image")
+                && !file.View.AsciiEqual(0x10, "Moving Entis Image"))
                 return null;
             EriMetaData info;
             using (var eris = file.CreateStream())
-                info = s_EriFormat.Value.ReadMetaData (eris) as EriMetaData;
+                info = s_EriFormat.Value.ReadMetaData(eris) as EriMetaData;
 
-            if (null == info || null == info.Header || !IsSaneCount (info.Header.FrameCount))
+            if (null == info || null == info.Header || !IsSaneCount(info.Header.FrameCount))
                 return null;
             info.FileName = file.Name;
-            string base_name = Path.GetFileNameWithoutExtension (file.Name);
+            string base_name = Path.GetFileNameWithoutExtension(file.Name);
 
             int count = info.Header.FrameCount;
             long current_offset = info.StreamPos;
-            var dir = new List<Entry> (count);
-            var id = new AsciiString (8);
+            var dir = new List<Entry>(count);
+            var id = new AsciiString(8);
             Color[] palette = null;
             int i = 0;
             while (i < count && current_offset < file.MaxOffset)
             {
-                if (file.View.Read (current_offset, id.Value, 0, 8) < 8)
+                if (file.View.Read(current_offset, id.Value, 0, 8) < 8)
                     break;
                 if ("Stream  " == id)
                 {
                     current_offset += 0x10;
                     continue;
                 }
-                long section_size = file.View.ReadInt64 (current_offset+8);
+                long section_size = file.View.ReadInt64(current_offset + 8);
                 if (section_size < 0 || section_size > int.MaxValue)
                     throw new FileSizeException();
                 current_offset += 0x10;
@@ -87,51 +87,52 @@ namespace GameRes.Formats.Entis
                     continue;
                 if ("Palette " == id)
                 {
-                    using (var stream = file.CreateStream (current_offset, (uint)section_size))
-                        palette = EriFormat.ReadPalette (stream, (int)section_size);
+                    using (var stream = file.CreateStream(current_offset, (uint)section_size))
+                        palette = EriFormat.ReadPalette(stream, (int)section_size);
                 }
                 else if ("ImageFrm" == id || "DiffeFrm" == id)
                 {
-                    var entry = new EriEntry {
-                        Name    = string.Format ("{0}#{1:D4}", base_name, i++),
-                        Type    = "image",
-                        Offset  = current_offset,
-                        Size    = (uint)section_size,
+                    var entry = new EriEntry
+                    {
+                        Name = string.Format("{0}#{1:D4}", base_name, i++),
+                        Type = "image",
+                        Offset = current_offset,
+                        Size = (uint)section_size,
                         FrameIndex = dir.Count,
-                        IsDiff  = "DiffeFrm" == id,
+                        IsDiff = "DiffeFrm" == id,
                     };
-                    if (!entry.CheckPlacement (file.MaxOffset))
+                    if (!entry.CheckPlacement(file.MaxOffset))
                         return null;
-                    dir.Add (entry);
+                    dir.Add(entry);
                 }
                 current_offset += section_size;
             }
             if (0 == dir.Count)
                 return null;
-            return new EriMultiImage (file, this, dir, info, palette);
+            return new EriMultiImage(file, this, dir, info, palette);
         }
 
-        public override IImageDecoder OpenImage (ArcFile arc, Entry entry)
+        public override IImageDecoder OpenImage(ArcFile arc, Entry entry)
         {
             var earc = (EriMultiImage)arc;
             var eent = (EriEntry)entry;
-            var pixels = earc.GetFrame (eent.FrameIndex);
+            var pixels = earc.GetFrame(eent.FrameIndex);
             BitmapPalette palette = null;
             if (8 == earc.Info.BPP && earc.Palette != null)
-                palette = new BitmapPalette (earc.Palette);
-            return new BitmapDecoder (pixels, earc.Info, earc.Format, palette);
+                palette = new BitmapPalette(earc.Palette);
+            return new BitmapDecoder(pixels, earc.Info, earc.Format, palette);
         }
     }
 
     internal class EriMultiImage : ArcFile
     {
-        public readonly EriMetaData     Info;
-        public readonly Color[]         Palette;
-        public readonly PixelFormat     Format;
-        byte[][]        Frames;
+        public readonly EriMetaData Info;
+        public readonly Color[] Palette;
+        public readonly PixelFormat Format;
+        byte[][] Frames;
 
-        public EriMultiImage (ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, EriMetaData info, Color[] palette)
-            : base (arc, impl, dir)
+        public EriMultiImage(ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, EriMetaData info, Color[] palette)
+            : base(arc, impl, dir)
         {
             Info = info;
             Palette = palette;
@@ -156,22 +157,22 @@ namespace GameRes.Formats.Entis
                 Format = PixelFormats.Bgr24;
         }
 
-        public byte[] GetFrame (int index)
+        public byte[] GetFrame(int index)
         {
             if (index >= Frames.Length)
-                throw new ArgumentException ("index");
+                throw new ArgumentException("index");
             if (null != Frames[index])
                 return Frames[index];
 
-            var entry = Dir.ElementAt (index) as EriEntry;
+            var entry = Dir.ElementAt(index) as EriEntry;
             byte[] prev_frame = null;
             if (index > 0 && entry.IsDiff)
             {
-                prev_frame = GetFrame (index-1);
+                prev_frame = GetFrame(index - 1);
             }
-            using (var stream = File.CreateStream (entry.Offset, entry.Size))
+            using (var stream = File.CreateStream(entry.Offset, entry.Size))
             {
-                var reader = new EriReader (stream, Info, Palette, prev_frame);
+                var reader = new EriReader(stream, Info, Palette, prev_frame);
                 reader.DecodeImage();
                 Frames[index] = reader.Data;
             }
@@ -181,24 +182,24 @@ namespace GameRes.Formats.Entis
 
     internal class EriEntry : Entry
     {
-        public int  FrameIndex;
+        public int FrameIndex;
         public bool IsDiff;
     }
 
     internal class BitmapDecoder : IImageDecoder
     {
-        public Stream            Source { get { return null; } }
+        public Stream Source { get { return null; } }
         public ImageFormat SourceFormat { get { return null; } }
-        public ImageMetaData       Info { get; private set; }
-        public ImageData          Image { get; private set; }
+        public ImageMetaData Info { get; private set; }
+        public ImageData Image { get; private set; }
 
-        public BitmapDecoder (byte[] pixels, ImageMetaData info, PixelFormat format, BitmapPalette palette)
+        public BitmapDecoder(byte[] pixels, ImageMetaData info, PixelFormat format, BitmapPalette palette)
         {
             Info = info;
-            Image = ImageData.Create (info, format, palette, pixels);
+            Image = ImageData.Create(info, format, palette, pixels);
         }
 
-        public void Dispose ()
+        public void Dispose()
         {
         }
     }

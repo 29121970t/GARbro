@@ -32,24 +32,24 @@ namespace GameRes.Formats.Valkyria
     [Export(typeof(ImageFormat))]
     public class MalFormat : ImageFormat
     {
-        public override string         Tag { get { return "MAL"; } }
+        public override string Tag { get { return "MAL"; } }
         public override string Description { get { return "Valkyria mask image format"; } }
-        public override uint     Signature { get { return 0x4F43494D; } } // 'MICO'
+        public override uint Signature { get { return 0x4F43494D; } } // 'MICO'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0xE);
-            if (!header.AsciiEqual (4, "MSK00"))
+            var header = file.ReadHeader(0xE);
+            if (!header.AsciiEqual(4, "MSK00"))
                 return null;
-            return new ImageMetaData 
+            return new ImageMetaData
             {
-                Width = header.ToUInt16 (0xA),
-                Height = header.ToUInt16 (0xC),
+                Width = header.ToUInt16(0xA),
+                Height = header.ToUInt16(0xC),
                 BPP = 8
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
             file.Position = 0xE;
             int total = (int)info.Width * (int)info.Height;
@@ -61,22 +61,22 @@ namespace GameRes.Formats.Valkyria
                 if (count > 0x7FFF)
                 {
                     count &= 0x7FFF;
-                    file.Read (pixels, dst, count);
+                    file.Read(pixels, dst, count);
                     dst += count;
                 }
                 else
                 {
                     byte c = file.ReadUInt8();
-                    while (count --> 0)
+                    while (count-- > 0)
                         pixels[dst++] = c;
                 }
             }
-            return ImageData.Create (info, PixelFormats.Gray8, null, pixels);
+            return ImageData.Create(info, PixelFormats.Gray8, null, pixels);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("MalFormat.Write not implemented");
+            throw new System.NotImplementedException("MalFormat.Write not implemented");
         }
     }
 }

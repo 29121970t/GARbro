@@ -41,22 +41,22 @@ namespace GameRes.Formats.FC01
     [Export(typeof(ImageFormat))]
     public class AcdFormat : ImageFormat
     {
-        public override string         Tag { get { return "ACD"; } }
+        public override string Tag { get { return "ACD"; } }
         public override string Description { get { return "F&C Co. image format"; } }
-        public override uint     Signature { get { return 0x20444341; } } // 'ACD'
+        public override uint Signature { get { return 0x20444341; } } // 'ACD'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
-            var header = stream.ReadHeader (0x1c);
-            int header_size = header.ToInt32 (8);
-            if (!header.AsciiEqual (4, "1.00") || header_size < 0x1c)
-                throw new NotSupportedException ("Not supported ACD image version");
-            int packed_size = header.ToInt32 (0x0C);
-            int unpacked_size = header.ToInt32 (0x10);
+            var header = stream.ReadHeader(0x1c);
+            int header_size = header.ToInt32(8);
+            if (!header.AsciiEqual(4, "1.00") || header_size < 0x1c)
+                throw new NotSupportedException("Not supported ACD image version");
+            int packed_size = header.ToInt32(0x0C);
+            int unpacked_size = header.ToInt32(0x10);
             return new AcdMetaData
             {
-                Width = header.ToUInt32 (0x14),
-                Height = header.ToUInt32 (0x18),
+                Width = header.ToUInt32(0x14),
+                Height = header.ToUInt32(0x18),
                 BPP = 24,
                 DataOffset = header_size,
                 PackedSize = packed_size,
@@ -64,44 +64,44 @@ namespace GameRes.Formats.FC01
             };
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
             var meta = (AcdMetaData)info;
 
             stream.Position = meta.DataOffset;
-            using (var reader = new MrgLzssReader (stream, meta.PackedSize, meta.UnpackedSize))
+            using (var reader = new MrgLzssReader(stream, meta.PackedSize, meta.UnpackedSize))
             {
                 reader.Unpack();
-                var decoder = new AcdDecoder (reader.Data, meta);
+                var decoder = new AcdDecoder(reader.Data, meta);
                 decoder.Unpack();
-                return ImageData.Create (info, PixelFormats.Gray8, null, decoder.Data);
+                return ImageData.Create(info, PixelFormats.Gray8, null, decoder.Data);
             }
             throw new InvalidFormatException();
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("AcdFormat.Write not implemented");
+            throw new System.NotImplementedException("AcdFormat.Write not implemented");
         }
     }
 
     internal class AcdDecoder
     {
-        byte[]          m_input;
-        byte[]          m_output;
+        byte[] m_input;
+        byte[] m_output;
 
         public byte[] Data { get { return m_output; } }
 
-        public AcdDecoder (byte[] input, AcdMetaData info)
+        public AcdDecoder(byte[] input, AcdMetaData info)
         {
             m_input = input;
-            m_output = new byte[info.Width*info.Height];
+            m_output = new byte[info.Width * info.Height];
         }
 
         int m_src;
         int m_bits;
 
-        public byte[] Unpack ()
+        public byte[] Unpack()
         {
             m_src = 0; // @@SB
             m_bits = 0;
@@ -136,7 +136,7 @@ namespace GameRes.Formats.FC01
             return m_output;
         }
 
-        int GetBit ()
+        int GetBit()
         {
             int bit = m_bits >> 7;
             m_bits = (m_bits << 1) & 0xff;

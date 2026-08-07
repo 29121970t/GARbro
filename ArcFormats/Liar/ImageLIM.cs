@@ -39,11 +39,11 @@ namespace GameRes.Formats.Liar
     [Export(typeof(ImageFormat))]
     public class LimFormat : ImageFormat
     {
-        public override string         Tag { get { return "LIM"; } }
+        public override string Tag { get { return "LIM"; } }
         public override string Description { get { return "Liar-soft image format"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
             if (0x4C != file.ReadByte() || 0x4D != file.ReadByte())
                 return null;
@@ -53,40 +53,40 @@ namespace GameRes.Formats.Liar
             int bpp = 0x10 == file.ReadUInt16() ? 16 : 32;
             var meta = new LimMetaData { BPP = bpp, Flags = flag };
             file.ReadUInt16();
-            meta.Width  = file.ReadUInt32();
+            meta.Width = file.ReadUInt32();
             meta.Height = file.ReadUInt32();
             return meta;
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            using (var reader = new Reader (file, (LimMetaData)info))
+            using (var reader = new Reader(file, (LimMetaData)info))
             {
                 reader.Unpack();
-                return ImageData.Create (info, reader.Format, null, reader.Data);
+                return ImageData.Create(info, reader.Format, null, reader.Data);
             }
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new NotImplementedException ("LimFormat.Write not implemented");
+            throw new NotImplementedException("LimFormat.Write not implemented");
         }
 
         internal class Reader : IDisposable
         {
-            IBinaryStream   m_input;
-            byte[]          m_output;
-            byte[]          m_index;
-            byte[]          m_image;
-            int             m_width;
-            int             m_height;
-            int             m_bpp;
-            int             m_flags;
+            IBinaryStream m_input;
+            byte[] m_output;
+            byte[] m_index;
+            byte[] m_image;
+            int m_width;
+            int m_height;
+            int m_bpp;
+            int m_flags;
 
-            public byte[]        Data { get { return m_image; } }
+            public byte[] Data { get { return m_image; } }
             public PixelFormat Format { get; private set; }
 
-            public Reader (IBinaryStream file, LimMetaData info)
+            public Reader(IBinaryStream file, LimMetaData info)
             {
                 m_input = file;
                 m_width = (int)info.Width;
@@ -99,14 +99,14 @@ namespace GameRes.Formats.Liar
                     Format = PixelFormats.Bgr565;
                 else
                     throw new InvalidFormatException();
-                m_image = new byte[m_width*m_height*m_bpp/8];
+                m_image = new byte[m_width * m_height * m_bpp / 8];
             }
 
-            int         m_remaining;
-            int         m_current;
-            int         m_bits;
+            int m_remaining;
+            int m_current;
+            int m_bits;
 
-            public void Unpack ()
+            public void Unpack()
             {
                 m_input.Position = 0x10;
                 if (32 == m_bpp)
@@ -120,28 +120,28 @@ namespace GameRes.Formats.Liar
                         if (0 != (m_flags & 0xE0))
                             Unpack16bpp();
                         else
-                            m_input.Read (m_image, 0, m_image.Length);
+                            m_input.Read(m_image, 0, m_image.Length);
                     }
                     if (0 != (m_flags & 0x100))
                     {
                         if (0 != (m_flags & 0xE00))
                         {
                             m_output = null;
-                            UnpackChannel (3);
+                            UnpackChannel(3);
                         }
                         else
-                            m_output = m_input.ReadBytes (m_width * m_height);
-                        ApplyAlpha (m_output);
+                            m_output = m_input.ReadBytes(m_width * m_height);
+                        ApplyAlpha(m_output);
                     }
                 }
             }
 
-            void Unpack32bpp ()
+            void Unpack32bpp()
             {
                 byte mask = 0xFF;
                 for (int i = 3; i >= 0; --i)
                 {
-                    UnpackChannel (3);
+                    UnpackChannel(3);
                     int src = 0;
                     for (int p = i; p < m_image.Length; p += 4)
                     {
@@ -151,7 +151,7 @@ namespace GameRes.Formats.Liar
                 }
             }
 
-            void Unpack16bpp ()
+            void Unpack16bpp()
             {
                 int image_size = m_input.ReadInt32();
                 m_output = m_image;
@@ -161,8 +161,8 @@ namespace GameRes.Formats.Liar
                 if (null == m_index || index_size > m_index.Length)
                     m_index = new byte[index_size];
                 m_input.ReadInt16(); // ignored
-                if (index_size != m_input.Read (m_index, 0, index_size))
-                    throw new InvalidFormatException ("Unexpected end of file");
+                if (index_size != m_input.Read(m_index, 0, index_size))
+                    throw new InvalidFormatException("Unexpected end of file");
 
                 int card;
                 if (index_size > 8192)
@@ -181,32 +181,32 @@ namespace GameRes.Formats.Liar
                 int dst = 0;
                 while (dst < m_output.Length)
                 {
-                    int bits = GetBits (card);
+                    int bits = GetBits(card);
                     if (-1 == bits)
                         break;
 
                     if (0 != bits)
                     {
-                        int index = GetIndex (bits);
+                        int index = GetIndex(bits);
                         if (index < 0)
                             break;
                         if (dst + 1 >= m_output.Length)
                             break;
 
-                        m_output[dst++] = m_index[index*2];
-                        m_output[dst++] = m_index[index*2+1];
+                        m_output[dst++] = m_index[index * 2];
+                        m_output[dst++] = m_index[index * 2 + 1];
                     }
                     else
                     {
-                        int count = GetBits (4);
+                        int count = GetBits(4);
                         if (-1 == count)
                             break;
 
-                        bits = GetBits (card);
+                        bits = GetBits(card);
                         if (-1 == bits)
                             break;
 
-                        int index = GetIndex (bits);
+                        int index = GetIndex(bits);
                         if (-1 == index)
                             break;
                         count += 2;
@@ -216,20 +216,20 @@ namespace GameRes.Formats.Liar
                             if (dst + 1 >= m_output.Length)
                                 return;
                             m_output[dst++] = m_index[index];
-                            m_output[dst++] = m_index[index+1];
+                            m_output[dst++] = m_index[index + 1];
                         }
                     }
                 }
             }
 
-            void ApplyAlpha (byte[] alpha)
+            void ApplyAlpha(byte[] alpha)
             {
-                var pixels = new byte[m_width*m_height*4];
+                var pixels = new byte[m_width * m_height * 4];
                 int alpha_src = 0;
                 int dst = 0;
                 for (int i = 0; i < m_image.Length; i += 2)
                 {
-                    int color = LittleEndian.ToUInt16 (m_image, i);
+                    int color = LittleEndian.ToUInt16(m_image, i);
                     pixels[dst++] = (byte)((color & 0x001F) * 0xFF / 0x1F);
                     pixels[dst++] = (byte)((color & 0x07E0) * 0xFF / 0x7E0);
                     pixels[dst++] = (byte)((color & 0xF800) * 0xFF / 0xF800);
@@ -239,7 +239,7 @@ namespace GameRes.Formats.Liar
                 Format = PixelFormats.Bgra32;
             }
 
-            void UnpackChannel (int card)
+            void UnpackChannel(int card)
             {
                 m_index_threshold = 6;
                 m_index_length_limit = 12;
@@ -253,20 +253,20 @@ namespace GameRes.Formats.Liar
                 if (null == m_index || index_size > m_index.Length)
                     m_index = new byte[index_size];
                 m_input.ReadInt16(); // ignored
-                if (index_size != m_input.Read (m_index, 0, index_size))
-                    throw new InvalidFormatException ("Unexpected end of file");
+                if (index_size != m_input.Read(m_index, 0, index_size))
+                    throw new InvalidFormatException("Unexpected end of file");
 
                 m_current = 0;
                 int dst = 0;
                 while (dst < m_output.Length)
                 {
-                    int bits = GetBits (card);
+                    int bits = GetBits(card);
                     if (-1 == bits)
                         break;
 
                     if (0 != bits)
                     {
-                        int index = GetIndex (bits);
+                        int index = GetIndex(bits);
                         if (index < 0)
                             break;
                         if (dst + 1 >= m_output.Length)
@@ -276,15 +276,15 @@ namespace GameRes.Formats.Liar
                     }
                     else
                     {
-                        int count = GetBits (4);
+                        int count = GetBits(4);
                         if (-1 == count)
                             break;
 
-                        bits = GetBits (card);
+                        bits = GetBits(card);
                         if (-1 == bits)
                             break;
 
-                        int index = GetIndex (bits);
+                        int index = GetIndex(bits);
                         if (-1 == index)
                             break;
                         count += 2;
@@ -298,7 +298,7 @@ namespace GameRes.Formats.Liar
                 }
             }
 
-            private int GetBits (int n)
+            private int GetBits(int n)
             {
                 int v = 0;
                 while (n > 0)
@@ -323,29 +323,29 @@ namespace GameRes.Formats.Liar
             int m_index_threshold;
             int m_index_length_limit;
 
-            private int GetIndex (int bits)
+            private int GetIndex(int bits)
             {
                 if (bits <= m_index_threshold)
                 {
                     if (0 == bits)
                         return -1;
                     if (1 == bits--)
-                        return GetBits (1);
-                    return (1 << bits) | GetBits (bits);
+                        return GetBits(1);
+                    return (1 << bits) | GetBits(bits);
                 }
                 for (int i = m_index_threshold; i < m_index_length_limit; ++i)
                 {
-                    bits = GetBits (1);
+                    bits = GetBits(1);
                     if (-1 == bits)
                         return -1;
                     if (0 == bits)
-                        return (1 << i) | GetBits (i);
+                        return (1 << i) | GetBits(i);
                 }
                 return -1;
             }
 
             #region IDisposable Members
-            public void Dispose ()
+            public void Dispose()
             {
             }
             #endregion

@@ -37,8 +37,8 @@ namespace GameRes.Formats.NitroPlus
     internal class LayEntry : Entry
     {
         public uint Id;
-        public int  First;
-        public int  Count;
+        public int First;
+        public int Count;
     }
 
     internal class LayCoord
@@ -49,75 +49,80 @@ namespace GameRes.Formats.NitroPlus
 
     internal class LayArchive : ArcFile
     {
-        public readonly BitmapSource        Source;
-        public readonly IList<LayCoord>     Tiles;
+        public readonly BitmapSource Source;
+        public readonly IList<LayCoord> Tiles;
         public readonly IDictionary<uint, LayEntry> LayerMap;
 
-        public LayArchive (ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, BitmapSource image, IList<LayCoord> tiles)
-            : base (arc, impl, dir)
+        public LayArchive(ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, BitmapSource image, IList<LayCoord> tiles)
+            : base(arc, impl, dir)
         {
             Source = image;
             Tiles = tiles;
-            LayerMap = new Dictionary<uint, LayEntry> (dir.Count);
+            LayerMap = new Dictionary<uint, LayEntry>(dir.Count);
             foreach (LayEntry entry in dir)
             {
                 LayerMap[entry.Id] = entry;
             }
         }
 
-        public IEnumerable<LayCoord> GetTiles (LayEntry layer)
+        public IEnumerable<LayCoord> GetTiles(LayEntry layer)
         {
-            return Tiles.Skip (layer.First).Take (layer.Count);
+            return Tiles.Skip(layer.First).Take(layer.Count);
         }
     }
 
     [Export(typeof(ArchiveFormat))]
     public class LayOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "LAY/MAGES"; } }
+        public override string Tag { get { return "LAY/MAGES"; } }
         public override string Description { get { return "MAGES engine composite image archive"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        const int DefaultWidth  = 1920;
+        const int DefaultWidth = 1920;
         const int DefaultHeight = 1080;
-        const int BlockSize     = 32;
+        const int BlockSize = 32;
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            if (!file.Name.HasExtension (".lay"))
+            if (!file.Name.HasExtension(".lay"))
                 return null;
-            int tile_count = file.View.ReadInt32 (0);
-            int coord_count = file.View.ReadInt32 (4);
-            if (!IsSaneCount (tile_count) || !IsSaneCount (coord_count))
+            int tile_count = file.View.ReadInt32(0);
+            int coord_count = file.View.ReadInt32(4);
+            if (!IsSaneCount(tile_count) || !IsSaneCount(coord_count))
                 return null;
-            var base_name = Path.GetFileNameWithoutExtension (file.Name).TrimEnd ('_');
-            var png_name = VFS.ChangeFileName (file.Name, base_name + ".png");
-            if (!VFS.FileExists (png_name))
+            var base_name = Path.GetFileNameWithoutExtension(file.Name).TrimEnd('_');
+            var png_name = VFS.ChangeFileName(file.Name, base_name + ".png");
+            if (!VFS.FileExists(png_name))
                 return null;
             ImageData image;
-            var png_entry = VFS.FindFile (png_name);
-            using (var decoder = VFS.OpenImage (png_entry))
+            var png_entry = VFS.FindFile(png_name);
+            using (var decoder = VFS.OpenImage(png_entry))
                 image = decoder.Image;
             using (var input = file.CreateStream())
-            using (var index = new BinaryReader (input))
+            using (var index = new BinaryReader(input))
             {
                 input.Position = 8;
-                var dir = new List<Entry> (tile_count);
+                var dir = new List<Entry>(tile_count);
                 for (int i = 0; i < tile_count; ++i)
                 {
                     uint id = index.ReadUInt32();
                     int first = index.ReadInt32();
                     int count = index.ReadInt32();
-                    var name = string.Format ("{0}#{1:X8}", base_name, id);
-                    var entry = new LayEntry {
-                        Name = name, Type = "image", Offset = 0,
-                        Id = id, First = first, Count = count
+                    var name = string.Format("{0}#{1:X8}", base_name, id);
+                    var entry = new LayEntry
+                    {
+                        Name = name,
+                        Type = "image",
+                        Offset = 0,
+                        Id = id,
+                        First = first,
+                        Count = count
                     };
-                    dir.Add (entry);
+                    dir.Add(entry);
                 }
-                var tiles = new List<LayCoord> (coord_count);
+                var tiles = new List<LayCoord>(coord_count);
                 for (int i = 0; i < coord_count; ++i)
                 {
                     var tile = new LayCoord();
@@ -125,13 +130,13 @@ namespace GameRes.Formats.NitroPlus
                     tile.TargetY = index.ReadSingle() + 1;
                     tile.SourceX = index.ReadSingle() - 1;
                     tile.SourceY = index.ReadSingle() - 1;
-                    tiles.Add (tile);
+                    tiles.Add(tile);
                 }
-                return new LayArchive (file, this, dir, image.Bitmap, tiles);
+                return new LayArchive(file, this, dir, image.Bitmap, tiles);
             }
         }
 
-        public override IImageDecoder OpenImage (ArcFile arc, Entry entry)
+        public override IImageDecoder OpenImage(ArcFile arc, Entry entry)
         {
             var lent = (LayEntry)entry;
             var larc = (LayArchive)arc;
@@ -141,34 +146,34 @@ namespace GameRes.Formats.NitroPlus
                 if (lent.Id != 1)
                 {
                     LayEntry base_layer;
-                    if (larc.LayerMap.TryGetValue (1, out base_layer))
-                        DrawLayer (context, larc.Source, larc.GetTiles (base_layer));
+                    if (larc.LayerMap.TryGetValue(1, out base_layer))
+                        DrawLayer(context, larc.Source, larc.GetTiles(base_layer));
                 }
                 if ((lent.Id >> 28) == 4)
                 {
                     uint face_id = (lent.Id >> 8) & 0xF | 0x20000000;
                     LayEntry face_layer;
-                    if (larc.LayerMap.TryGetValue (face_id, out face_layer) ||
-                        larc.LayerMap.TryGetValue (face_id-1, out face_layer))
-                        DrawLayer (context, larc.Source, larc.GetTiles (face_layer));
+                    if (larc.LayerMap.TryGetValue(face_id, out face_layer) ||
+                        larc.LayerMap.TryGetValue(face_id - 1, out face_layer))
+                        DrawLayer(context, larc.Source, larc.GetTiles(face_layer));
                 }
-                DrawLayer (context, larc.Source, larc.GetTiles (lent));
+                DrawLayer(context, larc.Source, larc.GetTiles(lent));
             }
-            var bmp = new RenderTargetBitmap (DefaultWidth, DefaultHeight, ImageData.DefaultDpiX,
+            var bmp = new RenderTargetBitmap(DefaultWidth, DefaultHeight, ImageData.DefaultDpiX,
                                               ImageData.DefaultDpiY, PixelFormats.Pbgra32);
-            bmp.Render (visual);
-            return new BitmapSourceDecoder (bmp);
+            bmp.Render(visual);
+            return new BitmapSourceDecoder(bmp);
         }
 
-        void DrawLayer (DrawingContext context, BitmapSource source, IEnumerable<LayCoord> tiles)
+        void DrawLayer(DrawingContext context, BitmapSource source, IEnumerable<LayCoord> tiles)
         {
             foreach (var coord in tiles)
             {
-                var src_rect = new Int32Rect ((int)coord.SourceX, (int)coord.SourceY, BlockSize, BlockSize);
-                var tile = new CroppedBitmap (source, src_rect);
-                var dst_rect = new Rect (coord.TargetX + DefaultWidth / 2, coord.TargetY + DefaultHeight / 2,
+                var src_rect = new Int32Rect((int)coord.SourceX, (int)coord.SourceY, BlockSize, BlockSize);
+                var tile = new CroppedBitmap(source, src_rect);
+                var dst_rect = new Rect(coord.TargetX + DefaultWidth / 2, coord.TargetY + DefaultHeight / 2,
                                          BlockSize, BlockSize);
-                context.DrawImage (tile, dst_rect);
+                context.DrawImage(tile, dst_rect);
             }
         }
     }

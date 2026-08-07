@@ -41,20 +41,20 @@ namespace GameRes.Formats.Foster
     [Export(typeof(ImageFormat))]
     public class C24Format : ImageFormat
     {
-        public override string         Tag { get { return "C24"; } }
+        public override string Tag { get { return "C24"; } }
         public override string Description { get { return "Foster game engine image format"; } }
-        public override uint     Signature { get { return 0x00343243; } } // 'C24'
+        public override uint Signature { get { return 0x00343243; } } // 'C24'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (12);
-            int count = header.ToInt32 (4);
+            var header = file.ReadHeader(12);
+            int count = header.ToInt32(4);
             if (count <= 0)
                 return null;
-            return ReadMetaData (file, header.ToUInt32 (8), 24);
+            return ReadMetaData(file, header.ToUInt32(8), 24);
         }
 
-        internal C24MetaData ReadMetaData (IBinaryStream file, long offset, int bpp)
+        internal C24MetaData ReadMetaData(IBinaryStream file, long offset, int bpp)
         {
             file.Position = offset;
             var info = new C24MetaData { BPP = bpp };
@@ -66,30 +66,30 @@ namespace GameRes.Formats.Foster
             return info;
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            using (var reader = new C24Decoder (file, (C24MetaData)info, true))
+            using (var reader = new C24Decoder(file, (C24MetaData)info, true))
                 return reader.Image;
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("C24Format.Write not implemented");
+            throw new System.NotImplementedException("C24Format.Write not implemented");
         }
     }
 
     internal abstract class CDecoderBase : IImageDecoder
     {
         protected IBinaryStream m_input;
-        protected C24MetaData   m_info;
-        protected byte[]        m_output;
-        private   ImageData     m_image;
-        private   bool          m_should_dispose;
+        protected C24MetaData m_info;
+        protected byte[] m_output;
+        private ImageData m_image;
+        private bool m_should_dispose;
 
-        public Stream            Source { get { m_input.Position = 0; return m_input.AsStream; } }
+        public Stream Source { get { m_input.Position = 0; return m_input.AsStream; } }
         public ImageFormat SourceFormat { get { return null; } }
-        public ImageMetaData       Info { get { return m_info; } }
-        public PixelFormat       Format { get; private set; }
+        public ImageMetaData Info { get { return m_info; } }
+        public PixelFormat Format { get; private set; }
 
         public ImageData Image
         {
@@ -98,13 +98,13 @@ namespace GameRes.Formats.Foster
                 if (null == m_image)
                 {
                     Unpack();
-                    m_image = ImageData.Create (m_info, Format, null, m_output);
+                    m_image = ImageData.Create(m_info, Format, null, m_output);
                 }
                 return m_image;
             }
         }
 
-        public CDecoderBase (IBinaryStream file, C24MetaData info, PixelFormat format, bool leave_open = false)
+        public CDecoderBase(IBinaryStream file, C24MetaData info, PixelFormat format, bool leave_open = false)
         {
             m_input = file;
             m_info = info;
@@ -113,7 +113,7 @@ namespace GameRes.Formats.Foster
             Format = format;
         }
 
-        protected uint[] ReadRows ()
+        protected uint[] ReadRows()
         {
             m_input.Position = m_info.DataOffset;
             var rows = new uint[m_info.Height];
@@ -122,18 +122,18 @@ namespace GameRes.Formats.Foster
             return rows;
         }
 
-        protected abstract void Unpack ();
+        protected abstract void Unpack();
 
         #region IDisposable Members
         bool m_disposed = false;
 
-        public void Dispose ()
+        public void Dispose()
         {
-            Dispose (true);
-            GC.SuppressFinalize (this);
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
-        protected virtual void Dispose (bool disposing)
+        protected virtual void Dispose(bool disposing)
         {
             if (!m_disposed)
             {
@@ -149,12 +149,12 @@ namespace GameRes.Formats.Foster
 
     internal sealed class C24Decoder : CDecoderBase
     {
-        public C24Decoder (IBinaryStream file, C24MetaData info, bool leave_open = false)
-            : base (file, info, PixelFormats.Bgr24, leave_open)
+        public C24Decoder(IBinaryStream file, C24MetaData info, bool leave_open = false)
+            : base(file, info, PixelFormats.Bgr24, leave_open)
         {
         }
 
-        protected override void Unpack ()
+        protected override void Unpack()
         {
             var rows = ReadRows();
             int dst = 0;
@@ -163,7 +163,7 @@ namespace GameRes.Formats.Foster
             {
                 m_input.Position = row_offset;
                 bool rle = false;
-                for (int x = 0; x < width; )
+                for (int x = 0; x < width;)
                 {
                     int count = m_input.ReadUInt8();
                     if (!rle)
@@ -179,7 +179,7 @@ namespace GameRes.Formats.Foster
                         if (0 == count)
                             count = m_input.ReadUInt16();
                         int byte_count = count * 3;
-                        m_input.Read (m_output, dst, byte_count);
+                        m_input.Read(m_output, dst, byte_count);
                         dst += byte_count;
                     }
                     x += count;

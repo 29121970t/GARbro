@@ -34,79 +34,79 @@ namespace GameRes.Formats.Foster
     [Export(typeof(ArchiveFormat))]
     public class Fa2Opener : ArchiveFormat
     {
-        public override string         Tag { get { return "FA2"; } }
+        public override string Tag { get { return "FA2"; } }
         public override string Description { get { return "Foster game engine resource archive"; } }
-        public override uint     Signature { get { return 0x00324146; } } // 'FA2'
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x00324146; } } // 'FA2'
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            int count = file.View.ReadInt32 (0xC);
-            if (!IsSaneCount (count))
+            int count = file.View.ReadInt32(0xC);
+            if (!IsSaneCount(count))
                 return null;
-            bool is_packed = (file.View.ReadByte (4) & 1) != 0;
-            uint index_offset = file.View.ReadUInt32 (8);
+            bool is_packed = (file.View.ReadByte(4) & 1) != 0;
+            uint index_offset = file.View.ReadUInt32(8);
             byte[] index;
-            using (var input = file.CreateStream (index_offset))
+            using (var input = file.CreateStream(index_offset))
             {
                 if (is_packed)
-                    index = Decompress (input, (uint)count * 0x20);
+                    index = Decompress(input, (uint)count * 0x20);
                 else
-                    index = input.ReadBytes ((int)(file.MaxOffset - index_offset));
+                    index = input.ReadBytes((int)(file.MaxOffset - index_offset));
             }
 
             uint data_offset = 0x10;
             int index_pos = 0;
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
-                var name = Binary.GetCString (index, index_pos, 0xF);
+                var name = Binary.GetCString(index, index_pos, 0xF);
                 index_pos += 0xF;
-                var entry = FormatCatalog.Instance.Create<PackedEntry> (name);
+                var entry = FormatCatalog.Instance.Create<PackedEntry>(name);
                 entry.IsPacked = (index[index_pos] & 2) != 0;
                 entry.Offset = data_offset;
                 index_pos += 9;
-                entry.UnpackedSize = index.ToUInt32 (index_pos);
-                entry.Size         = index.ToUInt32 (index_pos+4);
-                if (!entry.CheckPlacement (file.MaxOffset))
+                entry.UnpackedSize = index.ToUInt32(index_pos);
+                entry.Size = index.ToUInt32(index_pos + 4);
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
-                dir.Add (entry);
+                dir.Add(entry);
                 index_pos += 8;
                 data_offset += (entry.Size + 0xFu) & ~0xFu;
             }
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
-            var input = arc.File.CreateStream (entry.Offset, entry.Size);
+            var input = arc.File.CreateStream(entry.Offset, entry.Size);
             var pent = entry as PackedEntry;
             if (null == pent || !pent.IsPacked)
                 return input;
-            var data = Decompress (input, pent.UnpackedSize);
-            return new BinMemoryStream (data, entry.Name);
+            var data = Decompress(input, pent.UnpackedSize);
+            return new BinMemoryStream(data, entry.Name);
         }
 
-        byte[] Decompress (IBinaryStream input, uint unpacked_size)
+        byte[] Decompress(IBinaryStream input, uint unpacked_size)
         {
-            var comp = new Fa2Compression (input, unpacked_size);
+            var comp = new Fa2Compression(input, unpacked_size);
             return comp.Unpack();
         }
     }
 
     internal class Fa2Compression
     {
-        IBinaryStream   m_input;
-        byte[]          m_output;
+        IBinaryStream m_input;
+        byte[] m_output;
 
-        public Fa2Compression (IBinaryStream input, uint unpacked_size)
+        public Fa2Compression(IBinaryStream input, uint unpacked_size)
         {
             m_input = input;
             m_output = new byte[unpacked_size];
         }
 
-        public byte[] Unpack ()
+        public byte[] Unpack()
         {
             m_bit_count = 0;
             int dst = 0;
@@ -123,7 +123,7 @@ namespace GameRes.Formats.Foster
                     if (GetNextBit() != 0)
                     {
                         offset = m_input.ReadUInt8() << 3;
-                        offset |= GetBits (3);
+                        offset |= GetBits(3);
                         offset += 0x100;
                         if (offset >= 0x8FF)
                             break;
@@ -132,8 +132,8 @@ namespace GameRes.Formats.Foster
                     {
                         offset = m_input.ReadUInt8();
                     }
-                    m_output[dst  ] = m_output[dst-offset-1];
-                    m_output[dst+1] = m_output[dst-offset  ];
+                    m_output[dst] = m_output[dst - offset - 1];
+                    m_output[dst + 1] = m_output[dst - offset];
                     dst += 2;
                 }
                 else
@@ -156,19 +156,19 @@ namespace GameRes.Formats.Foster
                         {
                             offset |= m_input.ReadUInt8();
                             offset <<= 2;
-                            offset |= GetBits (2);
+                            offset |= GetBits(2);
                         }
                         else if (GetNextBit() != 0)
                         {
                             offset |= m_input.ReadUInt8();
                             offset <<= 3;
-                            offset |= GetBits (3);
+                            offset |= GetBits(3);
                         }
                         else
                         {
                             offset |= m_input.ReadUInt8();
                             offset <<= 4;
-                            offset |= GetBits (4);
+                            offset |= GetBits(4);
                         }
                     }
                     int count = 0;
@@ -186,33 +186,33 @@ namespace GameRes.Formats.Foster
                     }
                     else if (GetNextBit() != 0)
                     {
-                        count = 7 + GetBits (2);
+                        count = 7 + GetBits(2);
                     }
                     else if (GetNextBit() != 0)
                     {
-                        count = 11 + GetBits (4);
+                        count = 11 + GetBits(4);
                     }
                     else
                     {
                         count = 27 + m_input.ReadUInt8();
                     }
-                    Binary.CopyOverlapped (m_output, dst - offset - 1, dst, count);
+                    Binary.CopyOverlapped(m_output, dst - offset - 1, dst, count);
                     dst += count;
                 }
             }
             return m_output;
         }
 
-        uint    m_bits;
-        int     m_bit_count;
+        uint m_bits;
+        int m_bit_count;
 
-        void FetchBits ()
+        void FetchBits()
         {
             m_bits = m_input.ReadUInt32();
             m_bit_count = 32;
         }
 
-        int GetNextBit ()
+        int GetNextBit()
         {
             if (0 == m_bit_count)
                 FetchBits();
@@ -222,10 +222,10 @@ namespace GameRes.Formats.Foster
             return bit;
         }
 
-        int GetBits (int count)
+        int GetBits(int count)
         {
             uint bits = 0;
-            int avail_bits = Math.Min (count, m_bit_count);
+            int avail_bits = Math.Min(count, m_bit_count);
             if (avail_bits > 0)
             {
                 bits = m_bits >> (32 - avail_bits);

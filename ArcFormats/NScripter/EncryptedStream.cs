@@ -33,22 +33,22 @@ namespace GameRes.Formats.NScripter
 {
     internal abstract class ViewStreamBase : Stream
     {
-        private     ArcView.Frame   m_view;
-        private     long            m_max_offset;
-        private     long            m_position = 0;
-        protected   byte[]          m_current_block = new byte[BlockLength];
-        protected   int             m_current_block_length = 0;
-        protected   long            m_current_block_position = 0;
+        private ArcView.Frame m_view;
+        private long m_max_offset;
+        private long m_position = 0;
+        protected byte[] m_current_block = new byte[BlockLength];
+        protected int m_current_block_length = 0;
+        protected long m_current_block_position = 0;
 
         public const int BlockLength = 1024;
 
-        public ViewStreamBase (ArcView mmap)
+        public ViewStreamBase(ArcView mmap)
         {
             m_view = mmap.CreateFrame();
             m_max_offset = mmap.MaxOffset;
         }
 
-        public override int Read (byte[] buf, int index, int count)
+        public override int Read(byte[] buf, int index, int count)
         {
             int total_read = 0;
             bool refill_buffer = !(m_position >= m_current_block_position && m_position < m_current_block_position + m_current_block_length);
@@ -56,13 +56,13 @@ namespace GameRes.Formats.NScripter
             {
                 if (refill_buffer)
                 {
-                    m_current_block_position = m_position & ~((long)BlockLength-1);
-                    m_current_block_length = m_view.Read (m_current_block_position, m_current_block, 0, (uint)BlockLength);
+                    m_current_block_position = m_position & ~((long)BlockLength - 1);
+                    m_current_block_length = m_view.Read(m_current_block_position, m_current_block, 0, (uint)BlockLength);
                     DecryptBlock();
                 }
-                int src_offset = (int)m_position & (BlockLength-1);
-                int available = Math.Min (count, m_current_block_length - src_offset);
-                Buffer.BlockCopy (m_current_block, src_offset, buf, index, available);
+                int src_offset = (int)m_position & (BlockLength - 1);
+                int available = Math.Min(count, m_current_block_length - src_offset);
+                Buffer.BlockCopy(m_current_block, src_offset, buf, index, available);
                 m_position += available;
                 total_read += available;
                 index += available;
@@ -72,12 +72,12 @@ namespace GameRes.Formats.NScripter
             return total_read;
         }
 
-        protected abstract void DecryptBlock ();
+        protected abstract void DecryptBlock();
 
         #region IO.Stream methods
-        public override bool  CanRead { get { return !m_disposed; } }
+        public override bool CanRead { get { return !m_disposed; } }
         public override bool CanWrite { get { return false; } }
-        public override bool  CanSeek { get { return !m_disposed; } }
+        public override bool CanSeek { get { return !m_disposed; } }
 
         public override long Length { get { return m_max_offset; } }
         public override long Position
@@ -86,7 +86,7 @@ namespace GameRes.Formats.NScripter
             set { m_position = value; }
         }
 
-        public override long Seek (long pos, SeekOrigin whence)
+        public override long Seek(long pos, SeekOrigin whence)
         {
             if (SeekOrigin.Current == whence)
                 m_position += pos;
@@ -97,24 +97,24 @@ namespace GameRes.Formats.NScripter
             return m_position;
         }
 
-        public override void Write (byte[] buf, int index, int count)
+        public override void Write(byte[] buf, int index, int count)
         {
             throw new NotSupportedException();
         }
 
-        public override void SetLength (long length)
+        public override void SetLength(long length)
         {
             throw new NotSupportedException();
         }
 
-        public override void Flush ()
+        public override void Flush()
         {
         }
         #endregion
 
         #region IDisposable methods
         bool m_disposed = false;
-        protected override void Dispose (bool disposing)
+        protected override void Dispose(bool disposing)
         {
             if (!m_disposed)
             {
@@ -129,33 +129,33 @@ namespace GameRes.Formats.NScripter
 
     internal class EncryptedViewStream : ViewStreamBase
     {
-        byte[]          m_key;
+        byte[] m_key;
 
-        static readonly HashAlgorithm MD5  = System.Security.Cryptography.MD5.Create();
+        static readonly HashAlgorithm MD5 = System.Security.Cryptography.MD5.Create();
         static readonly HashAlgorithm SHA1 = System.Security.Cryptography.SHA1.Create();
 
-        public EncryptedViewStream (ArcView mmap, byte[] key) : base (mmap)
+        public EncryptedViewStream(ArcView mmap, byte[] key) : base(mmap)
         {
             m_key = key;
         }
 
-        protected override void DecryptBlock ()
+        protected override void DecryptBlock()
         {
             int block_num = (int)(m_current_block_position / BlockLength);
             byte[] bn = new byte[8];
-            LittleEndian.Pack (block_num, bn, 0);
+            LittleEndian.Pack(block_num, bn, 0);
 
-            var md5_hash = MD5.ComputeHash (bn);
-            var sha1_hash = SHA1.ComputeHash (bn);
+            var md5_hash = MD5.ComputeHash(bn);
+            var sha1_hash = SHA1.ComputeHash(bn);
             var hmac_key = new byte[16];
             for (int i = 0; i < 16; i++)
                 hmac_key[i] = (byte)(md5_hash[i] ^ sha1_hash[i]);
 
             byte[] hmac_hash;
-            using (var HMAC = new HMACSHA512 (hmac_key))
-                hmac_hash = HMAC.ComputeHash (m_key);
+            using (var HMAC = new HMACSHA512(hmac_key))
+                hmac_hash = HMAC.ComputeHash(m_key);
 
-            int[] map = Enumerable.Range (0, 256).ToArray();
+            int[] map = Enumerable.Range(0, 256).ToArray();
 
             byte index = 0;
             int h = 0;

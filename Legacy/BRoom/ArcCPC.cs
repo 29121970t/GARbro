@@ -35,40 +35,40 @@ namespace GameRes.Formats.BRoom
     [Export(typeof(ArchiveFormat))]
     public class CpcOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "CPC"; } }
+        public override string Tag { get { return "CPC"; } }
         public override string Description { get { return "Studio B-Room resource archive"; } }
-        public override uint     Signature { get { return 0x47435043; } } // 'CPCG'
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x47435043; } } // 'CPCG'
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            int count = (int)(file.View.ReadUInt32 (4) ^ 0xFF559977);
-            if (!IsSaneCount (count))
+            int count = (int)(file.View.ReadUInt32(4) ^ 0xFF559977);
+            if (!IsSaneCount(count))
                 return null;
-            bool encryption_flag = (file.View.ReadByte (8) ^ 0x8A) != 0;
-            int key_index = file.View.ReadByte (9) ^ 0xCE;
+            bool encryption_flag = (file.View.ReadByte(8) ^ 0x8A) != 0;
+            int key_index = file.View.ReadByte(9) ^ 0xCE;
             if (encryption_flag && key_index > OffsetKey.Length)
                 return null;
             uint index_offset = 12;
             var name_buffer = new byte[0x30];
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
-                uint offset = file.View.ReadUInt32 (index_offset);
-                uint size   = file.View.ReadUInt32 (index_offset+4);
+                uint offset = file.View.ReadUInt32(index_offset);
+                uint size = file.View.ReadUInt32(index_offset + 4);
                 if (encryption_flag)
                 {
                     uint key = IndexKey[i & 0x3F];
                     offset ^= key ^ OffsetKey[key_index];
-                    size   ^= key ^ LengthKey[key_index];
+                    size ^= key ^ LengthKey[key_index];
                 }
                 else
                 {
                     offset ^= (uint)i ^ 0x35846u;
-                    size   ^= (uint)i ^ 0x57982525u;
+                    size ^= (uint)i ^ 0x57982525u;
                 }
-                file.View.Read (index_offset+8, name_buffer, 0, 0x30);
+                file.View.Read(index_offset + 8, name_buffer, 0, 0x30);
                 int j;
                 for (j = 0; j < 0x30; ++j)
                 {
@@ -76,18 +76,18 @@ namespace GameRes.Formats.BRoom
                     if (0 == name_buffer[j])
                         break;
                 }
-                var name = Encodings.cp932.GetString (name_buffer, 0, j);
-                if (string.IsNullOrWhiteSpace (name))
+                var name = Encodings.cp932.GetString(name_buffer, 0, j);
+                if (string.IsNullOrWhiteSpace(name))
                     return null;
-                var entry = Create<Entry> (name);
+                var entry = Create<Entry>(name);
                 entry.Offset = offset;
-                entry.Size   = size;
-                if (!entry.CheckPlacement (file.MaxOffset))
+                entry.Size = size;
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
-                dir.Add (entry);
+                dir.Add(entry);
                 index_offset += 0x38;
             }
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
 
         static readonly byte[] NameKey = {

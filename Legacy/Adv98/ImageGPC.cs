@@ -34,31 +34,31 @@ namespace GameRes.Formats.Adv98
     {
         public long PaletteOffset;
         public long DataOffset;
-        public int  Interleaving;
+        public int Interleaving;
     }
 
     [Export(typeof(ImageFormat))]
     public class GpcFormat : ImageFormat
     {
-        public override string         Tag => "GPC/PC98";
+        public override string Tag => "GPC/PC98";
         public override string Description => "Adv98 engine image format";
-        public override uint     Signature => 0x38394350; // 'PC98'
+        public override uint Signature => 0x38394350; // 'PC98'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x20);
-            if (!header.AsciiEqual (4, ")GPCFILE   \0"))
+            var header = file.ReadHeader(0x20);
+            if (!header.AsciiEqual(4, ")GPCFILE   \0"))
                 return null;
-            uint info_pos = header.ToUInt32 (0x18);
+            uint info_pos = header.ToUInt32(0x18);
             var info = new GpcMetaData
             {
-                Interleaving = header.ToUInt16 (0x10),
-                PaletteOffset = header.ToUInt32 (0x14),
+                Interleaving = header.ToUInt16(0x10),
+                PaletteOffset = header.ToUInt32(0x14),
                 DataOffset = info_pos + 0x10,
                 BPP = 4,
             };
             file.Position = info_pos;
-            info.Width  = file.ReadUInt16();
+            info.Width = file.ReadUInt16();
             info.Height = file.ReadUInt16();
             file.Position = info_pos + 0xA;
             info.OffsetX = file.ReadInt16();
@@ -66,33 +66,33 @@ namespace GameRes.Formats.Adv98
             return info;
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new GpcReader (file, (GpcMetaData)info);
+            var reader = new GpcReader(file, (GpcMetaData)info);
             return reader.Unpack();
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("GpcFormat.Write not implemented");
+            throw new System.NotImplementedException("GpcFormat.Write not implemented");
         }
     }
 
     internal class GpcReader
     {
-        IBinaryStream   m_input;
-        GpcMetaData     m_info;
-        int             m_stride;
+        IBinaryStream m_input;
+        GpcMetaData m_info;
+        int m_stride;
 
         public BitmapPalette Palette { get; private set; }
 
-        public GpcReader (IBinaryStream input, GpcMetaData info)
+        public GpcReader(IBinaryStream input, GpcMetaData info)
         {
             m_input = input;
             m_info = info;
         }
 
-        public ImageData Unpack ()
+        public ImageData Unpack()
         {
             m_input.Position = m_info.PaletteOffset;
             Palette = ReadPalette();
@@ -100,15 +100,15 @@ namespace GameRes.Formats.Adv98
             int row_size = plane_stride * 4 + 1;
             var data = new byte[row_size * m_info.iHeight];
             m_input.Position = m_info.DataOffset;
-            UnpackData (data);
-            RestoreData (data, row_size);
+            UnpackData(data);
+            RestoreData(data, row_size);
             m_stride = plane_stride * 4;
             var pixels = new byte[m_stride * m_info.iHeight];
-            ConvertTo8bpp (data, pixels, plane_stride);
-            return ImageData.Create (m_info, PixelFormats.Indexed4, Palette, pixels, m_stride);
+            ConvertTo8bpp(data, pixels, plane_stride);
+            return ImageData.Create(m_info, PixelFormats.Indexed4, Palette, pixels, m_stride);
         }
 
-        void ConvertTo8bpp (byte[] input, byte[] output, int plane_stride)
+        void ConvertTo8bpp(byte[] input, byte[] output, int plane_stride)
         {
             int interleaving_step = m_stride * m_info.Interleaving;
             int src_row = 1;
@@ -137,7 +137,7 @@ namespace GameRes.Formats.Adv98
                         byte px = (byte)((((b0 << j) & 0x80) >> 3)
                                        | (((b1 << j) & 0x80) >> 2)
                                        | (((b2 << j) & 0x80) >> 1)
-                                       | (((b3 << j) & 0x80)     ));
+                                       | (((b3 << j) & 0x80)));
                         px |= (byte)((((b0 << j) & 0x40) >> 6)
                                    | (((b1 << j) & 0x40) >> 5)
                                    | (((b2 << j) & 0x40) >> 4)
@@ -149,7 +149,7 @@ namespace GameRes.Formats.Adv98
             }
         }
 
-        void UnpackData (byte[] output)
+        void UnpackData(byte[] output)
         {
             int dst = 0;
             int ctl = 0;
@@ -182,7 +182,7 @@ namespace GameRes.Formats.Adv98
             }
         }
 
-        void RestoreData (byte[] data, int stride)
+        void RestoreData(byte[] data, int stride)
         {
             int src = 0;
             for (int y = 0; y < m_info.iHeight; ++y)
@@ -217,23 +217,23 @@ namespace GameRes.Formats.Adv98
             }
         }
 
-        BitmapPalette ReadPalette ()
+        BitmapPalette ReadPalette()
         {
             int count = m_input.ReadUInt16();
             int elem_size = m_input.ReadUInt16();
             if (elem_size != 2)
-                throw new InvalidFormatException (string.Format ("Invalid palette element size {0}", elem_size));
+                throw new InvalidFormatException(string.Format("Invalid palette element size {0}", elem_size));
             var colors = new Color[count];
             for (int i = 0; i < count; ++i)
             {
                 int v = m_input.ReadUInt16();
                 int r = (v >> 4) & 0xF;
                 int g = (v >> 8) & 0xF;
-                int b = (v     ) & 0xF;
-                colors[i] = Color.FromRgb ((byte)(r * 0x11), (byte)(g * 0x11), (byte)(b * 0x11));
+                int b = (v) & 0xF;
+                colors[i] = Color.FromRgb((byte)(r * 0x11), (byte)(g * 0x11), (byte)(b * 0x11));
             }
-//            colors[0].A = 0; // force transparency
-            return new BitmapPalette (colors);
+            //            colors[0].A = 0; // force transparency
+            return new BitmapPalette(colors);
         }
     }
 }

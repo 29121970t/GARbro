@@ -35,63 +35,64 @@ namespace GameRes.Formats.Leaf
     {
         public byte Mode;
         public byte KeyColor;
-        public int  ImageSize;
+        public int ImageSize;
     }
 
     [Export(typeof(ImageFormat))]
     public class LfgFormat : ImageFormat
     {
-        public override string         Tag { get { return "LFG"; } }
+        public override string Tag { get { return "LFG"; } }
         public override string Description { get { return "Leaf image format"; } }
-        public override uint     Signature { get { return 0x4641454C; } } // 'LEAFCODE'
+        public override uint Signature { get { return 0x4641454C; } } // 'LEAFCODE'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x30);
-            if (!header.AsciiEqual ("LEAFCODE"))
+            var header = file.ReadHeader(0x30);
+            if (!header.AsciiEqual("LEAFCODE"))
                 return null;
-            int x = header.ToInt16 (0x20);
-            int y = header.ToInt16 (0x22);
-            return new LfgMetaData {
-                Width  = (uint)(header.ToInt16 (0x24) - x + 1) * 8,
-                Height = (uint)(header.ToInt16 (0x26) - y + 1),
+            int x = header.ToInt16(0x20);
+            int y = header.ToInt16(0x22);
+            return new LfgMetaData
+            {
+                Width = (uint)(header.ToInt16(0x24) - x + 1) * 8,
+                Height = (uint)(header.ToInt16(0x26) - y + 1),
                 OffsetX = x,
                 OffsetY = y,
-                BPP     = 4,
-                Mode    = header[0x28],
+                BPP = 4,
+                Mode = header[0x28],
                 KeyColor = header[0x29],
-                ImageSize = header.ToInt32 (0x2C),
+                ImageSize = header.ToInt32(0x2C),
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new LfgReader (file, (LfgMetaData)info);
+            var reader = new LfgReader(file, (LfgMetaData)info);
             var pixels = reader.Unpack();
-            return ImageData.Create (info, reader.Format, reader.Palette, pixels, reader.Stride);
+            return ImageData.Create(info, reader.Format, reader.Palette, pixels, reader.Stride);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("LfgFormat.Write not implemented");
+            throw new System.NotImplementedException("LfgFormat.Write not implemented");
         }
     }
 
     internal class LfgReader
     {
-        IBinaryStream   m_input;
-        byte[]          m_output;
-        int             m_mode;
-        int             m_length;
-        int             m_stride;
-        int             m_height;
-        int             m_key_color;
+        IBinaryStream m_input;
+        byte[] m_output;
+        int m_mode;
+        int m_length;
+        int m_stride;
+        int m_height;
+        int m_key_color;
 
-        public PixelFormat    Format { get { return PixelFormats.Indexed4; } }
-        public int            Stride { get { return m_stride; } }
+        public PixelFormat Format { get { return PixelFormats.Indexed4; } }
+        public int Stride { get { return m_stride; } }
         public BitmapPalette Palette { get; private set; }
 
-        public LfgReader (IBinaryStream input, LfgMetaData info)
+        public LfgReader(IBinaryStream input, LfgMetaData info)
         {
             m_input = input;
             m_stride = (int)info.Width / 2;
@@ -104,7 +105,7 @@ namespace GameRes.Formats.Leaf
 
         byte[] m_frame = new byte[0x1000];
 
-        public byte[] Unpack ()
+        public byte[] Unpack()
         {
             m_input.Position = 8;
             Palette = ReadPalette();
@@ -117,7 +118,8 @@ namespace GameRes.Formats.Leaf
             Action next_pixel;
             if (1 == m_mode)
             {
-                next_pixel = () => {
+                next_pixel = () =>
+                {
                     ++dst;
                     if (++x >= m_stride)
                     {
@@ -128,7 +130,8 @@ namespace GameRes.Formats.Leaf
             }
             else
             {
-                next_pixel = () => {
+                next_pixel = () =>
+                {
                     dst += m_stride;
                     if (++y >= m_height)
                     {
@@ -161,7 +164,7 @@ namespace GameRes.Formats.Leaf
                     int offset = m_input.ReadUInt16();
                     int count = (offset & 0xF) + 3;
                     offset >>= 4;
-                    while (count --> 0 && pixel_count < m_length)
+                    while (count-- > 0 && pixel_count < m_length)
                     {
                         byte color = m_frame[offset++ & 0xFFF];
                         m_frame[frame_pos++ & 0xFFF] = color;
@@ -174,27 +177,27 @@ namespace GameRes.Formats.Leaf
             return m_output;
         }
 
-        BitmapPalette ReadPalette ()
+        BitmapPalette ReadPalette()
         {
             var color_data = new byte[0x18 * 2];
             for (int i = 0; i < color_data.Length; i += 2)
             {
                 byte c = m_input.ReadUInt8();
-                color_data[i  ] = (byte)((c >> 4) * 0x11);
-                color_data[i+1] = (byte)((c & 0xF) * 0x11);
+                color_data[i] = (byte)((c >> 4) * 0x11);
+                color_data[i + 1] = (byte)((c & 0xF) * 0x11);
             }
             var colors = new Color[16];
             int src = 0;
             for (int i = 0; i < 16; ++i)
             {
                 if (m_key_color == i)
-                    colors[i] = Color.FromArgb (0, color_data[src], color_data[src+1], color_data[src+2]);
+                    colors[i] = Color.FromArgb(0, color_data[src], color_data[src + 1], color_data[src + 2]);
                 else
-                    colors[i] = Color.FromRgb (color_data[src], color_data[src+1], color_data[src+2]);
+                    colors[i] = Color.FromRgb(color_data[src], color_data[src + 1], color_data[src + 2]);
                 src += 3;
             }
-//            colors[15] = Color.FromRgb (0xFF, 0xFF, 0xFF);
-            return new BitmapPalette (colors);
+            //            colors[15] = Color.FromRgb (0xFF, 0xFF, 0xFF);
+            return new BitmapPalette(colors);
         }
 
         static readonly byte[] ColorMap = {

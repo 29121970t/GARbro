@@ -31,7 +31,7 @@ namespace GameRes.Formats
 {
     public class MultiFileArchive : ArcFile
     {
-        IEnumerable<ArcView>  m_parts;
+        IEnumerable<ArcView> m_parts;
 
         public IEnumerable<ArcView> Parts
         {
@@ -44,29 +44,29 @@ namespace GameRes.Formats
             }
         }
 
-        public MultiFileArchive (ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, IEnumerable<ArcView> parts = null)
-            : base (arc, impl, dir)
+        public MultiFileArchive(ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, IEnumerable<ArcView> parts = null)
+            : base(arc, impl, dir)
         {
             m_parts = parts;
         }
 
-        public Stream OpenStream (Entry entry)
+        public Stream OpenStream(Entry entry)
         {
             Stream input = null;
             try
             {
                 long part_offset = 0;
                 long entry_start = entry.Offset;
-                long entry_end   = entry.Offset + GetEntrySize (entry);
+                long entry_end = entry.Offset + GetEntrySize(entry);
                 foreach (var part in Parts)
                 {
                     long part_end_offset = part_offset + part.MaxOffset;
                     if (entry_start < part_end_offset)
                     {
-                        uint part_size = (uint)Math.Min (entry_end - entry_start, part_end_offset - entry_start);
-                        var entry_part = part.CreateStream (entry_start - part_offset, part_size);
+                        uint part_size = (uint)Math.Min(entry_end - entry_start, part_end_offset - entry_start);
+                        var entry_part = part.CreateStream(entry_start - part_offset, part_size);
                         if (input != null)
-                            input = new ConcatStream (input, entry_part);
+                            input = new ConcatStream(input, entry_part);
                         else
                             input = entry_part;
                         entry_start += part_size;
@@ -85,13 +85,13 @@ namespace GameRes.Formats
             }
         }
 
-        protected virtual uint GetEntrySize (Entry entry)
+        protected virtual uint GetEntrySize(Entry entry)
         {
             return entry.Size;
         }
-        
+
         bool m_disposed = false;
-        protected override void Dispose (bool disposing)
+        protected override void Dispose(bool disposing)
         {
             if (m_disposed)
                 return;
@@ -102,7 +102,7 @@ namespace GameRes.Formats
                     arc.Dispose();
             }
             m_disposed = true;
-            base.Dispose (disposing);
+            base.Dispose(disposing);
         }
     }
 }

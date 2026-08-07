@@ -46,43 +46,43 @@ namespace GameRes.Formats.KiriKiri
     [Serializable]
     public class ChainReactionCrypt : ICrypt
     {
-        readonly string     m_list_bin;
+        readonly string m_list_bin;
 
-        public ChainReactionCrypt () : this ("plugin/list.bin")
+        public ChainReactionCrypt() : this("plugin/list.bin")
         {
         }
 
-        public ChainReactionCrypt (string list_file)
+        public ChainReactionCrypt(string list_file)
         {
             m_list_bin = list_file;
         }
 
-        public override void Decrypt (Xp3Entry entry, long offset, byte[] values, int pos, int count)
+        public override void Decrypt(Xp3Entry entry, long offset, byte[] values, int pos, int count)
         {
-            uint limit = GetEncryptionLimit (entry);
+            uint limit = GetEncryptionLimit(entry);
             if (offset >= limit)
                 return;
-            count = Math.Min ((int)(limit - offset), count);
+            count = Math.Min((int)(limit - offset), count);
             uint key = entry.Hash;
             int ofs = (int)offset;
             for (int i = 0; i < count; ++i)
             {
-                values[pos+i] ^= (byte)((ofs+i) ^ (byte)(key >> (((ofs+i) & 3) << 3)));
+                values[pos + i] ^= (byte)((ofs + i) ^ (byte)(key >> (((ofs + i) & 3) << 3)));
             }
         }
 
-        public override void Encrypt (Xp3Entry entry, long offset, byte[] values, int pos, int count)
+        public override void Encrypt(Xp3Entry entry, long offset, byte[] values, int pos, int count)
         {
-            throw new NotImplementedException (Strings.arcStrings.MsgEncNotImplemented);
+            throw new NotImplementedException(Strings.arcStrings.MsgEncNotImplemented);
             // despite the fact that algorithm is symmetric, creating an archive without updating "list.bin"
             // wouldn't make much sense
-//            Decrypt (entry, offset, values, pos, count);
+            //            Decrypt (entry, offset, values, pos, count);
         }
 
-        protected virtual uint GetEncryptionLimit (Xp3Entry entry)
+        protected virtual uint GetEncryptionLimit(Xp3Entry entry)
         {
             uint limit;
-            if (EncryptionThresholdMap != null && EncryptionThresholdMap.TryGetValue (entry.Hash, out limit))
+            if (EncryptionThresholdMap != null && EncryptionThresholdMap.TryGetValue(entry.Hash, out limit))
                 return limit;
             else
                 return 0x200;
@@ -91,22 +91,22 @@ namespace GameRes.Formats.KiriKiri
         [NonSerialized]
         Dictionary<uint, uint> EncryptionThresholdMap;
 
-        public override void Init (ArcFile arc)
+        public override void Init(ArcFile arc)
         {
-            var bin = ReadListBin (arc, m_list_bin);
+            var bin = ReadListBin(arc, m_list_bin);
             if (null == bin || bin.Length <= 0x30)
                 return;
 
-            Init (bin);
+            Init(bin);
         }
 
-        internal void Init (byte[] bin)
+        internal void Init(byte[] bin)
         {
-            if (!Binary.AsciiEqual (bin, "\"\x0D\x0A"))
+            if (!Binary.AsciiEqual(bin, "\"\x0D\x0A"))
             {
                 for (int i = 0; i < 3; ++i)
                 {
-                    bin = DecodeListBin (bin);
+                    bin = DecodeListBin(bin);
                     if (null == bin)
                         return;
                 }
@@ -116,24 +116,24 @@ namespace GameRes.Formats.KiriKiri
             else
                 EncryptionThresholdMap.Clear();
 
-            ParseListBin (bin);
+            ParseListBin(bin);
         }
 
-        internal byte[] ReadListBin (ArcFile arc, string list_name)
+        internal byte[] ReadListBin(ArcFile arc, string list_name)
         {
-            var list_bin = arc.Dir.FirstOrDefault (e => e.Name == list_name) as Xp3Entry;
+            var list_bin = arc.Dir.FirstOrDefault(e => e.Name == list_name) as Xp3Entry;
             if (null == list_bin)
                 return null;
             var bin = new byte[list_bin.UnpackedSize];
-            using (var input = arc.OpenEntry (list_bin))
-                input.Read (bin, 0, bin.Length);
+            using (var input = arc.OpenEntry(list_bin))
+                input.ReadExactly(bin);
             return bin;
         }
 
-        void ParseListBin (byte[] data)
+        void ParseListBin(byte[] data)
         {
-            using (var mem = new MemoryStream (data))
-            using (var input = new StreamReader (mem))
+            using (var mem = new MemoryStream(data))
+            using (var input = new StreamReader(mem))
             {
                 var converter = new UInt32Converter();
                 string line;
@@ -141,54 +141,54 @@ namespace GameRes.Formats.KiriKiri
                 {
                     if (0 == line.Length || '0' != line[0])
                         continue;
-                    var pair = line.Split (',');
+                    var pair = line.Split(',');
                     if (pair.Length > 1)
                     {
-                        uint hash = (uint)converter.ConvertFromString (pair[0]);
-                        uint threshold = (uint)converter.ConvertFromString (pair[1]);
+                        uint hash = (uint)converter.ConvertFromString(pair[0]);
+                        uint threshold = (uint)converter.ConvertFromString(pair[1]);
                         EncryptionThresholdMap[hash] = threshold;
                     }
                 }
             }
         }
 
-        static byte[] DecodeListBin (byte[] data)
+        static byte[] DecodeListBin(byte[] data)
         {
             var header = new byte[0x30];
-            DecodeDPD (data, 0, 0x30, header);
-            int packed_size = LittleEndian.ToInt32 (header, 0x0C);
-            int unpacked_size = LittleEndian.ToInt32 (header, 0x10);
-            if (packed_size <= 0 || packed_size > data.Length-0x30)
+            DecodeDPD(data, 0, 0x30, header);
+            int packed_size = LittleEndian.ToInt32(header, 0x0C);
+            int unpacked_size = LittleEndian.ToInt32(header, 0x10);
+            if (packed_size <= 0 || packed_size > data.Length - 0x30)
                 return null;
-            if (Binary.AsciiEqual (header, 0, "DPDC"))
+            if (Binary.AsciiEqual(header, 0, "DPDC"))
             {
                 var decrypted = new byte[packed_size];
-                DecodeDPD (data, 0x30, packed_size, decrypted);
+                DecodeDPD(data, 0x30, packed_size, decrypted);
                 return decrypted;
             }
-            if (Binary.AsciiEqual (header, 0, "SZLC")) // LZSS
+            if (Binary.AsciiEqual(header, 0, "SZLC")) // LZSS
             {
-                using (var input = new MemoryStream (data, 0x30, packed_size))
-                using (var lzss = new LzssReader (input, packed_size, unpacked_size))
+                using (var input = new MemoryStream(data, 0x30, packed_size))
+                using (var lzss = new LzssReader(input, packed_size, unpacked_size))
                 {
                     lzss.Unpack();
                     return lzss.Data;
                 }
             }
-            if (Binary.AsciiEqual (header, 0, "ELRC")) // RLE
+            if (Binary.AsciiEqual(header, 0, "ELRC")) // RLE
             {
                 var unpacked = new byte[unpacked_size];
-                int min_repeat = LittleEndian.ToInt32 (header, 0x1C);
-                DecodeRLE (data, 0x30, packed_size, unpacked, min_repeat);
+                int min_repeat = LittleEndian.ToInt32(header, 0x1C);
+                DecodeRLE(data, 0x30, packed_size, unpacked, min_repeat);
                 return unpacked;
             }
             return null;
         }
 
-        static void DecodeRLE (byte[] input, int offset, int length, byte[] output, int min_repeat)
+        static void DecodeRLE(byte[] input, int offset, int length, byte[] output, int min_repeat)
         {
             int src = offset;
-            int src_end = offset+length;
+            int src_end = offset + length;
             int dst = 0;
             while (src < src_end)
             {
@@ -212,7 +212,7 @@ namespace GameRes.Formats.KiriKiri
             }
         }
 
-        unsafe static void DecodeDPD (byte[] src, int offset, int length, byte[] dst)
+        unsafe static void DecodeDPD(byte[] src, int offset, int length, byte[] dst)
         {
             if (offset > src.Length || length > dst.Length || length > src.Length - offset)
                 throw new IndexOutOfRangeException();
@@ -220,17 +220,17 @@ namespace GameRes.Formats.KiriKiri
                 return;
             int tail = length & 3;
             if (tail != 0)
-                Buffer.BlockCopy (src, offset+length-tail, dst, length-tail, tail);
+                Buffer.BlockCopy(src, offset + length - tail, dst, length - tail, tail);
             length /= 4;
             fixed (byte* src8 = &src[offset], dst8 = dst)
             {
                 uint* src32 = (uint*)src8;
                 uint* dst32 = (uint*)dst8;
-                for (int i = 0; i < length-1; ++i)
+                for (int i = 0; i < length - 1; ++i)
                 {
-                    dst32[i] = src32[i] ^ src32[i+1];
+                    dst32[i] = src32[i] ^ src32[i + 1];
                 }
-                dst32[length-1] = dst32[0] ^ src32[length-1];
+                dst32[length - 1] = dst32[0] ^ src32[length - 1];
             }
         }
     }
@@ -238,21 +238,21 @@ namespace GameRes.Formats.KiriKiri
     [Serializable]
     public class HachukanoCrypt : ChainReactionCrypt
     {
-        public HachukanoCrypt () : base ("plugins/list.txt")
+        public HachukanoCrypt() : base("plugins/list.txt")
         {
             StartupTjsNotEncrypted = true;
         }
 
-        protected override uint GetEncryptionLimit (Xp3Entry entry)
+        protected override uint GetEncryptionLimit(Xp3Entry entry)
         {
-            uint limit = base.GetEncryptionLimit (entry);
+            uint limit = base.GetEncryptionLimit(entry);
             switch (limit)
             {
-            case 0: return 0;
-            case 1: return 0x100;
-            case 2: return 0x200;
-            case 3: return entry.UnpackedSize;
-            default: return limit;
+                case 0: return 0;
+                case 1: return 0x100;
+                case 2: return 0x200;
+                case 3: return entry.UnpackedSize;
+                default: return limit;
             }
         }
     }
@@ -260,19 +260,19 @@ namespace GameRes.Formats.KiriKiri
     [Serializable]
     public class ChocolatCrypt : ChainReactionCrypt
     {
-        public ChocolatCrypt () : base ("plugins/list.txt")
+        public ChocolatCrypt() : base("plugins/list.txt")
         {
             StartupTjsNotEncrypted = true;
         }
 
-        protected override uint GetEncryptionLimit (Xp3Entry entry)
+        protected override uint GetEncryptionLimit(Xp3Entry entry)
         {
-            uint limit = base.GetEncryptionLimit (entry);
+            uint limit = base.GetEncryptionLimit(entry);
             switch (limit)
             {
-            case 0: return 0;
-            case 2: return entry.UnpackedSize;
-            default: return 0x100;
+                case 0: return 0;
+                case 2: return entry.UnpackedSize;
+                default: return 0x100;
             }
         }
     }
@@ -280,39 +280,39 @@ namespace GameRes.Formats.KiriKiri
     [Serializable]
     public class XanaduCrypt : ChainReactionCrypt
     {
-        public XanaduCrypt () : base ("plugins/list.txt")
+        public XanaduCrypt() : base("plugins/list.txt")
         {
             StartupTjsNotEncrypted = true;
         }
 
-        public override void Init (ArcFile arc)
+        public override void Init(ArcFile arc)
         {
-            var bin = ReadListBin (arc, "list2.txt");
+            var bin = ReadListBin(arc, "list2.txt");
             if (null == bin)
-                bin = ReadListBin (arc, "plugins/list.txt");
+                bin = ReadListBin(arc, "plugins/list.txt");
             if (null == bin)
                 return;
 
-            Init (bin);
+            Init(bin);
         }
 
-        protected override uint GetEncryptionLimit (Xp3Entry entry)
+        protected override uint GetEncryptionLimit(Xp3Entry entry)
         {
-            uint limit = base.GetEncryptionLimit (entry);
+            uint limit = base.GetEncryptionLimit(entry);
             switch (limit)
             {
-            case 0: return 0;
-            case 2: return entry.UnpackedSize;
-            default: return 0x100;
+                case 0: return 0;
+                case 2: return entry.UnpackedSize;
+                default: return 0x100;
             }
         }
 
-        public override void Decrypt (Xp3Entry entry, long offset, byte[] values, int pos, int count)
+        public override void Decrypt(Xp3Entry entry, long offset, byte[] values, int pos, int count)
         {
-            uint limit = GetEncryptionLimit (entry);
+            uint limit = GetEncryptionLimit(entry);
             if (offset >= limit)
                 return;
-            count = Math.Min ((int)(limit - offset), count);
+            count = Math.Min((int)(limit - offset), count);
             uint key = entry.Hash ^ ~0x03020100u;
             int ofs = (int)offset;
             byte extra = (byte)(((ofs & 0xFF) >> 2) << 2);
@@ -322,7 +322,7 @@ namespace GameRes.Formats.KiriKiri
                     extra = 0;
                 else if (((ofs + i) & 3) == 0)
                     extra += 4;
-                values[pos+i] ^= (byte)((key >> (((ofs+i) & 3) << 3)) ^ extra);
+                values[pos + i] ^= (byte)((key >> (((ofs + i) & 3) << 3)) ^ extra);
             }
         }
     }
@@ -330,17 +330,17 @@ namespace GameRes.Formats.KiriKiri
     [Serializable]
     public class SisMikoCrypt : XanaduCrypt
     {
-        public override void Decrypt (Xp3Entry entry, long offset, byte[] values, int pos, int count)
+        public override void Decrypt(Xp3Entry entry, long offset, byte[] values, int pos, int count)
         {
-            uint limit = GetEncryptionLimit (entry);
+            uint limit = GetEncryptionLimit(entry);
             if (offset >= limit)
                 return;
-            count = Math.Min ((int)(limit - offset), count);
-            uint key = ~Binary.RotR (entry.Hash, 16);
+            count = Math.Min((int)(limit - offset), count);
+            uint key = ~Binary.RotR(entry.Hash, 16);
             int ofs = (int)offset;
             for (int i = 0; i < count; ++i)
             {
-                values[pos+i] ^= (byte)(key >> (((ofs+i) & 3) << 3));
+                values[pos + i] ^= (byte)(key >> (((ofs + i) & 3) << 3));
             }
         }
     }

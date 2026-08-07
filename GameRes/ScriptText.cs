@@ -11,7 +11,7 @@ namespace GameRes
 {
     public struct ScriptLine
     {
-        public uint   Id;
+        public uint Id;
         public string Text;
     }
 
@@ -20,32 +20,32 @@ namespace GameRes
         public ICollection<ScriptLine> TextLines { get { return m_text; } }
 
         protected List<ScriptLine> m_text = new List<ScriptLine>();
-/*
-        public abstract void Serialize (Stream output);
-        public abstract void Deserialize (Stream input);
-*/
+        /*
+                public abstract void Serialize (Stream output);
+                public abstract void Deserialize (Stream input);
+        */
     }
 
     public abstract class ScriptFormat : IResource
     {
         public override string Type { get { return "script"; } }
 
-        public abstract bool IsScript (IBinaryStream file);
+        public abstract bool IsScript(IBinaryStream file);
 
-        public abstract Stream ConvertFrom (IBinaryStream file);
-        public abstract Stream ConvertBack (IBinaryStream file);
+        public abstract Stream ConvertFrom(IBinaryStream file);
+        public abstract Stream ConvertBack(IBinaryStream file);
 
-        public abstract ScriptData Read (string name, Stream file);
-        public abstract void Write (Stream file, ScriptData script);
+        public abstract ScriptData Read(string name, Stream file);
+        public abstract void Write(Stream file, ScriptData script);
 
-        public static ScriptFormat FindFormat (IBinaryStream file)
+        public static ScriptFormat FindFormat(IBinaryStream file)
         {
-            foreach (var impl in FormatCatalog.Instance.FindFormats<ScriptFormat> (file.Name, file.Signature))
+            foreach (var impl in FormatCatalog.Instance.FindFormats<ScriptFormat>(file.Name, file.Signature))
             {
                 try
                 {
                     file.Position = 0;
-                    if (impl.IsScript (file))
+                    if (impl.IsScript(file))
                         return impl;
                 }
                 catch (System.OperationCanceledException)
@@ -60,27 +60,27 @@ namespace GameRes
 
     public abstract class GenericScriptFormat : ScriptFormat
     {
-        public override bool IsScript (IBinaryStream file)
+        public override bool IsScript(IBinaryStream file)
         {
             return false;
         }
 
-        public override Stream ConvertFrom (IBinaryStream file)
+        public override Stream ConvertFrom(IBinaryStream file)
         {
             return file.AsStream;
         }
 
-        public override Stream ConvertBack (IBinaryStream file)
+        public override Stream ConvertBack(IBinaryStream file)
         {
             return file.AsStream;
         }
 
-        public override ScriptData Read (string name, Stream file)
+        public override ScriptData Read(string name, Stream file)
         {
             throw new System.NotImplementedException();
         }
 
-        public override void Write (Stream file, ScriptData script)
+        public override void Write(Stream file, ScriptData script)
         {
             throw new System.NotImplementedException();
         }
@@ -89,19 +89,19 @@ namespace GameRes
     [Export(typeof(ScriptFormat))]
     public class TextScriptFormat : GenericScriptFormat
     {
-        public override string         Tag { get { return "TXT"; } }
+        public override string Tag { get { return "TXT"; } }
         public override string Description { get { return "Text file"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
     }
 
     [Export(typeof(ScriptFormat))]
     public class BinScriptFormat : GenericScriptFormat
     {
-        public override string         Tag { get { return "SCR"; } }
+        public override string Tag { get { return "SCR"; } }
         public override string Description { get { return "Binary script format"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public BinScriptFormat ()
+        public BinScriptFormat()
         {
             Extensions = new[] { "scr", "bin" };
         }

@@ -30,35 +30,35 @@ namespace GameRes.Utility
 {
     public static class Binary
     {
-        public static uint BigEndian (uint u)
+        public static uint BigEndian(uint u)
         {
             return u << 24 | (u & 0xff00) << 8 | (u & 0xff0000) >> 8 | u >> 24;
         }
-        public static int BigEndian (int i)
+        public static int BigEndian(int i)
         {
-            return (int)BigEndian ((uint)i);
+            return (int)BigEndian((uint)i);
         }
-        public static ushort BigEndian (ushort u)
+        public static ushort BigEndian(ushort u)
         {
             return (ushort)(u << 8 | u >> 8);
         }
-        public static short BigEndian (short i)
+        public static short BigEndian(short i)
         {
-            return (short)BigEndian ((ushort)i);
+            return (short)BigEndian((ushort)i);
         }
-        public static ulong BigEndian (ulong u)
+        public static ulong BigEndian(ulong u)
         {
             return (ulong)BigEndian((uint)(u & 0xffffffff)) << 32
                  | (ulong)BigEndian((uint)(u >> 32));
         }
-        public static long BigEndian (long i)
+        public static long BigEndian(long i)
         {
-            return (long)BigEndian ((ulong)i);
+            return (long)BigEndian((ulong)i);
         }
 
-        public static bool AsciiEqual (byte[] name1, string name2)
+        public static bool AsciiEqual(byte[] name1, string name2)
         {
-            return AsciiEqual (name1, 0, name2);
+            return AsciiEqual(name1, 0, name2);
         }
 
         /// <summary>
@@ -66,9 +66,9 @@ namespace GameRes.Utility
         /// This methods avoids costly construction of the string object from byte array for a mere purpose of
         /// comparison.
         /// </summary>
-        public static bool AsciiEqual (byte[] name1, int offset, string name2)
+        public static bool AsciiEqual(byte[] name1, int offset, string name2)
         {
-            return name1.AsciiEqual (offset, name2);
+            return name1.AsciiEqual(offset, name2);
         }
 
         /// <summary>
@@ -77,21 +77,21 @@ namespace GameRes.Utility
         /// If destination offset resides within source region then sequence will repeat itself.  Widely used
         /// in various compression techniques.
         /// </summary>
-        public static void CopyOverlapped (byte[] data, int src, int dst, int count)
+        public static void CopyOverlapped(byte[] data, int src, int dst, int count)
         {
             if (dst > src)
             {
                 while (count > 0)
                 {
-                    int preceding = System.Math.Min (dst - src, count);
-                    System.Buffer.BlockCopy (data, src, data, dst, preceding);
+                    int preceding = System.Math.Min(dst - src, count);
+                    System.Buffer.BlockCopy(data, src, data, dst, preceding);
                     dst += preceding;
                     count -= preceding;
                 }
             }
             else
             {
-                System.Buffer.BlockCopy (data, src, data, dst, count);
+                System.Buffer.BlockCopy(data, src, data, dst, count);
             }
         }
 
@@ -100,213 +100,213 @@ namespace GameRes.Utility
         /// at offset <paramref name="index"/> up to <paramref name="length_limit"/> bytes long, stored in
         /// encoding <paramref name="enc"/>.
         /// </summary>
-        public static string GetCString (byte[] data, int index, int length_limit, Encoding enc)
+        public static string GetCString(byte[] data, int index, int length_limit, Encoding enc)
         {
             int name_length = 0;
-            while (name_length < length_limit && 0 != data[index+name_length])
+            while (name_length < length_limit && 0 != data[index + name_length])
                 name_length++;
-            return enc.GetString (data, index, name_length);
+            return enc.GetString(data, index, name_length);
         }
 
-        public static string GetCString (byte[] data, int index, int length_limit)
+        public static string GetCString(byte[] data, int index, int length_limit)
         {
-            return GetCString (data, index, length_limit, Encodings.cp932);
+            return GetCString(data, index, length_limit, Encodings.cp932);
         }
 
-        public static string GetCString (byte[] data, int index)
+        public static string GetCString(byte[] data, int index)
         {
-            return GetCString (data, index, data.Length - index, Encodings.cp932);
+            return GetCString(data, index, data.Length - index, Encodings.cp932);
         }
 
-        public static uint RotR (uint v, int count)
-        {
-            count &= 0x1F;
-            return v >> count | v << (32-count);
-        }
-
-        public static uint RotL (uint v, int count)
+        public static uint RotR(uint v, int count)
         {
             count &= 0x1F;
-            return v << count | v >> (32-count);
+            return v >> count | v << (32 - count);
         }
 
-        public static ulong RotR (ulong v, int count)
+        public static uint RotL(uint v, int count)
+        {
+            count &= 0x1F;
+            return v << count | v >> (32 - count);
+        }
+
+        public static ulong RotR(ulong v, int count)
         {
             count &= 0x3F;
-            return v >> count | v << (64-count);
+            return v >> count | v << (64 - count);
         }
 
-        public static ulong RotL (ulong v, int count)
+        public static ulong RotL(ulong v, int count)
         {
             count &= 0x3F;
-            return v << count | v >> (64-count);
+            return v << count | v >> (64 - count);
         }
 
-        public static byte RotByteR (byte v, int count)
+        public static byte RotByteR(byte v, int count)
         {
             count &= 7;
-            return (byte)(v >> count | v << (8-count));
+            return (byte)(v >> count | v << (8 - count));
         }
 
-        public static byte RotByteL (byte v, int count)
+        public static byte RotByteL(byte v, int count)
         {
             count &= 7;
-            return (byte)(v << count | v >> (8-count));
+            return (byte)(v << count | v >> (8 - count));
         }
     }
 
     public static class BigEndian
     {
-        public static ushort ToUInt16<TArray> (TArray value, int index) where TArray : IList<byte>
+        public static ushort ToUInt16<TArray>(TArray value, int index) where TArray : IList<byte>
         {
-            return (ushort)(value[index] << 8 | value[index+1]);
+            return (ushort)(value[index] << 8 | value[index + 1]);
         }
 
-        public static short ToInt16<TArray> (TArray value, int index) where TArray : IList<byte>
+        public static short ToInt16<TArray>(TArray value, int index) where TArray : IList<byte>
         {
-            return (short)(value[index] << 8 | value[index+1]);
+            return (short)(value[index] << 8 | value[index + 1]);
         }
 
-        public static uint ToUInt32<TArray> (TArray value, int index) where TArray : IList<byte>
+        public static uint ToUInt32<TArray>(TArray value, int index) where TArray : IList<byte>
         {
-            return (uint)(value[index] << 24 | value[index+1] << 16 | value[index+2] << 8 | value[index+3]);
+            return (uint)(value[index] << 24 | value[index + 1] << 16 | value[index + 2] << 8 | value[index + 3]);
         }
 
-        public static int ToInt32<TArray> (TArray value, int index) where TArray : IList<byte>
+        public static int ToInt32<TArray>(TArray value, int index) where TArray : IList<byte>
         {
-            return (int)ToUInt32 (value, index);
+            return (int)ToUInt32(value, index);
         }
 
-        public static void Pack (ushort value, byte[] buf, int index)
+        public static void Pack(ushort value, byte[] buf, int index)
         {
-            buf[index]   = (byte)(value >> 8);
-            buf[index+1] = (byte)(value);
+            buf[index] = (byte)(value >> 8);
+            buf[index + 1] = (byte)(value);
         }
 
-        public static void Pack (uint value, byte[] buf, int index)
+        public static void Pack(uint value, byte[] buf, int index)
         {
-            buf[index]   = (byte)(value >> 24);
-            buf[index+1] = (byte)(value >> 16);
-            buf[index+2] = (byte)(value >> 8);
-            buf[index+3] = (byte)(value);
+            buf[index] = (byte)(value >> 24);
+            buf[index + 1] = (byte)(value >> 16);
+            buf[index + 2] = (byte)(value >> 8);
+            buf[index + 3] = (byte)(value);
         }
 
-        public static void Pack (ulong value, byte[] buf, int index)
+        public static void Pack(ulong value, byte[] buf, int index)
         {
-            Pack ((uint)(value >> 32), buf, index);
-            Pack ((uint)value, buf, index+4);
+            Pack((uint)(value >> 32), buf, index);
+            Pack((uint)value, buf, index + 4);
         }
 
-        public static void Pack (short value, byte[] buf, int index)
+        public static void Pack(short value, byte[] buf, int index)
         {
-            Pack ((ushort)value, buf, index);
+            Pack((ushort)value, buf, index);
         }
 
-        public static void Pack (int value, byte[] buf, int index)
+        public static void Pack(int value, byte[] buf, int index)
         {
-            Pack ((uint)value, buf, index);
+            Pack((uint)value, buf, index);
         }
 
-        public static void Pack (long value, byte[] buf, int index)
+        public static void Pack(long value, byte[] buf, int index)
         {
-            Pack ((ulong)value, buf, index);
+            Pack((ulong)value, buf, index);
         }
     }
 
     public static class LittleEndian
     {
-        public static ushort ToUInt16<TArray> (TArray value, int index) where TArray : IList<byte>
+        public static ushort ToUInt16<TArray>(TArray value, int index) where TArray : IList<byte>
         {
-            return (ushort)(value[index] | value[index+1] << 8);
+            return (ushort)(value[index] | value[index + 1] << 8);
         }
 
-        public static short ToInt16<TArray> (TArray value, int index) where TArray : IList<byte>
+        public static short ToInt16<TArray>(TArray value, int index) where TArray : IList<byte>
         {
-            return (short)(value[index] | value[index+1] << 8);
+            return (short)(value[index] | value[index + 1] << 8);
         }
 
-        public static uint ToUInt32<TArray> (TArray value, int index) where TArray : IList<byte>
+        public static uint ToUInt32<TArray>(TArray value, int index) where TArray : IList<byte>
         {
-            return (uint)(value[index] | value[index+1] << 8 | value[index+2] << 16 | value[index+3] << 24);
+            return (uint)(value[index] | value[index + 1] << 8 | value[index + 2] << 16 | value[index + 3] << 24);
         }
 
-        public static int ToInt32<TArray> (TArray value, int index) where TArray : IList<byte>
+        public static int ToInt32<TArray>(TArray value, int index) where TArray : IList<byte>
         {
-            return (int)ToUInt32 (value, index);
+            return (int)ToUInt32(value, index);
         }
 
-        public static ulong ToUInt64<TArray> (TArray value, int index) where TArray : IList<byte>
+        public static ulong ToUInt64<TArray>(TArray value, int index) where TArray : IList<byte>
         {
-            return (ulong)ToUInt32 (value, index) | ((ulong)ToUInt32 (value, index+4) << 32);
+            return (ulong)ToUInt32(value, index) | ((ulong)ToUInt32(value, index + 4) << 32);
         }
 
-        public static long ToInt64<TArray> (TArray value, int index) where TArray : IList<byte>
+        public static long ToInt64<TArray>(TArray value, int index) where TArray : IList<byte>
         {
-            return (long)ToUInt64 (value, index);
+            return (long)ToUInt64(value, index);
         }
 
-        public static void Pack (ushort value, byte[] buf, int index)
+        public static void Pack(ushort value, byte[] buf, int index)
         {
-            buf[index]   = (byte)(value);
-            buf[index+1] = (byte)(value >> 8);
+            buf[index] = (byte)(value);
+            buf[index + 1] = (byte)(value >> 8);
         }
 
-        public static void Pack (uint value, byte[] buf, int index)
+        public static void Pack(uint value, byte[] buf, int index)
         {
-            buf[index]   = (byte)(value);
-            buf[index+1] = (byte)(value >> 8);
-            buf[index+2] = (byte)(value >> 16);
-            buf[index+3] = (byte)(value >> 24);
+            buf[index] = (byte)(value);
+            buf[index + 1] = (byte)(value >> 8);
+            buf[index + 2] = (byte)(value >> 16);
+            buf[index + 3] = (byte)(value >> 24);
         }
 
-        public static void Pack (ulong value, byte[] buf, int index)
+        public static void Pack(ulong value, byte[] buf, int index)
         {
-            Pack ((uint)value, buf, index);
-            Pack ((uint)(value >> 32), buf, index+4);
+            Pack((uint)value, buf, index);
+            Pack((uint)(value >> 32), buf, index + 4);
         }
 
-        public static void Pack (short value, byte[] buf, int index)
+        public static void Pack(short value, byte[] buf, int index)
         {
-            Pack ((ushort)value, buf, index);
+            Pack((ushort)value, buf, index);
         }
 
-        public static void Pack (int value, byte[] buf, int index)
+        public static void Pack(int value, byte[] buf, int index)
         {
-            Pack ((uint)value, buf, index);
+            Pack((uint)value, buf, index);
         }
 
-        public static void Pack (long value, byte[] buf, int index)
+        public static void Pack(long value, byte[] buf, int index)
         {
-            Pack ((ulong)value, buf, index);
+            Pack((ulong)value, buf, index);
         }
     }
 
     public class AsciiString
     {
         public byte[] Value { get; set; }
-        public int   Length { get { return Value.Length; } }
+        public int Length { get { return Value.Length; } }
 
-        public AsciiString (int size)
+        public AsciiString(int size)
         {
             Value = new byte[size];
         }
 
-        public AsciiString (byte[] str)
+        public AsciiString(byte[] str)
         {
             Value = str;
         }
 
-        public AsciiString (string str)
+        public AsciiString(string str)
         {
-            Value = Encoding.ASCII.GetBytes (str);
+            Value = Encoding.ASCII.GetBytes(str);
         }
 
-        public override string ToString ()
+        public override string ToString()
         {
-            return Encoding.ASCII.GetString (Value);
+            return Encoding.ASCII.GetString(Value);
         }
 
-        public override bool Equals (object o)
+        public override bool Equals(object o)
         {
             if (null == o)
                 return false;
@@ -316,19 +316,19 @@ namespace GameRes.Utility
             return this == a;
         }
 
-        public override int GetHashCode ()
+        public override int GetHashCode()
         {
             int hash = 5381;
             for (int i = 0; i < Value.Length; ++i)
             {
                 hash = ((hash << 5) + hash) ^ Value[i];
             }
-            return hash ^ (hash * 1566083941);;
+            return hash ^ (hash * 1566083941); ;
         }
 
-        public static bool operator== (AsciiString a, AsciiString b)
+        public static bool operator ==(AsciiString a, AsciiString b)
         {
-            if (ReferenceEquals (a, b))
+            if (ReferenceEquals(a, b))
                 return true;
             if (null == (object)a || null == (object)b)
                 return false;
@@ -340,27 +340,27 @@ namespace GameRes.Utility
             return true;
         }
 
-        public static bool operator!= (AsciiString a, AsciiString b)
+        public static bool operator !=(AsciiString a, AsciiString b)
         {
             return !(a == b);
         }
 
-        public static bool operator== (AsciiString a, string b)
+        public static bool operator ==(AsciiString a, string b)
         {
-            return Binary.AsciiEqual (a.Value, b);
+            return Binary.AsciiEqual(a.Value, b);
         }
 
-        public static bool operator!= (AsciiString a, string b)
+        public static bool operator !=(AsciiString a, string b)
         {
             return !(a == b);
         }
 
-        public static bool operator== (string a, AsciiString b)
+        public static bool operator ==(string a, AsciiString b)
         {
             return b == a;
         }
 
-        public static bool operator!= (string a, AsciiString b)
+        public static bool operator !=(string a, AsciiString b)
         {
             return !(b == a);
         }
@@ -369,6 +369,6 @@ namespace GameRes.Utility
     public interface IDataUnpacker
     {
         byte[] Data { get; }
-        void Unpack ();
+        void Unpack();
     }
 }

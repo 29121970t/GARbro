@@ -11,13 +11,13 @@ namespace GameRes.Formats.GUI
     /// </summary>
     public partial class WidgetNPA : Grid
     {
-        public WidgetNPA ()
+        public WidgetNPA()
         {
             var selected = Settings.Default.NPAScheme;
             InitializeComponent();
             var keys = new string[] { arcStrings.ArcNoEncryption };
-            Scheme.ItemsSource = keys.Concat (NpaOpener.KnownSchemes.Keys.OrderBy (x => x));
-            if (NpaTitleId.NotEncrypted == NpaOpener.GetTitleId (selected))
+            Scheme.ItemsSource = keys.Concat(NpaOpener.KnownSchemes.Keys.OrderBy(x => x));
+            if (NpaTitleId.NotEncrypted == NpaOpener.GetTitleId(selected))
                 Scheme.SelectedIndex = 0;
             else
                 Scheme.SelectedValue = selected;

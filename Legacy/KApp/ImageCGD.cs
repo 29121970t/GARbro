@@ -36,52 +36,53 @@ namespace GameRes.Formats.KApp
     [Export(typeof(ImageFormat))]
     public class CgdKToolFormat : ImageFormat
     {
-        public override string         Tag { get { return "CGD/KTOOL"; } }
+        public override string Tag { get { return "CGD/KTOOL"; } }
         public override string Description { get { return "KApp compressed image format"; } }
-        public override uint     Signature { get { return 0x6F6F746B; } } // 'ktool210'
+        public override uint Signature { get { return 0x6F6F746B; } } // 'ktool210'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x18);
-            if (header.ToInt32 (8) != 1)
+            var header = file.ReadHeader(0x18);
+            if (header.ToInt32(8) != 1)
                 return null;
-            if (!header.AsciiEqual ("ktool210"))
+            if (!header.AsciiEqual("ktool210"))
                 return null;
-            uint offset = header.ToUInt32 (0x10) & 0x7FFFFFFF;
-            return CgdMetaData.FromStream (file, offset);
+            uint offset = header.ToUInt32(0x10) & 0x7FFFFFFF;
+            return CgdMetaData.FromStream(file, offset);
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new CgdDecoder (file, (CgdMetaData)info);
+            var reader = new CgdDecoder(file, (CgdMetaData)info);
             return reader.Image;
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("CgdFormat.Write not implemented");
+            throw new System.NotImplementedException("CgdFormat.Write not implemented");
         }
     }
 
     [Export(typeof(ImageFormat))]
     public class CgdSpielFormat : ImageFormat
     {
-        public override string         Tag { get { return "CGD/SPIEL"; } }
+        public override string Tag { get { return "CGD/SPIEL"; } }
         public override string Description { get { return "Spiel compressed image format"; } }
-        public override uint     Signature { get { return 0x65697073; } } // 'spiel100'
+        public override uint Signature { get { return 0x65697073; } } // 'spiel100'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x20);
-            if (header.ToInt32 (8) != 1)
+            var header = file.ReadHeader(0x20);
+            if (header.ToInt32(8) != 1)
                 return null;
-            if (!header.AsciiEqual ("spiel100"))
+            if (!header.AsciiEqual("spiel100"))
                 return null;
-            var info = new CgdMetaData {
-                Width  = header.ToUInt16 (0x18),
-                Height = header.ToUInt16 (0x1A),
-                BPP    = header[0x1E],
-                DataOffset = header.ToUInt32 (0x10),
+            var info = new CgdMetaData
+            {
+                Width = header.ToUInt16(0x18),
+                Height = header.ToUInt16(0x1A),
+                BPP = header[0x1E],
+                DataOffset = header.ToUInt32(0x10),
                 Compression = header[0x1F],
                 RgbOrder = false,
             };
@@ -89,26 +90,26 @@ namespace GameRes.Formats.KApp
             return info;
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new CgdDecoder (file, (CgdMetaData)info);
+            var reader = new CgdDecoder(file, (CgdMetaData)info);
             return reader.Image;
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("CgdFormat.Write not implemented");
+            throw new System.NotImplementedException("CgdFormat.Write not implemented");
         }
     }
 
     internal class CgdMetaData : ImageMetaData
     {
         public uint DataOffset;
-        public int  UnpackedSize;
+        public int UnpackedSize;
         public byte Compression;
         public bool RgbOrder;
 
-        internal static CgdMetaData FromStream (IBinaryStream file, uint offset)
+        internal static CgdMetaData FromStream(IBinaryStream file, uint offset)
         {
             file.Position = offset;
             int unpacked_size = file.ReadInt32();
@@ -118,13 +119,14 @@ namespace GameRes.Formats.KApp
             uint id = file.ReadUInt32();
             if (header_size < 0x10 || (id != 0x973768 && id != 0xB29EA4))
                 return null;
-            ushort width  = file.ReadUInt16();
+            ushort width = file.ReadUInt16();
             ushort height = file.ReadUInt16();
-            ushort bpp    = file.ReadUInt16();
-            return new CgdMetaData {
-                Width  = width,
+            ushort bpp = file.ReadUInt16();
+            return new CgdMetaData
+            {
+                Width = width,
                 Height = height,
-                BPP    = bpp,
+                BPP = bpp,
                 DataOffset = offset + 0x10 + header_size,
                 UnpackedSize = unpacked_size,
                 Compression = compression,
@@ -135,22 +137,22 @@ namespace GameRes.Formats.KApp
 
     internal class KTool
     {
-        public static void Unpack (IBinaryStream input, byte[] output, byte method)
+        public static void Unpack(IBinaryStream input, byte[] output, byte method)
         {
             switch (method)
             {
-            case 0: input.Read (output, 0, output.Length); break; 
-            case 1: DecompressRle (input, output, 1); break;
-            case 2: DecompressRle (input, output, 2); break;
-            case 3: DecompressRle (input, output, 3); break;
-            case 4: DecompressRle (input, output, 4); break;
-            case 0x10: DecompressHuffman (input, output); break;
-            default:
-                throw new InvalidFormatException();
+                case 0: input.Read(output, 0, output.Length); break;
+                case 1: DecompressRle(input, output, 1); break;
+                case 2: DecompressRle(input, output, 2); break;
+                case 3: DecompressRle(input, output, 3); break;
+                case 4: DecompressRle(input, output, 4); break;
+                case 0x10: DecompressHuffman(input, output); break;
+                default:
+                    throw new InvalidFormatException();
             }
         }
 
-        internal static void DecompressRle (IBinaryStream input, byte[] output, int step)
+        internal static void DecompressRle(IBinaryStream input, byte[] output, int step)
         {
             for (int i = 0; i < step; ++i)
             {
@@ -161,7 +163,7 @@ namespace GameRes.Formats.KApp
                     if (ctl < 0)
                     {
                         int count = -ctl;
-                        while (count --> 0)
+                        while (count-- > 0)
                         {
                             output[dst] = input.ReadUInt8();
                             dst += step;
@@ -171,7 +173,7 @@ namespace GameRes.Formats.KApp
                     {
                         byte v = input.ReadUInt8();
                         int count = ctl;
-                        while (count --> 0)
+                        while (count-- > 0)
                         {
                             output[dst] = v;
                             dst += step;
@@ -182,30 +184,30 @@ namespace GameRes.Formats.KApp
             }
         }
 
-        internal static void DecompressHuffman (IBinaryStream input, byte[] output)
+        internal static void DecompressHuffman(IBinaryStream input, byte[] output)
         {
-            var decomp = new HuffmanDecoder (input);
-            decomp.Unpack (output);
+            var decomp = new HuffmanDecoder(input);
+            decomp.Unpack(output);
         }
 
         struct HuffmanNode
         {
-            public ushort   Code;
-            public ushort   LNode;
-            public ushort   RNode;
+            public ushort Code;
+            public ushort LNode;
+            public ushort RNode;
         }
 
         class HuffmanDecoder
         {
-            IBinaryStream   m_input;
-            HuffmanNode[]   m_tree = new HuffmanNode[514];
+            IBinaryStream m_input;
+            HuffmanNode[] m_tree = new HuffmanNode[514];
 
-            public HuffmanDecoder (IBinaryStream input)
+            public HuffmanDecoder(IBinaryStream input)
             {
                 m_input = input;
             }
 
-            public void Unpack (byte[] output)
+            public void Unpack(byte[] output)
             {
                 ReadDict();
                 var root = BuildTree();
@@ -234,10 +236,10 @@ namespace GameRes.Formats.KApp
                 }
             }
 
-            void ReadDict ()
+            void ReadDict()
             {
                 var dict = new byte[256];
-                DecompressRle (m_input, dict, 1);
+                DecompressRle(m_input, dict, 1);
                 for (int i = 0; i < 256; ++i)
                 {
                     m_tree[i].Code = dict[i];
@@ -245,7 +247,7 @@ namespace GameRes.Formats.KApp
                 m_tree[256].Code = 1;
             }
 
-            ushort BuildTree ()
+            ushort BuildTree()
             {
                 m_tree[513].Code = ushort.MaxValue;
                 ushort root = 257;
@@ -287,20 +289,20 @@ namespace GameRes.Formats.KApp
 
     internal class CgdDecoder : BinaryImageDecoder
     {
-        public CgdDecoder (IBinaryStream input, CgdMetaData info) : base (input, info)
+        public CgdDecoder(IBinaryStream input, CgdMetaData info) : base(input, info)
         {
         }
 
-        protected override ImageData GetImageData ()
+        protected override ImageData GetImageData()
         {
             var meta = (CgdMetaData)Info;
             m_input.Position = meta.DataOffset;
             var pixels = new byte[meta.UnpackedSize];
-            KTool.Unpack (m_input, pixels, meta.Compression);
+            KTool.Unpack(m_input, pixels, meta.Compression);
             PixelFormat format = 32 == meta.BPP ? PixelFormats.Bgra32
                                 : meta.RgbOrder ? PixelFormats.Rgb24
                                                 : PixelFormats.Bgr24;
-            return ImageData.Create (meta, format, null, pixels);
+            return ImageData.Create(meta, format, null, pixels);
         }
     }
 }

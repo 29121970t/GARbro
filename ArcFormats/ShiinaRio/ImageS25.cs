@@ -43,14 +43,14 @@ namespace GameRes.Formats.ShiinaRio
     [Export(typeof(ImageFormat))]
     public class S25Format : ImageFormat
     {
-        public override string         Tag { get { return "S25"; } }
+        public override string Tag { get { return "S25"; } }
         public override string Description { get { return "ShiinaRio image format"; } }
-        public override uint     Signature { get { return 0x00353253; } } // 'S25'
+        public override uint Signature { get { return 0x00353253; } } // 'S25'
 
         // in current implementation, only the first frame is returned.
         // per-frame access is provided by S25Opener class.
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
             file.Position = 4;
             int count = file.ReadInt32();
@@ -67,38 +67,38 @@ namespace GameRes.Formats.ShiinaRio
             info.Height = file.ReadUInt32();
             info.OffsetX = file.ReadInt32();
             info.OffsetY = file.ReadInt32();
-            info.FirstOffset = first_offset+0x14;
+            info.FirstOffset = first_offset + 0x14;
             info.Incremental = 0 != (file.ReadUInt32() & 0x80000000u);
             info.BPP = 32;
             return info;
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
-            using (var reader = new Reader (stream, (S25MetaData)info, true))
+            using (var reader = new Reader(stream, (S25MetaData)info, true))
                 return reader.Image;
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new NotImplementedException ("S25Format.Write not implemented");
+            throw new NotImplementedException("S25Format.Write not implemented");
         }
 
         internal sealed class Reader : IImageDecoder
         {
-            IBinaryStream   m_input;
-            int             m_width;
-            int             m_height;
-            uint            m_origin;
-            byte[]          m_output;
-            bool            m_incremental;
-            bool            m_should_dispose;
-            ImageMetaData   m_info;
-            ImageData       m_image;
+            IBinaryStream m_input;
+            int m_width;
+            int m_height;
+            uint m_origin;
+            byte[] m_output;
+            bool m_incremental;
+            bool m_should_dispose;
+            ImageMetaData m_info;
+            ImageData m_image;
 
-            public Stream            Source { get { m_input.Position = 0; return m_input.AsStream; } }
+            public Stream Source { get { m_input.Position = 0; return m_input.AsStream; } }
             public ImageFormat SourceFormat { get { return null; } }
-            public ImageMetaData       Info { get { return m_info; } }
+            public ImageMetaData Info { get { return m_info; } }
 
             public ImageData Image
             {
@@ -107,15 +107,15 @@ namespace GameRes.Formats.ShiinaRio
                     if (null == m_image)
                     {
                         var pixels = Unpack();
-                        m_image = ImageData.Create (m_info, PixelFormats.Bgra32, null, pixels);
+                        m_image = ImageData.Create(m_info, PixelFormats.Bgra32, null, pixels);
                     }
                     return m_image;
                 }
             }
 
-            public byte[]   Data { get { return m_output; } }
+            public byte[] Data { get { return m_output; } }
 
-            public Reader (IBinaryStream file, S25MetaData info, bool leave_open = false)
+            public Reader(IBinaryStream file, S25MetaData info, bool leave_open = false)
             {
                 m_width = (int)info.Width;
                 m_height = (int)info.Height;
@@ -127,7 +127,7 @@ namespace GameRes.Formats.ShiinaRio
                 m_should_dispose = !leave_open;
             }
 
-            public byte[] Unpack ()
+            public byte[] Unpack()
             {
                 m_input.Position = m_origin;
                 if (m_incremental)
@@ -150,85 +150,85 @@ namespace GameRes.Formats.ShiinaRio
                     }
                     if (row_buffer.Length < row_length)
                         row_buffer = new byte[row_length];
-                    m_input.Read (row_buffer, 0, row_length);
-                    dst = UnpackLine (row_buffer, dst);
+                    m_input.Read(row_buffer, 0, row_length);
+                    dst = UnpackLine(row_buffer, dst);
                 }
                 return m_output;
             }
 
-            void UpdateRepeatCount (Dictionary<uint, int> rows_count)
+            void UpdateRepeatCount(Dictionary<uint, int> rows_count)
             {
                 m_input.Position = 4;
                 int count = m_input.ReadInt32();
-                var frames = new List<uint> (count);
+                var frames = new List<uint>(count);
                 for (int i = 0; i < count; ++i)
                 {
                     var offset = m_input.ReadUInt32();
                     if (0 != offset)
-                        frames.Add (offset);
+                        frames.Add(offset);
                 }
                 foreach (var offset in frames)
                 {
-                    if (offset+0x14 == m_origin)
+                    if (offset + 0x14 == m_origin)
                         continue;
-                    m_input.Position = offset+4;
+                    m_input.Position = offset + 4;
                     int height = m_input.ReadInt32();
-                    m_input.Position = offset+0x14;
+                    m_input.Position = offset + 0x14;
                     for (int i = 0; i < height; ++i)
                     {
                         var row_offset = m_input.ReadUInt32();
-                        if (rows_count.ContainsKey (row_offset))
+                        if (rows_count.ContainsKey(row_offset))
                             ++rows_count[row_offset];
                     }
                 }
             }
 
-            byte[] UnpackIncremental ()
+            byte[] UnpackIncremental()
             {
                 var rows = new uint[m_height];
-                var rows_count = new Dictionary<uint, int> (m_height);
+                var rows_count = new Dictionary<uint, int>(m_height);
                 for (int i = 0; i < rows.Length; ++i)
                 {
                     uint offset = m_input.ReadUInt32();
                     rows[i] = offset;
-                    if (rows_count.ContainsKey (offset))
+                    if (rows_count.ContainsKey(offset))
                         ++rows_count[offset];
                     else
                         rows_count[offset] = 1;
                 }
-                UpdateRepeatCount (rows_count);
-                var input_rows = new Dictionary<uint, byte[]> (m_height);
+                UpdateRepeatCount(rows_count);
+                var input_rows = new Dictionary<uint, byte[]>(m_height);
                 var input_lines = new byte[m_height][];
                 for (int y = 0; y < m_height; ++y)
                 {
                     uint row_pos = rows[y];
-                    if (input_rows.ContainsKey (row_pos))
+                    if (input_rows.ContainsKey(row_pos))
                     {
                         input_lines[y] = input_rows[row_pos];
                         continue;
                     }
-                    var row = ReadLine (row_pos, rows_count[row_pos]);
+                    var row = ReadLine(row_pos, rows_count[row_pos]);
                     input_rows[row_pos] = row;
                     input_lines[y] = row;
                 }
                 int dst = 0;
                 foreach (var line in input_lines)
                 {
-                    dst = UnpackLine (line, dst);
+                    dst = UnpackLine(line, dst);
                 }
                 return m_output;
             }
 
-            int UnpackLine (byte[] line, int dst)
+            int UnpackLine(byte[] line, int dst)
             {
                 int row_pos = 0;
-                for (int x = m_width; x > 0 && dst < m_output.Length && row_pos < line.Length; )
+                for (int x = m_width; x > 0 && dst < m_output.Length && row_pos < line.Length;)
                 {
                     if (0 != (row_pos & 1))
                     {
                         ++row_pos;
                     }
-                    int count = LittleEndian.ToUInt16 (line, row_pos);
+                    int count = LittleEndian.ToUInt16(line, row_pos);
                     row_pos += 2;
                     int method = count >> 13;
                     int skip = (count >> 11) & 3;
@@ -239,7 +239,7 @@ namespace GameRes.Formats.ShiinaRio
                     count &= 0x7ff;
                     if (0 == count)
                     {
-                        count = LittleEndian.ToInt32 (line, row_pos);
+                        count = LittleEndian.ToInt32(line, row_pos);
                         row_pos += 4;
                     }
                     if (count > x) count = x;
@@ -248,59 +248,59 @@ namespace GameRes.Formats.ShiinaRio
 
                     switch (method)
                     {
-                    case 2:
-                        for (int i = 0; i < count && row_pos < line.Length; ++i)
-                        {
-                            m_output[dst++] = line[row_pos++];
-                            m_output[dst++] = line[row_pos++];
-                            m_output[dst++] = line[row_pos++];
-                            m_output[dst++] = 0xff;
-                        }
-                        break;
-                    case 3:
-                        b = line[row_pos++];
-                        g = line[row_pos++];
-                        r = line[row_pos++];
-                        for (int i = 0; i < count; ++i)
-                        {
-                            m_output[dst++] = b;
-                            m_output[dst++] = g;
-                            m_output[dst++] = r;
-                            m_output[dst++] = 0xff;
-                        }
-                        break;
-                    case 4:
-                        for (int i = 0; i < count && row_pos < line.Length; ++i)
-                        {
+                        case 2:
+                            for (int i = 0; i < count && row_pos < line.Length; ++i)
+                            {
+                                m_output[dst++] = line[row_pos++];
+                                m_output[dst++] = line[row_pos++];
+                                m_output[dst++] = line[row_pos++];
+                                m_output[dst++] = 0xff;
+                            }
+                            break;
+                        case 3:
+                            b = line[row_pos++];
+                            g = line[row_pos++];
+                            r = line[row_pos++];
+                            for (int i = 0; i < count; ++i)
+                            {
+                                m_output[dst++] = b;
+                                m_output[dst++] = g;
+                                m_output[dst++] = r;
+                                m_output[dst++] = 0xff;
+                            }
+                            break;
+                        case 4:
+                            for (int i = 0; i < count && row_pos < line.Length; ++i)
+                            {
+                                a = line[row_pos++];
+                                m_output[dst++] = line[row_pos++];
+                                m_output[dst++] = line[row_pos++];
+                                m_output[dst++] = line[row_pos++];
+                                m_output[dst++] = a;
+                            }
+                            break;
+                        case 5:
                             a = line[row_pos++];
-                            m_output[dst++] = line[row_pos++];
-                            m_output[dst++] = line[row_pos++];
-                            m_output[dst++] = line[row_pos++];
-                            m_output[dst++] = a;
-                        }
-                        break;
-                    case 5:
-                        a = line[row_pos++];
-                        b = line[row_pos++];
-                        g = line[row_pos++];
-                        r = line[row_pos++];
-                        for (int i = 0; i < count; ++i)
-                        {
-                            m_output[dst++] = b;
-                            m_output[dst++] = g;
-                            m_output[dst++] = r;
-                            m_output[dst++] = a;
-                        }
-                        break;
-                    default:
-                        dst += count * 4;
-                        break;
+                            b = line[row_pos++];
+                            g = line[row_pos++];
+                            r = line[row_pos++];
+                            for (int i = 0; i < count; ++i)
+                            {
+                                m_output[dst++] = b;
+                                m_output[dst++] = g;
+                                m_output[dst++] = r;
+                                m_output[dst++] = a;
+                            }
+                            break;
+                        default:
+                            dst += count * 4;
+                            break;
                     }
                 }
                 return dst;
             }
 
-            byte[] ReadLine (uint offset, int repeat)
+            byte[] ReadLine(uint offset, int repeat)
             {
                 m_input.Position = offset;
                 int row_length = m_input.ReadUInt16();
@@ -310,15 +310,15 @@ namespace GameRes.Formats.ShiinaRio
                     --row_length;
                 }
                 var row = new byte[row_length];
-                m_input.Read (row, 0, row.Length);
+                m_input.Read(row, 0, row.Length);
                 int row_pos = 0;
-                for (int x = m_width; x > 0; )
+                for (int x = m_width; x > 0;)
                 {
                     if (0 != (row_pos & 1))
                     {
                         ++row_pos;
                     }
-                    int count = LittleEndian.ToUInt16 (row, row_pos);
+                    int count = LittleEndian.ToUInt16(row, row_pos);
                     row_pos += 2;
                     int method = count >> 13;
                     int skip = (count >> 11) & 3;
@@ -329,7 +329,7 @@ namespace GameRes.Formats.ShiinaRio
                     count &= 0x7ff;
                     if (0 == count)
                     {
-                        count = LittleEndian.ToInt32 (row, row_pos);
+                        count = LittleEndian.ToInt32(row, row_pos);
                         row_pos += 4;
                     }
                     if (count < 0 || count > x) count = x;
@@ -337,34 +337,34 @@ namespace GameRes.Formats.ShiinaRio
 
                     switch (method)
                     {
-                    case 2:
-                        for (int j = 0; j < repeat; ++j)
-                        {
-                            for (int i = 3; i < count*3 && row_pos+i < row.Length; ++i)
+                        case 2:
+                            for (int j = 0; j < repeat; ++j)
                             {
-                                row[row_pos+i] += row[row_pos+i-3];
+                                for (int i = 3; i < count * 3 && row_pos + i < row.Length; ++i)
+                                {
+                                    row[row_pos + i] += row[row_pos + i - 3];
+                                }
                             }
-                        }
-                        row_pos += count*3;
-                        break;
-                    case 3:
-                        row_pos += 3;
-                        break;
-                    case 4:
-                        for (int j = 0; j < repeat; ++j)
-                        {
-                            for (int i = 4; i < count*4 && row_pos+i < row.Length; ++i)
+                            row_pos += count * 3;
+                            break;
+                        case 3:
+                            row_pos += 3;
+                            break;
+                        case 4:
+                            for (int j = 0; j < repeat; ++j)
                             {
-                                row[row_pos+i] += row[row_pos+i-4];
+                                for (int i = 4; i < count * 4 && row_pos + i < row.Length; ++i)
+                                {
+                                    row[row_pos + i] += row[row_pos + i - 4];
+                                }
                             }
-                        }
-                        row_pos += count*4;
-                        break;
-                    case 5:
-                        row_pos += 4;
-                        break;
-                    default:
-                        break;
+                            row_pos += count * 4;
+                            break;
+                        case 5:
+                            row_pos += 4;
+                            break;
+                        default:
+                            break;
                     }
                 }
                 return row;
@@ -372,7 +372,7 @@ namespace GameRes.Formats.ShiinaRio
 
             #region IDisposable Members
             bool m_disposed = false;
-            public void Dispose ()
+            public void Dispose()
             {
                 if (!m_disposed)
                 {
@@ -382,7 +382,7 @@ namespace GameRes.Formats.ShiinaRio
                     }
                     m_disposed = true;
                 }
-                GC.SuppressFinalize (this);
+                GC.SuppressFinalize(this);
             }
             #endregion
         }

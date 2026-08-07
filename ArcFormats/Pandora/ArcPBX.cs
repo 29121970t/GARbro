@@ -34,73 +34,73 @@ namespace GameRes.Formats.Terios
     [Export(typeof(ArchiveFormat))]
     public class PbxOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "PBX"; } }
+        public override string Tag { get { return "PBX"; } }
         public override string Description { get { return "\"Pandora.box\" resource archive"; } }
-        public override uint     Signature { get { return 0x646E6150; } } // 'Pand'
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x646E6150; } } // 'Pand'
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            if (!file.View.AsciiEqual (4, "ora.box\0"))
+            if (!file.View.AsciiEqual(4, "ora.box\0"))
                 return null;
-            uint next_offset = file.View.ReadUInt32 (0xC);
-            if (next_offset > file.View.Reserve (0, next_offset))
+            uint next_offset = file.View.ReadUInt32(0xC);
+            if (next_offset > file.View.Reserve(0, next_offset))
                 return null;
             uint index_offset = 0x10;
-            int count = (int)(next_offset-0x10) / 0x10;
-            var dir = new List<Entry> (count);
+            int count = (int)(next_offset - 0x10) / 0x10;
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
-                var name = file.View.ReadString (index_offset, 0xC);
-                var entry = FormatCatalog.Instance.Create<Entry> (name);
+                var name = file.View.ReadString(index_offset, 0xC);
+                var entry = FormatCatalog.Instance.Create<Entry>(name);
                 entry.Offset = next_offset;
-                next_offset = file.View.ReadUInt32 (index_offset+0xC);
+                next_offset = file.View.ReadUInt32(index_offset + 0xC);
                 entry.Size = (uint)(next_offset - entry.Offset);
-                if (!entry.CheckPlacement (file.MaxOffset))
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
-                dir.Add (entry);
+                dir.Add(entry);
                 index_offset += 0x10;
             }
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
-            if (entry.Size <= 0x10 || 0x6344764D != arc.File.View.ReadUInt32 (entry.Offset))
-                return base.OpenEntry (arc, entry);
+            if (entry.Size <= 0x10 || 0x6344764D != arc.File.View.ReadUInt32(entry.Offset))
+                return base.OpenEntry(arc, entry);
             try
             {
-                int unpacked_size = arc.File.View.ReadInt32 (entry.Offset+8);
-                using (var input = arc.File.CreateStream (entry.Offset+0x10, entry.Size-0x10))
-                using (var reader = new PandoraCompression (input, unpacked_size))
+                int unpacked_size = arc.File.View.ReadInt32(entry.Offset + 8);
+                using (var input = arc.File.CreateStream(entry.Offset + 0x10, entry.Size - 0x10))
+                using (var reader = new PandoraCompression(input, unpacked_size))
                 {
                     var data = reader.Unpack();
-                    return new BinMemoryStream (data, entry.Name);
+                    return new BinMemoryStream(data, entry.Name);
                 }
             }
             catch
             {
                 // in case of decompression error return compressed data
-                return base.OpenEntry (arc, entry);
+                return base.OpenEntry(arc, entry);
             }
         }
     }
 
     internal sealed class PandoraCompression : IDisposable
     {
-        IBinaryStream   m_input;
-        byte[]          m_output;
+        IBinaryStream m_input;
+        byte[] m_output;
 
         public byte[] Data { get { return m_output; } }
 
-        public PandoraCompression (IBinaryStream input, int unpacked_size)
+        public PandoraCompression(IBinaryStream input, int unpacked_size)
         {
             m_input = input;
             m_output = new byte[unpacked_size];
         }
 
-        public byte[] Unpack ()
+        public byte[] Unpack()
         {
             int dst = 0;
             m_output[dst++] = m_input.ReadUInt8();
@@ -125,7 +125,7 @@ namespace GameRes.Formats.Terios
                     {
                         if (ctl >= 0xB0)
                         {
-                            count = Binary.BigEndian (m_input.ReadUInt16());
+                            count = Binary.BigEndian(m_input.ReadUInt16());
                             count += 0x813 + ((ctl & 7) << 16);
                             ctl &= 8;
                         }
@@ -142,13 +142,13 @@ namespace GameRes.Formats.Terios
                         int offset;
                         if (ctl != 0)
                         {
-                            offset = Binary.BigEndian (m_input.ReadUInt16()) + 0x101;
+                            offset = Binary.BigEndian(m_input.ReadUInt16()) + 0x101;
                         }
                         else
                         {
                             offset = m_input.ReadUInt8() + 1;
                         }
-                        Binary.CopyOverlapped (m_output, dst - offset, dst, count);
+                        Binary.CopyOverlapped(m_output, dst - offset, dst, count);
                         dst += count;
                     }
                 }
@@ -156,7 +156,7 @@ namespace GameRes.Formats.Terios
                 {
                     if (ctl >= 0x60)
                     {
-                        count = Binary.BigEndian (m_input.ReadUInt16());
+                        count = Binary.BigEndian(m_input.ReadUInt16());
                         count += 0x2041 + ((ctl & 0x1F) << 16);
                     }
                     if (ctl >= 0x40)
@@ -167,7 +167,7 @@ namespace GameRes.Formats.Terios
                     {
                         count = ctl + 1;
                     }
-                    count = m_input.Read (m_output, dst, count);
+                    count = m_input.Read(m_output, dst, count);
                     dst += count;
                 }
             }
@@ -175,7 +175,7 @@ namespace GameRes.Formats.Terios
         }
 
         #region IDisposable Members
-        public void Dispose ()
+        public void Dispose()
         {
         }
         #endregion

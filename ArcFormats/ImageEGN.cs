@@ -44,12 +44,12 @@ namespace GameRes.Formats.Unknown
     [Export(typeof(ImageFormat))]
     public class EgnFormat : ImageFormat
     {
-        public override string         Tag { get { return "EGN"; } }
+        public override string Tag { get { return "EGN"; } }
         public override string Description { get { return "LZSS-compressed BMP image"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
             int signature = ~stream.ReadInt32();
             int mode = (signature & 0x70) >> 4; // v6
@@ -60,20 +60,20 @@ namespace GameRes.Formats.Unknown
             if (0 != (signature & 0x80))
             {
                 data_offset = 4;
-                data_size = Binary.BigEndian (signature) & 0xFFFFFF;
+                data_size = Binary.BigEndian(signature) & 0xFFFFFF;
             }
             else
             {
                 data_offset = 8;
-                data_size = Binary.BigEndian (stream.ReadInt32());
+                data_size = Binary.BigEndian(stream.ReadInt32());
             }
             if (data_size <= 0 || data_size > 0xFFFFFF) // arbitrary max BMP size
                 return null;
-            var reader = new Reader (stream, 0x36, mode, flag); // size of BMP header
+            var reader = new Reader(stream, 0x36, mode, flag); // size of BMP header
             reader.Unpack();
-            using (var bmp = new BinMemoryStream (reader.Data, stream.Name))
+            using (var bmp = new BinMemoryStream(reader.Data, stream.Name))
             {
-                var info = Bmp.ReadMetaData (bmp);
+                var info = Bmp.ReadMetaData(bmp);
                 if (null == info)
                     return null;
                 return new EgnMetaData
@@ -89,26 +89,26 @@ namespace GameRes.Formats.Unknown
             }
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
             var meta = (EgnMetaData)info;
             stream.Position = meta.DataOffset;
-            var reader = new Reader (stream, meta.UnpackedSize, meta.Mode, meta.Flag);
+            var reader = new Reader(stream, meta.UnpackedSize, meta.Mode, meta.Flag);
             reader.Unpack();
-            using (var bmp = new BinMemoryStream (reader.Data, stream.Name))
-                return Bmp.Read (bmp, info);
+            using (var bmp = new BinMemoryStream(reader.Data, stream.Name))
+                return Bmp.Read(bmp, info);
         }
 
         internal class Reader
         {
-            IBinaryStream   m_input;
-            int             m_mode;
-            int             m_flag;
-            byte[]          m_output;
+            IBinaryStream m_input;
+            int m_mode;
+            int m_flag;
+            byte[] m_output;
 
             public byte[] Data { get { return m_output; } }
 
-            public Reader (IBinaryStream input, int output_size, int mode, int flag)
+            public Reader(IBinaryStream input, int output_size, int mode, int flag)
             {
                 m_input = input;
                 m_mode = mode;
@@ -116,23 +116,23 @@ namespace GameRes.Formats.Unknown
                 m_output = new byte[output_size];
             }
 
-            public void Unpack ()
+            public void Unpack()
             {
                 switch (m_mode)
                 {
-                case 0:
-                    UnpackV0();
-                    break;
-                case 1:
-                case 2:
-                case 3:
-                    throw new NotSupportedException ("Not supported EGN compression");
-                default:
-                    throw new InvalidFormatException();
+                    case 0:
+                        UnpackV0();
+                        break;
+                    case 1:
+                    case 2:
+                    case 3:
+                        throw new NotSupportedException("Not supported EGN compression");
+                    default:
+                        throw new InvalidFormatException();
                 }
             }
 
-            void UnpackV0 () // sub_4047AF
+            void UnpackV0() // sub_4047AF
             {
                 int count_shift = ShiftTable[2 * m_flag];
                 int offset_mask = (1 << count_shift) - 1;
@@ -154,7 +154,7 @@ namespace GameRes.Formats.Unknown
                     }
                     else
                     {
-                        ushort v4 = Binary.BigEndian (m_input.ReadUInt16());
+                        ushort v4 = Binary.BigEndian(m_input.ReadUInt16());
                         int count = base_offset + (v4 >> count_shift);
                         int src = dst - (v4 & offset_mask);
                         do
@@ -179,9 +179,9 @@ namespace GameRes.Formats.Unknown
             };
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("EgnFormat.Write not implemented");
+            throw new System.NotImplementedException("EgnFormat.Write not implemented");
         }
     }
 }

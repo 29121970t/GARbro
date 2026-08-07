@@ -34,11 +34,11 @@ namespace GameRes.Formats.Ivory
 {
     internal class SgMetaData : ImageMetaData
     {
-        public SgType   Type;
-        public int      DataOffset;
-        public int      DataSize;
-        public int      RgbMode;
-        public uint     JpegKey;
+        public SgType Type;
+        public int DataOffset;
+        public int DataSize;
+        public int RgbMode;
+        public uint JpegKey;
     }
 
     internal enum SgType
@@ -49,102 +49,102 @@ namespace GameRes.Formats.Ivory
     [Export(typeof(ImageFormat))]
     public class SgFormat : ImageFormat
     {
-        public override string         Tag { get { return "SG"; } }
+        public override string Tag { get { return "SG"; } }
         public override string Description { get { return "Ivory image format"; } }
-        public override uint     Signature { get { return 0x20475366; } } // 'fSG '
+        public override uint Signature { get { return 0x20475366; } } // 'fSG '
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
             stream.Position = 8;
-            var header = stream.ReadBytes (0x24);
+            var header = stream.ReadBytes(0x24);
             if (header.Length != 0x24)
                 return null;
-            int header_size = LittleEndian.ToInt32 (header, 8);
-            if (Binary.AsciiEqual (header, "cRGB"))
+            int header_size = LittleEndian.ToInt32(header, 8);
+            if (Binary.AsciiEqual(header, "cRGB"))
                 return new SgMetaData
                 {
-                    Type    = SgType.cRGB,
-                    Width   = LittleEndian.ToUInt16 (header, 0x1C),
-                    Height  = LittleEndian.ToUInt16 (header, 0x1E),
-                    BPP     = LittleEndian.ToUInt16 (header, 0x22),
-                    OffsetX = LittleEndian.ToInt16 (header, 0x18),
-                    OffsetY = LittleEndian.ToInt16 (header, 0x1A),
-                    RgbMode = LittleEndian.ToUInt16 (header, 0x10),
+                    Type = SgType.cRGB,
+                    Width = LittleEndian.ToUInt16(header, 0x1C),
+                    Height = LittleEndian.ToUInt16(header, 0x1E),
+                    BPP = LittleEndian.ToUInt16(header, 0x22),
+                    OffsetX = LittleEndian.ToInt16(header, 0x18),
+                    OffsetY = LittleEndian.ToInt16(header, 0x1A),
+                    RgbMode = LittleEndian.ToUInt16(header, 0x10),
                     DataOffset = 8 + header_size,
-                    DataSize = LittleEndian.ToInt32 (header, 0xC),
+                    DataSize = LittleEndian.ToInt32(header, 0xC),
                 };
-            else if (Binary.AsciiEqual (header, "cJPG"))
+            else if (Binary.AsciiEqual(header, "cJPG"))
                 return new SgMetaData
                 {
-                    Type    = SgType.cJPG,
-                    Width   = LittleEndian.ToUInt16 (header, 0x18),
-                    Height  = LittleEndian.ToUInt16 (header, 0x1A),
-                    BPP     = 24,
-                    OffsetX = LittleEndian.ToInt16 (header, 0x14),
-                    OffsetY = LittleEndian.ToInt16 (header, 0x16),
+                    Type = SgType.cJPG,
+                    Width = LittleEndian.ToUInt16(header, 0x18),
+                    Height = LittleEndian.ToUInt16(header, 0x1A),
+                    BPP = 24,
+                    OffsetX = LittleEndian.ToInt16(header, 0x14),
+                    OffsetY = LittleEndian.ToInt16(header, 0x16),
                     DataOffset = 8 + header_size,
-                    DataSize = LittleEndian.ToInt32 (header, 0xC),
-                    JpegKey = LittleEndian.ToUInt32 (header, 0x20),
+                    DataSize = LittleEndian.ToInt32(header, 0xC),
+                    JpegKey = LittleEndian.ToUInt32(header, 0x20),
                 };
             else
                 return null;
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
             var meta = (SgMetaData)info;
             if (SgType.cRGB == meta.Type)
             {
-                using (var reader = new SgRgbReader (stream, meta))
+                using (var reader = new SgRgbReader(stream, meta))
                 {
                     reader.Unpack();
-                    return ImageData.Create (info, reader.Format, reader.Palette, reader.Data, reader.Stride);
+                    return ImageData.Create(info, reader.Format, reader.Palette, reader.Data, reader.Stride);
                 }
             }
             else
             {
-                return ReadJpeg (stream, meta);
+                return ReadJpeg(stream, meta);
             }
         }
 
-        ImageData ReadJpeg (IBinaryStream stream, SgMetaData info)
+        ImageData ReadJpeg(IBinaryStream stream, SgMetaData info)
         {
             stream.Position = info.DataOffset;
-            var input = stream.ReadBytes (info.DataSize);
+            var input = stream.ReadBytes(info.DataSize);
             if (input.Length != info.DataSize)
                 throw new EndOfStreamException();
-            PakOpener.Decrypt (input, info.JpegKey);
-            using (var img = new MemoryStream (input))
+            PakOpener.Decrypt(input, info.JpegKey);
+            using (var img = new MemoryStream(input))
             {
-                var decoder = new JpegBitmapDecoder (img, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+                var decoder = new JpegBitmapDecoder(img, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
                 var frame = decoder.Frames[0];
                 frame.Freeze();
-                return new ImageData (frame, info);
+                return new ImageData(frame, info);
             }
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("SgFormat.Write not implemented");
+            throw new System.NotImplementedException("SgFormat.Write not implemented");
         }
     }
 
     internal sealed class SgRgbReader : IDisposable
     {
-        IBinaryStream   m_input;
-        SgMetaData      m_info;
-        int             m_width;
-        int             m_height;
-        int             m_stride;
-        int             m_channels;
-        byte[]          m_output;
+        IBinaryStream m_input;
+        SgMetaData m_info;
+        int m_width;
+        int m_height;
+        int m_stride;
+        int m_channels;
+        byte[] m_output;
 
-        public PixelFormat    Format { get; private set; }
+        public PixelFormat Format { get; private set; }
         public BitmapPalette Palette { get; private set; }
-        public byte[]           Data { get { return m_output; } }
-        public int            Stride { get { return m_stride; } }
+        public byte[] Data { get { return m_output; } }
+        public int Stride { get { return m_stride; } }
 
-        public SgRgbReader (IBinaryStream input, SgMetaData info)
+        public SgRgbReader(IBinaryStream input, SgMetaData info)
         {
             if (info.Type != SgType.cRGB || !(0x18 == info.BPP || 0x20 == info.BPP))
                 throw new InvalidFormatException();
@@ -156,26 +156,26 @@ namespace GameRes.Formats.Ivory
             m_channels = m_info.BPP / 8;
         }
 
-        public void Unpack ()
+        public void Unpack()
         {
             m_input.Position = m_info.DataOffset;
             switch (m_info.RgbMode)
             {
-            case 0: UnpackV0(); break;
-            case 1: UnpackV1(); break;
-            case 2:
-                if (4 == m_channels)
-                    UnpackV2Alpha();
-                else
-                    UnpackV2();
-                break;
-            case 3: UnpackV3(); break;
-            default:
-                throw new NotImplementedException (string.Format ("sRGB image type {0} not implemented", m_info.RgbMode));
+                case 0: UnpackV0(); break;
+                case 1: UnpackV1(); break;
+                case 2:
+                    if (4 == m_channels)
+                        UnpackV2Alpha();
+                    else
+                        UnpackV2();
+                    break;
+                case 3: UnpackV3(); break;
+                default:
+                    throw new NotImplementedException(string.Format("sRGB image type {0} not implemented", m_info.RgbMode));
             }
         }
 
-        void UnpackV1 ()
+        void UnpackV1()
         {
             Format = 3 == m_channels ? PixelFormats.Bgr32 : PixelFormats.Bgra32;
             m_output = new byte[m_stride * m_height];
@@ -188,7 +188,7 @@ namespace GameRes.Formats.Ivory
                 int line_pos = 0;
                 for (int c = 0; c < m_channels; ++c)
                 {
-                    for (int x = 0; x < m_width; )
+                    for (int x = 0; x < m_width;)
                     {
                         byte ctl = m_input.ReadUInt8();
                         int count = ctl & 0x3F;
@@ -205,7 +205,7 @@ namespace GameRes.Formats.Ivory
                         }
                         else
                         {
-                            m_input.Read (line, line_pos, count);
+                            m_input.Read(line, line_pos, count);
                             line_pos += count;
                         }
                         x += count;
@@ -214,12 +214,12 @@ namespace GameRes.Formats.Ivory
                 line_pos = 0;
                 for (int x = 0; x < m_width; ++x)
                 {
-                    m_output[dst  ] = line[line_pos];
-                    m_output[dst+1] = line[line_pos+m_width];
-                    m_output[dst+2] = line[line_pos+m_width*2];
+                    m_output[dst] = line[line_pos];
+                    m_output[dst + 1] = line[line_pos + m_width];
+                    m_output[dst + 2] = line[line_pos + m_width * 2];
                     if (4 == m_channels)
                     {
-                        m_output[dst+3] = line[line_pos+alpha_pos];
+                        m_output[dst + 3] = line[line_pos + alpha_pos];
                     }
                     dst += 4;
                     ++line_pos;
@@ -227,20 +227,20 @@ namespace GameRes.Formats.Ivory
             }
         }
 
-        void UnpackV0 ()
+        void UnpackV0()
         {
             Format = 3 == m_channels ? PixelFormats.Bgr24 : PixelFormats.Bgra32;
             m_stride = m_width * m_channels;
-            m_output = m_input.ReadBytes (m_stride * m_height);
+            m_output = m_input.ReadBytes(m_stride * m_height);
         }
 
-        void UnpackV2 ()
+        void UnpackV2()
         {
             m_stride = m_width;
             m_output = new byte[m_width * m_height];
             Format = PixelFormats.Indexed8;
 
-            Palette = ImageFormat.ReadPalette (m_input.AsStream);
+            Palette = ImageFormat.ReadPalette(m_input.AsStream);
             var index = new int[m_height];
             for (int i = 0; i < m_height; ++i)
                 index[i] = m_input.ReadInt32();
@@ -249,7 +249,7 @@ namespace GameRes.Formats.Ivory
             for (int y = 0; y < m_height; ++y)
             {
                 m_input.Position = data_pos + index[y];
-                for (int x = 0; x < m_width; )
+                for (int x = 0; x < m_width;)
                 {
                     int ctl = m_input.ReadUInt8();
                     int count = ctl >> 2;
@@ -257,7 +257,7 @@ namespace GameRes.Formats.Ivory
                     {
                         count |= m_input.ReadUInt8() << 6;
                     }
-                    count = Math.Min (count, m_width - x);
+                    count = Math.Min(count, m_width - x);
                     x += count;
                     if (0 != (ctl & 1))
                     {
@@ -267,50 +267,50 @@ namespace GameRes.Formats.Ivory
                     }
                     else
                     {
-                        m_input.Read (m_output, dst, count);
+                        m_input.Read(m_output, dst, count);
                         dst += count;
                     }
                 }
             }
         }
 
-        void UnpackV2Alpha ()
+        void UnpackV2Alpha()
         {
             m_output = new byte[m_stride * m_height];
             Format = PixelFormats.Bgra32;
 
-            var palette = ImageFormat.ReadColorMap (m_input.AsStream);
+            var palette = ImageFormat.ReadColorMap(m_input.AsStream);
             var index = new int[m_height];
             for (int i = 0; i < m_height; ++i)
                 index[i] = m_input.ReadInt32();
             var data_pos = m_input.Position;
             int dst = 0;
-            using (var bits = new LsbBitStream (m_input.AsStream, true))
+            using (var bits = new LsbBitStream(m_input.AsStream, true))
             {
                 for (int y = 0; y < m_height; ++y)
                 {
                     bits.Input.Position = data_pos + index[y];
                     bits.Reset();
-                    for (int x = 0; x < m_width; )
+                    for (int x = 0; x < m_width;)
                     {
-                        int ctl = bits.GetBits (2);
+                        int ctl = bits.GetBits(2);
                         int count;
                         if (0 != (ctl & 2))
                         {
-                            count = bits.GetBits (10);
+                            count = bits.GetBits(10);
                         }
                         else
                         {
-                            count = bits.GetBits (2);
+                            count = bits.GetBits(2);
                         }
-                        count = Math.Min (count, m_width - x);
+                        count = Math.Min(count, m_width - x);
                         x += count;
                         if (0 != (ctl & 1))
                         {
-                            byte a = (byte)bits.GetBits (4);
+                            byte a = (byte)bits.GetBits(4);
                             if (a != 0)
                                 a = (byte)((a << 4) | 0xF);
-                            int c = bits.GetBits (8);
+                            int c = bits.GetBits(8);
                             if (-1 == c)
                                 throw new EndOfStreamException();
                             var color = palette[c];
@@ -326,10 +326,10 @@ namespace GameRes.Formats.Ivory
                         {
                             for (int i = 0; i < count; ++i)
                             {
-                                int a = bits.GetBits (4);
+                                int a = bits.GetBits(4);
                                 if (a != 0)
                                     a = (a << 4) | 0xF;
-                                int c = bits.GetBits (8);
+                                int c = bits.GetBits(8);
                                 if (-1 == c)
                                     throw new EndOfStreamException();
                                 var color = palette[c];
@@ -344,7 +344,7 @@ namespace GameRes.Formats.Ivory
             }
         }
 
-        void UnpackV3 ()
+        void UnpackV3()
         {
             Format = 3 == m_channels ? PixelFormats.Bgr24 : PixelFormats.Bgra32;
             m_stride = m_width * m_channels;
@@ -357,7 +357,7 @@ namespace GameRes.Formats.Ivory
             for (int y = 0; y < m_height; ++y)
             {
                 m_input.Position = data_pos + index[y];
-                for (int x = 0; x < m_width; )
+                for (int x = 0; x < m_width;)
                 {
                     int ctl = m_input.ReadUInt8();
                     int count = ctl & 0x3F;
@@ -370,13 +370,13 @@ namespace GameRes.Formats.Ivory
                     count *= m_channels;
                     if (0 != (ctl & 0x80))
                     {
-                        m_input.Read (m_output, dst, m_channels);
+                        m_input.Read(m_output, dst, m_channels);
                         if (count > m_channels)
-                            Binary.CopyOverlapped (m_output, dst, dst+m_channels, count - m_channels);
+                            Binary.CopyOverlapped(m_output, dst, dst + m_channels, count - m_channels);
                     }
                     else
                     {
-                        m_input.Read (m_output, dst, count);
+                        m_input.Read(m_output, dst, count);
                     }
                     dst += count;
                 }
@@ -384,7 +384,7 @@ namespace GameRes.Formats.Ivory
         }
 
         #region IDisposable Members
-        public void Dispose ()
+        public void Dispose()
         {
         }
         #endregion

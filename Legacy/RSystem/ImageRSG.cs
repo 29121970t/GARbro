@@ -34,48 +34,49 @@ namespace GameRes.Formats.RSystem
 {
     internal class RsgMetaData : ImageMetaData
     {
-        public int  ChunkCount;
+        public int ChunkCount;
     }
 
     [Export(typeof(ImageFormat))]
     public class RsgFormat : ImageFormat
     {
-        public override string         Tag { get { return "RSG"; } }
+        public override string Tag { get { return "RSG"; } }
         public override string Description { get { return "RSystem engine image format"; } }
-        public override uint     Signature { get { return 0x5352; } } // 'RS'
+        public override uint Signature { get { return 0x5352; } } // 'RS'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (12);
-            return new RsgMetaData {
-                Width   = header.ToUInt16 (4),
-                Height  = header.ToUInt16 (6),
-                BPP     = 32,
-                ChunkCount = header.ToInt32 (8),
+            var header = file.ReadHeader(12);
+            return new RsgMetaData
+            {
+                Width = header.ToUInt16(4),
+                Height = header.ToUInt16(6),
+                BPP = 32,
+                ChunkCount = header.ToInt32(8),
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new RsgReader (file, (RsgMetaData)info);
+            var reader = new RsgReader(file, (RsgMetaData)info);
             var pixels = reader.Unpack();
-            return ImageData.Create (info, PixelFormats.Bgr32, null, pixels);
+            return ImageData.Create(info, PixelFormats.Bgr32, null, pixels);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("RsgFormat.Write not implemented");
+            throw new System.NotImplementedException("RsgFormat.Write not implemented");
         }
     }
 
     internal class RsgReader
     {
-        IBinaryStream   m_input;
-        byte[]          m_output;
-        int             m_chunk_count;
-        int             m_dst;
+        IBinaryStream m_input;
+        byte[] m_output;
+        int m_chunk_count;
+        int m_dst;
 
-        public RsgReader (IBinaryStream input, RsgMetaData info)
+        public RsgReader(IBinaryStream input, RsgMetaData info)
         {
             m_input = input;
             m_chunk_count = info.ChunkCount;
@@ -83,7 +84,7 @@ namespace GameRes.Formats.RSystem
             m_output = new byte[stride * (int)info.Height];
         }
 
-        public byte[] Unpack ()
+        public byte[] Unpack()
         {
             m_input.Position = 12;
             m_dst = 0;
@@ -95,50 +96,50 @@ namespace GameRes.Formats.RSystem
                 int count = (ctl & 0xF) + 1;
                 switch (ctl & 0xF0)
                 {
-                case 0x00:  Chunk00 (count); break;
-                case 0x10:  Chunk10 (count); break;
-                case 0x40:  Chunk40 (count); break;
-                case 0x80:  Chunk80 (count); break;
+                    case 0x00: Chunk00(count); break;
+                    case 0x10: Chunk10(count); break;
+                    case 0x40: Chunk40(count); break;
+                    case 0x80: Chunk80(count); break;
                 }
             }
             return m_output;
         }
 
-        void Chunk00 (int count)
+        void Chunk00(int count)
         {
             for (int i = 0; i < count; ++i)
             {
-                m_input.Read (m_output, m_dst, 3);
+                m_input.Read(m_output, m_dst, 3);
                 m_dst += 4;
             }
         }
 
-        void Chunk10 (int count)
+        void Chunk10(int count)
         {
-            m_input.Read (m_output, m_dst, 3);
+            m_input.Read(m_output, m_dst, 3);
             count *= 4;
-            Binary.CopyOverlapped (m_output, m_dst, m_dst+4, count-4);
+            Binary.CopyOverlapped(m_output, m_dst, m_dst + 4, count - 4);
             m_dst += count;
         }
 
-        void Chunk40 (int count)
+        void Chunk40(int count)
         {
             int offset = m_input.ReadUInt16() * 4;
             int src = m_dst - offset;
             for (int i = 0; i < count; ++i)
             {
-                m_output[m_dst  ] = m_output[src  ];
-                m_output[m_dst+1] = m_output[src+1];
-                m_output[m_dst+2] = m_output[src+2];
+                m_output[m_dst] = m_output[src];
+                m_output[m_dst + 1] = m_output[src + 1];
+                m_output[m_dst + 2] = m_output[src + 2];
                 m_dst += 4;
             }
         }
 
-        void Chunk80 (int count)
+        void Chunk80(int count)
         {
-            byte b = m_output[m_dst-4];
-            byte g = m_output[m_dst-3];
-            byte r = m_output[m_dst-2];
+            byte b = m_output[m_dst - 4];
+            byte g = m_output[m_dst - 3];
+            byte r = m_output[m_dst - 2];
             for (int i = 0; i < count; ++i)
             {
                 int diff = m_input.ReadUInt16();

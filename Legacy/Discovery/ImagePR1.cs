@@ -33,8 +33,8 @@ namespace GameRes.Formats.Discovery
 {
     internal class PrMetaData : ImageMetaData
     {
-        public byte     Flags;
-        public byte     Mask;
+        public byte Flags;
+        public byte Mask;
 
         public bool IsLeftToRight => (Flags & 1) != 0;
     }
@@ -42,49 +42,50 @@ namespace GameRes.Formats.Discovery
     [Export(typeof(ImageFormat))]
     public class Pr1Format : ImageFormat
     {
-        public override string         Tag => "PR1";
+        public override string Tag => "PR1";
         public override string Description => "Discovery image format";
-        public override uint     Signature => 0;
+        public override uint Signature => 0;
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            if (!file.Name.HasAnyOfExtensions (".PR1", ".AN1"))
+            if (!file.Name.HasAnyOfExtensions(".PR1", ".AN1"))
                 return null;
-            var header = file.ReadHeader (12);
-            return new PrMetaData {
-                Width = (uint)header.ToUInt16 (8) << 3,
-                Height = header.ToUInt16 (0xA),
-                OffsetX = header.ToUInt16 (2),
-                OffsetY = header.ToUInt16 (4),
+            var header = file.ReadHeader(12);
+            return new PrMetaData
+            {
+                Width = (uint)header.ToUInt16(8) << 3,
+                Height = header.ToUInt16(0xA),
+                OffsetX = header.ToUInt16(2),
+                OffsetY = header.ToUInt16(4),
                 Flags = header[0],
                 Mask = header[1],
                 BPP = 4,
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new PrReader (file, (PrMetaData)info);
+            var reader = new PrReader(file, (PrMetaData)info);
             return reader.Unpack();
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("Pr1Format.Write not implemented");
+            throw new System.NotImplementedException("Pr1Format.Write not implemented");
         }
     }
 
     internal class PrReader
     {
-        IBinaryStream   m_input;
-        PrMetaData      m_info;
+        IBinaryStream m_input;
+        PrMetaData m_info;
 
-        Action      IncrementDest;
-        Func<bool>  IsDone;
+        Action IncrementDest;
+        Func<bool> IsDone;
 
         public PrMetaData Info => m_info;
 
-        public PrReader (IBinaryStream file, PrMetaData info)
+        public PrReader(IBinaryStream file, PrMetaData info)
         {
             m_input = file;
             m_info = info;
@@ -101,13 +102,13 @@ namespace GameRes.Formats.Discovery
         }
 
         protected BitmapPalette m_palette;
-        protected int       m_stride;
-        protected int       m_plane_size;
-        protected byte[][]  m_planes;
+        protected int m_stride;
+        protected int m_plane_size;
+        protected byte[][] m_planes;
         int m_dst;
         int m_x;
 
-        protected void UnpackPlanes ()
+        protected void UnpackPlanes()
         {
             const int buffer_slice = 0x410;
             m_input.Position = 0xC;
@@ -119,7 +120,7 @@ namespace GameRes.Formats.Discovery
             };
             var buffer = new byte[buffer_slice * 4];
             var buf_count = new byte[4];
-            var offsets = new int[] { 0, buffer_slice, buffer_slice*2, buffer_slice*3 };
+            var offsets = new int[] { 0, buffer_slice, buffer_slice * 2, buffer_slice * 3 };
             m_dst = 0;
             m_x = 0;
             while (!IsDone())
@@ -144,7 +145,7 @@ namespace GameRes.Formats.Discovery
                             byte p1 = m_input.ReadUInt8();
                             byte p2 = m_input.ReadUInt8();
                             byte p3 = m_input.ReadUInt8();
-                            PutPixels (p0, p1, p2, p3);
+                            PutPixels(p0, p1, p2, p3);
                             buffer[pos++] = p0;
                             buffer[pos++] = p1;
                             buffer[pos++] = p2;
@@ -160,7 +161,7 @@ namespace GameRes.Formats.Discovery
                                 byte p1 = buffer[si++];
                                 byte p2 = buffer[si++];
                                 byte p3 = buffer[si++];
-                                PutPixels (p0, p1, p2, p3);
+                                PutPixels(p0, p1, p2, p3);
                                 if (--count <= 0)
                                     break;
                             }
@@ -172,13 +173,13 @@ namespace GameRes.Formats.Discovery
                     }
                     else
                     {
-                        while (count --> 0)
+                        while (count-- > 0)
                         {
                             byte p0 = m_input.ReadUInt8();
                             byte p1 = m_input.ReadUInt8();
                             byte p2 = m_input.ReadUInt8();
                             byte p3 = m_input.ReadUInt8();
-                            PutPixels (p0, p1, p2, p3);
+                            PutPixels(p0, p1, p2, p3);
                             int pos = offsets[0];
                             buffer[pos++] = p0;
                             buffer[pos++] = p1;
@@ -196,7 +197,7 @@ namespace GameRes.Formats.Discovery
                     int count2 = 1 << (ctl - 1);
                     int off_diff = count2 << 2;
                     int off_mask = off_diff - 1;
-                    int off = m_input.ReadUInt8() << 2;;
+                    int off = m_input.ReadUInt8() << 2; ;
                     int base_pos = ctl * buffer_slice;
                     off += base_pos;
                     int src = off;
@@ -206,10 +207,10 @@ namespace GameRes.Formats.Discovery
                         for (int i = 0; i < count2; ++i)
                         {
                             byte p0 = buffer[off];
-                            byte p1 = buffer[off+1];
-                            byte p2 = buffer[off+2];
-                            byte p3 = buffer[off+3];
-                            PutPixels (p0, p1, p2, p3);
+                            byte p1 = buffer[off + 1];
+                            byte p2 = buffer[off + 2];
+                            byte p3 = buffer[off + 3];
+                            PutPixels(p0, p1, p2, p3);
                             off += 4;
                             int pos = off - base_pos;
                             if ((pos & off_mask) == 0)
@@ -221,29 +222,29 @@ namespace GameRes.Formats.Discovery
                 }
                 else
                 {
-                    while (count --> 0)
+                    while (count-- > 0)
                     {
                         int off = m_input.ReadUInt8() << 2;
                         byte p0 = buffer[off];
-                        byte p1 = buffer[off+1];
-                        byte p2 = buffer[off+2];
-                        byte p3 = buffer[off+3];
-                        PutPixels (p0, p1, p2, p3);
+                        byte p1 = buffer[off + 1];
+                        byte p2 = buffer[off + 2];
+                        byte p3 = buffer[off + 3];
+                        PutPixels(p0, p1, p2, p3);
                     }
                 }
             }
         }
 
-        public ImageData Unpack ()
+        public ImageData Unpack()
         {
             UnpackPlanes();
             int output_stride = m_info.iWidth >> 1;
             var output = new byte[output_stride * m_info.iHeight];
-            FlattenPlanes (0, output);
-            return ImageData.Create (m_info, PixelFormats.Indexed4, m_palette, output, output_stride);
+            FlattenPlanes(0, output);
+            return ImageData.Create(m_info, PixelFormats.Indexed4, m_palette, output, output_stride);
         }
 
-        void PutPixels (byte p0, byte p1, byte p2, byte p3)
+        void PutPixels(byte p0, byte p1, byte p2, byte p3)
         {
             if (0xFF == m_info.Mask || true) // we don't do overlaying here, just single image decoding
             {
@@ -287,7 +288,7 @@ namespace GameRes.Formats.Discovery
             IncrementDest();
         }
 
-        void IncLeftToRight ()
+        void IncLeftToRight()
         {
             ++m_dst;
             ++m_x;
@@ -295,14 +296,14 @@ namespace GameRes.Formats.Discovery
                 m_x = 0;
         }
 
-        void IncTopToBottom ()
+        void IncTopToBottom()
         {
             m_dst += m_stride;
             if (m_dst >= m_plane_size)
                 m_dst = ++m_x;
         }
 
-        internal void FlattenPlanes (int src, byte[] output)
+        internal void FlattenPlanes(int src, byte[] output)
         {
             int m_dst = 0;
             for (; src < m_plane_size; ++src)
@@ -316,7 +317,7 @@ namespace GameRes.Formats.Discovery
                     byte px = (byte)((((b0 << j) & 0x80) >> 3)
                                    | (((b1 << j) & 0x80) >> 2)
                                    | (((b2 << j) & 0x80) >> 1)
-                                   | (((b3 << j) & 0x80)     ));
+                                   | (((b3 << j) & 0x80)));
                     px |= (byte)((((b0 << j) & 0x40) >> 6)
                                | (((b1 << j) & 0x40) >> 5)
                                | (((b2 << j) & 0x40) >> 4)
@@ -326,7 +327,7 @@ namespace GameRes.Formats.Discovery
             }
         }
 
-        BitmapPalette ReadPalette ()
+        BitmapPalette ReadPalette()
         {
             const int count = 16;
             var colors = new Color[count];
@@ -335,9 +336,9 @@ namespace GameRes.Formats.Discovery
                 byte g = m_input.ReadUInt8();
                 byte r = m_input.ReadUInt8();
                 byte b = m_input.ReadUInt8();
-                colors[i] = Color.FromRgb ((byte)(r * 0x11), (byte)(g * 0x11), (byte)(b * 0x11));
+                colors[i] = Color.FromRgb((byte)(r * 0x11), (byte)(g * 0x11), (byte)(b * 0x11));
             }
-            return new BitmapPalette (colors);
+            return new BitmapPalette(colors);
         }
     }
 }

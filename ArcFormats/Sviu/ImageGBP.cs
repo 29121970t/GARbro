@@ -33,68 +33,69 @@ namespace GameRes.Formats.Sviu
 {
     internal class GbpMetaData : ImageMetaData
     {
-        public int  HeaderSize;
-        public int  DataOffset;
-        public int  Method;
+        public int HeaderSize;
+        public int DataOffset;
+        public int Method;
     }
 
     [Export(typeof(ImageFormat))]
     public class GbpFormat : ImageFormat
     {
-        public override string         Tag { get { return "GBP"; } }
+        public override string Tag { get { return "GBP"; } }
         public override string Description { get { return "SVIU system image format"; } }
-        public override uint     Signature { get { return 0x50425947; } } // 'GYBP'
+        public override uint Signature { get { return 0x50425947; } } // 'GYBP'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x14);
-            file.Seek (-0x13, SeekOrigin.End);
-            var key = file.ReadBytes (0x13);
+            var header = file.ReadHeader(0x14);
+            file.Seek(-0x13, SeekOrigin.End);
+            var key = file.ReadBytes(0x13);
             for (int i = 4; i < 0x14; i += 2)
             {
-                header[i]   ^= key[0x10];
-                header[i+1] ^= key[0x11];
+                header[i] ^= key[0x10];
+                header[i + 1] ^= key[0x11];
             }
             for (int i = 0; i < 0x10; ++i)
             {
-                header[i+4] -= key[i];
+                header[i + 4] -= key[i];
             }
-            return new GbpMetaData {
-                Width  = header.ToUInt16 (0xE),
-                Height = header.ToUInt16 (0x10),
-                BPP    = header.ToUInt16 (0x12),
-                HeaderSize = header.ToInt32 (4),
-                DataOffset = header.ToInt32 (8),
-                Method = header.ToUInt16 (0xC),
+            return new GbpMetaData
+            {
+                Width = header.ToUInt16(0xE),
+                Height = header.ToUInt16(0x10),
+                BPP = header.ToUInt16(0x12),
+                HeaderSize = header.ToInt32(4),
+                DataOffset = header.ToInt32(8),
+                Method = header.ToUInt16(0xC),
             };
             // 0x14 -> 32-bit checksum after encryption
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new GbpReader (file, (GbpMetaData)info);
+            var reader = new GbpReader(file, (GbpMetaData)info);
             var pixels = reader.Unpack();
-            return ImageData.Create (info, reader.Format, null, pixels);
+            return ImageData.Create(info, reader.Format, null, pixels);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("GbpFormat.Write not implemented");
+            throw new System.NotImplementedException("GbpFormat.Write not implemented");
         }
     }
 
     internal class GbpReader
     {
-        IBinaryStream   m_input;
-        GbpMetaData     m_info;
-        byte[]          m_output;
-        int             m_width;
-        int             m_height;
-        int             m_channels;
+        IBinaryStream m_input;
+        GbpMetaData m_info;
+        byte[] m_output;
+        int m_width;
+        int m_height;
+        int m_channels;
 
         public PixelFormat Format { get; private set; }
 
-        public GbpReader (IBinaryStream input, GbpMetaData info)
+        public GbpReader(IBinaryStream input, GbpMetaData info)
         {
             m_input = input;
             m_info = info;
@@ -107,11 +108,11 @@ namespace GameRes.Formats.Sviu
             m_height = (int)m_info.Height;
             m_output = new byte[4 * m_width * m_height];
             m_channels = m_info.BPP / 8;
-            bits_pos = new int[m_channels+1];
-            data_pos = new int[m_channels+1];
+            bits_pos = new int[m_channels + 1];
+            data_pos = new int[m_channels + 1];
         }
 
-        public byte[] Unpack ()
+        public byte[] Unpack()
         {
             ReadOffsetsTable();
             if (3 == m_info.Method)
@@ -121,33 +122,33 @@ namespace GameRes.Formats.Sviu
             return m_output;
         }
 
-        byte[]  m_frame = new byte[0x1000];
-        int[]   bits_pos;
-        int[]   data_pos;
+        byte[] m_frame = new byte[0x1000];
+        int[] bits_pos;
+        int[] data_pos;
 
-        void ReadOffsetsTable ()
+        void ReadOffsetsTable()
         {
             m_input.Position = m_info.HeaderSize;
             bits_pos[0] = m_info.HeaderSize + 4 * m_channels;
             for (int i = 0; i < m_channels; ++i)
             {
-                bits_pos[i+1] = bits_pos[i] + m_input.ReadInt32();
+                bits_pos[i + 1] = bits_pos[i] + m_input.ReadInt32();
             }
             m_input.Position = m_info.DataOffset;
             data_pos[0] = m_info.DataOffset + 4 * m_channels;
             for (int i = 0; i < m_channels; ++i)
             {
-                data_pos[i+1] = data_pos[i] + m_input.ReadInt32();
+                data_pos[i + 1] = data_pos[i] + m_input.ReadInt32();
             }
         }
 
-        void UnpackFlat ()
+        void UnpackFlat()
         {
             var channel = new byte[m_width * m_height];
             for (int i = 0; i < 3; ++i)
             {
                 m_input.Position = bits_pos[i];
-                var bits = m_input.ReadBytes (bits_pos[i+1] - bits_pos[i]);
+                var bits = m_input.ReadBytes(bits_pos[i + 1] - bits_pos[i]);
                 m_input.Position = data_pos[i];
                 if (1 == m_info.Method)
                 {
@@ -166,7 +167,7 @@ namespace GameRes.Formats.Sviu
                             int offset = m_input.ReadUInt16();
                             int count = (offset & 0xF) + 3;
                             offset = (offset >> 4) + 1;
-                            Binary.CopyOverlapped (channel, cdst - offset, cdst, count);
+                            Binary.CopyOverlapped(channel, cdst - offset, cdst, count);
                             cdst += count;
                         }
                         else
@@ -178,7 +179,7 @@ namespace GameRes.Formats.Sviu
                 }
                 else if (2 == m_info.Method)
                 {
-                    LzssUnpack (bits, 0, channel, channel.Length);
+                    LzssUnpack(bits, 0, channel, channel.Length);
                 }
                 int dst = i;
                 byte accum = 0;
@@ -201,7 +202,7 @@ namespace GameRes.Formats.Sviu
                     {
                         count += m_input.ReadUInt8();
                     }
-                    while (count --> 0)
+                    while (count-- > 0)
                     {
                         m_output[dst] = a;
                         dst += 4;
@@ -210,7 +211,7 @@ namespace GameRes.Formats.Sviu
             }
         }
 
-        void UnpackBlocks ()
+        void UnpackBlocks()
         {
             var channel = new byte[m_width * m_height];
             int stride = m_width * 4;
@@ -221,11 +222,11 @@ namespace GameRes.Formats.Sviu
                 int block_bits_length = m_input.ReadInt32();
                 int block_data_length = m_input.ReadInt32();
                 int chunk_count = m_input.ReadInt32();
-                var bits = m_input.ReadBytes (bits_pos[i+1] - bits_pos[i] - 12);
+                var bits = m_input.ReadBytes(bits_pos[i + 1] - bits_pos[i] - 12);
                 int bits_src = block_bits_length + block_data_length;
 
                 m_input.Position = data_pos[i];
-                LzssUnpack (bits, bits_src, channel, chunk_count);
+                LzssUnpack(bits, bits_src, channel, chunk_count);
 
                 int csrc = 0;
                 bits_src = 0;
@@ -234,11 +235,11 @@ namespace GameRes.Formats.Sviu
                 int bit_mask = 0x80;
                 for (int y = 0; y < m_height; y += 8)
                 {
-                    int block_height = Math.Min (8, m_height - y);
+                    int block_height = Math.Min(8, m_height - y);
                     int dst_block_x = dst_block;
                     for (int x = 0; x < m_width; x += 8)
                     {
-                        int block_width = Math.Min (8, m_width - x);
+                        int block_width = Math.Min(8, m_width - x);
                         if (0 == bit_mask)
                         {
                             bit_mask = 0x80;
@@ -280,7 +281,7 @@ namespace GameRes.Formats.Sviu
             }
         }
 
-        void LzssUnpack (byte[] ctl_bits, int bits_src, byte[] output, int output_length)
+        void LzssUnpack(byte[] ctl_bits, int bits_src, byte[] output, int output_length)
         {
             for (int j = 0; j < m_frame.Length; ++j)
                 m_frame[j] = 0;
@@ -299,7 +300,7 @@ namespace GameRes.Formats.Sviu
                     int offset = m_input.ReadUInt16();
                     int count = (offset & 0xF) + 3;
                     offset >>= 4;
-                    while (count --> 0)
+                    while (count-- > 0)
                     {
                         byte v = m_frame[offset++ & 0xFFF];
                         output[dst++] = m_frame[frame_pos++ & 0xFFF] = v;

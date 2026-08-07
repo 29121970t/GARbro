@@ -33,28 +33,28 @@ namespace GameRes.Formats.ShiinaRio
     [Export(typeof(AudioFormat))]
     public class PadAudio : AudioFormat
     {
-        public override string         Tag { get { return "PAD"; } }
+        public override string Tag { get { return "PAD"; } }
         public override string Description { get { return "ShiinaRio compressed audio format"; } }
-        public override uint     Signature { get { return 0x444150; } } // 'PAD'
-        
-        public override SoundInput TryOpen (IBinaryStream file)
+        public override uint Signature { get { return 0x444150; } } // 'PAD'
+
+        public override SoundInput TryOpen(IBinaryStream file)
         {
-            var wav_header = file.ReadHeader (0x2c).ToArray();
-            int pcm_size = LittleEndian.ToInt32 (wav_header, 0x28);
-            int channels = LittleEndian.ToUInt16 (wav_header, 0x16);
+            var wav_header = file.ReadHeader(0x2c).ToArray();
+            int pcm_size = LittleEndian.ToInt32(wav_header, 0x28);
+            int channels = LittleEndian.ToUInt16(wav_header, 0x16);
             wav_header[0] = (byte)'R';
             wav_header[1] = (byte)'I';
             wav_header[2] = (byte)'F';
             wav_header[3] = (byte)'F';
-            LittleEndian.Pack (pcm_size+0x24, wav_header, 4);
+            LittleEndian.Pack(pcm_size + 0x24, wav_header, 4);
 
-            var decoder = new PadDecoder (file.AsStream, pcm_size, channels);
+            var decoder = new PadDecoder(file.AsStream, pcm_size, channels);
             decoder.Unpack();
-            var data = new MemoryStream (decoder.Data, 0, pcm_size);
-            var wav = new PrefixStream (wav_header, data);
+            var data = new MemoryStream(decoder.Data, 0, pcm_size);
+            var wav = new PrefixStream(wav_header, data);
             try
             {
-                return new WaveInput (wav);
+                return new WaveInput(wav);
             }
             catch
             {
@@ -66,26 +66,26 @@ namespace GameRes.Formats.ShiinaRio
 
     internal class PadDecoder
     {
-        byte[]      m_input;
-        byte[]      m_output;
-        int         m_pcm_size;
-        int         m_packed_size;
-        int         m_channels;
+        byte[] m_input;
+        byte[] m_output;
+        int m_pcm_size;
+        int m_packed_size;
+        int m_channels;
 
         public byte[] Data { get { return m_output; } }
 
-        public PadDecoder (Stream input, int pcm_size, int channels)
+        public PadDecoder(Stream input, int pcm_size, int channels)
         {
             m_packed_size = (int)(input.Length - input.Position);
             m_pcm_size = pcm_size;
             m_channels = channels;
             m_output = new byte[pcm_size + 0x9c];
             m_input = new byte[m_packed_size];
-            if (m_packed_size != input.Read (m_input, 0, m_packed_size))
-                throw new InvalidFormatException ("Unexpected end of file");
+            if (m_packed_size != input.Read(m_input, 0, m_packed_size))
+                throw new InvalidFormatException("Unexpected end of file");
         }
 
-        public byte[] Unpack ()
+        public byte[] Unpack()
         {
             int v10;
             double v3 = 0;
@@ -112,16 +112,16 @@ namespace GameRes.Formats.ShiinaRio
                 int v9 = v7 & 0xF;
                 if (2 == m_channels)
                 {
-                    int next = m_input[src+1];
+                    int next = m_input[src + 1];
                     v10 = next & 0xF;
                     v30 = next >> 4;
-                    long v = BitConverter.DoubleToInt64Bits (table[12]) & 0xffffffffL;
-                    table[12] = BitConverter.Int64BitsToDouble (v | (long)v10 << 32);
+                    long v = BitConverter.DoubleToInt64Bits(table[12]) & 0xffffffffL;
+                    table[12] = BitConverter.Int64BitsToDouble(v | (long)v10 << 32);
                     src += 2;
                 }
                 else
                 {
-                    v10 = (int)(BitConverter.DoubleToInt64Bits (table[12]) >> 32);
+                    v10 = (int)(BitConverter.DoubleToInt64Bits(table[12]) >> 32);
                 }
                 int v12 = 14; // within table
                 for (int i = 0; i < 14; ++i)
@@ -161,14 +161,14 @@ namespace GameRes.Formats.ShiinaRio
                     v27 = table[0];
                     table[v12 - 28] += v22 + v27 * table[2 * v29 + 2];
                     table[0] = table[v12 - 28];
-                    LittleEndian.Pack ((short)(table[v12 - 28] + 0.5), m_output, dst);
+                    LittleEndian.Pack((short)(table[v12 - 28] + 0.5), m_output, dst);
                     dst += 2;
                     if (2 == m_channels)
                     {
                         table[v12] += v28 * table[2 * v30 + 3] + v3 * table[2 * v30 + 2];
                         v28 = v3;
                         v3 = table[v12];
-                        LittleEndian.Pack ((short)(table[v12] + 0.5), m_output, dst);
+                        LittleEndian.Pack((short)(table[v12] + 0.5), m_output, dst);
                         dst += 2;
                     }
                     ++v12;

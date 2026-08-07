@@ -38,49 +38,50 @@ namespace GameRes.Formats.Artel
     [Export(typeof(ImageFormat))]
     public class MrlFormat : ImageFormat
     {
-        public override string         Tag { get { return "MRL"; } }
+        public override string Tag { get { return "MRL"; } }
         public override string Description { get { return "Artel ADVG engine image format"; } }
-        public override uint     Signature { get { return 0x524D754D; } } // 'MuMRL'
+        public override uint Signature { get { return 0x524D754D; } } // 'MuMRL'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x18);
+            var header = file.ReadHeader(0x18);
             if (header[4] != 'L')
                 return null;
-            int bpp = header.ToUInt16 (0xC) * 8;
+            int bpp = header.ToUInt16(0xC) * 8;
             bool has_alpha = (header[8] & 8) != 0;
             if (24 == bpp && has_alpha)
                 bpp = 32;
-            return new MrlMetaData {
-                Width  = header.ToUInt32 (0x10),
-                Height = header.ToUInt32 (0x14),
-                BPP    = bpp,
+            return new MrlMetaData
+            {
+                Width = header.ToUInt32(0x10),
+                Height = header.ToUInt32(0x14),
+                BPP = bpp,
                 HasAlpha = has_alpha,
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
             var meta = (MrlMetaData)info;
             BitmapPalette palette = null;
             file.Position = 0x18;
             if (8 == info.BPP)
-                palette = ReadPalette (file.AsStream);
+                palette = ReadPalette(file.AsStream);
             int stride = info.iWidth * (info.BPP / 8);
             int channel_size = info.iWidth * info.iHeight;
             var pixels = new byte[stride * info.iHeight];
             var input_length = (int)(file.Length - file.Position);
-            var input = file.ReadBytes (input_length);
+            var input = file.ReadBytes(input_length);
 
-            DecryptInput (input, 8);
-            MrlDecompress (input, pixels);
-            RestoreOutput (pixels);
+            DecryptInput(input, 8);
+            MrlDecompress(input, pixels);
+            RestoreOutput(pixels);
 
             byte[] image;
             if (8 == info.BPP)
             {
                 if (!meta.HasAlpha)
-                    return ImageData.CreateFlipped (info, PixelFormats.Indexed8, palette, pixels, stride);
+                    return ImageData.CreateFlipped(info, PixelFormats.Indexed8, palette, pixels, stride);
                 stride = info.iWidth * 4;
                 image = new byte[stride * info.iHeight];
                 int src = 0;
@@ -89,10 +90,10 @@ namespace GameRes.Formats.Artel
                 for (int dst = 0; dst < image.Length; dst += 4)
                 {
                     byte c = pixels[src++];
-                    image[dst  ] = colors[c].B;
-                    image[dst+1] = colors[c].G;
-                    image[dst+2] = colors[c].R;
-                    image[dst+3] = pixels[asrc++];
+                    image[dst] = colors[c].B;
+                    image[dst + 1] = colors[c].G;
+                    image[dst + 2] = colors[c].R;
+                    image[dst + 3] = pixels[asrc++];
                 }
             }
             else
@@ -111,15 +112,15 @@ namespace GameRes.Formats.Artel
                 }
             }
             PixelFormat format = meta.HasAlpha ? PixelFormats.Bgra32 : PixelFormats.Bgr24;
-            return ImageData.CreateFlipped (info, format, palette, image, stride);
+            return ImageData.CreateFlipped(info, format, palette, image, stride);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("MrlFormat.Write not implemented");
+            throw new System.NotImplementedException("MrlFormat.Write not implemented");
         }
 
-        internal static void DecryptInput (byte[] data, byte key)
+        internal static void DecryptInput(byte[] data, byte key)
         {
             for (int i = 0; i < data.Length; ++i)
             {
@@ -127,7 +128,7 @@ namespace GameRes.Formats.Artel
             }
         }
 
-        internal static void MrlDecompress (byte[] input, byte[] output)
+        internal static void MrlDecompress(byte[] input, byte[] output)
         {
             int src = 0;
             int dst = 0;
@@ -152,7 +153,7 @@ namespace GameRes.Formats.Artel
             }
         }
 
-        internal static void RestoreOutput (byte[] data)
+        internal static void RestoreOutput(byte[] data)
         {
             byte key = data[0];
             for (int i = 1; i < data.Length; ++i)

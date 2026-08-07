@@ -33,119 +33,122 @@ namespace GameRes.Formats.LiveMaker
 {
     internal class GalXEntry : Entry
     {
-        public GalXMetaData     Info;
-        public XmlNode          Layers;
-        public bool             AlphaOn;
+        public GalXMetaData Info;
+        public XmlNode Layers;
+        public bool AlphaOn;
     }
 
     [Export(typeof(ArchiveFormat))]
     public class GalXOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "GAL/X"; } }
+        public override string Tag { get { return "GAL/X"; } }
         public override string Description { get { return "LiveMaker engine multi-frame image"; } }
-        public override uint     Signature { get { return 0x656C6147; } } // 'GaleX200'
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x656C6147; } } // 'GaleX200'
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            if (!file.View.AsciiEqual (4, "X200"))
+            if (!file.View.AsciiEqual(4, "X200"))
                 return null;
             using (var gal = file.CreateStream())
             {
-                var info = GalXFormat.ReadMetaData (gal) as GalXMetaData;
-                if (null == info || !IsSaneCount (info.FrameCount))
+                var info = GalXFormat.ReadMetaData(gal) as GalXMetaData;
+                if (null == info || !IsSaneCount(info.FrameCount))
                     return null;
-                var base_name = Path.GetFileNameWithoutExtension (file.Name);
+                var base_name = Path.GetFileNameWithoutExtension(file.Name);
                 gal.Position = info.DataOffset;
-                var dir = new List<Entry> (info.FrameCount);
-                foreach (XmlNode node in info.FrameXml.SelectNodes ("Frame"))
+                var dir = new List<Entry>(info.FrameCount);
+                foreach (XmlNode node in info.FrameXml.SelectNodes("Frame"))
                 {
-                    var layers = node.SelectSingleNode ("Layers");
-                    var entry = new GalXEntry {
-                        Name = string.Format ("{0}#{1:D4}", base_name, dir.Count),
+                    var layers = node.SelectSingleNode("Layers");
+                    var entry = new GalXEntry
+                    {
+                        Name = string.Format("{0}#{1:D4}", base_name, dir.Count),
                         Type = "image",
                         Offset = gal.Position,
                         Layers = layers,
                         Info = info,
                     };
-                    var nodes = layers.SelectNodes ("Layer");
+                    var nodes = layers.SelectNodes("Layer");
                     entry.AlphaOn = nodes.Count > 0 && nodes[0].Attributes["AlphaOn"].Value != "0";
                     foreach (XmlNode layer in nodes)
                     {
                         bool alpha_on = layer.Attributes["AlphaOn"].Value != "0";
                         uint layer_size = gal.ReadUInt32();
-                        gal.Seek (layer_size, SeekOrigin.Current);
+                        gal.Seek(layer_size, SeekOrigin.Current);
                         if (alpha_on)
                         {
                             uint alpha_size = gal.ReadUInt32();
-                            gal.Seek (alpha_size, SeekOrigin.Current);
+                            gal.Seek(alpha_size, SeekOrigin.Current);
                         }
                     }
                     entry.Size = (uint)(gal.Position - entry.Offset);
-                    dir.Add (entry);
+                    dir.Add(entry);
                 }
-                return new ArcFile (file, this, dir);
+                return new ArcFile(file, this, dir);
             }
         }
 
-        public override IImageDecoder OpenImage (ArcFile arc, Entry entry)
+        public override IImageDecoder OpenImage(ArcFile arc, Entry entry)
         {
             var galx = (GalXEntry)entry;
-            var input = arc.File.CreateStream (entry.Offset, entry.Size);
-            return new GalXDecoder (input, galx);
+            var input = arc.File.CreateStream(entry.Offset, entry.Size);
+            return new GalXDecoder(input, galx);
         }
 
-        static readonly ResourceInstance<GalXFormat> s_GalXFormat = new ResourceInstance<GalXFormat> ("GAL/X200");
+        static readonly ResourceInstance<GalXFormat> s_GalXFormat = new ResourceInstance<GalXFormat>("GAL/X200");
 
         GalXFormat GalXFormat { get { return s_GalXFormat.Value; } }
     }
 
     internal class GalXDecoder : GalXReader, IImageDecoder
     {
-        ImageData   m_image;
-        bool        m_alpha_on;
+        ImageData m_image;
+        bool m_alpha_on;
 
-        public Stream            Source { get { m_input.Position = 0; return m_input.AsStream; } }
+        public Stream Source { get { m_input.Position = 0; return m_input.AsStream; } }
         public ImageFormat SourceFormat { get { return null; } }
-        public ImageMetaData       Info { get { return m_info; } }
+        public ImageMetaData Info { get { return m_info; } }
 
-        public ImageData Image {
-            get {
+        public ImageData Image
+        {
+            get
+            {
                 if (null == m_image)
                 {
                     UnpackFrame();
-                    m_image = ImageData.Create (Info, Format, Palette, Data, Stride);
+                    m_image = ImageData.Create(Info, Format, Palette, Data, Stride);
                 }
                 return m_image;
             }
         }
 
-        public GalXDecoder (IBinaryStream input, GalXEntry entry) : base (input, entry.Info, 0)
+        public GalXDecoder(IBinaryStream input, GalXEntry entry) : base(input, entry.Info, 0)
         {
-            m_frames.Add (GetFrameFromLayers (entry.Layers));
+            m_frames.Add(GetFrameFromLayers(entry.Layers));
             m_alpha_on = entry.AlphaOn;
         }
 
-        internal void UnpackFrame ()
+        internal void UnpackFrame()
         {
             var frame = m_frames[0];
             frame.Layers.Clear();
             m_input.Position = 0;
             int layer_size = m_input.ReadInt32();
             var layer = new Layer();
-            layer.Pixels = UnpackLayer (frame, layer_size);
+            layer.Pixels = UnpackLayer(frame, layer_size);
             if (m_alpha_on)
             {
                 int alpha_size = m_input.ReadInt32();
-                layer.Alpha = UnpackLayer (frame, alpha_size, true);
+                layer.Alpha = UnpackLayer(frame, alpha_size, true);
             }
-            frame.Layers.Add (layer);
-            Flatten (0);
+            frame.Layers.Add(layer);
+            Flatten(0);
         }
 
         bool m_disposed = false;
-        protected override void Dispose (bool disposing)
+        protected override void Dispose(bool disposing)
         {
             if (disposing && !m_disposed)
             {

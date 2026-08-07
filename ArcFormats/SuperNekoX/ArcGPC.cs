@@ -35,55 +35,55 @@ namespace GameRes.Formats.SuperNekoX
     [Export(typeof(ArchiveFormat))]
     public class GpcOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "GPC7"; } }
+        public override string Tag { get { return "GPC7"; } }
         public override string Description { get { return "Super NekoX engine resource archive"; } }
-        public override uint     Signature { get { return 0x37637047; } } // 'Gpc7'
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x37637047; } } // 'Gpc7'
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public GpcOpener ()
+        public GpcOpener()
         {
             Extensions = new string[] { "gpc" };
         }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            int count = file.View.ReadInt32 (4);
-            if (!IsSaneCount (count))
+            int count = file.View.ReadInt32(4);
+            if (!IsSaneCount(count))
                 return null;
 
-            var base_name = Path.GetFileNameWithoutExtension (file.Name);
-            var dir = new List<Entry> (count);
+            var base_name = Path.GetFileNameWithoutExtension(file.Name);
+            var dir = new List<Entry>(count);
             int index_offset = 8;
             long data_offset = count * 4 + 8;
-            uint next_offset = file.View.ReadUInt32 (index_offset);
+            uint next_offset = file.View.ReadUInt32(index_offset);
             for (int i = 0; i < count; ++i)
             {
                 index_offset += 4;
                 var entry = new PackedEntry { Offset = next_offset };
-                next_offset = i + 1 < count ? file.View.ReadUInt32 (index_offset) : (uint)file.MaxOffset;
+                next_offset = i + 1 < count ? file.View.ReadUInt32(index_offset) : (uint)file.MaxOffset;
                 entry.Size = next_offset - (uint)entry.Offset;
-                if (entry.Offset < data_offset || !entry.CheckPlacement (file.MaxOffset))
+                if (entry.Offset < data_offset || !entry.CheckPlacement(file.MaxOffset))
                     return null;
-                entry.Name = string.Format ("{0}#{1:D4}", base_name, i);
-                dir.Add (entry);
+                entry.Name = string.Format("{0}#{1:D4}", base_name, i);
+                dir.Add(entry);
             }
-            DetectFileTypes (file, dir);
-            return new ArcFile (file, this, dir);
+            DetectFileTypes(file, dir);
+            return new ArcFile(file, this, dir);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var pent = entry as PackedEntry;
-            IBinaryStream input = arc.File.CreateStream (entry.Offset, entry.Size, entry.Name);
+            IBinaryStream input = arc.File.CreateStream(entry.Offset, entry.Size, entry.Name);
             if (null != pent && pent.IsPacked)
             {
                 IBinaryStream unpacked;
                 using (input)
                 {
                     var data = new byte[pent.UnpackedSize];
-                    UnpackEntry (input.AsStream, data);
-                    unpacked = new BinMemoryStream (data, entry.Name);
+                    UnpackEntry(input.AsStream, data);
+                    unpacked = new BinMemoryStream(data, entry.Name);
                 }
                 input = unpacked;
             }
@@ -91,13 +91,13 @@ namespace GameRes.Formats.SuperNekoX
             {
                 int unpacked_size = input.ReadUInt16();
                 int packed_size = input.ReadUInt16();
-                if (packed_size == input.Length-4)
+                if (packed_size == input.Length - 4)
                 {
                     using (input)
                     {
                         var data = new byte[unpacked_size];
-                        UnpackLz77 (input.AsStream, data);
-                        return new BinMemoryStream (data, entry.Name);
+                        UnpackLz77(input.AsStream, data);
+                        return new BinMemoryStream(data, entry.Name);
                     }
                 }
                 input.Position = 0;
@@ -105,7 +105,7 @@ namespace GameRes.Formats.SuperNekoX
             return input.AsStream;
         }
 
-        void DetectFileTypes (ArcView file, List<Entry> dir)
+        void DetectFileTypes(ArcView file, List<Entry> dir)
         {
             using (var input = file.CreateStream())
             {
@@ -130,8 +130,8 @@ namespace GameRes.Formats.SuperNekoX
                     uint signature;
                     if (entry.IsPacked)
                     {
-                        UnpackEntry (input, buffer);
-                        signature = LittleEndian.ToUInt32 (buffer, 0);
+                        UnpackEntry(input, buffer);
+                        signature = LittleEndian.ToUInt32(buffer, 0);
                     }
                     else
                         signature = input.ReadUInt32();
@@ -139,14 +139,14 @@ namespace GameRes.Formats.SuperNekoX
                     if (0x020000 == signature || 0x0A0000 == signature)
                         res = ImageFormat.Tga;
                     else
-                        res = AutoEntry.DetectFileType (signature);
+                        res = AutoEntry.DetectFileType(signature);
                     if (null != res)
-                        entry.ChangeType (res);
+                        entry.ChangeType(res);
                 }
             }
         }
 
-        void UnpackEntry (Stream input, byte[] output)
+        void UnpackEntry(Stream input, byte[] output)
         {
             int dst = 0;
             while (dst < output.Length)
@@ -177,13 +177,13 @@ namespace GameRes.Formats.SuperNekoX
                     else
                     {
                         offset = (ctl & 0x1F) << 8 | input.ReadByte();
-                        count  = input.ReadByte() << 24;
+                        count = input.ReadByte() << 24;
                         count |= input.ReadByte() << 16;
                         count |= input.ReadByte() << 8;
                         count |= input.ReadByte();
                     }
-                    count = Math.Min (count + 3, output.Length-dst);
-                    Binary.CopyOverlapped (output, dst-offset-1, dst, count);
+                    count = Math.Min(count + 3, output.Length - dst);
+                    Binary.CopyOverlapped(output, dst - offset - 1, dst, count);
                 }
                 else
                 {
@@ -197,25 +197,25 @@ namespace GameRes.Formats.SuperNekoX
                     }
                     else if (0x1E == ctl)
                     {
-                        count  = input.ReadByte() << 8;
+                        count = input.ReadByte() << 8;
                         count |= input.ReadByte();
                         count += 286;
                     }
                     else
                     {
-                        count  = input.ReadByte() << 24;
+                        count = input.ReadByte() << 24;
                         count |= input.ReadByte() << 16;
                         count |= input.ReadByte() << 8;
                         count |= input.ReadByte();
                     }
-                    count = Math.Min (count, output.Length-dst);
-                    input.Read (output, dst, count);
+                    count = Math.Min(count, output.Length - dst);
+                    input.ReadExactly(output, dst, count);
                 }
                 dst += count;
             }
         }
 
-        void UnpackLz77 (Stream input, byte[] output)
+        void UnpackLz77(Stream input, byte[] output)
         {
             int dst = 0;
             int mask = 0;
@@ -234,8 +234,8 @@ namespace GameRes.Formats.SuperNekoX
                 {
                     int count = input.ReadByte();
                     int offset = input.ReadByte() << 4 | count >> 4;
-                    count = Math.Min ((count & 0xf) + 3, output.Length - dst);
-                    Binary.CopyOverlapped (output, dst-offset-1, dst, count);
+                    count = Math.Min((count & 0xf) + 3, output.Length - dst);
+                    Binary.CopyOverlapped(output, dst - offset - 1, dst, count);
                     dst += count;
                 }
                 else

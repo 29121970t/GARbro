@@ -37,10 +37,10 @@ namespace GARbro.GUI
     /// </summary>
     public class ExtAutoCompleteBox : AutoCompleteBox
     {
-        public delegate void EnterKeyDownEvent (object sender, KeyEventArgs e);
+        public delegate void EnterKeyDownEvent(object sender, KeyEventArgs e);
         public event EnterKeyDownEvent EnterKeyDown;
 
-        public ExtAutoCompleteBox ()
+        public ExtAutoCompleteBox()
         {
             this.GotFocus += (s, e) => { IsTextBoxFocused = true; };
             this.LostFocus += (s, e) => { IsTextBoxFocused = false; };
@@ -48,40 +48,40 @@ namespace GARbro.GUI
 
         public bool IsTextBoxFocused
         {
-            get { return (bool)GetValue (HasFocusProperty); }
-            private set { SetValue (HasFocusProperty, value); }
+            get { return (bool)GetValue(HasFocusProperty); }
+            private set { SetValue(HasFocusProperty, value); }
         }
 
-        public static readonly DependencyProperty HasFocusProperty = 
-            DependencyProperty.RegisterAttached ("IsTextBoxFocused", typeof(bool), typeof(ExtAutoCompleteBox), new UIPropertyMetadata());
+        public static readonly DependencyProperty HasFocusProperty =
+            DependencyProperty.RegisterAttached("IsTextBoxFocused", typeof(bool), typeof(ExtAutoCompleteBox), new UIPropertyMetadata());
 
-        protected override void OnKeyDown (KeyEventArgs e)
+        protected override void OnKeyDown(KeyEventArgs e)
         {
-            base.OnKeyDown (e);
+            base.OnKeyDown(e);
             if (e.Key == Key.Enter)
-                RaiseEnterKeyDownEvent (e);
+                RaiseEnterKeyDownEvent(e);
         }
 
-        private void RaiseEnterKeyDownEvent (KeyEventArgs e)
+        private void RaiseEnterKeyDownEvent(KeyEventArgs e)
         {
             if (EnterKeyDown != null)
-                EnterKeyDown (this, e);
+                EnterKeyDown(this, e);
         }
 
-        protected override void OnPopulating (PopulatingEventArgs e)
+        protected override void OnPopulating(PopulatingEventArgs e)
         {
             try
             {
                 if (!GameRes.VFS.IsVirtual)
                 {
                     var candidates = new List<string>();
-                    string dirname = Path.GetDirectoryName (this.Text);
-                    if (!string.IsNullOrEmpty (dirname) && Directory.Exists (dirname))
+                    string dirname = Path.GetDirectoryName(this.Text);
+                    if (!string.IsNullOrEmpty(dirname) && Directory.Exists(dirname))
                     {
-                        foreach (var dir in Directory.GetDirectories (dirname))
+                        foreach (var dir in Directory.GetDirectories(dirname))
                         {
-                            if (dir.StartsWith (dirname, StringComparison.CurrentCultureIgnoreCase))
-                                candidates.Add (dir);
+                            if (dir.StartsWith(dirname, StringComparison.CurrentCultureIgnoreCase))
+                                candidates.Add(dir);
                         }
                     }
                     this.ItemsSource = candidates;
@@ -91,7 +91,7 @@ namespace GARbro.GUI
             {
                 // ignore filesystem errors
             }
-            base.OnPopulating (e);
+            base.OnPopulating(e);
         }
     }
 }

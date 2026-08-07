@@ -33,38 +33,39 @@ namespace GameRes.Formats.Tanuki
     [Export(typeof(ImageFormat))]
     public class AmapFormat : ImageFormat
     {
-        public override string         Tag { get { return "AMAP"; } }
+        public override string Tag { get { return "AMAP"; } }
         public override string Description { get { return "TanukiSoft bitmap format"; } }
-        public override uint     Signature { get { return 0x50414D41; } } // 'AMAP'
+        public override uint Signature { get { return 0x50414D41; } } // 'AMAP'
 
-        public AmapFormat ()
+        public AmapFormat()
         {
             Extensions = new[] { "af" };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x14);
-            return new ImageMetaData {
-                Width  = header.ToUInt16 (4),
-                Height = header.ToUInt16 (6),
-                BPP    = 8,
+            var header = file.ReadHeader(0x14);
+            return new ImageMetaData
+            {
+                Width = header.ToUInt16(4),
+                Height = header.ToUInt16(6),
+                BPP = 8,
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
             file.Position = 0x10;
-            var pixels = LzssUnpack (file);
-            return ImageData.Create (info, PixelFormats.Gray8, null, pixels);
+            var pixels = LzssUnpack(file);
+            return ImageData.Create(info, PixelFormats.Gray8, null, pixels);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("AmapFormat.Write not implemented");
+            throw new System.NotImplementedException("AmapFormat.Write not implemented");
         }
 
-        byte[] LzssUnpack (IBinaryStream input)
+        byte[] LzssUnpack(IBinaryStream input)
         {
             int unpacked_size = input.ReadInt32();
             var output = new byte[unpacked_size];

@@ -38,21 +38,21 @@ namespace GameRes.Formats
     [Export(typeof(AudioFormat))]
     public class WmaAudio : AudioFormat
     {
-        public override string         Tag { get { return "WMA"; } }
+        public override string Tag { get { return "WMA"; } }
         public override string Description { get { return "Windows Media Audio format"; } }
-        public override uint     Signature { get { return 0x75B22630; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x75B22630; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override SoundInput TryOpen (IBinaryStream file)
+        public override SoundInput TryOpen(IBinaryStream file)
         {
-            return new WmaInput (file.AsStream);
+            return new WmaInput(file.AsStream);
         }
     }
 
     public class WmaInput : SoundInput
     {
-        int                     m_bitrate;
-        MediaFoundationReader   m_reader;
+        int m_bitrate;
+        MediaFoundationReader m_reader;
 
         public override long Position
         {
@@ -69,34 +69,35 @@ namespace GameRes.Formats
 
         public override string SourceFormat { get { return "wma"; } }
 
-        public WmaInput (Stream file) : base (file)
+        public WmaInput(Stream file) : base(file)
         {
-            var reader = new CustomMediaFoundationReader (file);
+            var reader = new CustomMediaFoundationReader(file);
             if (reader.Duration != 0)
                 m_bitrate = (int)(file.Length * 80000000L / reader.Duration);
             else
                 m_bitrate = reader.WaveFormat.AverageBytesPerSecond * 8;
             m_reader = reader;
-            var format = new GameRes.WaveFormat {
-                FormatTag                = (ushort)m_reader.WaveFormat.Encoding,
-                Channels                 = (ushort)m_reader.WaveFormat.Channels,
-                SamplesPerSecond         = (uint)m_reader.WaveFormat.SampleRate,
-                BitsPerSample            = (ushort)m_reader.WaveFormat.BitsPerSample,
-                BlockAlign               = (ushort)m_reader.BlockAlign,
-                AverageBytesPerSecond    = (uint)m_reader.WaveFormat.AverageBytesPerSecond,
+            var format = new GameRes.WaveFormat
+            {
+                FormatTag = (ushort)m_reader.WaveFormat.Encoding,
+                Channels = (ushort)m_reader.WaveFormat.Channels,
+                SamplesPerSecond = (uint)m_reader.WaveFormat.SampleRate,
+                BitsPerSample = (ushort)m_reader.WaveFormat.BitsPerSample,
+                BlockAlign = (ushort)m_reader.BlockAlign,
+                AverageBytesPerSecond = (uint)m_reader.WaveFormat.AverageBytesPerSecond,
             };
             this.Format = format;
             this.PcmSize = m_reader.Length;
         }
 
-        public override int Read (byte[] buffer, int offset, int count)
+        public override int Read(byte[] buffer, int offset, int count)
         {
-            return m_reader.Read (buffer, offset, count);
+            return m_reader.Read(buffer, offset, count);
         }
 
         #region IDisposable Members
         bool _wma_disposed;
-        protected override void Dispose (bool disposing)
+        protected override void Dispose(bool disposing)
         {
             if (!_wma_disposed)
             {
@@ -105,7 +106,7 @@ namespace GameRes.Formats
                     m_reader.Dispose();
                 }
                 _wma_disposed = true;
-                base.Dispose (disposing);
+                base.Dispose(disposing);
             }
         }
         #endregion
@@ -122,37 +123,37 @@ namespace GameRes.Formats
         /// </summary>
         public long Duration { get; private set; }
 
-        public CustomMediaFoundationReader (Stream stream, MediaFoundationReaderSettings settings = null)
-            : base (stream, settings)
+        public CustomMediaFoundationReader(Stream stream, MediaFoundationReaderSettings settings = null)
+            : base(stream, settings)
         {
         }
 
-        protected override IMFSourceReader CreateReader (MediaFoundationReaderSettings settings)
+        protected override IMFSourceReader CreateReader(MediaFoundationReaderSettings settings)
         {
-            var source_reader = base.CreateReader (settings);
-            Duration = GetDuration (source_reader);
+            var source_reader = base.CreateReader(settings);
+            Duration = GetDuration(source_reader);
             return source_reader;
         }
 
-        private static long GetDuration (IMFSourceReader reader)
+        private static long GetDuration(IMFSourceReader reader)
         {
-            var variantPtr = Marshal.AllocHGlobal (MarshalHelpers.SizeOf<PropVariant>());
+            var variantPtr = Marshal.AllocHGlobal(MarshalHelpers.SizeOf<PropVariant>());
             try
             {
-                int hResult = reader.GetPresentationAttribute (MediaFoundationInterop.MF_SOURCE_READER_MEDIASOURCE,
+                int hResult = reader.GetPresentationAttribute(MediaFoundationInterop.MF_SOURCE_READER_MEDIASOURCE,
                     MediaFoundationAttributes.MF_PD_DURATION, variantPtr);
                 if (hResult == MediaFoundationErrors.MF_E_ATTRIBUTENOTFOUND)
                     return 0;
                 if (hResult != 0)
-                    Marshal.ThrowExceptionForHR (hResult);
+                    Marshal.ThrowExceptionForHR(hResult);
 
-                var variant = MarshalHelpers.PtrToStructure<PropVariant> (variantPtr);
+                var variant = MarshalHelpers.PtrToStructure<PropVariant>(variantPtr);
                 return (long)variant.Value;
             }
-            finally 
+            finally
             {
-                PropVariant.Clear (variantPtr);
-                Marshal.FreeHGlobal (variantPtr);
+                PropVariant.Clear(variantPtr);
+                Marshal.FreeHGlobal(variantPtr);
             }
         }
     }

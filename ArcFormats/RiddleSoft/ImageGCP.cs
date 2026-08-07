@@ -44,30 +44,30 @@ namespace GameRes.Formats.Riddle
     [Export(typeof(ImageFormat))]
     public class GcpFormat : ImageFormat
     {
-        public override string         Tag { get { return "GCP"; } }
+        public override string Tag { get { return "GCP"; } }
         public override string Description { get { return "Riddle Soft compressed bitmap"; } }
-        public override uint     Signature { get { return 0x31504d43u; } } // 'CMP1'
+        public override uint Signature { get { return 0x31504d43u; } } // 'CMP1'
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new NotImplementedException ("GcpFormat.Write not implemented");
+            throw new NotImplementedException("GcpFormat.Write not implemented");
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
-            var header = stream.ReadHeader (12);
-            int data_size = header.ToInt32 (4);
-            int pack_size = header.ToInt32 (8);
+            var header = stream.ReadHeader(12);
+            int data_size = header.ToInt32(4);
+            int pack_size = header.ToInt32(8);
             if (data_size < 54)
                 return null;
-            var reader = new CmpReader (stream.AsStream, pack_size, 0x22); // BMP header
+            var reader = new CmpReader(stream.AsStream, pack_size, 0x22); // BMP header
             reader.Unpack();
             var bmp = reader.Data;
             if (bmp[0] != 'B' || bmp[1] != 'M')
                 return null;
-            int width = LittleEndian.ToInt32 (bmp, 0x12);
-            int height = LittleEndian.ToInt32 (bmp, 0x16);
-            int bpp = LittleEndian.ToInt16 (bmp, 0x1c);
+            int width = LittleEndian.ToInt32(bmp, 0x12);
+            int height = LittleEndian.ToInt32(bmp, 0x16);
+            int bpp = LittleEndian.ToInt16(bmp, 0x1c);
             return new GcpMetaData
             {
                 Width = (uint)width,
@@ -78,11 +78,11 @@ namespace GameRes.Formats.Riddle
             };
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
             var meta = (GcpMetaData)info;
             stream.Position = 12;
-            var reader = new CmpReader (stream.AsStream, meta.PackedSize, meta.DataSize);
+            var reader = new CmpReader(stream.AsStream, meta.PackedSize, meta.DataSize);
             reader.Unpack();
             // 24bpp bitmaps have non-standard stride
             if (24 == meta.BPP && 0 != (meta.Width & 3)
@@ -90,37 +90,37 @@ namespace GameRes.Formats.Riddle
             {
                 int stride = (int)meta.Width * 3;
                 var pixels = new byte[stride * (int)meta.Height];
-                Buffer.BlockCopy (reader.Data, 54, pixels, 0, pixels.Length);
-                return ImageData.CreateFlipped (meta, PixelFormats.Bgr24, null, pixels, stride);
+                Buffer.BlockCopy(reader.Data, 54, pixels, 0, pixels.Length);
+                return ImageData.CreateFlipped(meta, PixelFormats.Bgr24, null, pixels, stride);
             }
-            using (var bmp = new MemoryStream (reader.Data))
+            using (var bmp = new MemoryStream(reader.Data))
             {
-                var decoder = new BmpBitmapDecoder (bmp,
+                var decoder = new BmpBitmapDecoder(bmp,
                     BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
                 BitmapSource frame = decoder.Frames[0];
                 frame.Freeze();
-                return new ImageData (frame, info);
+                return new ImageData(frame, info);
             }
         }
     }
 
     internal class CmpReader
     {
-        Stream          m_input;
-        byte[]          m_output;
-        int             m_src_count = 0;
-        int             m_src_total;
+        Stream m_input;
+        byte[] m_output;
+        int m_src_count = 0;
+        int m_src_total;
 
         public byte[] Data { get { return m_output; } }
 
-        public CmpReader (Stream file, int src_size, int dst_size)
+        public CmpReader(Stream file, int src_size, int dst_size)
         {
             m_input = file;
             m_output = new byte[dst_size];
             m_src_total = src_size;
         }
 
-        public void Unpack ()
+        public void Unpack()
         {
             int dst = 0;
             var shift = new byte[0x800];
@@ -129,12 +129,12 @@ namespace GameRes.Formats.Riddle
                 shift[i] = 0x20;
             while (dst < m_output.Length)
             {
-                int bit = GetBits (1);
+                int bit = GetBits(1);
                 if (-1 == bit)
                     break;
                 if (1 == bit)
                 {
-                    int data = GetBits (8);
+                    int data = GetBits(8);
                     if (-1 == data)
                         break;
                     m_output[dst++] = (byte)data;
@@ -143,10 +143,10 @@ namespace GameRes.Formats.Riddle
                 }
                 else
                 {
-                    int offset = GetBits (11); // [esp+10]
+                    int offset = GetBits(11); // [esp+10]
                     if (-1 == offset)
                         break;
-                    int count = GetBits (4);
+                    int count = GetBits(4);
                     if (-1 == count)
                         break;
                     count += 2;
@@ -166,7 +166,7 @@ namespace GameRes.Formats.Riddle
         int m_bits = 0;
         int m_cached_bits = 0;
 
-        int GetBits (int count)
+        int GetBits(int count)
         {
             while (m_cached_bits < count)
             {

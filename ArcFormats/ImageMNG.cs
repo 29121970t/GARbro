@@ -42,32 +42,32 @@ namespace GameRes.Formats
     [Export(typeof(ImageFormat))]
     public class MngFormat : ImageFormat
     {
-        public override string         Tag { get { return "MNG"; } }
+        public override string Tag { get { return "MNG"; } }
         public override string Description { get { return "Multiple-image Network Graphics"; } }
-        public override uint     Signature { get { return 0x474E4D8A; } }
+        public override uint Signature { get { return 0x474E4D8A; } }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (8);
-            if (!header.AsciiEqual (4, "\x0D\x0A\x1A\x0A"))
+            var header = file.ReadHeader(8);
+            if (!header.AsciiEqual(4, "\x0D\x0A\x1A\x0A"))
                 return null;
-            uint chunk_size = Binary.BigEndian (file.ReadUInt32());
-            var chunk_type = file.ReadBytes (4);
-            if (!chunk_type.AsciiEqual ("MHDR"))
+            uint chunk_size = Binary.BigEndian(file.ReadUInt32());
+            var chunk_type = file.ReadBytes(4);
+            if (!chunk_type.AsciiEqual("MHDR"))
                 return null;
             long chunk_pos = file.Position + chunk_size + 4;
             var info = new MngMetaData { BPP = 32 };
-            info.Width   = Binary.BigEndian (file.ReadUInt32());
-            info.Height  = Binary.BigEndian (file.ReadUInt32());
+            info.Width = Binary.BigEndian(file.ReadUInt32());
+            info.Height = Binary.BigEndian(file.ReadUInt32());
 
-            for (;;)
+            for (; ; )
             {
                 file.Position = chunk_pos;
-                chunk_size = Binary.BigEndian (file.ReadUInt32());
-                file.Read (chunk_type, 0, 4);
-                if (Binary.AsciiEqual (chunk_type, "MEND") || Binary.AsciiEqual (chunk_type, "IEND"))
+                chunk_size = Binary.BigEndian(file.ReadUInt32());
+                file.Read(chunk_type, 0, 4);
+                if (Binary.AsciiEqual(chunk_type, "MEND") || Binary.AsciiEqual(chunk_type, "IEND"))
                     break;
-                if (Binary.AsciiEqual (chunk_type, "IHDR"))
+                if (Binary.AsciiEqual(chunk_type, "IHDR"))
                 {
                     info.PngOffset = chunk_pos;
                     break;
@@ -79,42 +79,42 @@ namespace GameRes.Formats
             return info;
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
             var meta = (MngMetaData)info;
-            var body = new StreamRegion (file.AsStream, meta.PngOffset, true);
-            using (var png = new PrefixStream (PngFormat.HeaderBytes, body))
+            var body = new StreamRegion(file.AsStream, meta.PngOffset, true);
+            using (var png = new PrefixStream(PngFormat.HeaderBytes, body))
             {
-                var decoder = new PngBitmapDecoder (png, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+                var decoder = new PngBitmapDecoder(png, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
                 var frame = decoder.Frames[0];
                 frame.Freeze();
-                return new ImageData (frame, info);
+                return new ImageData(frame, info);
             }
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("MngFormat.Write not implemented");
+            throw new System.NotImplementedException("MngFormat.Write not implemented");
         }
     }
 
     [Export(typeof(ArchiveFormat))]
     public class MngOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "MNG"; } }
+        public override string Tag { get { return "MNG"; } }
         public override string Description { get { return "Multiple-image Network Graphics"; } }
-        public override uint     Signature { get { return 0x474E4D8A; } }
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x474E4D8A; } }
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
             using (var input = file.CreateStream())
             {
-                var info = MngFormat.ReadMetaData (input) as MngMetaData;
+                var info = MngFormat.ReadMetaData(input) as MngMetaData;
                 if (null == info)
                     return null;
-                var base_name = Path.GetFileNameWithoutExtension (file.Name);
+                var base_name = Path.GetFileNameWithoutExtension(file.Name);
                 long chunk_pos = info.PngOffset;
                 var chunk_type = new byte[4];
                 long ihdr_pos = 0;
@@ -122,75 +122,78 @@ namespace GameRes.Formats
                 while (chunk_pos < file.MaxOffset)
                 {
                     input.Position = chunk_pos;
-                    uint chunk_size = Binary.BigEndian (input.ReadUInt32());
-                    input.Read (chunk_type, 0, 4);
-                    if (Binary.AsciiEqual (chunk_type, "MEND"))
+                    uint chunk_size = Binary.BigEndian(input.ReadUInt32());
+                    input.ReadExactly(chunk_type, 0, 4);
+                    if (Binary.AsciiEqual(chunk_type, "MEND"))
                         break;
-                    if (Binary.AsciiEqual (chunk_type, "IHDR"))
+                    if (Binary.AsciiEqual(chunk_type, "IHDR"))
                     {
                         ihdr_pos = chunk_pos;
                     }
-                    else if (Binary.AsciiEqual (chunk_type, "IEND"))
+                    else if (Binary.AsciiEqual(chunk_type, "IEND"))
                     {
                         if (0 == ihdr_pos) // IEND chunk without corresponding IHDR
                             return null;
-                        var entry = new Entry {
-                            Name = string.Format ("{0}#{1:D2}.png", base_name, dir.Count),
+                        var entry = new Entry
+                        {
+                            Name = string.Format("{0}#{1:D2}.png", base_name, dir.Count),
                             Type = "image",
                             Offset = ihdr_pos,
                             Size = (uint)(chunk_pos + chunk_size + 12 - ihdr_pos),
                         };
-                        dir.Add (entry);
+                        dir.Add(entry);
                         ihdr_pos = 0;
                     }
                     chunk_pos += chunk_size + 12;
                 }
                 if (0 == dir.Count)
                     return null;
-                return new ArcFile (file, this, dir);
+                return new ArcFile(file, this, dir);
             }
         }
 
-        public override IImageDecoder OpenImage (ArcFile arc, Entry entry)
+        public override IImageDecoder OpenImage(ArcFile arc, Entry entry)
         {
-            var input = arc.File.CreateStream (entry.Offset, entry.Size);
-            return new MngFrameDecoder (input);
+            var input = arc.File.CreateStream(entry.Offset, entry.Size);
+            return new MngFrameDecoder(input);
         }
 
         ImageFormat MngFormat { get { return s_MngFormat.Value; } }
 
-        static readonly ResourceInstance<ImageFormat> s_MngFormat = new ResourceInstance<ImageFormat> ("MNG");
+        static readonly ResourceInstance<ImageFormat> s_MngFormat = new ResourceInstance<ImageFormat>("MNG");
     }
 
     internal sealed class MngFrameDecoder : IImageDecoder
     {
-        IBinaryStream       m_input;
-        ImageData           m_image;
+        IBinaryStream m_input;
+        ImageData m_image;
 
-        public Stream            Source { get { m_input.Position = 0; return m_input.AsStream; } }
+        public Stream Source { get { m_input.Position = 0; return m_input.AsStream; } }
         public ImageFormat SourceFormat { get { return ImageFormat.Png; } }
-        public ImageMetaData       Info { get; private set; }
+        public ImageMetaData Info { get; private set; }
 
-        public ImageData          Image {
-            get {
+        public ImageData Image
+        {
+            get
+            {
                 if (null == m_image)
                 {
-                    var decoder = new PngBitmapDecoder (Source, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+                    var decoder = new PngBitmapDecoder(Source, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
                     var frame = decoder.Frames[0];
                     frame.Freeze();
-                    m_image = new ImageData (frame, Info);
+                    m_image = new ImageData(frame, Info);
                 }
                 return m_image;
             }
         }
 
-        public MngFrameDecoder (IBinaryStream input)
+        public MngFrameDecoder(IBinaryStream input)
         {
-            var png = new PrefixStream (PngFormat.HeaderBytes, input.AsStream);
-            m_input = new BinaryStream (png, input.Name);
+            var png = new PrefixStream(PngFormat.HeaderBytes, input.AsStream);
+            m_input = new BinaryStream(png, input.Name);
             try
             {
-                Info = ImageFormat.Png.ReadMetaData (m_input);
+                Info = ImageFormat.Png.ReadMetaData(m_input);
                 if (null == Info)
                     throw new InvalidFormatException();
             }
@@ -203,7 +206,7 @@ namespace GameRes.Formats
 
         #region IDisposable members
         bool m_disposed = false;
-        public void Dispose ()
+        public void Dispose()
         {
             if (!m_disposed)
             {

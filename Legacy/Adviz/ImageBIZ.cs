@@ -37,80 +37,81 @@ namespace GameRes.Formats.Adviz
     [Export(typeof(ImageFormat))]
     public class BizFormat : ImageFormat
     {
-        public override string         Tag => "BIZ";
+        public override string Tag => "BIZ";
         public override string Description => "ADVIZ engine image format";
-        public override uint     Signature => 0;
+        public override uint Signature => 0;
 
         const byte DefaultKey = 0x39;
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            if (!file.Name.HasExtension (".BIZ"))
+            if (!file.Name.HasExtension(".BIZ"))
                 return null;
-            var header = file.ReadHeader (4);
-            uint width  = header.ToUInt16 (0);
-            uint height = header.ToUInt16 (2);
+            var header = file.ReadHeader(4);
+            uint width = header.ToUInt16(0);
+            uint height = header.ToUInt16(2);
             if (width * height + 4 != file.Length)
                 return null;
-            return new ImageMetaData {
+            return new ImageMetaData
+            {
                 Width = width,
                 Height = height,
                 BPP = 8,
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var palette = ReadPalette (file.Name, 0x300, (pal, off) => ReadPalette (pal, off, 0x100, PaletteFormat.Rgb));
+            var palette = ReadPalette(file.Name, 0x300, (pal, off) => ReadPalette(pal, off, 0x100, PaletteFormat.Rgb));
             if (null == palette)
-                throw new FileNotFoundException ("Unable to retrieve palette.");
+                throw new FileNotFoundException("Unable to retrieve palette.");
             file.Position = 4;
-            var pixels = file.ReadBytes (info.iWidth * info.iHeight);
+            var pixels = file.ReadBytes(info.iWidth * info.iHeight);
             byte key = DefaultKey;
             for (int i = 0; i < pixels.Length; ++i)
             {
                 pixels[i] ^= key;
                 key += pixels[i];
             }
-            return ImageData.CreateFlipped (info, PixelFormats.Indexed8, palette, pixels, info.iWidth);
+            return ImageData.CreateFlipped(info, PixelFormats.Indexed8, palette, pixels, info.iWidth);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("BizFormat.Write not implemented");
+            throw new System.NotImplementedException("BizFormat.Write not implemented");
         }
 
-        internal delegate BitmapPalette PaletteReader (ArcView file, int offset);
+        internal delegate BitmapPalette PaletteReader(ArcView file, int offset);
 
-        static readonly Regex TachieRe = new Regex (@"^(T[^._]+_)[2-9][^.]*\.GIZ$", RegexOptions.Compiled);
+        static readonly Regex TachieRe = new Regex(@"^(T[^._]+_)[2-9][^.]*\.GIZ$", RegexOptions.Compiled);
 
-        internal static BitmapPalette ReadPalette (string base_name, int pal_size, PaletteReader read_pal)
+        internal static BitmapPalette ReadPalette(string base_name, int pal_size, PaletteReader read_pal)
         {
-            var dir_name = Path.GetDirectoryName (base_name);
-            var grp_tbl_name = Path.Combine (dir_name, @"..\GRP_TBL.SYS");
-            var plt_tbl_name = Path.Combine (dir_name, @"..\PLT_TBL.SYS");
-            if (!File.Exists (grp_tbl_name) || !File.Exists (plt_tbl_name))
+            var dir_name = Path.GetDirectoryName(base_name);
+            var grp_tbl_name = Path.Combine(dir_name, @"..\GRP_TBL.SYS");
+            var plt_tbl_name = Path.Combine(dir_name, @"..\PLT_TBL.SYS");
+            if (!File.Exists(grp_tbl_name) || !File.Exists(plt_tbl_name))
                 return null;
             int index = 0;
             uint grp_size = 0;
-            base_name = Path.GetFileName (base_name).ToUpperInvariant();
+            base_name = Path.GetFileName(base_name).ToUpperInvariant();
             var name = base_name;
-            var ext  = Path.GetExtension (name).TrimStart('.');
-            var match = TachieRe.Match (name);
+            var ext = Path.GetExtension(name).TrimStart('.');
+            var match = TachieRe.Match(name);
             if (match.Success)
                 name = match.Groups[1].Value + "1";
             else
-                name = Path.GetFileNameWithoutExtension (name);
+                name = Path.GetFileNameWithoutExtension(name);
             if (name.Length < 8)
                 name += ' ';
-            using (var grp = new ArcView (grp_tbl_name))
+            using (var grp = new ArcView(grp_tbl_name))
             {
                 grp_size = (uint)grp.MaxOffset;
                 int pos = 0;
                 while (pos + 12 <= grp.MaxOffset)
                 {
-                    if (grp.View.AsciiEqual (pos, name) &&
-                        grp.View.AsciiEqual (pos+8, ext))
+                    if (grp.View.AsciiEqual(pos, name) &&
+                        grp.View.AsciiEqual(pos + 8, ext))
                     {
                         break;
                     }
@@ -120,21 +121,21 @@ namespace GameRes.Formats.Adviz
                 if (pos >= grp.MaxOffset)
                     return null;
             }
-            using (var pal = new ArcView (plt_tbl_name))
+            using (var pal = new ArcView(plt_tbl_name))
             {
                 uint plt_size = (uint)pal.MaxOffset;
-                var id = new GrpIdentifier (grp_size, plt_size);
+                var id = new GrpIdentifier(grp_size, plt_size);
                 IGrpMapper mapper;
-                if (!GrpMap.TryGetValue (id, out mapper))
+                if (!GrpMap.TryGetValue(id, out mapper))
                     mapper = new DirectMapper();
-                index = mapper.GetPaletteIndex (index, base_name);
+                index = mapper.GetPaletteIndex(index, base_name);
                 int pal_offset = index * pal_size;
                 if (pal_offset + pal_size > pal.MaxOffset)
                 {
                     int count = (int)(pal.MaxOffset / pal_size) - 1;
                     pal_offset = count * pal_size;
                 }
-                return read_pal (pal, pal_offset);
+                return read_pal(pal, pal_offset);
             }
         }
 
@@ -300,21 +301,21 @@ namespace GameRes.Formats.Adviz
 
     public struct GrpIdentifier
     {
-        public  uint    GrpSize;
-        public  uint    PltSize;
+        public uint GrpSize;
+        public uint PltSize;
 
-        public GrpIdentifier (uint grp_size, uint plt_size)
+        public GrpIdentifier(uint grp_size, uint plt_size)
         {
             GrpSize = grp_size;
             PltSize = plt_size;
         }
 
-        public override int GetHashCode ()
+        public override int GetHashCode()
         {
             return (int)((GrpSize + 1) * (PltSize + 1));
         }
 
-        public override bool Equals (object obj)
+        public override bool Equals(object obj)
         {
             if (null == obj)
                 return false;
@@ -325,12 +326,12 @@ namespace GameRes.Formats.Adviz
 
     internal interface IGrpMapper
     {
-        int GetPaletteIndex (int id, string name);
+        int GetPaletteIndex(int id, string name);
     }
 
     internal class DirectMapper : IGrpMapper
     {
-        public int GetPaletteIndex (int id, string name)
+        public int GetPaletteIndex(int id, string name)
         {
             return id;
         }
@@ -340,12 +341,12 @@ namespace GameRes.Formats.Adviz
     {
         int m_shift;
 
-        public GrpShiftMapper (int shift)
+        public GrpShiftMapper(int shift)
         {
             m_shift = shift;
         }
 
-        public int GetPaletteIndex (int id, string name)
+        public int GetPaletteIndex(int id, string name)
         {
             return id + m_shift;
         }
@@ -355,10 +356,10 @@ namespace GameRes.Formats.Adviz
     {
         public Dictionary<string, int> NameMap;
 
-        public int GetPaletteIndex (int id, string name)
+        public int GetPaletteIndex(int id, string name)
         {
             int index;
-            if (NameMap.TryGetValue (name, out index))
+            if (NameMap.TryGetValue(name, out index))
                 return index;
             return id;
         }

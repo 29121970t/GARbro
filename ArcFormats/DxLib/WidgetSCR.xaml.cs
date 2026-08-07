@@ -14,7 +14,7 @@ namespace GameRes.Formats.GUI
         {
             InitializeComponent();
             var keys = new string[] { arcStrings.ArcIgnoreEncryption };
-            ScriptScheme.ItemsSource = keys.Concat (MedOpener.KnownSchemes.Keys.OrderBy (x => x));
+            ScriptScheme.ItemsSource = keys.Concat(MedOpener.KnownSchemes.Keys.OrderBy(x => x));
             if (-1 == ScriptScheme.SelectedIndex)
                 ScriptScheme.SelectedIndex = 0;
         }

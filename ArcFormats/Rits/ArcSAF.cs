@@ -38,8 +38,8 @@ namespace GameRes.Formats.Rits
 
         public bool LzssCompression { get { return (Version & 2) != 0; } }
 
-        public SafArchive (ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, int version)
-            : base (arc, impl, dir)
+        public SafArchive(ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, int version)
+            : base(arc, impl, dir)
         {
             Version = version;
         }
@@ -48,73 +48,73 @@ namespace GameRes.Formats.Rits
     [Export(typeof(ArchiveFormat))]
     public class SafOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "SAF"; } }
+        public override string Tag { get { return "SAF"; } }
         public override string Description { get { return "Rit's resource archive"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool  IsHierarchic { get { return true; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool IsHierarchic { get { return true; } }
+        public override bool CanWrite { get { return false; } }
 
         const byte DefaultKey5 = 0xDF;
         const byte DefaultKey6 = 0xEF;
 
-        public SafOpener ()
+        public SafOpener()
         {
             ContainedFormats = new[] { "HBM", "BMP", "PNG", "WAV", "OGG", "TXT" };
         }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            int id = file.View.ReadInt16 (0);
-            int count = file.View.ReadInt16 (2);
-            if (!IsSaneCount (count))
+            int id = file.View.ReadInt16(0);
+            int count = file.View.ReadInt16(2);
+            if (!IsSaneCount(count))
                 return null;
             IIndexReader reader;
             if ((id & 0xFF00) == 0x500)
             {
                 var index_buffer = new byte[32 * count];
-                if (index_buffer.Length != file.View.Read (4, index_buffer, 0, (uint)index_buffer.Length))
+                if (index_buffer.Length != file.View.Read(4, index_buffer, 0, (uint)index_buffer.Length))
                     return null;
                 if (0x501 == id)
-                    DecryptIndex (index_buffer, count, DefaultKey5);
-                reader = new SafIndexReader5 (this, index_buffer, count);
+                    DecryptIndex(index_buffer, count, DefaultKey5);
+                reader = new SafIndexReader5(this, index_buffer, count);
             }
             else if ((id & 0xFF00) == 0x600)
             {
-                int names_length = file.View.ReadInt32 (4);
+                int names_length = file.View.ReadInt32(4);
                 if (names_length <= 0 || names_length >= file.MaxOffset)
                     return null;
                 uint index_size = (uint)count * 16;
-                var index_buffer = file.View.ReadBytes (8, index_size);
-                var names_buffer = file.View.ReadBytes (8 + index_size, (uint)names_length);
+                var index_buffer = file.View.ReadBytes(8, index_size);
+                var names_buffer = file.View.ReadBytes(8 + index_size, (uint)names_length);
                 if ((id & 1) != 0)
                 {
-                    DecryptIndexV6 (index_buffer, count, DefaultKey6);
-                    DecryptNames (names_buffer, names_length);
+                    DecryptIndexV6(index_buffer, count, DefaultKey6);
+                    DecryptNames(names_buffer, names_length);
                 }
-                reader = new SafIndexReader6 (this, index_buffer, names_buffer, count);
+                reader = new SafIndexReader6(this, index_buffer, names_buffer, count);
             }
             else
                 return null;
             var dir = reader.Scan();
-            if (0 == dir.Count || dir.Any (e => !e.CheckPlacement (file.MaxOffset)))
+            if (0 == dir.Count || dir.Any(e => !e.CheckPlacement(file.MaxOffset)))
                 return null;
-            return new SafArchive (file, this, dir, id);
+            return new SafArchive(file, this, dir, id);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
-            var input = arc.File.CreateStream (entry.Offset, entry.Size, entry.Name);
+            var input = arc.File.CreateStream(entry.Offset, entry.Size, entry.Name);
             var packed_entry = entry as PackedEntry;
             if (null == packed_entry || !packed_entry.IsPacked)
                 return input;
             var sarc = arc as SafArchive;
             if (null == sarc || !sarc.LzssCompression)
-                return new ZLibStream (input, CompressionMode.Decompress);
+                return new ZLibStream(input, CompressionMode.Decompress);
             else
-                return new LzssStream (input);
+                return new LzssStream(input);
         }
 
-        void DecryptIndex (byte[] index, int count, byte start_key)
+        void DecryptIndex(byte[] index, int count, byte start_key)
         {
             int offset = 0;
             for (int i = 0; i < count; ++i)
@@ -127,7 +127,7 @@ namespace GameRes.Formats.Rits
             }
         }
 
-        void DecryptIndexV6 (byte[] index, int count, byte start_key)
+        void DecryptIndexV6(byte[] index, int count, byte start_key)
         {
             int offset = 0;
             for (int i = 0; i < count; ++i)
@@ -140,7 +140,7 @@ namespace GameRes.Formats.Rits
             }
         }
 
-        void DecryptNames (byte[] data, int count)
+        void DecryptNames(byte[] data, int count)
         {
             byte key = 0xFF;
             for (int i = 0; i < count; ++i)
@@ -152,39 +152,39 @@ namespace GameRes.Formats.Rits
 
     internal interface IIndexReader
     {
-        List<Entry> Scan ();
+        List<Entry> Scan();
     }
 
     internal class SafIndexReader5 : IIndexReader
     {
-        private     ArchiveFormat   m_saf;
-        protected   byte[]      m_index;
-        protected   int         m_count;
-        private     List<Entry> m_dir;
+        private ArchiveFormat m_saf;
+        protected byte[] m_index;
+        protected int m_count;
+        private List<Entry> m_dir;
 
-        protected   int         EntrySize   = 0x20;
-        protected   int         OffsetPos   = 0x14;
-        protected   int         SizePos     = 0x18;
-        protected   int         UnpackedPos = 0x1C;
-        protected   int         DirIndexPos = 0x14;
-        protected   int         DirCountPos = 0x1C;
+        protected int EntrySize = 0x20;
+        protected int OffsetPos = 0x14;
+        protected int SizePos = 0x18;
+        protected int UnpackedPos = 0x1C;
+        protected int DirIndexPos = 0x14;
+        protected int DirCountPos = 0x1C;
 
         bool m_ignore_dirs = false;
 
-        public SafIndexReader5 (ArchiveFormat saf, byte[] index, int count)
+        public SafIndexReader5(ArchiveFormat saf, byte[] index, int count)
         {
             m_saf = saf;
             m_index = index;
             m_count = count;
-            m_dir = new List<Entry> (count);
+            m_dir = new List<Entry>(count);
         }
 
-        public List<Entry> Scan ()
+        public List<Entry> Scan()
         {
             string root_name;
             int root_index;
             int root_count;
-            if (!IsDir (0))
+            if (!IsDir(0))
             {
                 root_name = "";
                 root_index = 0;
@@ -193,88 +193,88 @@ namespace GameRes.Formats.Rits
             }
             else
             {
-                root_name = ReadName (0);
+                root_name = ReadName(0);
                 if ("root" == root_name)
                 {
                     root_name = "";
                 }
-                root_index = m_index.ToInt32 (DirIndexPos);
-                root_count = m_index.ToInt32 (DirCountPos);
+                root_index = m_index.ToInt32(DirIndexPos);
+                root_count = m_index.ToInt32(DirCountPos);
             }
-            ReadDir (root_name, root_index, root_count);
+            ReadDir(root_name, root_index, root_count);
             return m_dir;
         }
 
-        void ReadDir (string dir_name, int index, int count)
+        void ReadDir(string dir_name, int index, int count)
         {
             if (index + count > m_count)
                 throw new InvalidFormatException();
             int index_offset = index * EntrySize;
             for (int i = 0; i < count; ++i, index_offset += EntrySize)
             {
-                if (IsDir (index_offset))
+                if (IsDir(index_offset))
                 {
                     if (m_ignore_dirs)
                         continue;
-                    int subdir_index = m_index.ToInt32 (index_offset + DirIndexPos);
+                    int subdir_index = m_index.ToInt32(index_offset + DirIndexPos);
                     if (subdir_index < index + count)
                         continue;
-                    var subdir_name = ReadName (index_offset);
-                    int subdir_count = m_index.ToInt32 (index_offset + DirCountPos);
-                    ReadDir (Path.Combine (dir_name, subdir_name), subdir_index, subdir_count);
+                    var subdir_name = ReadName(index_offset);
+                    int subdir_count = m_index.ToInt32(index_offset + DirCountPos);
+                    ReadDir(Path.Combine(dir_name, subdir_name), subdir_index, subdir_count);
                 }
                 else
                 {
-                    var name = ReadName (index_offset);
-                    name = Path.Combine (dir_name, name);
-                    var entry = m_saf.Create<PackedEntry> (name);
-                    entry.Offset = (long)m_index.ToUInt32 (index_offset+OffsetPos) << 11;
-                    entry.Size   = m_index.ToUInt32 (index_offset+SizePos);
-                    entry.UnpackedSize = m_index.ToUInt32 (index_offset+UnpackedPos);
+                    var name = ReadName(index_offset);
+                    name = Path.Combine(dir_name, name);
+                    var entry = m_saf.Create<PackedEntry>(name);
+                    entry.Offset = (long)m_index.ToUInt32(index_offset + OffsetPos) << 11;
+                    entry.Size = m_index.ToUInt32(index_offset + SizePos);
+                    entry.UnpackedSize = m_index.ToUInt32(index_offset + UnpackedPos);
                     entry.IsPacked = entry.UnpackedSize != 0;
-                    m_dir.Add (entry);
+                    m_dir.Add(entry);
                 }
             }
         }
 
-        protected virtual bool IsDir (int pos)
+        protected virtual bool IsDir(int pos)
         {
             return m_index[pos] > 0x7F;
         }
 
-        protected virtual string ReadName (int pos)
+        protected virtual string ReadName(int pos)
         {
             m_index[pos] &= 0x7F;
-            string name = Encodings.cp932.GetString (m_index, pos, 0x14);
+            string name = Encodings.cp932.GetString(m_index, pos, 0x14);
             return name.TrimEnd();
         }
     }
 
     internal class SafIndexReader6 : SafIndexReader5
     {
-        byte[]  m_names;
+        byte[] m_names;
 
-        public SafIndexReader6 (ArchiveFormat saf, byte[] index, byte[] names, int count) : base (saf, index, count)
+        public SafIndexReader6(ArchiveFormat saf, byte[] index, byte[] names, int count) : base(saf, index, count)
         {
             m_names = names;
 
-            EntrySize   = 16;
-            OffsetPos   = 4;
-            SizePos     = 8;
+            EntrySize = 16;
+            OffsetPos = 4;
+            SizePos = 8;
             UnpackedPos = 12;
             DirIndexPos = 4;
             DirCountPos = 12;
         }
 
-        protected override bool IsDir (int pos)
+        protected override bool IsDir(int pos)
         {
-            return m_index[pos+3] > 0x7F;
+            return m_index[pos + 3] > 0x7F;
         }
 
-        protected override string ReadName (int offset)
+        protected override string ReadName(int offset)
         {
-            int name_pos = m_index.ToInt32 (offset) & 0x7FFFFFFF;
-            return Binary.GetCString (m_names, name_pos);
+            int name_pos = m_index.ToInt32(offset) & 0x7FFFFFFF;
+            return Binary.GetCString(m_names, name_pos);
         }
     }
 

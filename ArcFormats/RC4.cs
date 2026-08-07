@@ -11,18 +11,18 @@ namespace GameRes.Cryptography
     {
         private const int StateLength = 256;
         private const int BlockSize = 1;
-        private byte[]	m_state;
-        private int		m_x;
-        private int		m_y;
+        private byte[] m_state;
+        private int m_x;
+        private int m_y;
 
-        public bool          CanReuseTransform { get { return false; } }
+        public bool CanReuseTransform { get { return false; } }
         public bool CanTransformMultipleBlocks { get { return true; } }
-        public int              InputBlockSize { get { return BlockSize; } }
-        public int             OutputBlockSize { get { return BlockSize; } }
+        public int InputBlockSize { get { return BlockSize; } }
+        public int OutputBlockSize { get { return BlockSize; } }
 
-        public byte[]                    State { get { return m_state; } }
+        public byte[] State { get { return m_state; } }
 
-        public Rc4Transform (byte[] key)
+        public Rc4Transform(byte[] key)
         {
             m_x = 0;
             m_y = 0;
@@ -43,7 +43,7 @@ namespace GameRes.Cryptography
             }
         }
 
-        public byte NextByte ()
+        public byte NextByte()
         {
             m_x = (m_x + 1) & 0xFF;
             byte a = m_state[m_x];
@@ -54,7 +54,7 @@ namespace GameRes.Cryptography
             return m_state[(a + b) & 0xFF];
         }
 
-        public byte[] GenerateBlock (int length)
+        public byte[] GenerateBlock(int length)
         {
             var block = new byte[length];
             for (int i = 0; i < block.Length; ++i)
@@ -62,25 +62,25 @@ namespace GameRes.Cryptography
             return block;
         }
 
-        public int TransformBlock (byte[] inBuf, int inOffset, int inCount, byte[] outBuf, int outOffset)
+        public int TransformBlock(byte[] inBuf, int inOffset, int inCount, byte[] outBuf, int outOffset)
         {
             for (int i = 0; i < inCount; i++)
             {
-                outBuf[i+outOffset] = (byte)(inBuf[i + inOffset] ^ NextByte());
+                outBuf[i + outOffset] = (byte)(inBuf[i + inOffset] ^ NextByte());
             }
             return inCount;
         }
 
-        public byte[] TransformFinalBlock (byte[] inBuf, int inOffset, int inCount)
+        public byte[] TransformFinalBlock(byte[] inBuf, int inOffset, int inCount)
         {
             byte[] output = new byte[inCount];
-            TransformBlock (inBuf, inOffset, inCount, output, 0);
+            TransformBlock(inBuf, inOffset, inCount, output, 0);
             return output;
         }
 
-        public void Dispose ()
+        public void Dispose()
         {
-            System.GC.SuppressFinalize (this);
+            System.GC.SuppressFinalize(this);
         }
     }
 }

@@ -35,30 +35,30 @@ namespace GameRes.Formats.Mapl
 {
     internal class Mi2MetaData : ImageMetaData
     {
-        public int  Colors;
+        public int Colors;
     }
 
     [Export(typeof(ImageFormat))]
     public class Mi2Format : ImageFormat
     {
-        public override string         Tag => "MI2";
+        public override string Tag => "MI2";
         public override string Description => "Mapl engine image format";
-        public override uint     Signature => 0x28;
+        public override uint Signature => 0x28;
 
-        public Mi2Format ()
+        public Mi2Format()
         {
             Extensions = new[] { "mi2", "fcg" };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x28); // BITMAPINFOHEADER
-            int bpp = header.ToUInt16 (0xE);
+            var header = file.ReadHeader(0x28); // BITMAPINFOHEADER
+            int bpp = header.ToUInt16(0xE);
             if (bpp != 8 && bpp != 24)
                 return null;
-            uint width  = header.ToUInt32 (4);
-            uint height = header.ToUInt32 (8);
-            int colors = header.ToInt32 (0x20);
+            uint width = header.ToUInt32(4);
+            uint height = header.ToUInt32(8);
+            int colors = header.ToInt32(0x20);
             if (8 == bpp)
             {
                 if (colors < 0 || colors > 0x100)
@@ -66,7 +66,8 @@ namespace GameRes.Formats.Mapl
                 if (0 == colors)
                     colors = 0x100;
             }
-            return new Mi2MetaData {
+            return new Mi2MetaData
+            {
                 Width = width,
                 Height = height,
                 BPP = bpp,
@@ -74,24 +75,24 @@ namespace GameRes.Formats.Mapl
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new Mi2Reader (file, (Mi2MetaData)info);
+            var reader = new Mi2Reader(file, (Mi2MetaData)info);
             return reader.Unpack();
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("Mi2Format.Write not implemented");
+            throw new System.NotImplementedException("Mi2Format.Write not implemented");
         }
     }
 
     internal class Mi2Reader
     {
-        IBinaryStream   m_input;
-        Mi2MetaData     m_info;
+        IBinaryStream m_input;
+        Mi2MetaData m_info;
 
-        public Mi2Reader (IBinaryStream file, Mi2MetaData info)
+        public Mi2Reader(IBinaryStream file, Mi2MetaData info)
         {
             m_input = file;
             m_info = info;
@@ -105,7 +106,7 @@ namespace GameRes.Formats.Mapl
         int blocksW;
         int blocksH;
 
-        public ImageData Unpack ()
+        public ImageData Unpack()
         {
             stride = (m_info.iWidth + 7) & ~7;
             block_stride = stride * 8;
@@ -119,9 +120,9 @@ namespace GameRes.Formats.Mapl
             m_input.Position = 0x28;
             if (8 == m_info.BPP)
             {
-                var palette = ImageFormat.ReadPalette (m_input.AsStream, m_info.Colors);
-                UnpackChannel (channel);
-                return ImageData.Create (m_info, PixelFormats.Indexed8, palette, channel, stride);
+                var palette = ImageFormat.ReadPalette(m_input.AsStream, m_info.Colors);
+                UnpackChannel(channel);
+                return ImageData.Create(m_info, PixelFormats.Indexed8, palette, channel, stride);
             }
             else
             {
@@ -129,24 +130,24 @@ namespace GameRes.Formats.Mapl
                 var bgr = new byte[bgr_stride * m_info.iHeight];
                 for (int c = 0; c < 3; ++c)
                 {
-                    UnpackChannel (channel);
+                    UnpackChannel(channel);
                     int src = 0;
                     int dst = c;
                     for (int y = 0; y < m_info.iHeight; ++y)
                     {
                         for (int x = 0; x < m_info.iWidth; ++x)
                         {
-                            bgr[dst] = channel[src+x];
+                            bgr[dst] = channel[src + x];
                             dst += 3;
                         }
                         src += stride;
                     }
                 }
-                return ImageData.Create (m_info, PixelFormats.Bgr24, null, bgr, bgr_stride);
+                return ImageData.Create(m_info, PixelFormats.Bgr24, null, bgr, bgr_stride);
             }
         }
 
-        void UnpackChannel (byte[] output)
+        void UnpackChannel(byte[] output)
         {
             int dst_row = output.Length - stride;
             for (int y = 0; y < blocksH; ++y)
@@ -157,66 +158,66 @@ namespace GameRes.Formats.Mapl
                     byte ctl = m_input.ReadUInt8();
                     switch (ctl)
                     {
-                    case 0:
-                        m_input.Read (m_block, 0, m_block.Length);
-                        break;
-                    case 1:
-                        {
-                            byte b = m_input.ReadUInt8();
-                            for (int i = 0; i < m_block.Length; ++i)
-                                m_block[i] = b;
+                        case 0:
+                            m_input.Read(m_block, 0, m_block.Length);
                             break;
-                        }
-                    case 2:
-                        Op2();
-                        break;
-                    case 3:
-                        Op3();
-                        break;
-                    case 4:
-                        Op4();
-                        break;
-                    case 5:
-                        Op5();
-                        break;
-                    case 6:
-                        Op6();
-                        break;
-                    case 7:
-                        Op7();
-                        break;
-                    case 8:
-                        Op8();
-                        AdjustBlock();
-                        break;
-                    case 9:
-                        Op9();
-                        AdjustBlock();
-                        break;
-                    case 10:
-                        Op4();
-                        AdjustBlock();
-                        break;
-                    case 11:
-                        Op5();
-                        AdjustBlock();
-                        break;
-                    case 12:
-                        Op6();
-                        AdjustBlock();
-                        break;
-                    case 13:
-                        Op7();
-                        AdjustBlock();
-                        break;
-                    default:
-                        throw new InvalidFormatException();
+                        case 1:
+                            {
+                                byte b = m_input.ReadUInt8();
+                                for (int i = 0; i < m_block.Length; ++i)
+                                    m_block[i] = b;
+                                break;
+                            }
+                        case 2:
+                            Op2();
+                            break;
+                        case 3:
+                            Op3();
+                            break;
+                        case 4:
+                            Op4();
+                            break;
+                        case 5:
+                            Op5();
+                            break;
+                        case 6:
+                            Op6();
+                            break;
+                        case 7:
+                            Op7();
+                            break;
+                        case 8:
+                            Op8();
+                            AdjustBlock();
+                            break;
+                        case 9:
+                            Op9();
+                            AdjustBlock();
+                            break;
+                        case 10:
+                            Op4();
+                            AdjustBlock();
+                            break;
+                        case 11:
+                            Op5();
+                            AdjustBlock();
+                            break;
+                        case 12:
+                            Op6();
+                            AdjustBlock();
+                            break;
+                        case 13:
+                            Op7();
+                            AdjustBlock();
+                            break;
+                        default:
+                            throw new InvalidFormatException();
                     }
                     int dst = dst_pos;
                     int src = 0;
                     while (src < m_block.Length && dst >= 0)
                     {
-                        Buffer.BlockCopy (m_block, src, output, dst, 8);
+                        Buffer.BlockCopy(m_block, src, output, dst, 8);
                         src += 8;
                         dst -= stride;
                     }
@@ -226,10 +227,10 @@ namespace GameRes.Formats.Mapl
             }
         }
 
-        void Op2 ()
+        void Op2()
         {
             byte b = m_input.ReadUInt8();
-            m_input.Read (m_buffer, 0, 8);
+            m_input.Read(m_buffer, 0, 8);
             int pos = 0;
             for (int i = 0; i < 8; ++i)
             {
@@ -245,7 +246,7 @@ namespace GameRes.Formats.Mapl
             }
         }
 
-        void Op3 ()
+        void Op3()
         {
             int pos = 0;
             byte b1 = m_input.ReadUInt8();
@@ -271,7 +272,7 @@ namespace GameRes.Formats.Mapl
             byte b2 = m_input.ReadUInt8();
             byte b3 = m_input.ReadUInt8();
             int dst = 0;
-            m_input.Read (m_buffer, 0, 16);
+            m_input.Read(m_buffer, 0, 16);
             for (int i = 0; i < 16; ++i)
             {
                 byte bits = m_buffer[i];
@@ -279,10 +280,10 @@ namespace GameRes.Formats.Mapl
                 {
                     switch (bits >> 6)
                     {
-                    case 0: m_block[dst] = m_input.ReadUInt8(); break;
-                    case 1: m_block[dst] = b1; break;
-                    case 2: m_block[dst] = b2; break;
-                    case 3: m_block[dst] = b3; break;
+                        case 0: m_block[dst] = m_input.ReadUInt8(); break;
+                        case 1: m_block[dst] = b1; break;
+                        case 2: m_block[dst] = b2; break;
+                        case 3: m_block[dst] = b3; break;
                     }
                     dst++;
                     bits <<= 2;
@@ -296,7 +297,7 @@ namespace GameRes.Formats.Mapl
             byte b1 = m_input.ReadUInt8();
             byte b2 = m_input.ReadUInt8();
             byte b3 = m_input.ReadUInt8();
-            m_input.Read (m_buffer, 0, 16);
+            m_input.Read(m_buffer, 0, 16);
             int dst = 0;
             for (int i = 0; i < 16; ++i)
             {
@@ -305,10 +306,10 @@ namespace GameRes.Formats.Mapl
                 {
                     switch (bits >> 6)
                     {
-                    case 0: m_block[dst] = b0; break;
-                    case 1: m_block[dst] = b1; break;
-                    case 2: m_block[dst] = b2; break;
-                    case 3: m_block[dst] = b3; break;
+                        case 0: m_block[dst] = b0; break;
+                        case 1: m_block[dst] = b1; break;
+                        case 2: m_block[dst] = b2; break;
+                        case 3: m_block[dst] = b3; break;
                     }
                     dst++;
                     bits <<= 2;
@@ -322,8 +323,8 @@ namespace GameRes.Formats.Mapl
         void Op6()
         {
             int count = m_input.ReadUInt8();
-            m_input.Read (m_buffer2, 0, count);
-            m_input.Read (m_buffer, 0, 24);
+            m_input.Read(m_buffer2, 0, count);
+            m_input.Read(m_buffer, 0, 24);
             for (int i = 0; i < m_buffer6.Length; ++i)
                 m_buffer6[i] = 0;
             int buf_pos = 0;
@@ -346,7 +347,7 @@ namespace GameRes.Formats.Mapl
                         n0 |= n1;
                     --bit_count;
                     n1 >>= 1;
-                    mask = Binary.RotByteR (mask, 1);
+                    mask = Binary.RotByteR(mask, 1);
                 }
                 m_buffer6[buf_pos++] = n0;
             }
@@ -354,7 +355,7 @@ namespace GameRes.Formats.Mapl
             {
                 byte b = m_buffer6[i];
                 if (b > 0)
-                    m_block[i] = m_buffer2[b-1];
+                    m_block[i] = m_buffer2[b - 1];
                 else
                     m_block[i] = m_input.ReadUInt8();
             }
@@ -363,8 +364,8 @@ namespace GameRes.Formats.Mapl
         void Op7()
         {
             int count = m_input.ReadUInt8();
-            m_input.Read (m_buffer2, 0, count);
-            m_input.Read (m_buffer, 0, 32);
+            m_input.Read(m_buffer2, 0, count);
+            m_input.Read(m_buffer, 0, 32);
             int dst = 0;
             for (int i = 0; i < 32; ++i)
             {
@@ -374,7 +375,7 @@ namespace GameRes.Formats.Mapl
                     int bits = b >> 4;
                     b <<= 4;
                     if (bits != 0)
-                        m_block[dst++] = m_buffer2[bits-1];
+                        m_block[dst++] = m_buffer2[bits - 1];
                     else
                         m_block[dst++] = m_input.ReadUInt8();
                 }
@@ -384,7 +385,7 @@ namespace GameRes.Formats.Mapl
         void Op8()
         {
             byte b0 = m_input.ReadUInt8();
-            m_input.Read (m_buffer, 0, 8);
+            m_input.Read(m_buffer, 0, 8);
             int src = 0;
             int dst = 0;
             for (int i = 0; i < 8; ++i)

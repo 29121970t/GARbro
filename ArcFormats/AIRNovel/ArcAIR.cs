@@ -42,23 +42,23 @@ namespace GameRes.Formats.AirNovel
     {
         public bool IsEncrypted { get; set; }
 
-        public AirEntry (SharpZip.ZipEntry zip_entry) : base (zip_entry)
+        public AirEntry(SharpZip.ZipEntry zip_entry) : base(zip_entry)
         {
-            IsEncrypted = Name.EndsWith ("_");
+            IsEncrypted = Name.EndsWith("_");
             if (IsEncrypted)
             {
-                Name = Name.Substring (0, Name.Length-1);
-                Type = FormatCatalog.Instance.GetTypeFromName (Name);
+                Name = Name.Substring(0, Name.Length - 1);
+                Type = FormatCatalog.Instance.GetTypeFromName(Name);
             }
         }
     }
 
     internal class AirArchive : PkZipArchive
     {
-        public byte[]   Key;
-        public uint     CoderLength;
+        public byte[] Key;
+        public uint CoderLength;
 
-        public AirArchive (ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, SharpZip.ZipFile native, byte[] key) : base (arc, impl, dir, native)
+        public AirArchive(ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, SharpZip.ZipFile native, byte[] key) : base(arc, impl, dir, native)
         {
             Key = key;
         }
@@ -67,53 +67,53 @@ namespace GameRes.Formats.AirNovel
     [Serializable]
     public class AirNovelScheme : ResourceScheme
     {
-        public IDictionary<string, string>  KnownKeys;
+        public IDictionary<string, string> KnownKeys;
     }
 
     [Export(typeof(ArchiveFormat))]
     public class AirOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "AIR"; } }
+        public override string Tag { get { return "AIR"; } }
         public override string Description { get { return "Adobe AIR resource archive"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool  IsHierarchic { get { return true; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool IsHierarchic { get { return true; } }
+        public override bool CanWrite { get { return false; } }
 
-        static readonly ResourceInstance<ArchiveFormat> Zip = new ResourceInstance<ArchiveFormat> ("ZIP");
+        static readonly ResourceInstance<ArchiveFormat> Zip = new ResourceInstance<ArchiveFormat>("ZIP");
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            if (!file.Name.HasExtension (".air"))
+            if (!file.Name.HasExtension(".air"))
                 return null;
             var input = file.CreateStream();
             SharpZip.ZipFile zip = null;
             try
             {
                 SharpZip.ZipStrings.CodePage = Encoding.UTF8.CodePage;
-                zip = new SharpZip.ZipFile (input);
-                var files = zip.Cast<SharpZip.ZipEntry>().Where (z => !z.IsDirectory);
+                zip = new SharpZip.ZipFile(input);
+                var files = zip.Cast<SharpZip.ZipEntry>().Where(z => !z.IsDirectory);
                 bool has_encrypted = false;
                 var dir = new List<Entry>();
                 foreach (var f in files)
                 {
-                    var entry = new AirEntry (f);
+                    var entry = new AirEntry(f);
                     has_encrypted |= entry.IsEncrypted;
-                    dir.Add (entry);
+                    dir.Add(entry);
                 }
                 if (has_encrypted)
                 {
                     uint coder_length;
-                    if (FindAirNovelCoderLength (zip, out coder_length))
+                    if (FindAirNovelCoderLength(zip, out coder_length))
                     {
-                        var key = QueryEncryptionKey (file);
-                        if (!string.IsNullOrEmpty (key))
+                        var key = QueryEncryptionKey(file);
+                        if (!string.IsNullOrEmpty(key))
                         {
-                            var rc4_key = AirRc4Crypt.GenerateKey (key);
-                            return new AirArchive (file, this, dir, zip, rc4_key) { CoderLength = coder_length };
+                            var rc4_key = AirRc4Crypt.GenerateKey(key);
+                            return new AirArchive(file, this, dir, zip, rc4_key) { CoderLength = coder_length };
                         }
                     }
                 }
-                return new PkZipArchive (file, Zip.Value, dir, zip);
+                return new PkZipArchive(file, Zip.Value, dir, zip);
             }
             catch
             {
@@ -124,55 +124,55 @@ namespace GameRes.Formats.AirNovel
             }
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var zarc = (AirArchive)arc;
             var zent = (AirEntry)entry;
-            var input = zarc.Native.GetInputStream (zent.NativeEntry);
+            var input = zarc.Native.GetInputStream(zent.NativeEntry);
             if (!zent.IsEncrypted)
                 return input;
             var data = new byte[zent.UnpackedSize];
             using (input)
-                input.Read (data, 0, data.Length);
+                input.ReadExactly(data);
             int enc_len;
-            if (zent.Name.HasExtension (".an"))
+            if (zent.Name.HasExtension(".an"))
                 enc_len = data.Length;
             else
-                enc_len = Math.Min (data.Length, (int)zarc.CoderLength);
-            var rc4 = new AirRc4Crypt (zarc.Key);
-            rc4.Decrypt (data, 0, enc_len);
-            return new BinMemoryStream (data, entry.Name);
+                enc_len = Math.Min(data.Length, (int)zarc.CoderLength);
+            var rc4 = new AirRc4Crypt(zarc.Key);
+            rc4.Decrypt(data, 0, enc_len);
+            return new BinMemoryStream(data, entry.Name);
         }
 
-        bool FindAirNovelCoderLength (SharpZip.ZipFile zip, out uint coder_length)
+        bool FindAirNovelCoderLength(SharpZip.ZipFile zip, out uint coder_length)
         {
             coder_length = 0;
-            var config = zip.GetEntry ("config.anprj");
+            var config = zip.GetEntry("config.anprj");
             if (null == config)
                 return false;
-            using (var input = zip.GetInputStream (config))
+            using (var input = zip.GetInputStream(config))
             {
-                var coder = FindConfigNode (input, "/config/coder[@len]");
+                var coder = FindConfigNode(input, "/config/coder[@len]");
                 if (null == coder)
                     return false;
                 var lenAttr = coder.Attributes["len"].Value;
                 var styles = NumberStyles.Integer;
-                if (lenAttr.StartsWith ("0x"))
+                if (lenAttr.StartsWith("0x"))
                 {
-                    lenAttr = lenAttr.Substring (2, lenAttr.Length-2);
+                    lenAttr = lenAttr.Substring(2, lenAttr.Length - 2);
                     styles = NumberStyles.HexNumber;
                 }
-                return UInt32.TryParse (lenAttr, styles, CultureInfo.InvariantCulture, out coder_length);
+                return UInt32.TryParse(lenAttr, styles, CultureInfo.InvariantCulture, out coder_length);
             }
         }
 
-        XmlNode FindConfigNode (Stream input, string xpath)
+        XmlNode FindConfigNode(Stream input, string xpath)
         {
-            using (var reader = new StreamReader (input))
+            using (var reader = new StreamReader(input))
             {
                 var xml = new XmlDocument();
-                xml.Load (reader);
-                return xml.DocumentElement.SelectSingleNode (xpath);
+                xml.Load(reader);
+                return xml.DocumentElement.SelectSingleNode(xpath);
             }
         }
 
@@ -186,13 +186,13 @@ namespace GameRes.Formats.AirNovel
             set { DefaultScheme = (AirNovelScheme)value; }
         }
 
-        string QueryEncryptionKey (ArcView file)
+        string QueryEncryptionKey(ArcView file)
         {
-            var title = FormatCatalog.Instance.LookupGame (file.Name);
-            if (string.IsNullOrEmpty (title))
+            var title = FormatCatalog.Instance.LookupGame(file.Name);
+            if (string.IsNullOrEmpty(title))
                 return null;
             string key;
-            if (!KnownKeys.TryGetValue (title, out key))
+            if (!KnownKeys.TryGetValue(title, out key))
                 return null;
             return key;
         }
@@ -202,9 +202,9 @@ namespace GameRes.Formats.AirNovel
     {
         const int KeyLength = 0xFF;
 
-        byte[]  KeyState = new byte[KeyLength+1];
+        byte[] KeyState = new byte[KeyLength + 1];
 
-        public AirRc4Crypt (byte[] key)
+        public AirRc4Crypt(byte[] key)
         {
             for (int i = 0; i <= KeyLength; ++i)
             {
@@ -220,11 +220,11 @@ namespace GameRes.Formats.AirNovel
             }
         }
 
-        public static byte[] GenerateKey (string passPhrase)
+        public static byte[] GenerateKey(string passPhrase)
         {
-            if (string.IsNullOrEmpty (passPhrase))
-                throw new ArgumentException ("passPhrase");
-            var key = new byte[KeyLength+1];
+            if (string.IsNullOrEmpty(passPhrase))
+                throw new ArgumentException("passPhrase");
+            var key = new byte[KeyLength + 1];
             for (int i = 0; i < key.Length; ++i)
             {
                 key[i] = (byte)passPhrase[i % passPhrase.Length];
@@ -232,12 +232,12 @@ namespace GameRes.Formats.AirNovel
             return key;
         }
 
-        public void Decrypt (byte[] data, int pos, int length)
+        public void Decrypt(byte[] data, int pos, int length)
         {
             int i = 0;
             int j = 0;
             var keyCopy = KeyState.Clone() as byte[];
-            int last = Math.Min (pos + length, data.Length);
+            int last = Math.Min(pos + length, data.Length);
             while (pos < last)
             {
                 i = (i + 1) & KeyLength;

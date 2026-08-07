@@ -33,50 +33,51 @@ namespace GameRes.Formats.Brownie
 {
     internal class NgcMetaData : ImageMetaData
     {
-        public int  BitsLineSize;
+        public int BitsLineSize;
     }
 
     [Export(typeof(ImageFormat))]
     public class NgcFormat : ImageFormat
     {
-        public override string         Tag { get { return "NGC"; } }
+        public override string Tag { get { return "NGC"; } }
         public override string Description { get { return "Brownie image format"; } }
-        public override uint     Signature { get { return 0x422F474E; } } // 'NG/B'
+        public override uint Signature { get { return 0x422F474E; } } // 'NG/B'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x20);
-            return new NgcMetaData {
-                Width  = header.ToUInt32 (0x14),
-                Height = header.ToUInt32 (0x18),
-                BPP    = 24,
-                BitsLineSize = header.ToInt32 (0x1C),
+            var header = file.ReadHeader(0x20);
+            return new NgcMetaData
+            {
+                Width = header.ToUInt32(0x14),
+                Height = header.ToUInt32(0x18),
+                BPP = 24,
+                BitsLineSize = header.ToInt32(0x1C),
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new NgcReader (file, (NgcMetaData)info);
+            var reader = new NgcReader(file, (NgcMetaData)info);
             var pixels = reader.Unpack();
-            return ImageData.CreateFlipped (info, reader.Format, null, pixels, reader.Stride);
+            return ImageData.CreateFlipped(info, reader.Format, null, pixels, reader.Stride);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("NgcFormat.Write not implemented");
+            throw new System.NotImplementedException("NgcFormat.Write not implemented");
         }
     }
 
     internal class NgcReader
     {
-        IBinaryStream   m_input;
-        byte[]          m_output;
-        byte[]          m_bits;
+        IBinaryStream m_input;
+        byte[] m_output;
+        byte[] m_bits;
 
         public PixelFormat Format { get; private set; }
-        public int         Stride { get; private set; }
+        public int Stride { get; private set; }
 
-        public NgcReader (IBinaryStream input, NgcMetaData info)
+        public NgcReader(IBinaryStream input, NgcMetaData info)
         {
             m_input = input;
             Stride = 3 * (int)info.Width;
@@ -85,7 +86,7 @@ namespace GameRes.Formats.Brownie
             m_bits = new byte[info.BitsLineSize];
         }
 
-        public byte[] Unpack ()
+        public byte[] Unpack()
         {
             m_input.Position = 0x20;
             int dst = 0;
@@ -96,28 +97,28 @@ namespace GameRes.Formats.Brownie
                     break;
                 else if (2 == ctl)
                 {
-                    ReadBitsLine (dst);
+                    ReadBitsLine(dst);
                 }
                 else if (3 == ctl)
                 {
-                    ReadRleLine (dst);
-                    ReadRleLine (dst+1);
-                    ReadRleLine (dst+2);
+                    ReadRleLine(dst);
+                    ReadRleLine(dst + 1);
+                    ReadRleLine(dst + 2);
                 }
                 else if (0 == ctl)
                 {
-                    Binary.CopyOverlapped (m_output, dst - Stride, dst, Stride);
+                    Binary.CopyOverlapped(m_output, dst - Stride, dst, Stride);
                 }
                 else
                 {
-                    m_input.Read (m_output, dst, Stride);
+                    m_input.Read(m_output, dst, Stride);
                 }
                 dst += Stride;
             }
             return m_output;
         }
 
-        void ReadRleLine (int dst)
+        void ReadRleLine(int dst)
         {
             while (dst < m_output.Length)
             {
@@ -126,7 +127,7 @@ namespace GameRes.Formats.Brownie
                 {
                     int count = ctl;
                     byte v = m_input.ReadUInt8();
-                    while (count --> 0)
+                    while (count-- > 0)
                     {
                         m_output[dst] = v;
                         dst += 3;
@@ -137,7 +138,7 @@ namespace GameRes.Formats.Brownie
                     int count = m_input.ReadUInt8();
                     if (0 == count)
                         break;
-                    while (count --> 0)
+                    while (count-- > 0)
                     {
                         m_output[dst] = m_input.ReadUInt8();
                         dst += 3;
@@ -146,9 +147,9 @@ namespace GameRes.Formats.Brownie
             }
         }
 
-        int ReadBitsLine (int dst)
+        int ReadBitsLine(int dst)
         {
-            m_input.Read (m_bits, 0, m_bits.Length);
+            m_input.Read(m_bits, 0, m_bits.Length);
             int bsrc = 0;
             int count = Stride;
             while (bsrc < m_bits.Length && count > 0)

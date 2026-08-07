@@ -34,54 +34,54 @@ namespace GameRes.Formats.Abel
     internal class GpsMetaData : ImageMetaData
     {
         public byte Compression;
-        public  int HeaderSize;
-        public  int PackedSize;
-        public  int UnpackedSize;
+        public int HeaderSize;
+        public int PackedSize;
+        public int UnpackedSize;
     }
 
     [Export(typeof(ImageFormat))]
     public class GpsFormat : ImageFormat
     {
-        public override string         Tag { get { return "GPS"; } }
+        public override string Tag { get { return "GPS"; } }
         public override string Description { get { return "ADVEngine compressed bitmap"; } }
-        public override uint     Signature { get { return 0x535047; } } // 'GPS'
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x535047; } } // 'GPS'
+        public override bool CanWrite { get { return false; } }
 
-        public GpsFormat ()
+        public GpsFormat()
         {
             Extensions = new[] { "gps", "gp2", "cmp" };
             Signatures = new[] { 0x535047u, 0x325047u }; // 'GPS', 'GP2'
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x29);
-            bool is_gp2 = header.AsciiEqual ("GP2");
+            var header = file.ReadHeader(0x29);
+            bool is_gp2 = header.AsciiEqual("GP2");
             var gps = new GpsMetaData();
-            if (!is_gp2 && header.ToUInt32 (4) == 0xCCCCCCCC)
+            if (!is_gp2 && header.ToUInt32(4) == 0xCCCCCCCC)
             {
-                gps.HeaderSize  = 0x19;
+                gps.HeaderSize = 0x19;
                 gps.Compression = 2;
-                gps.UnpackedSize = header.ToInt32 (0x9);
-                gps.PackedSize  = header.ToInt32 (0xD);
+                gps.UnpackedSize = header.ToInt32(0x9);
+                gps.PackedSize = header.ToInt32(0xD);
             }
             else
             {
-                gps.HeaderSize  = 0x29;
+                gps.HeaderSize = 0x29;
                 gps.Compression = header[0x10];
-                gps.UnpackedSize = header.ToInt32 (0x11);
+                gps.UnpackedSize = header.ToInt32(0x11);
                 if (is_gp2)
-                    gps.UnpackedSize = - 1 - gps.UnpackedSize;
-                gps.PackedSize  = header.ToInt32 (0x15);
-                gps.Width       = header.ToUInt32 (0x19);
-                gps.Height      = header.ToUInt32 (0x1D);
+                    gps.UnpackedSize = -1 - gps.UnpackedSize;
+                gps.PackedSize = header.ToInt32(0x15);
+                gps.Width = header.ToUInt32(0x19);
+                gps.Height = header.ToUInt32(0x1D);
             }
             file.Position = gps.HeaderSize;
             // read BMP header
-            using (var stream = OpenGpsStream (file, gps.Compression, 0x54))
-            using (var input = BinaryStream.FromStream (stream, file.Name))
+            using (var stream = OpenGpsStream(file, gps.Compression, 0x54))
+            using (var input = BinaryStream.FromStream(stream, file.Name))
             {
-                var bmp_info = Bmp.ReadMetaData (input);
+                var bmp_info = Bmp.ReadMetaData(input);
                 if (null == bmp_info)
                     return null;
                 gps.BPP = bmp_info.BPP;
@@ -91,51 +91,51 @@ namespace GameRes.Formats.Abel
             }
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
             var gps = (GpsMetaData)info;
             file.Position = gps.HeaderSize;
-            using (var stream = OpenGpsStream (file, gps.Compression, gps.UnpackedSize))
-            using (var input = BinaryStream.FromStream (stream, file.Name))
-                return Bmp.Read (input, info);
+            using (var stream = OpenGpsStream(file, gps.Compression, gps.UnpackedSize))
+            using (var input = BinaryStream.FromStream(stream, file.Name))
+                return Bmp.Read(input, info);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("GpsFormat.Write not implemented");
+            throw new System.NotImplementedException("GpsFormat.Write not implemented");
         }
 
-        Stream OpenGpsStream (IBinaryStream input, byte compression, int unpacked_size)
+        Stream OpenGpsStream(IBinaryStream input, byte compression, int unpacked_size)
         {
             if (0 == compression)
-                return new StreamRegion (input.AsStream, 0x29, true);
+                return new StreamRegion(input.AsStream, 0x29, true);
             else if (1 == compression)
-                return OpenRLEStream (input.AsStream, unpacked_size);
+                return OpenRLEStream(input.AsStream, unpacked_size);
             else if (2 == compression)
-                return new LzssStream (input.AsStream, LzssMode.Decompress, true);
+                return new LzssStream(input.AsStream, LzssMode.Decompress, true);
             else if (3 == compression)
             {
-                using (var lzss = new LzssStream (input.AsStream, LzssMode.Decompress, true))
-                    return OpenRLEStream (lzss, unpacked_size);
+                using (var lzss = new LzssStream(input.AsStream, LzssMode.Decompress, true))
+                    return OpenRLEStream(lzss, unpacked_size);
             }
             else
                 throw new InvalidFormatException();
         }
 
-        Stream OpenRLEStream (Stream input, int output_size)
+        Stream OpenRLEStream(Stream input, int output_size)
         {
             var output = new byte[output_size];
-            UnpackRLE (input, output);
-            return new BinMemoryStream (output, "");
+            UnpackRLE(input, output);
+            return new BinMemoryStream(output, "");
         }
 
-        void UnpackRLE (Stream input, byte[] output)
+        void UnpackRLE(Stream input, byte[] output)
         {
             int dst = 0;
             while (dst < output.Length)
             {
-                int count = Math.Min (3, output.Length-dst);
-                count = input.Read (output, dst, count);
+                int count = Math.Min(3, output.Length - dst);
+                count = input.Read(output, dst, count);
                 if (count < 3)
                     break;
                 count = input.ReadByte();
@@ -144,8 +144,8 @@ namespace GameRes.Formats.Abel
                 dst += 3;
                 if (count > 1)
                 {
-                    count = Math.Min ((count-1) * 3, output.Length-dst);
-                    Binary.CopyOverlapped (output, dst-3, dst, count);
+                    count = Math.Min((count - 1) * 3, output.Length - dst);
+                    Binary.CopyOverlapped(output, dst - 3, dst, count);
                     dst += count;
                 }
             }

@@ -7,9 +7,9 @@ namespace GameRes.Formats.GUI
     /// </summary>
     public partial class CreateINTWidget : Grid
     {
-        public CreateINTWidget ()
+        public CreateINTWidget()
         {
-            InitializeComponent ();
+            InitializeComponent();
         }
     }
 }

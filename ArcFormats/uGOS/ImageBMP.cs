@@ -33,25 +33,25 @@ namespace GameRes.Formats.uGOS
 {
     internal class DetBmpMetaData : ImageMetaData
     {
-        public int  Method;
+        public int Method;
     }
 
     [Export(typeof(ImageFormat))]
     public class DetBmpFormat : ImageFormat
     {
-        public override string         Tag { get { return "BMP/uGOS"; } }
+        public override string Tag { get { return "BMP/uGOS"; } }
         public override string Description { get { return "μ-GameOperationSystem compressed bitmap"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public DetBmpFormat ()
+        public DetBmpFormat()
         {
             Extensions = new string[] { "bmp" };
             Signatures = new uint[] { 0x206546, 0x186546, 0x086546, 0 };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
-            var header = stream.ReadHeader (0x10);
+            var header = stream.ReadHeader(0x10);
             if (header[0] != 'F')
                 return null;
             var type = header[1] & 0x5F;
@@ -62,44 +62,44 @@ namespace GameRes.Formats.uGOS
                 return null;
             return new DetBmpMetaData
             {
-                Width   = header.ToUInt16 (4),
-                Height  = header.ToUInt16 (6),
-                BPP     = bpp,
-                Method  = type,
+                Width = header.ToUInt16(4),
+                Height = header.ToUInt16(6),
+                BPP = bpp,
+                Method = type,
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new Reader (file, (DetBmpMetaData)info);
+            var reader = new Reader(file, (DetBmpMetaData)info);
             reader.Unpack();
-            return ImageData.CreateFlipped (info, reader.Format, null, reader.Data, reader.Stride);
+            return ImageData.CreateFlipped(info, reader.Format, null, reader.Data, reader.Stride);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("DetBmpFormat.Write not implemented");
+            throw new System.NotImplementedException("DetBmpFormat.Write not implemented");
         }
 
         internal sealed class Reader
         {
-            IBinaryStream   m_input;
-            byte[]          m_output;
-            int             m_width;
-            int             m_height;
-            int             m_bpp;
+            IBinaryStream m_input;
+            byte[] m_output;
+            int m_width;
+            int m_height;
+            int m_bpp;
 
             public PixelFormat Format { get; private set; }
-            public byte[]        Data { get { return m_output; } }
-            public int         Stride { get; private set; }
+            public byte[] Data { get { return m_output; } }
+            public int Stride { get; private set; }
 
-            public Reader (IBinaryStream input, DetBmpMetaData info)
+            public Reader(IBinaryStream input, DetBmpMetaData info)
             {
                 m_input = input;
                 m_width = (int)info.Width;
                 m_height = (int)info.Height;
                 m_bpp = info.BPP;
-                m_output = new byte[m_width*m_height*4];
+                m_output = new byte[m_width * m_height * 4];
 
                 Format = 32 == m_bpp ? PixelFormats.Bgra32 : PixelFormats.Bgr32;
                 Stride = m_width * 4;
@@ -119,7 +119,7 @@ namespace GameRes.Formats.uGOS
                  0, -1, -2, -3, -3, -3, -3, -3, -3, -3, -2, -1,
                  0, -1, -2, -3, -4, -4, -4, -4, -4, -4, -4, -4, -4, -3, -2, -1
             };
-            
+
             byte[] byte_4CAD28 = new byte[512];
             byte[] byte_4CAF28 = new byte[512];
 
@@ -130,7 +130,7 @@ namespace GameRes.Formats.uGOS
 
             uint m_bits;
 
-            public void Unpack ()
+            public void Unpack()
             {
                 m_input.Position = 0x10;
                 InitTable1();
@@ -145,10 +145,10 @@ namespace GameRes.Formats.uGOS
                     int v34 = dword_4CB7F0[v33];
                     int v35 = dword_4CB128[v34];
                     int v36 = v33;
-                    int v37 = Math.Max (v32 - 4, 0);
+                    int v37 = Math.Max(v32 - 4, 0);
                     for (int v39 = v33 - v37; v39 > 0; --v39)
                     {
-                        dword_4CB7F0[v36] = dword_4CB7F0[v36-1];
+                        dword_4CB7F0[v36] = dword_4CB7F0[v36 - 1];
                         --v36;
                     }
                     dword_4CB7F0[v36] = v34;
@@ -157,7 +157,7 @@ namespace GameRes.Formats.uGOS
                         int v49 = ReadNext();
                         int v57 = ReadNext();
                         int offset = (((v49 & 1) - 1) ^ (v57 - 2)) - m_width * ((v49 & 1) - 1 + v49 / 2);
-                        Buffer.BlockCopy (m_output, dst+4*offset, m_output, dst, 4);
+                        Buffer.BlockCopy(m_output, dst + 4 * offset, m_output, dst, 4);
                         dst += 4;
                         continue;
                     }
@@ -165,15 +165,15 @@ namespace GameRes.Formats.uGOS
                     {
                         int v100;
                         if (v35 >= 123)
-                            v100 = LittleEndian.ToInt32 (m_output, dst - 4 * m_width)
-                                + LittleEndian.ToInt32 (m_output, dst + 4 * dword_4CB750[v35-123])
-                                - LittleEndian.ToInt32 (m_output, dst + 4 * (dword_4CB750[v35-123] - m_width));
+                            v100 = LittleEndian.ToInt32(m_output, dst - 4 * m_width)
+                                + LittleEndian.ToInt32(m_output, dst + 4 * dword_4CB750[v35 - 123])
+                                - LittleEndian.ToInt32(m_output, dst + 4 * (dword_4CB750[v35 - 123] - m_width));
                         else if (v35 >= 83)
-                            v100 = LittleEndian.ToInt32 (m_output, dst + 4 * dword_4CB750[v35-83])
-                                + LittleEndian.ToInt32 (m_output, dst - 4)
-                                - LittleEndian.ToInt32 (m_output, dst + 4 * dword_4CB750[v35-83] - 4);
+                            v100 = LittleEndian.ToInt32(m_output, dst + 4 * dword_4CB750[v35 - 83])
+                                + LittleEndian.ToInt32(m_output, dst - 4)
+                                - LittleEndian.ToInt32(m_output, dst + 4 * dword_4CB750[v35 - 83] - 4);
                         else
-                            v100 = LittleEndian.ToInt32 (m_output, dst + 4 * dword_4CB750[v35-43]);
+                            v100 = LittleEndian.ToInt32(m_output, dst + 4 * dword_4CB750[v35 - 43]);
 
                         int v57 = ReadNext();
                         int v113 = (v57 - 2) ^ -(v57 & 1);
@@ -186,21 +186,21 @@ namespace GameRes.Formats.uGOS
                         v57 = ReadNext();
                         v113 = (v57 - 2) ^ -(v57 & 1);
                         v113 -= v113 >> 31; // cdq; sub eax, edx
-                        LittleEndian.Pack (v100 + (v113 >> 1), m_output, dst);
+                        LittleEndian.Pack(v100 + (v113 >> 1), m_output, dst);
                         dst += 4;
                         continue;
                     }
                     if (0 == v35)
                     {
-//                        v60 = (((src1[2] + ((src1[1] + (*src1 << 8)) << 8)) << 8) ^ 0x80000080u) >> byte_4CBA80[v38];
+                        //                        v60 = (((src1[2] + ((src1[1] + (*src1 << 8)) << 8)) << 8) ^ 0x80000080u) >> byte_4CBA80[v38];
                         uint v60 = (uint)m_input.ReadUInt8() << 16;
                         uint v38 = m_bits & 0xFF;
-                        v60 |= (uint)m_input.ReadUInt8 () << 8;
-                        v60 |= m_input.ReadUInt8 ();
+                        v60 |= (uint)m_input.ReadUInt8() << 8;
+                        v60 |= m_input.ReadUInt8();
                         v60 <<= 8;
                         v60 = (v60 ^ 0x80000080u) >> byte_4CBA80[v38];
                         m_bits = v60;
-                        LittleEndian.Pack ((v38 << 16) ^ (v60 >> 8), m_output, dst);
+                        LittleEndian.Pack((v38 << 16) ^ (v60 >> 8), m_output, dst);
                         dst += 4;
                         continue;
                     }
@@ -211,7 +211,7 @@ namespace GameRes.Formats.uGOS
                     if (1 == v35)
                     {
                         int count = ReadNext() * 4;
-                        Binary.CopyOverlapped (m_output, src2, dst, count);
+                        Binary.CopyOverlapped(m_output, src2, dst, count);
                         dst += count;
                         continue;
                     }
@@ -227,22 +227,22 @@ namespace GameRes.Formats.uGOS
                         d = (int)(m_bits & 0xFF) >> 7;
                         m_bits <<= 1;
                     }
-                    int v90 = dword_4CB750[v35-3];
-                    int a = LittleEndian.ToInt32 (m_output, src2);
-                    int b = LittleEndian.ToInt32 (m_output, dst + 4 * v90);
-                    int c = LittleEndian.ToInt32 (m_output, src2 + 4 * v90);
+                    int v90 = dword_4CB750[v35 - 3];
+                    int a = LittleEndian.ToInt32(m_output, src2);
+                    int b = LittleEndian.ToInt32(m_output, dst + 4 * v90);
+                    int c = LittleEndian.ToInt32(m_output, src2 + 4 * v90);
                     int v95 = (a & 0xFF00FF) + (b & 0xFF00FF) - (c & 0xFF00FF);
                     int v96 = (v95 & 0xFF00FF) + (((a & 0xFF00) + (b & 0xFF00) - (c & 0xFF00)) & 0xFF00);
-                    LittleEndian.Pack (v96, m_output, dst);
+                    LittleEndian.Pack(v96, m_output, dst);
                     dst += 4;
                     if (d != 0)
                     {
-                        a = LittleEndian.ToInt32 (m_output, src2 + 4);
-                        b = LittleEndian.ToInt32 (m_output, dst + 4 * v90);
-                        c = LittleEndian.ToInt32 (m_output, src2 + 4 * v90 + 4);
+                        a = LittleEndian.ToInt32(m_output, src2 + 4);
+                        b = LittleEndian.ToInt32(m_output, dst + 4 * v90);
+                        c = LittleEndian.ToInt32(m_output, src2 + 4 * v90 + 4);
                         v95 = (a & 0xFF00FF) + (b & 0xFF00FF) - (c & 0xFF00FF);
                         v96 = (v95 & 0xFF00FF) + (((a & 0xFF00) + (b & 0xFF00) - (c & 0xFF00)) & 0xFF00);
-                        LittleEndian.Pack (v96, m_output, dst);
+                        LittleEndian.Pack(v96, m_output, dst);
                         dst += 4;
                     }
                 }
@@ -251,9 +251,9 @@ namespace GameRes.Formats.uGOS
                     dst = 3;
                     while (dst < m_output.Length)
                     {
-                        byte alpha = ReadBits (8);
+                        byte alpha = ReadBits(8);
                         int count = ReadCount() + 1;
-                        while (count --> 0)
+                        while (count-- > 0)
                         {
                             m_output[dst] = alpha;
                             dst += 4;
@@ -274,7 +274,7 @@ namespace GameRes.Formats.uGOS
                 }
             }
 
-            int ReadNext ()
+            int ReadNext()
             {
                 m_bits &= 0xFF;
                 int v26 = byte_4CAD28[2 * m_bits];
@@ -283,7 +283,7 @@ namespace GameRes.Formats.uGOS
                 {
                     int b = m_input.ReadUInt8();
                     v26 += byte_4CAF28[2 * b];
-                    v23  = byte_4CAF28[2 * b + 1];
+                    v23 = byte_4CAF28[2 * b + 1];
                 }
                 int v27 = byte_4CBA80[v23];
                 int v28 = v23 + 256;
@@ -306,7 +306,7 @@ namespace GameRes.Formats.uGOS
                 return (int)(m_bits >> 8);
             }
 
-            byte ReadBits (int a3)
+            byte ReadBits(int a3)
             {
                 m_bits &= 0xFF;
                 int v4 = byte_4CBA80[m_bits];
@@ -323,7 +323,7 @@ namespace GameRes.Formats.uGOS
                     if (v5 > 8)
                     {
                         int count = ((v5 - 9) >> 3) + 1;
-                        while (count --> 0)
+                        while (count-- > 0)
                         {
                             v6 = m_input.ReadUInt8() + (v6 << 8);
                             v5 -= 8;
@@ -336,7 +336,7 @@ namespace GameRes.Formats.uGOS
                 return (byte)alpha;
             }
 
-            int ReadCount ()
+            int ReadCount()
             {
                 m_bits &= 0xFF;
                 int v2 = (int)m_bits;
@@ -374,7 +374,7 @@ namespace GameRes.Formats.uGOS
                 }
             }
 
-            void InitTable0 () //sub_4153B0()
+            void InitTable0() //sub_4153B0()
             {
                 for (int i = 0; i < 256; ++i)
                 {
@@ -413,7 +413,7 @@ namespace GameRes.Formats.uGOS
                 }
             }
 
-            void InitTable1 () // init_table_415FF0()
+            void InitTable1() // init_table_415FF0()
             {
                 int[] dword_4CB3B8 = new int[163];
                 dword_4CB3B8[0] = 0;
@@ -423,9 +423,9 @@ namespace GameRes.Formats.uGOS
                 for (int i = 3; i < 43; ++i)
                 {
                     dword_4CB3B8[i] = i + 120;
-                    dword_4CB3B8[i+40] = i;
-                    dword_4CB3B8[i+80] = v1-1;
-                    dword_4CB3B8[i+120] = v1;
+                    dword_4CB3B8[i + 40] = i;
+                    dword_4CB3B8[i + 80] = v1 - 1;
+                    dword_4CB3B8[i + 120] = v1;
                     v1 += 2;
                 }
                 for (int i = 0; i < 163; ++i)
@@ -434,7 +434,7 @@ namespace GameRes.Formats.uGOS
                 }
             }
 
-            void InitTable2 () // init_table_416070()
+            void InitTable2() // init_table_416070()
             {
                 for (int i = 0; i < 163; ++i)
                 {
@@ -442,7 +442,7 @@ namespace GameRes.Formats.uGOS
                 }
             }
 
-            void InitTable3 ()
+            void InitTable3()
             {
                 for (int i = 0; i < 40; ++i)
                 {

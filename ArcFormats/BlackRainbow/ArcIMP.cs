@@ -37,8 +37,8 @@ namespace GameRes.Formats.BlackRainbow
     {
         public readonly uint Key;
 
-        public ImpArchive (ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, uint key)
-            : base (arc, impl, dir)
+        public ImpArchive(ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, uint key)
+            : base(arc, impl, dir)
         {
             Key = key;
         }
@@ -47,13 +47,13 @@ namespace GameRes.Formats.BlackRainbow
     [Export(typeof(ArchiveFormat))]
     public class ImpOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "IMP"; } }
+        public override string Tag { get { return "IMP"; } }
         public override string Description { get { return "BlackRainbow image archive"; } }
-        public override uint     Signature { get { return 0x3D66; } }
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x3D66; } }
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public ImpOpener ()
+        public ImpOpener()
         {
             Signatures = KnownSchemes.Keys;
         }
@@ -64,51 +64,52 @@ namespace GameRes.Formats.BlackRainbow
             { 0x59E8, 0xD36050EC }, // From M
         };
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            uint key = KnownSchemes[file.View.ReadUInt32 (0)];
-            var base_name = Path.GetFileNameWithoutExtension (file.Name);
+            uint key = KnownSchemes[file.View.ReadUInt32(0)];
+            var base_name = Path.GetFileNameWithoutExtension(file.Name);
             uint base_offset = 0x404;
-            uint offset = file.View.ReadUInt32 (4);
+            uint offset = file.View.ReadUInt32(4);
             uint index_offset = 8;
             var dir = new List<Entry>();
             for (int i = 0; i < 0xFF; ++i)
             {
-                uint next_offset = file.View.ReadUInt32 (index_offset);
+                uint next_offset = file.View.ReadUInt32(index_offset);
                 uint size = next_offset - offset;
                 if (size > 0x10)
                 {
-                    var entry = new Entry {
-                        Name = string.Format ("{0}#{1:D3}", base_name, i),
+                    var entry = new Entry
+                    {
+                        Name = string.Format("{0}#{1:D3}", base_name, i),
                         Type = "image",
                         Offset = base_offset + offset,
                         Size = size,
                     };
-                    dir.Add (entry);
+                    dir.Add(entry);
                 }
                 index_offset += 4;
                 offset = next_offset;
             }
             if (0 == dir.Count)
                 return null;
-            return new ImpArchive (file, this, dir, key);
+            return new ImpArchive(file, this, dir, key);
         }
 
-        public override IImageDecoder OpenImage (ArcFile arc, Entry entry)
+        public override IImageDecoder OpenImage(ArcFile arc, Entry entry)
         {
             var imp_arc = (ImpArchive)arc;
             var offset = entry.Offset;
             var info = new ImpMetaData
             {
-                Width   = arc.File.View.ReadUInt32 (offset),
-                Height  = arc.File.View.ReadUInt32 (offset+4),
-                BPP     = 32,
-                Key     = imp_arc.Key,
-                HasAlpha = arc.File.View.ReadUInt32 (offset+12) != 0,
+                Width = arc.File.View.ReadUInt32(offset),
+                Height = arc.File.View.ReadUInt32(offset + 4),
+                BPP = 32,
+                Key = imp_arc.Key,
+                HasAlpha = arc.File.View.ReadUInt32(offset + 12) != 0,
             };
-            uint packed_size = arc.File.View.ReadUInt32 (offset+8);
-            var input = arc.File.CreateStream (offset, packed_size+0x10);
-            return new ImpDecoder (input, info);
+            uint packed_size = arc.File.View.ReadUInt32(offset + 8);
+            var input = arc.File.CreateStream(offset, packed_size + 0x10);
+            return new ImpDecoder(input, info);
         }
     }
 
@@ -120,27 +121,27 @@ namespace GameRes.Formats.BlackRainbow
 
     internal sealed class ImpDecoder : BinaryImageDecoder
     {
-        byte[]  m_key;
-        bool    m_has_alpha;
+        byte[] m_key;
+        bool m_has_alpha;
 
-        public ImpDecoder (IBinaryStream input, ImpMetaData info) : base (input, info)
+        public ImpDecoder(IBinaryStream input, ImpMetaData info) : base(input, info)
         {
             m_has_alpha = info.HasAlpha;
             m_key = new byte[4];
-            LittleEndian.Pack (info.Key, m_key, 0);
+            LittleEndian.Pack(info.Key, m_key, 0);
         }
 
-        protected override ImageData GetImageData ()
+        protected override ImageData GetImageData()
         {
             m_input.Position = 0x10;
             var pixels = new byte[Info.Width * Info.Height * 4];
-            using (var lzs = new ByteStringEncryptedStream (m_input.AsStream, m_key, true))
-            using (var input = new LzssStream (lzs))
+            using (var lzs = new ByteStringEncryptedStream(m_input.AsStream, m_key, true))
+            using (var input = new LzssStream(lzs))
             {
-                if (pixels.Length != input.Read (pixels, 0, pixels.Length))
+                if (pixels.Length != input.Read(pixels, 0, pixels.Length))
                     throw new InvalidFormatException();
                 var format = m_has_alpha ? PixelFormats.Bgra32 : PixelFormats.Bgr32;
-                return ImageData.Create (Info, format, null, pixels);
+                return ImageData.Create(Info, format, null, pixels);
             }
         }
     }

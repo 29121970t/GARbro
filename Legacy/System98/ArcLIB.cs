@@ -33,71 +33,71 @@ namespace GameRes.Formats.System98
     [Export(typeof(ArchiveFormat))]
     public class LibOpener : ArchiveFormat
     {
-        public override string         Tag => "LIB/SYSTEM98";
+        public override string Tag => "LIB/SYSTEM98";
         public override string Description => "System-98 engine resource archive";
-        public override uint     Signature => 0x3062694C; // 'Lib0'
-        public override bool  IsHierarchic => false;
-        public override bool      CanWrite => false;
+        public override uint Signature => 0x3062694C; // 'Lib0'
+        public override bool IsHierarchic => false;
+        public override bool CanWrite => false;
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            var cat_name = Path.ChangeExtension (file.Name, ".CAT");
-            if (!VFS.FileExists (cat_name))
+            var cat_name = Path.ChangeExtension(file.Name, ".CAT");
+            if (!VFS.FileExists(cat_name))
                 return null;
             int count;
             byte[] index;
-            using (var cat = VFS.OpenView (cat_name))
+            using (var cat = VFS.OpenView(cat_name))
             {
-                count = cat.View.ReadInt16 (4);
-                if (!IsSaneCount (count))
+                count = cat.View.ReadInt16(4);
+                if (!IsSaneCount(count))
                     return null;
                 int index_size = count * 0x16;
-                if (cat.View.AsciiEqual (0, "Cat0"))
+                if (cat.View.AsciiEqual(0, "Cat0"))
                 {
-                    index = file.View.ReadBytes (6, (uint)index_size);
+                    index = file.View.ReadBytes(6, (uint)index_size);
                 }
-                else if (cat.View.AsciiEqual (0, "Cat1"))
+                else if (cat.View.AsciiEqual(0, "Cat1"))
                 {
                     index = new byte[index_size];
-                    using (var input = cat.CreateStream (6))
-                        LzssUnpack (input, index);
+                    using (var input = cat.CreateStream(6))
+                        LzssUnpack(input, index);
                 }
                 else
                     return null;
             }
             int pos = 0;
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
-                var name = Binary.GetCString (index, pos, 0xC).TrimEnd();
-                var entry = Create<PackedEntry> (name);
-                entry.Size   = index.ToUInt32 (pos+0xE);
-                entry.Offset = index.ToUInt32 (pos+0x12);
-                if (!entry.CheckPlacement (file.MaxOffset))
+                var name = Binary.GetCString(index, pos, 0xC).TrimEnd();
+                var entry = Create<PackedEntry>(name);
+                entry.Size = index.ToUInt32(pos + 0xE);
+                entry.Offset = index.ToUInt32(pos + 0x12);
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
-                entry.IsPacked = index[pos+0xC] != 0;
-                dir.Add (entry);
+                entry.IsPacked = index[pos + 0xC] != 0;
+                dir.Add(entry);
                 pos += 0x16;
             }
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var pent = entry as PackedEntry;
             if (null == pent || !pent.IsPacked)
-                return base.OpenEntry (arc, entry);
+                return base.OpenEntry(arc, entry);
             if (pent.UnpackedSize == 0)
-                pent.UnpackedSize = arc.File.View.ReadUInt32 (entry.Offset+6);
+                pent.UnpackedSize = arc.File.View.ReadUInt32(entry.Offset + 6);
             var data = new byte[pent.UnpackedSize];
-            using (var input = arc.File.CreateStream (entry.Offset+10, entry.Size-10))
+            using (var input = arc.File.CreateStream(entry.Offset + 10, entry.Size - 10))
             {
-                int length = LzssUnpack (input, data);
-                return new BinMemoryStream (data, 0, length, entry.Name);
+                int length = LzssUnpack(input, data);
+                return new BinMemoryStream(data, 0, length, entry.Name);
             }
         }
 
-        internal static int LzssUnpack (IBinaryStream input, byte[] output)
+        internal static int LzssUnpack(IBinaryStream input, byte[] output)
         {
             var frame = new byte[0x1000];
             int frame_pos = 1;
@@ -128,7 +128,7 @@ namespace GameRes.Formats.System98
                         break;
                     int count = (lo & 0xF) + 3;
                     int off = hi << 4 | lo >> 4;
-                    while (count --> 0)
+                    while (count-- > 0)
                     {
                         byte b = frame[off++ & 0xFFF];
                         output[dst++] = frame[frame_pos++ & 0xFFF] = b;

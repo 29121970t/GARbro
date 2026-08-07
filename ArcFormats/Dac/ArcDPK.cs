@@ -42,9 +42,9 @@ namespace GameRes.Formats.Dac
     [Serializable]
     public class DpkScheme
     {
-        public uint            Key1 { get; set; }
-        public uint            Key2 { get; set; }
-        public string          Name { get; set; }
+        public uint Key1 { get; set; }
+        public uint Key2 { get; set; }
+        public string Name { get; set; }
         public string OriginalTitle { get; set; }
     }
 
@@ -64,8 +64,8 @@ namespace GameRes.Formats.Dac
         public readonly uint Key1;
         public readonly uint Key2;
 
-        public DpkArchive (ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, DpkOptions opt)
-            : base (arc, impl, dir)
+        public DpkArchive(ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, DpkOptions opt)
+            : base(arc, impl, dir)
         {
             Key1 = opt.Key1;
             Key2 = opt.Key2;
@@ -75,91 +75,91 @@ namespace GameRes.Formats.Dac
     [Export(typeof(ArchiveFormat))]
     public class DpkOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "DPK"; } }
+        public override string Tag { get { return "DPK"; } }
         public override string Description { get { return "DAC engine resource archive"; } }
-        public override uint     Signature { get { return 0x004b5044; } } // 'DPK'
-        public override bool  IsHierarchic { get { return true; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x004b5044; } } // 'DPK'
+        public override bool IsHierarchic { get { return true; } }
+        public override bool CanWrite { get { return false; } }
 
         public static DpkScheme[] KnownSchemes = new DpkScheme[0];
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
             var header = new byte[8];
-            if (8 != file.View.Read (8, header, 0, 8))
+            if (8 != file.View.Read(8, header, 0, 8))
                 return null;
             byte last = header[7];
             for (int i = 0; i < 8; i++)
             {
                 header[i] ^= (byte)(i - 8);
             }
-            int data_offset = LittleEndian.ToInt32 (header, 0);
+            int data_offset = LittleEndian.ToInt32(header, 0);
             if (data_offset <= 16 || data_offset >= file.MaxOffset)
                 return null;
             int index_length = data_offset - 16;
             var index = new byte[index_length];
-            if (index_length != file.View.Read (16, index, 0, (uint)index_length))
+            if (index_length != file.View.Read(16, index, 0, (uint)index_length))
                 return null;
-            DecryptIndex (index, 16, index_length, last);
-            int count = LittleEndian.ToInt32 (index, 0);
+            DecryptIndex(index, 16, index_length, last);
+            int count = LittleEndian.ToInt32(index, 0);
             if (count <= 0 || count > 0xfffff)
                 return null;
 
-            var options = Query<DpkOptions> (arcStrings.ArcEncryptedNotice);
+            var options = Query<DpkOptions>(arcStrings.ArcEncryptedNotice);
             var name_bytes = new byte[0x20];
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             int base_offset = 4 + count * 4;
             for (int i = 0; i < count; ++i)
             {
-                var index_offset = base_offset + LittleEndian.ToInt32 (index, 4+i*4);
-                int name_begin = index_offset+0x0c;
-                int name_end = Array.IndexOf (index, (byte)0, name_begin);
+                var index_offset = base_offset + LittleEndian.ToInt32(index, 4 + i * 4);
+                int name_begin = index_offset + 0x0c;
+                int name_end = Array.IndexOf(index, (byte)0, name_begin);
                 if (-1 == name_end)
                     name_end = index.Length;
                 if (name_end == name_begin)
                     continue;
-                if ('z' == index[name_end-1])
+                if ('z' == index[name_end - 1])
                     --name_end; // strip 'z' from file extensions
 
                 int name_length = name_end - name_begin;
-                var name = Encodings.cp932.GetString (index, name_begin, name_length);
+                var name = Encodings.cp932.GetString(index, name_begin, name_length);
                 if (name_length > name_bytes.Length)
                     name_bytes = new byte[name_length];
                 // shift-jis characters sequence may contain '\\' that is not a path delimiter
-                string name_base = Path.GetFileName (name);
-                name_length = Encodings.cp932.GetBytes (name_base, 0, name_base.Length, name_bytes, 0);
+                string name_base = Path.GetFileName(name);
+                name_length = Encodings.cp932.GetBytes(name_base, 0, name_base.Length, name_bytes, 0);
 
-                uint size = LittleEndian.ToUInt32 (index, index_offset + 4);
+                uint size = LittleEndian.ToUInt32(index, index_offset + 4);
                 var entry = new DpkEntry
                 {
                     Name = name,
-                    Type = FormatCatalog.Instance.GetTypeFromName (name),
-                    Hash = GetNameHash (name_bytes, 0, name_length, options.Key1, options.Key2, size),
-                    Offset = data_offset + LittleEndian.ToUInt32 (index, index_offset),
+                    Type = FormatCatalog.Instance.GetTypeFromName(name),
+                    Hash = GetNameHash(name_bytes, 0, name_length, options.Key1, options.Key2, size),
+                    Offset = data_offset + LittleEndian.ToUInt32(index, index_offset),
                     Size = size,
                 };
-                if (!entry.CheckPlacement (file.MaxOffset))
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
-                dir.Add (entry);
+                dir.Add(entry);
             }
             if (0 == dir.Count)
                 return null;
-            return new DpkArchive (file, this, dir, options);
+            return new DpkArchive(file, this, dir, options);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var parc = arc as DpkArchive;
             var pentry = entry as DpkEntry;
             if (null == parc || null == pentry)
-                return arc.File.CreateStream (entry.Offset, entry.Size);
+                return arc.File.CreateStream(entry.Offset, entry.Size);
             var data = new byte[entry.Size];
-            arc.File.View.Read (entry.Offset, data, 0, entry.Size);
-            DecryptEntry (data, parc.Key1, parc.Key2, pentry);
-            return new BinMemoryStream (data, entry.Name);
+            arc.File.View.Read(entry.Offset, data, 0, entry.Size);
+            DecryptEntry(data, parc.Key1, parc.Key2, pentry);
+            return new BinMemoryStream(data, entry.Name);
         }
 
-        private void DecryptIndex (byte[] buf, int base_offset, int length, byte last)
+        private void DecryptIndex(byte[] buf, int base_offset, int length, byte last)
         {
             for (int i = 0; i < length; i++)
             {
@@ -169,7 +169,7 @@ namespace GameRes.Formats.Dac
             }
         }
 
-        private void DecryptEntry (byte[] data, uint key1, uint key2, DpkEntry entry)
+        private void DecryptEntry(byte[] data, uint key1, uint key2, DpkEntry entry)
         {
             for (uint i = 0; i < data.Length; ++i)
             {
@@ -179,39 +179,40 @@ namespace GameRes.Formats.Dac
             }
         }
 
-        private uint GetNameHash (byte[] name, int begin, int length, uint key1, uint key2, uint entry_size)
+        private uint GetNameHash(byte[] name, int begin, int length, uint key1, uint key2, uint entry_size)
         {
             uint hash = 0;
-            for (int i = begin+length-1; i >= begin; --i)
+            for (int i = begin + length - 1; i >= begin; --i)
             {
                 hash += key1 + key2 * (entry_size + name[i]);
             }
             return hash;
         }
 
-        public override ResourceOptions GetDefaultOptions ()
+        public override ResourceOptions GetDefaultOptions()
         {
-            return new DpkOptions {
+            return new DpkOptions
+            {
                 Key1 = Properties.Settings.Default.DPKKey1,
                 Key2 = Properties.Settings.Default.DPKKey2,
             };
         }
 
-        public override ResourceOptions GetOptions (object w)
+        public override ResourceOptions GetOptions(object w)
         {
             var widget = w as GUI.WidgetDPK;
             if (null != widget)
             {
                 uint result_key;
-                if (uint.TryParse (widget.Key1.Text, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out result_key))
+                if (uint.TryParse(widget.Key1.Text, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out result_key))
                     Properties.Settings.Default.DPKKey1 = result_key;
-                if (uint.TryParse (widget.Key2.Text, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out result_key))
+                if (uint.TryParse(widget.Key2.Text, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out result_key))
                     Properties.Settings.Default.DPKKey2 = result_key;
             }
             return this.GetDefaultOptions();
         }
 
-        public override object GetAccessWidget ()
+        public override object GetAccessWidget()
         {
             return new GUI.WidgetDPK();
         }
@@ -228,7 +229,7 @@ namespace GameRes.Formats.Dac
             set
             {
                 KnownSchemes = ((ArchiveScheme)value).KnownSchemes;
-                if (string.IsNullOrEmpty (KnownSchemes[0].Name))
+                if (string.IsNullOrEmpty(KnownSchemes[0].Name))
                     KnownSchemes[0].Name = arcStrings.ArcDefault;
             }
         }

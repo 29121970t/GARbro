@@ -44,18 +44,18 @@ namespace GameRes.Formats.Marble
     [Export(typeof(ImageFormat))]
     public class PrsFormat : ImageFormat
     {
-        public override string         Tag { get { return "PRS"; } }
+        public override string Tag { get { return "PRS"; } }
         public override string Description { get { return "Marble engine image format"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new NotImplementedException ("PrsFormat.Write not implemented");
+            throw new NotImplementedException("PrsFormat.Write not implemented");
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
-            var header = stream.ReadHeader (0x10);
+            var header = stream.ReadHeader(0x10);
             if (header[0] != 'Y' || header[1] != 'B')
                 return null;
             int bpp = header[3];
@@ -64,36 +64,36 @@ namespace GameRes.Formats.Marble
 
             return new PrsMetaData
             {
-                Width = header.ToUInt16 (12),
-                Height = header.ToUInt16 (14),
+                Width = header.ToUInt16(12),
+                Height = header.ToUInt16(14),
                 BPP = 8 * bpp,
                 Flag = header[2],
-                PackedSize = header.ToUInt32 (4),
+                PackedSize = header.ToUInt32(4),
             };
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
-            using (var reader = new Reader (stream, (PrsMetaData)info))
+            using (var reader = new Reader(stream, (PrsMetaData)info))
             {
                 reader.Unpack();
-                return ImageData.Create (info, reader.Format, null, reader.Data, reader.Stride);
+                return ImageData.Create(info, reader.Format, null, reader.Data, reader.Stride);
             }
         }
 
         internal class Reader : IDisposable
         {
-            IBinaryStream   m_input;
-            byte[]          m_output;
-            uint            m_size;
-            byte            m_flag;
-            int             m_depth;
+            IBinaryStream m_input;
+            byte[] m_output;
+            uint m_size;
+            byte m_flag;
+            int m_depth;
 
-            public byte[]        Data { get { return m_output; } }
+            public byte[] Data { get { return m_output; } }
             public PixelFormat Format { get; private set; }
-            public int         Stride { get; private set; }
+            public int Stride { get; private set; }
 
-            public Reader (IBinaryStream file, PrsMetaData info)
+            public Reader(IBinaryStream file, PrsMetaData info)
             {
                 m_input = file;
                 m_size = info.PackedSize;
@@ -109,7 +109,7 @@ namespace GameRes.Formats.Marble
 
             static readonly int[] LengthTable = InitLengthTable();
 
-            private static int[] InitLengthTable ()
+            private static int[] InitLengthTable()
             {
                 var length_table = new int[256];
                 for (int i = 0; i < 0xfe; ++i)
@@ -119,7 +119,7 @@ namespace GameRes.Formats.Marble
                 return length_table;
             }
 
-            public void Unpack ()
+            public void Unpack()
             {
                 m_input.Position = 0x10;
                 int dst = 0;
@@ -176,8 +176,8 @@ namespace GameRes.Formats.Marble
                         if (3 == b)
                         {
                             length += 9;
-//                            length = Math.Min(m_output.Length - dst, length);
-                            int read = m_input.Read (m_output, dst, length);
+                            //                            length = Math.Min(m_output.Length - dst, length);
+                            int read = m_input.Read(m_output, dst, length);
                             if (read < length)
                                 break;
                             remaining -= length;
@@ -189,21 +189,21 @@ namespace GameRes.Formats.Marble
                     }
                     ++shift;
                     if (dst < shift)
-                        throw new InvalidFormatException ("Invalid offset value");
-                    length = Math.Min (length, m_output.Length - dst);
-                    Binary.CopyOverlapped (m_output, dst-shift, dst, length);
+                        throw new InvalidFormatException("Invalid offset value");
+                    length = Math.Min(length, m_output.Length - dst);
+                    Binary.CopyOverlapped(m_output, dst - shift, dst, length);
                     dst += length;
                 }
                 if ((m_flag & 0x80) != 0)
                 {
                     for (int i = m_depth; i < m_output.Length; ++i)
-                        m_output[i] += m_output[i-m_depth];
+                        m_output[i] += m_output[i - m_depth];
                 }
                 if (4 == m_depth && IsDummyAlphaChannel())
                     Format = PixelFormats.Bgr32;
             }
 
-            bool IsDummyAlphaChannel ()
+            bool IsDummyAlphaChannel()
             {
                 byte alpha = m_output[3];
                 if (0xFF == alpha)
@@ -217,13 +217,13 @@ namespace GameRes.Formats.Marble
             #region IDisposable Members
             bool disposed = false;
 
-            public void Dispose ()
+            public void Dispose()
             {
-                Dispose (true);
-                GC.SuppressFinalize (this);
+                Dispose(true);
+                GC.SuppressFinalize(this);
             }
 
-            protected virtual void Dispose (bool disposing)
+            protected virtual void Dispose(bool disposing)
             {
                 if (!disposed)
                 {

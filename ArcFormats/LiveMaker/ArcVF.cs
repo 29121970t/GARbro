@@ -36,19 +36,19 @@ namespace GameRes.Formats.LiveMaker
     [Export(typeof(ArchiveFormat))]
     public class VffOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "DAT/vf"; } }
+        public override string Tag { get { return "DAT/vf"; } }
         public override string Description { get { return "LiveMaker resource archive"; } }
-        public override uint     Signature { get { return 0x666676; } } // 'vff'
-        public override bool  IsHierarchic { get { return true; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x666676; } } // 'vff'
+        public override bool IsHierarchic { get { return true; } }
+        public override bool CanWrite { get { return false; } }
 
-        public VffOpener ()
+        public VffOpener()
         {
             Extensions = new string[] { "dat", "exe" };
             Signatures = new uint[] { 0x666676, 0x00905A4D, 0 };
         }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
             uint base_offset = 0;
             ArcView index_file = file;
@@ -61,34 +61,34 @@ namespace GameRes.Formats.LiveMaker
                 //   game.002
                 //   ...
 
-                uint signature = index_file.View.ReadUInt32 (0);
-                if (file.Name.HasExtension (".exe")
+                uint signature = index_file.View.ReadUInt32(0);
+                if (file.Name.HasExtension(".exe")
                     && (0x5A4D == (signature & 0xFFFF))) // 'MZ'
                 {
-                    base_offset = SkipExeData (index_file);
+                    base_offset = SkipExeData(index_file);
                     if (base_offset >= file.MaxOffset)
                         return null;
-                    signature = index_file.View.ReadUInt32 (base_offset);
+                    signature = index_file.View.ReadUInt32(base_offset);
                 }
-                else if (!file.Name.HasExtension (".dat"))
+                else if (!file.Name.HasExtension(".dat"))
                 {
                     return null;
                 }
                 else if (0x666676 != signature)
                 {
-                    var ext_filename = Path.ChangeExtension (file.Name, ".ext");
-                    if (!VFS.FileExists (ext_filename))
+                    var ext_filename = Path.ChangeExtension(file.Name, ".ext");
+                    if (!VFS.FileExists(ext_filename))
                         return null;
-                    index_file = VFS.OpenView (ext_filename);
-                    signature = index_file.View.ReadUInt32 (0);
+                    index_file = VFS.OpenView(ext_filename);
+                    signature = index_file.View.ReadUInt32(0);
                 }
                 if (0x666676 != signature)
                     return null;
-                int count = index_file.View.ReadInt32 (base_offset+6);
-                if (!IsSaneCount (count))
+                int count = index_file.View.ReadInt32(base_offset + 6);
+                if (!IsSaneCount(count))
                     return null;
 
-                var dir = ReadIndex (index_file, base_offset, count);
+                var dir = ReadIndex(index_file, base_offset, count);
                 if (null == dir)
                     return null;
                 long max_offset = file.MaxOffset;
@@ -97,13 +97,13 @@ namespace GameRes.Formats.LiveMaker
                 {
                     for (int i = 1; i < 100; ++i)
                     {
-                        var ext = string.Format (".{0:D3}", i);
-                        var part_filename = Path.ChangeExtension (file.Name, ext);
-                        if (!VFS.FileExists (part_filename))
+                        var ext = string.Format(".{0:D3}", i);
+                        var part_filename = Path.ChangeExtension(file.Name, ext);
+                        if (!VFS.FileExists(part_filename))
                             break;
-                        var arc_file = VFS.OpenView (part_filename);
+                        var arc_file = VFS.OpenView(part_filename);
                         max_offset += arc_file.MaxOffset;
-                        parts.Add (arc_file);
+                        parts.Add(arc_file);
                     }
                 }
                 catch
@@ -113,8 +113,8 @@ namespace GameRes.Formats.LiveMaker
                     throw;
                 }
                 if (0 == parts.Count)
-                    return new ArcFile (file, this, dir);
-                return new MultiFileArchive (file, this, dir, parts);
+                    return new ArcFile(file, this, dir);
+                return new MultiFileArchive(file, this, dir, parts);
             }
             finally
             {
@@ -123,14 +123,14 @@ namespace GameRes.Formats.LiveMaker
             }
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var vff = arc as MultiFileArchive;
             Stream input = null;
             if (vff != null)
-                input = vff.OpenStream (entry);
+                input = vff.OpenStream(entry);
             else
-                input = arc.File.CreateStream (entry.Offset, entry.Size);
+                input = arc.File.CreateStream(entry.Offset, entry.Size);
 
             var pent = entry as VfEntry;
             if (null == pent)
@@ -142,40 +142,40 @@ namespace GameRes.Formats.LiveMaker
                 {
                     if (entry.Size <= 8)
                         return Stream.Null;
-                    data = ReshuffleStream (input);
+                    data = ReshuffleStream(input);
                 }
-                input = new BinMemoryStream (data, entry.Name);
+                input = new BinMemoryStream(data, entry.Name);
             }
             if (pent.IsPacked)
-                input = new ZLibStream (input, CompressionMode.Decompress);
+                input = new ZLibStream(input, CompressionMode.Decompress);
             return input;
         }
 
-        List<Entry> ReadIndex (ArcView file, uint base_offset, int count)
+        List<Entry> ReadIndex(ArcView file, uint base_offset, int count)
         {
-            uint index_offset = base_offset+0xA;
+            uint index_offset = base_offset + 0xA;
             var name_buffer = new byte[0x100];
-            var rnd = new TpRandom (0x75D6EE39u);
-            var dir = new List<Entry> (count);
+            var rnd = new TpRandom(0x75D6EE39u);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
-                uint name_length = file.View.ReadUInt32 (index_offset);
+                uint name_length = file.View.ReadUInt32(index_offset);
                 index_offset += 4;
                 if (0 == name_length || name_length > name_buffer.Length)
                     return null;
-                if (name_length != file.View.Read (index_offset, name_buffer, 0, name_length))
+                if (name_length != file.View.Read(index_offset, name_buffer, 0, name_length))
                     return null;
                 index_offset += name_length;
 
-                var name = DecryptName (name_buffer, (int)name_length, rnd);
-                dir.Add (Create<VfEntry> (name));
+                var name = DecryptName(name_buffer, (int)name_length, rnd);
+                dir.Add(Create<VfEntry>(name));
             }
             rnd.Reset();
-            long offset = base_offset + (file.View.ReadInt64 (index_offset) ^ (int)rnd.GetRand32());
+            long offset = base_offset + (file.View.ReadInt64(index_offset) ^ (int)rnd.GetRand32());
             foreach (var entry in dir)
             {
                 index_offset += 8;
-                long next_offset = base_offset + (file.View.ReadInt64 (index_offset) ^ (int)rnd.GetRand32());
+                long next_offset = base_offset + (file.View.ReadInt64(index_offset) ^ (int)rnd.GetRand32());
                 entry.Offset = offset;
                 entry.Size = (uint)(next_offset - offset);
                 offset = next_offset;
@@ -183,59 +183,59 @@ namespace GameRes.Formats.LiveMaker
             index_offset += 8;
             foreach (VfEntry entry in dir)
             {
-                byte flags = file.View.ReadByte (index_offset++);
+                byte flags = file.View.ReadByte(index_offset++);
                 entry.IsPacked = 0 == flags || 3 == flags;
                 entry.IsScrambled = 2 == flags || 3 == flags;
             }
             return dir;
         }
 
-        string DecryptName (byte[] name_buf, int name_length, TpRandom key)
+        string DecryptName(byte[] name_buf, int name_length, TpRandom key)
         {
             for (int i = 0; i < name_length; ++i)
             {
                 name_buf[i] ^= (byte)key.GetRand32();
             }
-            return Encodings.cp932.GetString (name_buf, 0, name_length);
+            return Encodings.cp932.GetString(name_buf, 0, name_length);
         }
 
-        uint SkipExeData (ArcView file)
+        uint SkipExeData(ArcView file)
         {
-            var exe = new ExeFile (file);
+            var exe = new ExeFile(file);
             return (uint)exe.Overlay.Offset;
         }
 
-        byte[] ReshuffleStream (Stream input)
+        byte[] ReshuffleStream(Stream input)
         {
             var header = new byte[8];
-            input.Read (header, 0, 8);
-            int chunk_size = header.ToInt32 (0);
-            uint seed = header.ToUInt32 (4) ^ 0xF8EAu;
+            input.ReadExactly(header, 0, 8);
+            int chunk_size = header.ToInt32(0);
+            uint seed = header.ToUInt32(4) ^ 0xF8EAu;
             int input_length = (int)input.Length - 8;
             var output = new byte[input_length];
             int count = (input_length - 1) / chunk_size + 1;
             int dst = 0;
-            foreach (int i in RandomSequence (count, seed))
+            foreach (int i in RandomSequence(count, seed))
             {
                 int position = i * chunk_size;
                 input.Position = 8 + position;
-                int length = Math.Min (chunk_size, input_length - position);
-                input.Read (output, dst, length);
+                int length = Math.Min(chunk_size, input_length - position);
+                input.ReadExactly(output, dst, length);
                 dst += length;
             }
             return output;
         }
 
-        static IEnumerable<int> RandomSequence (int count, uint seed)
+        static IEnumerable<int> RandomSequence(int count, uint seed)
         {
-            var tp = new TpScramble (seed);
-            var order = Enumerable.Range (0, count).ToList<int>();
+            var tp = new TpScramble(seed);
+            var order = Enumerable.Range(0, count).ToList<int>();
             var seq = new int[order.Count];
             for (int i = 0; order.Count > 1; ++i)
             {
-                int n = tp.GetInt32 (0, order.Count - 2);
+                int n = tp.GetInt32(0, order.Count - 2);
                 seq[order[n]] = i;
-                order.RemoveAt (n);
+                order.RemoveAt(n);
             }
             seq[order[0]] = count - 1;
             return seq;
@@ -249,23 +249,23 @@ namespace GameRes.Formats.LiveMaker
 
     internal class TpRandom
     {
-        uint    m_seed;
-        uint    m_current;
+        uint m_seed;
+        uint m_current;
 
-        public TpRandom (uint seed)
+        public TpRandom(uint seed)
         {
             m_seed = seed;
             m_current = 0;
         }
 
-        public uint GetRand32 ()
+        public uint GetRand32()
         {
             m_current += m_current << 2;
             m_current += m_seed;
             return m_current;
         }
 
-        public void Reset ()
+        public void Reset()
         {
             m_current = 0;
         }
@@ -273,19 +273,19 @@ namespace GameRes.Formats.LiveMaker
 
     internal class TpScramble
     {
-        uint[]  m_state = new uint[5];
+        uint[] m_state = new uint[5];
 
         const uint FactorA = 2111111111;
         const uint FactorB = 1492;
         const uint FactorC = 1776;
         const uint FactorD = 5115;
 
-        public TpScramble (uint seed)
+        public TpScramble(uint seed)
         {
-            Init (seed);
+            Init(seed);
         }
 
-        public void Init (uint seed)
+        public void Init(uint seed)
         {
             uint hash = seed != 0 ? seed : 0xFFFFFFFFu;
             for (int i = 0; i < 5; ++i)
@@ -301,18 +301,18 @@ namespace GameRes.Formats.LiveMaker
             }
         }
 
-        public int GetInt32 (int first, int last)
+        public int GetInt32(int first, int last)
         {
             var num = GetDouble();
             return (int)(first + (long)(num * (last - first + 1)));
         }
 
-        double GetDouble ()
+        double GetDouble()
         {
             return (double)GetUInt32() / 0x100000000L;
         }
 
-        uint GetUInt32 ()
+        uint GetUInt32()
         {
             ulong v = FactorA * (ulong)m_state[3]
                     + FactorB * (ulong)m_state[2]

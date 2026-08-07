@@ -33,27 +33,28 @@ namespace GameRes.Formats.Nekotaro
     [Export(typeof(ImageFormat))]
     public class NcgFormat : ImageFormat
     {
-        public override string         Tag => "NCG";
+        public override string Tag => "NCG";
         public override string Description => "Nekotaro Game System image format";
-        public override uint     Signature => 0;
+        public override uint Signature => 0;
 
-        public NcgFormat ()
+        public NcgFormat()
         {
             Signatures = new[] { 0xC8500000u, 0u };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (4);
+            var header = file.ReadHeader(4);
             int left = header[0] << 3;
-            int top  = header[1] << 1;
+            int top = header[1] << 1;
             int width = header[2] << 3;
             int height = header[3] << 1;
             int right = left + width;
             int bottom = top + height;
             if (right > 640 || bottom > 400 || 0 == width || 0 == height)
                 return null;
-            return new ImageMetaData {
+            return new ImageMetaData
+            {
                 Width = (uint)width,
                 Height = (uint)height,
                 OffsetX = left,
@@ -62,15 +63,15 @@ namespace GameRes.Formats.Nekotaro
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new NcgReader (file, info);
+            var reader = new NcgReader(file, info);
             return reader.Unpack();
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("NcgFormat.Write not implemented");
+            throw new System.NotImplementedException("NcgFormat.Write not implemented");
         }
     }
 
@@ -79,13 +80,13 @@ namespace GameRes.Formats.Nekotaro
         IBinaryStream m_input;
         ImageMetaData m_info;
 
-        public NcgReader (IBinaryStream input, ImageMetaData info)
+        public NcgReader(IBinaryStream input, ImageMetaData info)
         {
             m_input = input;
             m_info = info;
         }
 
-        public ImageData Unpack ()
+        public ImageData Unpack()
         {
             m_input.Position = 4;
             var palette = ReadPalette();
@@ -107,10 +108,10 @@ namespace GameRes.Formats.Nekotaro
                 for (int shift = 0; shift < 4; ++shift)
                 {
                     byte bit = (byte)(1 << shift);
-                    FillBits (bits1, bit);
-                    FillBits (bits2, bit);
+                    FillBits(bits1, bit);
+                    FillBits(bits2, bit);
                 }
-                for (;;)
+                for (; ; )
                 {
                     ctl = m_input.ReadUInt8();
                     if (0xFF == ctl || 0x7F == ctl)
@@ -122,71 +123,71 @@ namespace GameRes.Formats.Nekotaro
                     pblk = x / 4 + quart_width * (y / 2);
                     switch (ctl >> 6)
                     {
-                    case 0:
-                        {
-                            int w_count = m_input.ReadUInt8();
-                            int h_count = m_input.ReadUInt8();
-                            int gap = quart_width - 2 * w_count;
-                            while (h_count --> 0)
+                        case 0:
                             {
-                                for (int i = 0; i < w_count; ++i)
+                                int w_count = m_input.ReadUInt8();
+                                int h_count = m_input.ReadUInt8();
+                                int gap = quart_width - 2 * w_count;
+                                while (h_count-- > 0)
+                                {
+                                    for (int i = 0; i < w_count; ++i)
+                                    {
+                                        for (int j = 0; j < 8; ++j)
+                                        {
+                                            pixels[dst + width] = bits2[j];
+                                            pixels[dst++] = bits1[j];
+                                        }
+                                        blockmap[pblk++] = true;
+                                        blockmap[pblk++] = true;
+                                    }
+                                    pblk += gap;
+                                    dst += 2 * width - 8 * w_count;
+                                }
+                                break;
+                            }
+                        case 1:
+                            {
+                                int count = m_input.ReadUInt8();
+                                while (count-- > 0)
                                 {
                                     for (int j = 0; j < 8; ++j)
                                     {
-                                        pixels[dst+width] = bits2[j];
+                                        pixels[dst + width] = bits2[j];
                                         pixels[dst++] = bits1[j];
                                     }
                                     blockmap[pblk++] = true;
                                     blockmap[pblk++] = true;
                                 }
-                                pblk += gap;
-                                dst += 2 * width - 8 * w_count;
+                                break;
                             }
-                            break;
-                        }
-                    case 1:
-                        {
-                            int count = m_input.ReadUInt8();
-                            while (count --> 0)
+                        case 2:
+                            {
+                                int count = m_input.ReadUInt8();
+                                while (count-- > 0)
+                                {
+                                    for (int j = 0; j < 8; ++j)
+                                    {
+                                        pixels[dst + width] = bits2[j];
+                                        pixels[dst++] = bits1[j];
+                                    }
+                                    blockmap[pblk] = true;
+                                    blockmap[pblk + 1] = true;
+                                    dst += 2 * width - 8;
+                                    pblk += quart_width;
+                                }
+                                break;
+                            }
+                        case 3:
                             {
                                 for (int j = 0; j < 8; ++j)
                                 {
-                                    pixels[dst+width] = bits2[j];
+                                    pixels[dst + width] = bits2[j];
                                     pixels[dst++] = bits1[j];
                                 }
-                                blockmap[pblk++] = true;
-                                blockmap[pblk++] = true;
+                                blockmap[pblk] = true;
+                                blockmap[pblk + 1] = true;
+                                break;
                             }
-                            break;
-                        }
-                    case 2:
-                        {
-                            int count = m_input.ReadUInt8();
-                            while (count --> 0)
-                            {
-                                for (int j = 0; j < 8; ++j)
-                                {
-                                    pixels[dst+width] = bits2[j];
-                                    pixels[dst++] = bits1[j];
-                                }
-                                blockmap[pblk  ] = true;
-                                blockmap[pblk+1] = true;
-                                dst += 2 * width - 8;
-                                pblk += quart_width;
-                            }
-                            break;
-                        }
-                    case 3:
-                        {
-                            for (int j = 0; j < 8; ++j)
-                            {
-                                pixels[dst+width] = bits2[j];
-                                pixels[dst++] = bits1[j];
-                            }
-                            blockmap[pblk  ] = true;
-                            blockmap[pblk+1] = true;
-                            break;
-                        }
                     }
                 }
             }
@@ -196,8 +197,8 @@ namespace GameRes.Formats.Nekotaro
                 for (int i = 0; i < 8; ++i)
                     bits1[i] = 0;
                 for (int shift = 0; shift < 4; ++shift)
-                    FillBits (bits1, (byte)(1 << shift));
-                for (;;)
+                    FillBits(bits1, (byte)(1 << shift));
+                for (; ; )
                 {
                     ctl = m_input.ReadUInt8();
                     if (0xFF == ctl || 0xFE == ctl)
@@ -208,11 +209,11 @@ namespace GameRes.Formats.Nekotaro
                     if ((ctl & 0x80) == 0)
                     {
                         int count = m_input.ReadUInt8();
-                        while (count --> 0)
+                        while (count-- > 0)
                         {
                             for (int j = 0; j < 4; ++j)
                             {
-                                pixels[dst+width] = bits1[j+4];
+                                pixels[dst + width] = bits1[j + 4];
                                 pixels[dst++] = bits1[j];
                             }
                             blockmap[pblk] = true;
@@ -224,7 +225,7 @@ namespace GameRes.Formats.Nekotaro
                     {
                         for (int j = 0; j < 4; ++j)
                         {
-                            pixels[dst+width] = bits1[j+4];
+                            pixels[dst + width] = bits1[j + 4];
                             pixels[dst++] = bits1[j];
                         }
                         blockmap[pblk] = true;
@@ -247,20 +248,20 @@ namespace GameRes.Formats.Nekotaro
                         for (int i = 0; i < 8; ++i)
                             bits1[i] = 0;
                         for (int shift = 0; shift < 4; ++shift)
-                            FillBits (bits1, (byte)(1 << shift));
+                            FillBits(bits1, (byte)(1 << shift));
                         for (int j = 0; j < 4; ++j)
                         {
-                            pixels[dst+width] = bits1[j+4];
+                            pixels[dst + width] = bits1[j + 4];
                             pixels[dst++] = bits1[j];
                         }
                     }
                 }
                 dst += width;
             }
-            return ImageData.Create (m_info, PixelFormats.Indexed8, palette, pixels, output_stride);
+            return ImageData.Create(m_info, PixelFormats.Indexed8, palette, pixels, output_stride);
         }
 
-        void FillBits (byte[] bits, byte bit)
+        void FillBits(byte[] bits, byte bit)
         {
             sbyte s = m_input.ReadInt8();
             for (int i = 0; i < 8; ++i)
@@ -273,7 +274,7 @@ namespace GameRes.Formats.Nekotaro
 
         static readonly string PaletteKey = "NEKOTARO";
 
-        BitmapPalette ReadPalette ()
+        BitmapPalette ReadPalette()
         {
             int k = 0;
             var colors = new Color[16];
@@ -285,9 +286,9 @@ namespace GameRes.Formats.Nekotaro
                 b = (~b - PaletteKey[k++ & 7]) & 0xFF;
                 r = (~r - PaletteKey[k++ & 7]) & 0xFF;
                 g = (~g - PaletteKey[k++ & 7]) & 0xFF;
-                colors[c] = Color.FromRgb ((byte)(r * 0x11), (byte)(g * 0x11), (byte)(b * 0x11));
+                colors[c] = Color.FromRgb((byte)(r * 0x11), (byte)(g * 0x11), (byte)(b * 0x11));
             }
-            return new BitmapPalette (colors);
+            return new BitmapPalette(colors);
         }
     }
 }

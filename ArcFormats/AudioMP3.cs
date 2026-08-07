@@ -31,8 +31,8 @@ namespace GameRes.Formats
 {
     public class Mp3Input : SoundInput
     {
-        int             m_bitrate;
-        Mp3FileReader   m_reader;
+        int m_bitrate;
+        Mp3FileReader m_reader;
 
         public override long Position
         {
@@ -49,29 +49,29 @@ namespace GameRes.Formats
 
         public override string SourceFormat { get { return "mp3"; } }
 
-        public Mp3Input (Stream file) : base (file)
+        public Mp3Input(Stream file) : base(file)
         {
-            m_reader = new Mp3FileReader (file);
-            m_bitrate = m_reader.Mp3WaveFormat.AverageBytesPerSecond*8;
+            m_reader = new Mp3FileReader(file);
+            m_bitrate = m_reader.Mp3WaveFormat.AverageBytesPerSecond * 8;
             var format = new GameRes.WaveFormat();
-            format.FormatTag                = (ushort)m_reader.WaveFormat.Encoding;
-            format.Channels                 = (ushort)m_reader.WaveFormat.Channels;
-            format.SamplesPerSecond         = (uint)m_reader.WaveFormat.SampleRate;
-            format.BitsPerSample            = (ushort)m_reader.WaveFormat.BitsPerSample;
-            format.BlockAlign               = (ushort)m_reader.BlockAlign;
-            format.AverageBytesPerSecond    = (uint)m_reader.WaveFormat.AverageBytesPerSecond;
+            format.FormatTag = (ushort)m_reader.WaveFormat.Encoding;
+            format.Channels = (ushort)m_reader.WaveFormat.Channels;
+            format.SamplesPerSecond = (uint)m_reader.WaveFormat.SampleRate;
+            format.BitsPerSample = (ushort)m_reader.WaveFormat.BitsPerSample;
+            format.BlockAlign = (ushort)m_reader.BlockAlign;
+            format.AverageBytesPerSecond = (uint)m_reader.WaveFormat.AverageBytesPerSecond;
             this.Format = format;
             this.PcmSize = m_reader.Length;
         }
 
         public override int Read(byte[] buffer, int offset, int count)
         {
-            return m_reader.Read (buffer, offset, count);
+            return m_reader.Read(buffer, offset, count);
         }
 
         #region IDisposable Members
         bool _mp3_disposed;
-        protected override void Dispose (bool disposing)
+        protected override void Dispose(bool disposing)
         {
             if (!_mp3_disposed)
             {
@@ -80,7 +80,7 @@ namespace GameRes.Formats
                     m_reader.Dispose();
                 }
                 _mp3_disposed = true;
-                base.Dispose (disposing);
+                base.Dispose(disposing);
             }
         }
         #endregion
@@ -89,39 +89,39 @@ namespace GameRes.Formats
     [Export(typeof(AudioFormat))]
     public class Mp3Audio : AudioFormat
     {
-        public override string         Tag { get { return "MP3"; } }
+        public override string Tag { get { return "MP3"; } }
         public override string Description { get { return "MPEG Layer 3 audio format"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool CanWrite { get { return false; } }
 
         const int SyncSearchThreshold = 0x300;
 
-        public override SoundInput TryOpen (IBinaryStream file)
+        public override SoundInput TryOpen(IBinaryStream file)
         {
-            var header = file.ReadHeader (10).ToArray();
-            long start_offset = SkipId3Tag (header);
+            var header = file.ReadHeader(10).ToArray();
+            long start_offset = SkipId3Tag(header);
             int sync_pos = 0;
             if (0 != start_offset)
             {
                 file.Position = start_offset;
-                if (4 != file.Read (header, 0, 4))
+                if (4 != file.Read(header, 0, 4))
                     return null;
             }
             else if (0xFF != header[0])
             {
                 file.Position = 1;
-                header = file.ReadBytes (SyncSearchThreshold);
-                sync_pos = System.Array.IndexOf<byte> (header, 0xFF, 1, SyncSearchThreshold-4);
+                header = file.ReadBytes(SyncSearchThreshold);
+                sync_pos = System.Array.IndexOf<byte>(header, 0xFF, 1, SyncSearchThreshold - 4);
                 if (-1 == sync_pos)
                     return null;
             }
-            if (0xFF != header[sync_pos] || 0xE2 != (header[sync_pos+1] & 0xE6) || 0xF0 == (header[sync_pos+2] & 0xF0))
+            if (0xFF != header[sync_pos] || 0xE2 != (header[sync_pos + 1] & 0xE6) || 0xF0 == (header[sync_pos + 2] & 0xF0))
                 return null;
             file.Position = 0;
-            return new Mp3Input (file.AsStream);
+            return new Mp3Input(file.AsStream);
         }
 
-        long SkipId3Tag (byte[] buffer)
+        long SkipId3Tag(byte[] buffer)
         {
             long start_offset = 0;
             if (0x49 == buffer[0] && 0x44 == buffer[1] && 0x33 == buffer[2]) // 'ID3'

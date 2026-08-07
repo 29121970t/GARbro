@@ -51,7 +51,7 @@ namespace GameRes
         /// <summary>Image source file name, if any.</summary>
         public string FileName { get; set; }
 
-        public int iWidth  { get { return (int)Width; } }
+        public int iWidth { get { return (int)Width; } }
         public int iHeight { get { return (int)Height; } }
     }
 
@@ -65,12 +65,12 @@ namespace GameRes
     /// </summary>
     public enum PaletteFormat
     {
-        Rgb     = 1,
-        Bgr     = 2,
-        RgbX    = 5,
-        BgrX    = 6,
-        RgbA    = 9,
-        BgrA    = 10,
+        Rgb = 1,
+        Bgr = 2,
+        RgbX = 5,
+        BgrX = 6,
+        RgbA = 9,
+        BgrA = 10,
     }
 
     public class ImageData
@@ -87,54 +87,54 @@ namespace GameRes
         public static double DefaultDpiX { get; set; }
         public static double DefaultDpiY { get; set; }
 
-        static ImageData ()
+        static ImageData()
         {
-            SetDefaultDpi (96, 96);
+            SetDefaultDpi(96, 96);
         }
 
-        public static void SetDefaultDpi (double x, double y)
+        public static void SetDefaultDpi(double x, double y)
         {
             DefaultDpiX = x;
             DefaultDpiY = y;
         }
 
-        public ImageData (BitmapSource data, ImageMetaData meta)
+        public ImageData(BitmapSource data, ImageMetaData meta)
         {
             m_bitmap = data;
             OffsetX = meta.OffsetX;
             OffsetY = meta.OffsetY;
         }
 
-        public ImageData (BitmapSource data, int x = 0, int y = 0)
+        public ImageData(BitmapSource data, int x = 0, int y = 0)
         {
             m_bitmap = data;
             OffsetX = x;
             OffsetY = y;
         }
 
-        public static ImageData Create (ImageMetaData info, PixelFormat format, BitmapPalette palette,
+        public static ImageData Create(ImageMetaData info, PixelFormat format, BitmapPalette palette,
                                         Array pixel_data, int stride)
         {
-            var bitmap = BitmapSource.Create ((int)info.Width, (int)info.Height, DefaultDpiX, DefaultDpiY,
+            var bitmap = BitmapSource.Create((int)info.Width, (int)info.Height, DefaultDpiX, DefaultDpiY,
                                               format, palette, pixel_data, stride);
             bitmap.Freeze();
-            return new ImageData (bitmap, info);
+            return new ImageData(bitmap, info);
         }
 
-        public static ImageData Create (ImageMetaData info, PixelFormat format, BitmapPalette palette,
+        public static ImageData Create(ImageMetaData info, PixelFormat format, BitmapPalette palette,
                                         Array pixel_data)
         {
-            return Create (info, format, palette, pixel_data, (int)info.Width*((format.BitsPerPixel+7)/8));
+            return Create(info, format, palette, pixel_data, (int)info.Width * ((format.BitsPerPixel + 7) / 8));
         }
 
-        public static ImageData CreateFlipped (ImageMetaData info, PixelFormat format, BitmapPalette palette,
+        public static ImageData CreateFlipped(ImageMetaData info, PixelFormat format, BitmapPalette palette,
                                                Array pixel_data, int stride)
         {
-            var bitmap = BitmapSource.Create ((int)info.Width, (int)info.Height, DefaultDpiX, DefaultDpiY,
+            var bitmap = BitmapSource.Create((int)info.Width, (int)info.Height, DefaultDpiX, DefaultDpiY,
                                               format, palette, pixel_data, stride);
-            var flipped = new TransformedBitmap (bitmap, new ScaleTransform { ScaleY = -1 });
+            var flipped = new TransformedBitmap(bitmap, new ScaleTransform { ScaleY = -1 });
             flipped.Freeze();
-            return new ImageData (flipped, info);
+            return new ImageData(flipped, info);
         }
     }
 
@@ -142,32 +142,32 @@ namespace GameRes
     {
         public override string Type { get { return "image"; } }
 
-        public abstract ImageMetaData ReadMetaData (IBinaryStream file);
+        public abstract ImageMetaData ReadMetaData(IBinaryStream file);
 
-        public abstract ImageData Read (IBinaryStream file, ImageMetaData info);
-        public abstract void Write (Stream file, ImageData bitmap);
+        public abstract ImageData Read(IBinaryStream file, ImageMetaData info);
+        public abstract void Write(Stream file, ImageData bitmap);
 
-        public static ImageData Read (IBinaryStream file)
+        public static ImageData Read(IBinaryStream file)
         {
-            var format = FindFormat (file);
+            var format = FindFormat(file);
             if (null == format)
                 return null;
             file.Position = 0;
-            return format.Item1.Read (file, format.Item2);
+            return format.Item1.Read(file, format.Item2);
         }
 
-        public static System.Tuple<ImageFormat, ImageMetaData> FindFormat (IBinaryStream file)
+        public static System.Tuple<ImageFormat, ImageMetaData> FindFormat(IBinaryStream file)
         {
-            foreach (var impl in FormatCatalog.Instance.FindFormats<ImageFormat> (file.Name, file.Signature))
+            foreach (var impl in FormatCatalog.Instance.FindFormats<ImageFormat>(file.Name, file.Signature))
             {
                 try
                 {
                     file.Position = 0;
-                    ImageMetaData metadata = impl.ReadMetaData (file);
+                    ImageMetaData metadata = impl.ReadMetaData(file);
                     if (null != metadata)
                     {
                         metadata.FileName = file.Name;
-                        return Tuple.Create (impl, metadata);
+                        return Tuple.Create(impl, metadata);
                     }
                 }
                 catch (OperationCanceledException)
@@ -184,61 +184,61 @@ namespace GameRes
             get { return this.GetType().Assembly == typeof(ImageFormat).Assembly; }
         }
 
-        public static ImageFormat FindByTag (string tag)
+        public static ImageFormat FindByTag(string tag)
         {
-            return FormatCatalog.Instance.ImageFormats.FirstOrDefault (x => x.Tag == tag);
+            return FormatCatalog.Instance.ImageFormats.FirstOrDefault(x => x.Tag == tag);
         }
 
-        static readonly ResourceInstance<ImageFormat> s_JpegFormat = new ResourceInstance<ImageFormat> ("JPEG");
-        static readonly ResourceInstance<ImageFormat> s_PngFormat  = new ResourceInstance<ImageFormat> ("PNG");
-        static readonly ResourceInstance<ImageFormat> s_BmpFormat  = new ResourceInstance<ImageFormat> ("BMP");
-        static readonly ResourceInstance<ImageFormat> s_TgaFormat  = new ResourceInstance<ImageFormat> ("TGA");
+        static readonly ResourceInstance<ImageFormat> s_JpegFormat = new ResourceInstance<ImageFormat>("JPEG");
+        static readonly ResourceInstance<ImageFormat> s_PngFormat = new ResourceInstance<ImageFormat>("PNG");
+        static readonly ResourceInstance<ImageFormat> s_BmpFormat = new ResourceInstance<ImageFormat>("BMP");
+        static readonly ResourceInstance<ImageFormat> s_TgaFormat = new ResourceInstance<ImageFormat>("TGA");
 
         public static ImageFormat Jpeg => s_JpegFormat.Value;
-        public static ImageFormat  Png => s_PngFormat.Value;
-        public static ImageFormat  Bmp => s_BmpFormat.Value;
-        public static ImageFormat  Tga => s_TgaFormat.Value;
+        public static ImageFormat Png => s_PngFormat.Value;
+        public static ImageFormat Bmp => s_BmpFormat.Value;
+        public static ImageFormat Tga => s_TgaFormat.Value;
 
         /// <summary>
         /// Desereialize color map from <paramref name="input"/> stream, consisting of specified number of
         /// <paramref name="colors"/> stored in specified <paramref name="format"/>.
         /// Default number of colors is 256 and format is 4-byte BGRX (where X is an unsignificant byte).
         /// </summary>
-        public static Color[] ReadColorMap (Stream input, int colors = 0x100, PaletteFormat format = PaletteFormat.BgrX)
+        public static Color[] ReadColorMap(Stream input, int colors = 0x100, PaletteFormat format = PaletteFormat.BgrX)
         {
             int bpp = PaletteFormat.Rgb == format || PaletteFormat.Bgr == format ? 3 : 4;
             var palette_data = new byte[bpp * colors];
-            if (palette_data.Length != input.Read (palette_data, 0, palette_data.Length))
+            if (palette_data.Length != input.Read(palette_data, 0, palette_data.Length))
                 throw new EndOfStreamException();
             int src = 0;
             var color_map = new Color[colors];
             Func<int, Color> get_color;
             if (PaletteFormat.Bgr == format || PaletteFormat.BgrX == format)
-                get_color = x => Color.FromRgb (palette_data[x+2], palette_data[x+1], palette_data[x]);
+                get_color = x => Color.FromRgb(palette_data[x + 2], palette_data[x + 1], palette_data[x]);
             else if (PaletteFormat.BgrA == format)
-                get_color = x => Color.FromArgb (palette_data[x+3], palette_data[x+2], palette_data[x+1], palette_data[x]);
+                get_color = x => Color.FromArgb(palette_data[x + 3], palette_data[x + 2], palette_data[x + 1], palette_data[x]);
             else if (PaletteFormat.RgbA == format)
-                get_color = x => Color.FromArgb (palette_data[x+3], palette_data[x], palette_data[x+1], palette_data[x+2]);
+                get_color = x => Color.FromArgb(palette_data[x + 3], palette_data[x], palette_data[x + 1], palette_data[x + 2]);
             else
-                get_color = x => Color.FromRgb (palette_data[x],   palette_data[x+1], palette_data[x+2]);
+                get_color = x => Color.FromRgb(palette_data[x], palette_data[x + 1], palette_data[x + 2]);
 
             for (int i = 0; i < colors; ++i)
             {
-                color_map[i] = get_color (src);
+                color_map[i] = get_color(src);
                 src += bpp;
             }
             return color_map;
         }
 
-        public static BitmapPalette ReadPalette (Stream input, int colors = 0x100, PaletteFormat format = PaletteFormat.BgrX)
+        public static BitmapPalette ReadPalette(Stream input, int colors = 0x100, PaletteFormat format = PaletteFormat.BgrX)
         {
-            return new BitmapPalette (ReadColorMap (input, colors, format));
+            return new BitmapPalette(ReadColorMap(input, colors, format));
         }
 
-        public static BitmapPalette ReadPalette (ArcView file, long offset, int colors = 0x100, PaletteFormat format = PaletteFormat.BgrX)
+        public static BitmapPalette ReadPalette(ArcView file, long offset, int colors = 0x100, PaletteFormat format = PaletteFormat.BgrX)
         {
-            using (var input = file.CreateStream (offset, (uint)(4 * colors))) // largest possible size for palette
-                return ReadPalette (input, colors, format);
+            using (var input = file.CreateStream(offset, (uint)(4 * colors))) // largest possible size for palette
+                return ReadPalette(input, colors, format);
         }
     }
 }

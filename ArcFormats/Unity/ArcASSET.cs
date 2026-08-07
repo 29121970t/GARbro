@@ -33,74 +33,74 @@ namespace GameRes.Formats.Unity
     [Export(typeof(ArchiveFormat))]
     public class UnityAssetOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "ASSETS/UNITY"; } }
+        public override string Tag { get { return "ASSETS/UNITY"; } }
         public override string Description { get { return "Unity game engine assets archive"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            uint header_size = Binary.BigEndian (file.View.ReadUInt32 (0));
-            long file_size = Binary.BigEndian (file.View.ReadUInt32 (4));
-            int format = Binary.BigEndian (file.View.ReadInt32 (8));
+            uint header_size = Binary.BigEndian(file.View.ReadUInt32(0));
+            long file_size = Binary.BigEndian(file.View.ReadUInt32(4));
+            int format = Binary.BigEndian(file.View.ReadInt32(8));
             if (format <= 0 || format > 0x100)
                 return null;
-            long data_offset = Binary.BigEndian (file.View.ReadUInt32 (12));
+            long data_offset = Binary.BigEndian(file.View.ReadUInt32(12));
             if (format >= 22)
             {
-                header_size = Binary.BigEndian (file.View.ReadUInt32 (0x14));
-                file_size = Binary.BigEndian (file.View.ReadInt64 (0x18));
-                data_offset = Binary.BigEndian (file.View.ReadInt64 (0x20));
+                header_size = Binary.BigEndian(file.View.ReadUInt32(0x14));
+                file_size = Binary.BigEndian(file.View.ReadInt64(0x18));
+                data_offset = Binary.BigEndian(file.View.ReadInt64(0x20));
             }
             if (file_size != file.MaxOffset || header_size > file_size || 0 == header_size
                 || data_offset >= file_size || data_offset < header_size)
                 return null;
             using (var stream = file.CreateStream())
-            using (var input = new AssetReader (stream))
+            using (var input = new AssetReader(stream))
             {
-                var index = new ResourcesAssetsDeserializer (file.Name);
-                var dir = index.Parse (input);
+                var index = new ResourcesAssetsDeserializer(file.Name);
+                var dir = index.Parse(input);
                 if (null == dir || 0 == dir.Count)
                     return null;
-                var res_map = index.GenerateResourceMap (dir);
-                return new UnityResourcesAsset (file, this, dir, res_map);
+                var res_map = index.GenerateResourceMap(dir);
+                return new UnityResourcesAsset(file, this, dir, res_map);
             }
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var uarc = (UnityResourcesAsset)arc;
             var uent = (AssetEntry)entry;
-            if (null == uent.Bundle || !uarc.ResourceMap.ContainsKey (uent.Bundle.Name))
-                return arc.File.CreateStream (entry.Offset, entry.Size);
+            if (null == uent.Bundle || !uarc.ResourceMap.ContainsKey(uent.Bundle.Name))
+                return arc.File.CreateStream(entry.Offset, entry.Size);
             var bundle = uarc.ResourceMap[uent.Bundle.Name];
-            return bundle.CreateStream (entry.Offset, entry.Size);
+            return bundle.CreateStream(entry.Offset, entry.Size);
         }
 
-        public override IImageDecoder OpenImage (ArcFile arc, Entry entry)
+        public override IImageDecoder OpenImage(ArcFile arc, Entry entry)
         {
             var aent = entry as AssetEntry;
             if (null == aent || aent.AssetObject.TypeId != 28)
-                return base.OpenImage (arc, entry);
+                return base.OpenImage(arc, entry);
 
             var obj = aent.AssetObject;
-            var stream = arc.File.CreateStream (obj.Offset, obj.Size);
-            var reader = new AssetReader (stream);
+            var stream = arc.File.CreateStream(obj.Offset, obj.Size);
+            var reader = new AssetReader(stream);
             try
             {
-                reader.SetupReaders (obj.Asset);
+                reader.SetupReaders(obj.Asset);
                 var tex = new Texture2D();
-                tex.Load (reader, obj.Asset.Tree);
+                tex.Load(reader, obj.Asset.Tree);
                 if (0 == tex.m_DataLength)
                 {
                     reader.Dispose();
-                    var input = OpenEntry (arc, entry);
-                    reader = new AssetReader (input, entry.Name);
-                    reader.SetupReaders (obj.Asset);
+                    var input = OpenEntry(arc, entry);
+                    reader = new AssetReader(input, entry.Name);
+                    reader.SetupReaders(obj.Asset);
                     tex.m_DataLength = (int)entry.Size;
                 }
-                var decoder = new Texture2DDecoder (tex, reader);
+                var decoder = new Texture2DDecoder(tex, reader);
                 reader = null;
                 return decoder;
             }
@@ -116,8 +116,8 @@ namespace GameRes.Formats.Unity
     {
         public readonly IDictionary<string, ArcView> ResourceMap;
 
-        public UnityResourcesAsset (ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, IDictionary<string, ArcView> res_map)
-            : base (arc, impl, dir)
+        public UnityResourcesAsset(ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, IDictionary<string, ArcView> res_map)
+            : base(arc, impl, dir)
         {
             ResourceMap = res_map;
         }
@@ -125,7 +125,7 @@ namespace GameRes.Formats.Unity
         #region IDisposable Members
         bool m_disposed = false;
 
-        protected override void Dispose (bool disposing)
+        protected override void Dispose(bool disposing)
         {
             if (!m_disposed)
             {
@@ -138,7 +138,7 @@ namespace GameRes.Formats.Unity
                 }
                 m_disposed = true;
             }
-            base.Dispose (disposing);
+            base.Dispose(disposing);
         }
         #endregion
     }

@@ -8,9 +8,9 @@ namespace GameRes.Formats.GUI
     /// </summary>
     public partial class CreateXP3Widget : Grid
     {
-        public CreateXP3Widget ()
+        public CreateXP3Widget()
         {
-            InitializeComponent ();
+            InitializeComponent();
         }
     }
 }

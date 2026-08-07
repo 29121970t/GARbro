@@ -9,10 +9,10 @@ namespace GameRes.Formats.GUI
     /// </summary>
     public partial class WidgetNPK : Grid
     {
-        public WidgetNPK (IEnumerable<string> titles)
+        public WidgetNPK(IEnumerable<string> titles)
         {
             InitializeComponent();
-            Scheme.ItemsSource = titles.OrderBy (x => x);
+            Scheme.ItemsSource = titles.OrderBy(x => x);
         }
     }
 }

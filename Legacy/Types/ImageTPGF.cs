@@ -37,55 +37,56 @@ namespace GameRes.Formats.Types
     [Export(typeof(ImageFormat))]
     public class TpgFormat : ImageFormat
     {
-        public override string         Tag { get { return "TPGF"; } }
+        public override string Tag { get { return "TPGF"; } }
         public override string Description { get { return "Types image format"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (13);
-            if (!header.AsciiEqual (4, "TPGF"))
+            var header = file.ReadHeader(13);
+            if (!header.AsciiEqual(4, "TPGF"))
                 return null;
             int bpp = header[12];
             if (bpp != 8 && bpp != 24)
                 return null;
-            return new ImageMetaData {
-                Width  = BigEndian.ToUInt16 (header, 8),
-                Height = BigEndian.ToUInt16 (header, 10),
-                BPP    = bpp,
+            return new ImageMetaData
+            {
+                Width = BigEndian.ToUInt16(header, 8),
+                Height = BigEndian.ToUInt16(header, 10),
+                BPP = bpp,
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            using (var tpgf = new TpgfReader (file, info))
+            using (var tpgf = new TpgfReader(file, info))
             {
                 var pixels = tpgf.Unpack();
-                return ImageData.Create (info, tpgf.Format, tpgf.Palette, pixels);
+                return ImageData.Create(info, tpgf.Format, tpgf.Palette, pixels);
             }
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("TpgFormat.Write not implemented");
+            throw new System.NotImplementedException("TpgFormat.Write not implemented");
         }
     }
 
     internal class TpgfReader : IDisposable
     {
-        BitStreamEx     m_input;
-        byte[]          m_output;
-        ImageMetaData   m_info;
-        int             m_stride;
-        byte[]          m_scanline;
+        BitStreamEx m_input;
+        byte[] m_output;
+        ImageMetaData m_info;
+        int m_stride;
+        byte[] m_scanline;
 
-        public byte[]           Data { get { return m_output; } }
-        public PixelFormat    Format { get; private set; }
+        public byte[] Data { get { return m_output; } }
+        public PixelFormat Format { get; private set; }
         public BitmapPalette Palette { get; private set; }
 
-        public TpgfReader (IBinaryStream input, ImageMetaData info)
+        public TpgfReader(IBinaryStream input, ImageMetaData info)
         {
-            m_input = new BitStreamEx (input.AsStream, true);
+            m_input = new BitStreamEx(input.AsStream, true);
             m_info = info;
             int bpp = m_info.BPP;
             if (24 == bpp)
@@ -95,34 +96,34 @@ namespace GameRes.Formats.Types
             m_scanline = new byte[m_info.Width];
         }
 
-        public byte[] Unpack ()
+        public byte[] Unpack()
         {
             m_input.Reset();
             m_input.Input.Position = 13;
             if (8 == m_info.BPP)
             {
-                Unpack8bpp (m_output);
+                Unpack8bpp(m_output);
                 Format = PixelFormats.Gray8;
                 return m_output; // alpha channel ignored for 8bpp bitmaps
             }
             else
             {
-                Unpack24bpp (m_output);
+                Unpack24bpp(m_output);
                 Format = PixelFormats.Bgr32;
             }
             if (m_input.Input.ReadByte() == 1) // alpha data
             {
                 var header = new byte[13];
-                m_input.Input.Read (header, 0, 13);
-                if (header.AsciiEqual (4, "TPGF"))
+                m_input.Input.ReadExactly(header, 0, 13);
+                if (header.AsciiEqual(4, "TPGF"))
                 {
-                    uint width  = BigEndian.ToUInt16 (header, 8);
-                    uint height = BigEndian.ToUInt16 (header, 10);
+                    uint width = BigEndian.ToUInt16(header, 8);
+                    uint height = BigEndian.ToUInt16(header, 10);
                     int bpp = header[12];
                     if (width == m_info.Width && height == m_info.Height && bpp == 8)
                     {
                         m_input.Reset();
-                        UnpackAlpha (m_output);
+                        UnpackAlpha(m_output);
                         Format = PixelFormats.Bgra32;
                     }
                 }
@@ -130,15 +131,15 @@ namespace GameRes.Formats.Types
             return m_output;
         }
 
-        void Unpack24bpp (byte[] output)
+        void Unpack24bpp(byte[] output)
         {
             int dst_line = 0;
             for (uint y = 0; y < m_info.Height; ++y)
             {
                 for (int i = 0; i < 3; ++i)
                 {
-                    ReadScanLine (m_scanline);
-                    TransformLine (m_scanline);
+                    ReadScanLine(m_scanline);
+                    TransformLine(m_scanline);
                     int dst = dst_line + i;
                     for (uint x = 0; x < m_info.Width; ++x)
                     {
@@ -150,14 +151,14 @@ namespace GameRes.Formats.Types
             }
         }
 
-        void Unpack8bpp (byte[] output)
+        void Unpack8bpp(byte[] output)
         {
             int width = (int)m_info.Width;
             int dst = 0;
             for (uint y = 0; y < m_info.Height; ++y)
             {
-                ReadScanLine (m_scanline);
-                TransformLine (m_scanline);
+                ReadScanLine(m_scanline);
+                TransformLine(m_scanline);
                 for (int x = 0; x < width; ++x)
                 {
                     output[dst + x] = m_scanline[x];
@@ -166,13 +167,13 @@ namespace GameRes.Formats.Types
             }
         }
 
-        void UnpackAlpha (byte[] output)
+        void UnpackAlpha(byte[] output)
         {
             int dst_line = 3;
             for (uint y = 0; y < m_info.Height; ++y)
             {
-                ReadScanLine (m_scanline);
-                TransformLine (m_scanline);
+                ReadScanLine(m_scanline);
+                TransformLine(m_scanline);
                 int dst = dst_line;
                 for (uint x = 0; x < m_info.Width; ++x)
                 {
@@ -183,74 +184,74 @@ namespace GameRes.Formats.Types
             }
         }
 
-        void ReadScanLine (byte[] line)
+        void ReadScanLine(byte[] line)
         {
             int dst = 0;
             while (dst < line.Length)
             {
-                int ctl = m_input.GetBits (3);
+                int ctl = m_input.GetBits(3);
                 int count = ReadCount() + 1;
                 if (ctl != 0)
                 {
-                    m_input.ReadEncodedBits (line, dst, count, ctl + 1);
+                    m_input.ReadEncodedBits(line, dst, count, ctl + 1);
                 }
                 else
                 {
                     for (int i = 0; i < count; ++i)
-                        line[dst+i] = 0;
+                        line[dst + i] = 0;
                 }
                 dst += count;
             }
         }
 
-        int ReadCount ()
+        int ReadCount()
         {
             int i = 1;
             while (m_input.GetNextBit() == 0)
                 ++i;
-            return m_input.GetBits (i) + (1 << i) - 2;
+            return m_input.GetBits(i) + (1 << i) - 2;
         }
 
-        void TransformLine (byte[] line)
+        void TransformLine(byte[] line)
         {
             for (int i = 1; i < line.Length; ++i)
             {
                 byte a = line[i];
-                byte b = line[i-1];
+                byte b = line[i - 1];
                 line[i] = TransformMap[a, b];
             }
         }
 
         static readonly byte[,] TransformMap = InitTransformMap();
 
-        static byte[,] InitTransformMap ()
+        static byte[,] InitTransformMap()
         {
-            var table = new byte[256,256];
+            var table = new byte[256, 256];
             for (int i = 0; i < 256; ++i)
-            for (int j = 0; j < 256; ++j)
-            {
-                int v;
-                if (j >= 128)
-                    v = (-1 - j) & 0xFF;
-                else
-                    v = j;
-                if (2 * v < i)
-                    v = i;
-                else if ((i & 1) != 0)
-                    v += (i + 1) >> 1;
-                else
-                    v -= i >> 1;
+                for (int j = 0; j < 256; ++j)
+                {
+                    int v;
+                    if (j >= 128)
+                        v = (-1 - j) & 0xFF;
+                    else
+                        v = j;
+                    if (2 * v < i)
+                        v = i;
+                    else if ((i & 1) != 0)
+                        v += (i + 1) >> 1;
+                    else
+                        v -= i >> 1;
 
-                if (j >= 128)
-                    table[i,j] = (byte)(-1 - v);
-                else
-                    table[i,j] = (byte)v;
-            }
+                    if (j >= 128)
+                        table[i, j] = (byte)(-1 - v);
+                    else
+                        table[i, j] = (byte)v;
+                }
             return table;
         }
 
         bool m_disposed = false;
-        public void Dispose ()
+        public void Dispose()
         {
             if (!m_disposed)
             {
@@ -262,15 +263,15 @@ namespace GameRes.Formats.Types
 
     internal class BitStreamEx : BitStream, IBitStream
     {
-        public BitStreamEx (Stream file, bool leave_open = false) : base (file, leave_open)
+        public BitStreamEx(Stream file, bool leave_open = false) : base(file, leave_open)
         {
         }
 
-        public int GetBits (int count)
+        public int GetBits(int count)
         {
             int mask = (1 << count) - 1;
             int v = 0;
-            for (;;)
+            for (; ; )
             {
                 if (0 == m_cached_bits)
                 {
@@ -289,24 +290,24 @@ namespace GameRes.Formats.Types
             return (m_bits >> m_cached_bits | v) & mask;
         }
 
-        public int GetNextBit ()
+        public int GetNextBit()
         {
-            return GetBits (1);
+            return GetBits(1);
         }
 
         byte[] m_bit_buffer = new byte[1024];
 
-        public void ReadEncodedBits (byte[] buffer, int dst, int count, int ctl)
+        public void ReadEncodedBits(byte[] buffer, int dst, int count, int ctl)
         {
             int mask = (1 << ctl) - 1;
             var cur_pos = m_input.Position;
             int byte_count = 0;
-            m_input.Read (m_bit_buffer, 0, (count * ctl + 7) / 8 + 1);
+            m_input.ReadExactly(m_bit_buffer, 0, (count * ctl + 7) / 8 + 1);
             for (int i = 0; i < count; ++i)
             {
                 int v = 0;
                 int bit_count = ctl;
-                for (;;)
+                for (; ; )
                 {
                     if (0 == m_cached_bits)
                     {
@@ -320,7 +321,7 @@ namespace GameRes.Formats.Types
                     m_cached_bits = 0;
                 }
                 m_cached_bits -= bit_count;
-                buffer[dst+i] = (byte)((BitMap2[m_bits, m_cached_bits] | v) & mask);
+                buffer[dst + i] = (byte)((BitMap2[m_bits, m_cached_bits] | v) & mask);
             }
             m_input.Position = cur_pos + byte_count;
         }
@@ -328,10 +329,10 @@ namespace GameRes.Formats.Types
         static readonly byte[,] BitMap1;
         static readonly byte[,] BitMap2;
 
-        static BitStreamEx ()
+        static BitStreamEx()
         {
-            BitMap1 = new byte[256,8];
-            BitMap2 = new byte[256,8];
+            BitMap1 = new byte[256, 8];
+            BitMap2 = new byte[256, 8];
             for (int i = 0; i < 256; ++i)
             {
                 for (int j = 0; j < 8; ++j)

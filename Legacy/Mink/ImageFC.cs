@@ -39,11 +39,11 @@ namespace GameRes.Formats.Mink
     [Export(typeof(ImageFormat))]
     public class FcFormat : ImageFormat
     {
-        public override string         Tag { get { return "BMP/FC"; } }
+        public override string Tag { get { return "BMP/FC"; } }
         public override string Description { get { return "Mink compressed bitmap format"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public FcFormat ()
+        public FcFormat()
         {
             // 'Fc' is same as 'FC' but has checksum byte appended at the end
             Signatures = new uint[] {
@@ -52,9 +52,9 @@ namespace GameRes.Formats.Mink
             };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (8);
+            var header = file.ReadHeader(8);
             if (header[0] != 'F' || (header[1] & 0xDF) != 'C')
                 return null;
             int bpp = header[2];
@@ -63,51 +63,52 @@ namespace GameRes.Formats.Mink
             byte flag = header[3];
             if (flag != 0 && flag != 1)
                 return null;
-            return new FcMetaData {
-                Width  = header.ToUInt16 (4),
-                Height = header.ToUInt16 (6),
-                BPP    = bpp,
-                Flag   = flag,
+            return new FcMetaData
+            {
+                Width = header.ToUInt16(4),
+                Height = header.ToUInt16(6),
+                BPP = bpp,
+                Flag = flag,
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new FcReader (file, (FcMetaData)info);
+            var reader = new FcReader(file, (FcMetaData)info);
             return reader.Unpack();
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("FcFormat.Write not implemented");
+            throw new System.NotImplementedException("FcFormat.Write not implemented");
         }
     }
 
     internal class FcReader
     {
-        IBinaryStream   m_input;
-        FcMetaData      m_info;
+        IBinaryStream m_input;
+        FcMetaData m_info;
 
-        public FcReader (IBinaryStream input, FcMetaData info)
+        public FcReader(IBinaryStream input, FcMetaData info)
         {
             m_input = input;
             m_info = info;
         }
 
-        public ImageData Unpack ()
+        public ImageData Unpack()
         {
             m_input.Position = 8;
             var output = new uint[m_info.iWidth * m_info.iHeight];
-            UnpackRgb (output);
+            UnpackRgb(output);
             if (32 == m_info.BPP)
-                UnpackAlpha (output);
+                UnpackAlpha(output);
             if (m_info.Flag != 0)
-                RestoreRgb (output);
+                RestoreRgb(output);
             PixelFormat format = 32 == m_info.BPP ? PixelFormats.Bgra32 : PixelFormats.Bgr32;
-            return ImageData.CreateFlipped (m_info, format, null, output, m_info.iWidth * 4);
+            return ImageData.CreateFlipped(m_info, format, null, output, m_info.iWidth * 4);
         }
 
-        unsafe internal static bool Checksum (byte[] input) // for reference
+        unsafe internal static bool Checksum(byte[] input) // for reference
         {
             int length = (input.Length - 1) / 4;
             fixed (byte* data8 = &input[0])
@@ -119,11 +120,11 @@ namespace GameRes.Formats.Mink
                     checksum += data32[i];
                 }
                 byte sum = (byte)(checksum ^ (checksum >> 8) ^ (checksum >> 16) ^ (checksum >> 24));
-                return input[input.Length-1] == sum;
+                return input[input.Length - 1] == sum;
             }
         }
 
-        void UnpackRgb (uint[] output)
+        void UnpackRgb(uint[] output)
         {
             int dst = 0;
             m_bits = 0x80000000;
@@ -144,15 +145,15 @@ namespace GameRes.Formats.Mink
                     }
                     uint v = GetVarInt();
                     v = (v >> 1) ^ (uint)-(v & 1);
-                    pixel = Binary.RotR (pixel, 8) + (v << 24);
+                    pixel = Binary.RotR(pixel, 8) + (v << 24);
 
                     v = GetVarInt();
                     v = (v >> 1) ^ (uint)-(v & 1);
-                    pixel = Binary.RotR (pixel, 8) + (v << 24);
+                    pixel = Binary.RotR(pixel, 8) + (v << 24);
 
                     v = GetVarInt();
                     v = (v >> 1) ^ (uint)-(v & 1);
-                    pixel = Binary.RotR (pixel, 8) + (v << 24);
+                    pixel = Binary.RotR(pixel, 8) + (v << 24);
 
                     pixel >>= 8;
                     output[dst++] = pixel;
@@ -165,15 +166,15 @@ namespace GameRes.Formats.Mink
 
                         uint v = GetVarInt();
                         v = (v >> 1) ^ (uint)-(v & 1);
-                        pixel = Binary.RotR (pixel, 8) + (v << 24);
+                        pixel = Binary.RotR(pixel, 8) + (v << 24);
 
                         v = GetVarInt();
                         v = (v >> 1) ^ (uint)-(v & 1);
-                        pixel = Binary.RotR (pixel, 8) + (v << 24);
+                        pixel = Binary.RotR(pixel, 8) + (v << 24);
 
                         v = GetVarInt();
                         v = (v >> 1) ^ (uint)-(v & 1);
-                        pixel = Binary.RotR (pixel, 8) + (v << 24);
+                        pixel = Binary.RotR(pixel, 8) + (v << 24);
 
                         pixel >>= 8;
                         output[dst++] = pixel;
@@ -213,13 +214,13 @@ namespace GameRes.Formats.Mink
                 }
                 else if (GetNextBit() == 0)
                 {
-                    pixel = GetBits (24);
+                    pixel = GetBits(24);
                     output[dst++] = pixel;
                 }
                 else
                 {
-                    int count = Math.Min ((int)GetVarInt(), output.Length - dst);
-                    while (count --> 0)
+                    int count = Math.Min((int)GetVarInt(), output.Length - dst);
+                    while (count-- > 0)
                     {
                         output[dst++] = pixel;
                     }
@@ -227,12 +228,12 @@ namespace GameRes.Formats.Mink
             }
         }
 
-        void UnpackAlpha (uint[] output)
+        void UnpackAlpha(uint[] output)
         {
             int dst = 0;
             while (dst < output.Length)
             {
-                uint val = GetBits (8) << 24;
+                uint val = GetBits(8) << 24;
                 uint count = GetVarInt() + 1;
                 while (count != 0)
                 {
@@ -242,30 +243,30 @@ namespace GameRes.Formats.Mink
             }
         }
 
-        void RestoreRgb (uint[] output)
+        void RestoreRgb(uint[] output)
         {
             int stride = m_info.iWidth;
             int dst = stride;
             while (dst < output.Length)
             {
-                uint prev = output[dst-stride];
+                uint prev = output[dst - stride];
                 uint pixel = output[dst];
-                output[dst] =  ((pixel        +  prev        - 0x80) & 0xFF)
-                            | (((pixel >>  8) + (prev >>  8) - 0x80) & 0xFF) << 8
+                output[dst] = ((pixel + prev - 0x80) & 0xFF)
+                            | (((pixel >> 8) + (prev >> 8) - 0x80) & 0xFF) << 8
                             | (((pixel >> 16) + (prev >> 16) - 0x80) & 0xFF) << 16
                             | pixel & 0xFF000000;
                 ++dst;
             }
         }
 
-        uint GetBits (int count)
+        uint GetBits(int count)
         {
             uint val = m_bits >> (32 - count);
             m_bits <<= count;
             if (0 == m_bits)
             {
                 m_bits = ReadUInt32();
-                int shift = BitScanForward (val);
+                int shift = BitScanForward(val);
                 uint ebx = m_bits ^ 0x80000000;
                 m_bits = (m_bits << 1 | 1) << shift;
                 val ^= ebx >> (shift ^ 0x1F);
@@ -273,9 +274,9 @@ namespace GameRes.Formats.Mink
             return val;
         }
 
-        uint    m_bits;
+        uint m_bits;
 
-        int GetNextBit ()
+        int GetNextBit()
         {
             uint bit = m_bits >> 31;
             m_bits <<= 1;
@@ -288,7 +289,7 @@ namespace GameRes.Formats.Mink
             return (int)bit;
         }
 
-        uint GetVarInt ()
+        uint GetVarInt()
         {
             int count = 0;
             do
@@ -297,24 +298,24 @@ namespace GameRes.Formats.Mink
             }
             while (GetNextBit() != 0);
             uint num = 1;
-            while (count --> 0)
+            while (count-- > 0)
             {
                 num = num << 1 | (uint)GetNextBit();
             }
             return num - 2;
         }
 
-        byte[]  m_dword_buffer = new byte[4];
+        byte[] m_dword_buffer = new byte[4];
 
-        uint ReadUInt32 ()
+        uint ReadUInt32()
         {
-            int last = m_input.Read (m_dword_buffer, 0, 4);
+            int last = m_input.Read(m_dword_buffer, 0, 4);
             while (last < m_dword_buffer.Length)
                 m_dword_buffer[last++] = 0;
-            return BigEndian.ToUInt32 (m_dword_buffer, 0);
+            return BigEndian.ToUInt32(m_dword_buffer, 0);
         }
 
-        static int BitScanForward (uint val)
+        static int BitScanForward(uint val)
         {
             int count = 0;
             for (uint mask = 1; mask != 0; mask <<= 1)

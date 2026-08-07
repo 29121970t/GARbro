@@ -40,16 +40,16 @@ namespace GARbro.GUI
     /// </summary>
     public partial class ExtractFile : ExtractDialog
     {
-        public ExtractFile (EntryViewModel entry, string destination)
+        public ExtractFile(EntryViewModel entry, string destination)
         {
             InitializeComponent();
-            ExtractLabel.Text = string.Format (guiStrings.LabelExtractFileTo, entry.Name);
+            ExtractLabel.Text = string.Format(guiStrings.LabelExtractFileTo, entry.Name);
             Destination = destination;
             DestinationDir.EnterKeyDown += acb_OnEnterKeyDown;
             if ("image" == entry.Type)
             {
                 ActiveOption = ImageConversionOptions;
-                InitImageFormats (ImageConversionFormat);
+                InitImageFormats(ImageConversionFormat);
             }
             else if ("script" == entry.Type)
             {
@@ -83,19 +83,19 @@ namespace GARbro.GUI
             }
         }
 
-        private void BrowseExec (object sender, ExecutedRoutedEventArgs e)
+        private void BrowseExec(object sender, ExecutedRoutedEventArgs e)
         {
-            string folder = ChooseFolder (guiStrings.TextChooseDestDir, DestinationDir.Text);
+            string folder = ChooseFolder(guiStrings.TextChooseDestDir, DestinationDir.Text);
             if (null != folder)
                 DestinationDir.Text = folder;
         }
 
-        void ExtractButton_Click (object sender, RoutedEventArgs e)
+        void ExtractButton_Click(object sender, RoutedEventArgs e)
         {
             this.DialogResult = true;
             if (ImageConversionOptions == ActiveOption)
             {
-                ExportImageFormat (ImageConversionFormat);
+                ExportImageFormat(ImageConversionFormat);
             }
         }
     }

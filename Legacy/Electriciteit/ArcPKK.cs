@@ -35,61 +35,61 @@ namespace GameRes.Formats.Electriciteit
     [Export(typeof(ArchiveFormat))]
     public class PkkOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "PKK"; } }
+        public override string Tag { get { return "PKK"; } }
         public override string Description { get { return "Electriciteit resource archive"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public PkkOpener ()
+        public PkkOpener()
         {
             Signatures = new uint[] { 0x695ECD6F, 0x695ECD6E };
             Extensions = new[] { "pkk", "skn" };
         }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            var header = file.View.ReadBytes (0, 0x14);
-            Decrypt (header, DefaultKey);
+            var header = file.View.ReadBytes(0, 0x14);
+            Decrypt(header, DefaultKey);
 
-            uint signature = header.ToUInt32 (0);
+            uint signature = header.ToUInt32(0);
             if (signature != 0 && signature != 1)
                 return null;
-            int count = header.ToInt32 (0x10);
-            if (!IsSaneCount (count))
+            int count = header.ToInt32(0x10);
+            if (!IsSaneCount(count))
                 return null;
-            uint index_offset = header.ToUInt32 (0xC);
+            uint index_offset = header.ToUInt32(0xC);
             if (index_offset < 0x14 || index_offset >= file.MaxOffset)
                 return null;
-            var index = file.View.ReadBytes (index_offset, (uint)count * 0x28);
-            Decrypt (index, DefaultKey);
+            var index = file.View.ReadBytes(index_offset, (uint)count * 0x28);
+            Decrypt(index, DefaultKey);
 
             long data_offset = index_offset + index.Length;
             int pos = 0;
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
-                var name = Binary.GetCString (index, pos+8, 0x20);
-                if (string.IsNullOrWhiteSpace (name))
+                var name = Binary.GetCString(index, pos + 8, 0x20);
+                if (string.IsNullOrWhiteSpace(name))
                     return null;
-                var entry = Create<Entry> (name);
-                entry.Size   = index.ToUInt32 (pos);
-                entry.Offset = index.ToUInt32 (pos+4) + data_offset;
-                if (!entry.CheckPlacement (file.MaxOffset))
+                var entry = Create<Entry>(name);
+                entry.Size = index.ToUInt32(pos);
+                entry.Offset = index.ToUInt32(pos + 4) + data_offset;
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
-                dir.Add (entry);
+                dir.Add(entry);
                 pos += 0x28;
             }
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
-            var input = arc.File.CreateStream (entry.Offset, entry.Size);
-            return new ByteStringEncryptedStream (input, DefaultKey);
+            var input = arc.File.CreateStream(entry.Offset, entry.Size);
+            return new ByteStringEncryptedStream(input, DefaultKey);
         }
 
-        void Decrypt (byte[] data, byte[] key)
+        void Decrypt(byte[] data, byte[] key)
         {
             for (int i = 0; i < data.Length; ++i)
             {

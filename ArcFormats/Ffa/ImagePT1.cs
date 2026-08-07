@@ -45,21 +45,21 @@ namespace GameRes.Formats.Ffa
     [Export(typeof(ImageFormat))]
     public class Pt1Format : ImageFormat
     {
-        public override string         Tag { get { return "PT1"; } }
+        public override string Tag { get { return "PT1"; } }
         public override string Description { get { return "FFA System RGB image format"; } }
-        public override uint     Signature { get { return 2u; } }
+        public override uint Signature { get { return 2u; } }
 
-        public Pt1Format ()
+        public Pt1Format()
         {
             Signatures = new uint[] { 3, 2, 1, 0 };
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new NotImplementedException ("Pt1Format.Write not implemented");
+            throw new NotImplementedException("Pt1Format.Write not implemented");
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
             int type = file.ReadInt32();
             if (type < 0 || type > 3)
@@ -72,9 +72,10 @@ namespace GameRes.Formats.Ffa
             uint height = file.ReadUInt32();
             int comp_size = file.ReadInt32();
             int uncomp_size = file.ReadInt32();
-            if (uncomp_size != width*height*3u)
+            if (uncomp_size != width * height * 3u)
                 return null;
-            return new Pt1MetaData {
+            return new Pt1MetaData
+            {
                 Width = width,
                 Height = height,
                 OffsetX = x,
@@ -86,42 +87,42 @@ namespace GameRes.Formats.Ffa
             };
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
-            var reader = new Reader (stream, (Pt1MetaData)info);
+            var reader = new Reader(stream, (Pt1MetaData)info);
             reader.Unpack();
-            return ImageData.Create (info, reader.Format, null, reader.Data);
+            return ImageData.Create(info, reader.Format, null, reader.Data);
         }
 
         internal class Reader
         {
-            byte[]  m_input;
-            byte[]  m_output;
-            byte[]  m_alpha_packed;
-            int     m_type;
-            int     m_width;
-            int     m_height;
-            int     m_stride;
+            byte[] m_input;
+            byte[] m_output;
+            byte[] m_alpha_packed;
+            int m_type;
+            int m_width;
+            int m_height;
+            int m_stride;
 
             public PixelFormat Format { get; private set; }
-            public byte[]        Data { get { return m_output; } }
+            public byte[] Data { get { return m_output; } }
 
-            public Reader (IBinaryStream input, Pt1MetaData info)
+            public Reader(IBinaryStream input, Pt1MetaData info)
             {
                 m_type = info.Type;
-                m_input = new byte[info.PackedSize+8];
+                m_input = new byte[info.PackedSize + 8];
                 input.Position = 0x20;
-                if (info.PackedSize != input.Read (m_input, 0, info.PackedSize))
-                    throw new InvalidFormatException ("Unexpected end of file");
+                if (info.PackedSize != input.Read(m_input, 0, info.PackedSize))
+                    throw new InvalidFormatException("Unexpected end of file");
                 m_width = (int)info.Width;
                 m_height = (int)info.Height;
                 m_output = new byte[info.UnpackedSize];
-                m_stride = m_width*3;
+                m_stride = m_width * 3;
                 if (3 == m_type)
                 {
                     Format = PixelFormats.Bgra32;
                     int packed_size = input.ReadInt32();
-                    m_alpha_packed = input.ReadBytes (packed_size);
+                    m_alpha_packed = input.ReadBytes(packed_size);
                     if (m_alpha_packed.Length != packed_size)
                         throw new EndOfStreamException();
                 }
@@ -131,24 +132,24 @@ namespace GameRes.Formats.Ffa
                 }
             }
 
-            public byte[] Unpack ()
+            public byte[] Unpack()
             {
                 switch (m_type)
                 {
-                case 3: UnpackV3(); break;
-                case 2: UnpackV2(); break;
-                case 1: UnpackV1(); break;
-                case 0: UnpackV0 (m_input, m_output); break;
+                    case 3: UnpackV3(); break;
+                    case 2: UnpackV2(); break;
+                    case 1: UnpackV1(); break;
+                    case 0: UnpackV0(m_input, m_output); break;
                 }
                 return m_output;
             }
 
-            void UnpackV3 ()
+            void UnpackV3()
             {
                 UnpackV2();
                 int total = m_width * m_height;
                 var alpha = new byte[total];
-                UnpackV0 (m_alpha_packed, alpha);
+                UnpackV0(m_alpha_packed, alpha);
                 var pixels = new byte[total * 4];
                 int src = 0;
                 int dst = 0;
@@ -166,23 +167,23 @@ namespace GameRes.Formats.Ffa
             byte ch;
             int src;
 
-            void ReadNext ()
+            void ReadNext()
             {
                 byte cl = (byte)(32 - ch);
                 edx &= 0xFFFFFFFFu >> cl;
-                edx += LittleEndian.ToUInt32 (m_input, src) << ch;
+                edx += LittleEndian.ToUInt32(m_input, src) << ch;
                 src += cl >> 3;
                 ch += (byte)(cl & 0xf8);
             }
 
-            void UnpackV2 ()
+            void UnpackV2()
             {
                 src = 0;
                 int dst = 0;
-                Buffer.BlockCopy (m_input, src, m_output, dst, 3);
+                Buffer.BlockCopy(m_input, src, m_output, dst, 3);
                 src += 3;
                 dst += 3;
-                edx = LittleEndian.ToUInt32 (m_input, src);
+                edx = LittleEndian.ToUInt32(m_input, src);
                 src += 3;
                 ch = 0x18;
                 uint _CF;
@@ -201,7 +202,7 @@ namespace GameRes.Formats.Ffa
                     if (0 != _CF)
                     {
                         --ch;
-                        Buffer.BlockCopy (m_output, dst-3, m_output, dst, 3);
+                        Buffer.BlockCopy(m_output, dst - 3, m_output, dst, 3);
                         dst += 3;
                     }
                     else
@@ -212,25 +213,25 @@ namespace GameRes.Formats.Ffa
                         if (0 != _CF)
                         {
                             ah = sub_4225EA();
-                            al = (byte)(ah + m_output[dst-3]);
+                            al = (byte)(ah + m_output[dst - 3]);
                             m_output[dst++] = al;
 
                             ReadNext();
                             ah = sub_4225EA();
-                            al = (byte)(ah + m_output[dst-3]);
+                            al = (byte)(ah + m_output[dst - 3]);
                             m_output[dst++] = al;
 
                             ReadNext();
                             ah = sub_4225EA();
-                            al = (byte)(ah + m_output[dst-3]);
+                            al = (byte)(ah + m_output[dst - 3]);
                             m_output[dst++] = al;
                         }
                         else
                         {
                             ReadNext();
-                            LittleEndian.Pack ((ushort)edx, m_output, dst);
+                            LittleEndian.Pack((ushort)edx, m_output, dst);
                             edx >>= 16;
-                            m_output[dst+2] = (byte)edx;
+                            m_output[dst + 2] = (byte)edx;
                             dst += 3;
                             edx >>= 8;
                             ch -= 24;
@@ -245,7 +246,7 @@ namespace GameRes.Formats.Ffa
                     if (0 != _CF)
                     {
                         --ch;
-                        Buffer.BlockCopy (m_output, dst-m_stride, m_output, dst, 3);
+                        Buffer.BlockCopy(m_output, dst - m_stride, m_output, dst, 3);
                         dst += 3;
                     }
                     else // loc_42207F
@@ -256,25 +257,25 @@ namespace GameRes.Formats.Ffa
                         if (0 != _CF)
                         {
                             ah = sub_4225EA();
-                            al = (byte)(ah + m_output[dst-m_stride]);
+                            al = (byte)(ah + m_output[dst - m_stride]);
                             m_output[dst++] = al;
 
                             ReadNext();
                             ah = sub_4225EA();
-                            al = (byte)(ah + m_output[dst-m_stride]);
+                            al = (byte)(ah + m_output[dst - m_stride]);
                             m_output[dst++] = al;
 
                             ReadNext();
                             ah = sub_4225EA();
-                            al = (byte)(ah + m_output[dst-m_stride]);
+                            al = (byte)(ah + m_output[dst - m_stride]);
                             m_output[dst++] = al;
                         }
                         else // loc_4220FC
                         {
                             ReadNext();
-                            LittleEndian.Pack ((ushort)edx, m_output, dst);
+                            LittleEndian.Pack((ushort)edx, m_output, dst);
                             edx >>= 16;
-                            m_output[dst+2] = (byte)edx;
+                            m_output[dst + 2] = (byte)edx;
                             dst += 3;
                             edx >>= 8;
                             ch -= 24;
@@ -290,17 +291,17 @@ namespace GameRes.Formats.Ffa
                             --ch;
                             ebx = (uint)(dst - m_stride);
                             ah = sub_4225EA();
-                            al = (byte)(m_output[dst-3] - m_output[ebx-3] + m_output[ebx] + ah);
+                            al = (byte)(m_output[dst - 3] - m_output[ebx - 3] + m_output[ebx] + ah);
                             m_output[dst++] = al;
 
                             ReadNext();
                             ah = sub_4225EA();
-                            al = (byte)(m_output[dst-3] - m_output[ebx-2] + m_output[ebx+1] + ah);
+                            al = (byte)(m_output[dst - 3] - m_output[ebx - 2] + m_output[ebx + 1] + ah);
                             m_output[dst++] = al;
 
                             ReadNext();
                             ah = sub_4225EA();
-                            al = (byte)(m_output[dst-3] - m_output[ebx-1] + m_output[ebx+2] + ah);
+                            al = (byte)(m_output[dst - 3] - m_output[ebx - 1] + m_output[ebx + 2] + ah);
                             m_output[dst++] = al;
                         }
                         else
@@ -311,11 +312,11 @@ namespace GameRes.Formats.Ffa
                             {
                                 ch -= 2;
                                 ebx = (uint)(dst - m_stride);
-                                al = (byte)(m_output[dst-3] - m_output[ebx-3] + m_output[ebx]);
+                                al = (byte)(m_output[dst - 3] - m_output[ebx - 3] + m_output[ebx]);
                                 m_output[dst++] = al;
-                                al = (byte)(m_output[dst-3] - m_output[ebx-2] + m_output[ebx+1]);
+                                al = (byte)(m_output[dst - 3] - m_output[ebx - 2] + m_output[ebx + 1]);
                                 m_output[dst++] = al;
-                                al = (byte)(m_output[dst-3] - m_output[ebx-1] + m_output[ebx+2]);
+                                al = (byte)(m_output[dst - 3] - m_output[ebx - 1] + m_output[ebx + 2]);
                                 m_output[dst++] = al;
                             }
                             else
@@ -325,7 +326,7 @@ namespace GameRes.Formats.Ffa
                                 {
                                     edx >>= 2;
                                     ch -= 4;
-                                    Buffer.BlockCopy (m_output, dst-3, m_output, dst, 3);
+                                    Buffer.BlockCopy(m_output, dst - 3, m_output, dst, 3);
                                     dst += 3;
                                 }
                                 else if (2 == ebx)
@@ -334,9 +335,9 @@ namespace GameRes.Formats.Ffa
                                     ch -= 4;
 
                                     ReadNext();
-                                    LittleEndian.Pack ((ushort)edx, m_output, dst);
+                                    LittleEndian.Pack((ushort)edx, m_output, dst);
                                     edx >>= 16;
-                                    m_output[dst+2] = (byte)edx;
+                                    m_output[dst + 2] = (byte)edx;
                                     dst += 3;
                                     edx >>= 8;
                                     ch -= 24;
@@ -346,17 +347,17 @@ namespace GameRes.Formats.Ffa
                                     edx >>= 2;
                                     ch -= 4;
                                     ah = sub_4225EA();
-                                    al = (byte)(ah + m_output[dst-3]);
+                                    al = (byte)(ah + m_output[dst - 3]);
                                     m_output[dst++] = al;
 
                                     ReadNext();
                                     ah = sub_4225EA();
-                                    al = (byte)(ah + m_output[dst-3]);
+                                    al = (byte)(ah + m_output[dst - 3]);
                                     m_output[dst++] = al;
 
                                     ReadNext();
                                     ah = sub_4225EA();
-                                    al = (byte)(ah + m_output[dst-3]);
+                                    al = (byte)(ah + m_output[dst - 3]);
                                     m_output[dst++] = al;
                                 }
                                 else
@@ -366,12 +367,12 @@ namespace GameRes.Formats.Ffa
                                     ch -= 6;
                                     if (0 == ebx)
                                     {
-                                        Buffer.BlockCopy (m_output, dst - m_stride - 3, m_output, dst, 3);
+                                        Buffer.BlockCopy(m_output, dst - m_stride - 3, m_output, dst, 3);
                                         dst += 3;
                                     }
                                     else if (8 == ebx)
                                     {
-                                        Buffer.BlockCopy (m_output, dst - m_stride, m_output, dst, 3);
+                                        Buffer.BlockCopy(m_output, dst - m_stride, m_output, dst, 3);
                                         dst += 3;
                                     }
                                     else
@@ -396,7 +397,7 @@ namespace GameRes.Formats.Ffa
                 }
             }
 
-            sbyte sub_4225EA ()
+            sbyte sub_4225EA()
             {
                 uint _CF = edx & 1;
                 edx >>= 1;
@@ -420,127 +421,127 @@ namespace GameRes.Formats.Ffa
                 }
                 switch (edx & 7)
                 {
-                case 7:
-                    edx >>= 3;
-                    ch -= 4;
-                    return -2;
-                case 3:
-                    edx >>= 3;
-                    ch -= 4;
-                    return 2;
-                case 4:
-                    edx >>= 3;
-                    ch -= 4;
-                    return -3;
-                default:
-                    switch (edx & 0x3f)
-                    {
-                    case 0x38:
-                        edx >>= 6;
-                        ch -= 7;
-                        return 3;
-                    case 0x18:
-                        edx >>= 6;
-                        ch -= 7;
-                        return -4;
-                    case 0x28:
-                        edx >>= 6;
-                        ch -= 7;
-                        return 4;
-                    case 0x08:
-                        edx >>= 6;
-                        ch -= 7;
-                        return -5;
-                    case 0x30:
-                        edx >>= 6;
-                        ch -= 7;
-                        return 5;
-                    case 0x10:
-                        edx >>= 6;
-                        ch -= 7;
-                        return -6;
-                    case 0x20:
-                        edx >>= 6;
-                        ch -= 7;
-                        return 6;
+                    case 7:
+                        edx >>= 3;
+                        ch -= 4;
+                        return -2;
+                    case 3:
+                        edx >>= 3;
+                        ch -= 4;
+                        return 2;
+                    case 4:
+                        edx >>= 3;
+                        ch -= 4;
+                        return -3;
                     default:
-                        switch (edx & 0xff)
+                        switch (edx & 0x3f)
                         {
-                        case 0xc0:
-                            edx >>= 8;
-                            ch -= 9;
-                            return -7;
-                        case 0x40:
-                            edx >>= 8;
-                            ch -= 9;
-                            return 7;
-                        case 0x80:
-                            edx >>= 8;
-                            ch -= 9;
-                            return -8;
-                        default:
-                            switch (edx & 0x3ff)
-                            {
-                            case 0x300:
-                                edx >>= 10;
-                                ch -= 11;
-                                return 8;
-                            case 0x100:
-                                edx >>= 10;
-                                ch -= 11;
-                                return -9;
-                            case 0x200:
-                                edx >>= 10;
-                                ch -= 11;
-                                return 9;
+                            case 0x38:
+                                edx >>= 6;
+                                ch -= 7;
+                                return 3;
+                            case 0x18:
+                                edx >>= 6;
+                                ch -= 7;
+                                return -4;
+                            case 0x28:
+                                edx >>= 6;
+                                ch -= 7;
+                                return 4;
+                            case 0x08:
+                                edx >>= 6;
+                                ch -= 7;
+                                return -5;
+                            case 0x30:
+                                edx >>= 6;
+                                ch -= 7;
+                                return 5;
+                            case 0x10:
+                                edx >>= 6;
+                                ch -= 7;
+                                return -6;
+                            case 0x20:
+                                edx >>= 6;
+                                ch -= 7;
+                                return 6;
                             default:
-                                switch (edx & 0xfff)
+                                switch (edx & 0xff)
                                 {
-                                case 0xc00:
-                                    edx >>= 12;
-                                    ch -= 13;
-                                    return -10;
-                                case 0x400:
-                                    edx >>= 12;
-                                    ch -= 13;
-                                    return 10;
-                                case 0x800:
-                                    edx >>= 12;
-                                    ch -= 13;
-                                    return -11;
-                                default:
-                                    switch (edx & 0x3fff)
-                                    {
-                                    case 0x3000:
-                                        edx >>= 14;
-                                        ch -= 15;
-                                        return 0x0b;
-                                    case 0x1000:
-                                        edx >>= 14;
-                                        ch -= 15;
-                                        return -12;
-                                    case 0x2000:
-                                        edx >>= 14;
-                                        ch -= 15;
-                                        return 0x0c;
+                                    case 0xc0:
+                                        edx >>= 8;
+                                        ch -= 9;
+                                        return -7;
+                                    case 0x40:
+                                        edx >>= 8;
+                                        ch -= 9;
+                                        return 7;
+                                    case 0x80:
+                                        edx >>= 8;
+                                        ch -= 9;
+                                        return -8;
                                     default:
-                                        edx >>= 14;
-                                        ch -= 15;
-                                        return -13;
-                                    }
+                                        switch (edx & 0x3ff)
+                                        {
+                                            case 0x300:
+                                                edx >>= 10;
+                                                ch -= 11;
+                                                return 8;
+                                            case 0x100:
+                                                edx >>= 10;
+                                                ch -= 11;
+                                                return -9;
+                                            case 0x200:
+                                                edx >>= 10;
+                                                ch -= 11;
+                                                return 9;
+                                            default:
+                                                switch (edx & 0xfff)
+                                                {
+                                                    case 0xc00:
+                                                        edx >>= 12;
+                                                        ch -= 13;
+                                                        return -10;
+                                                    case 0x400:
+                                                        edx >>= 12;
+                                                        ch -= 13;
+                                                        return 10;
+                                                    case 0x800:
+                                                        edx >>= 12;
+                                                        ch -= 13;
+                                                        return -11;
+                                                    default:
+                                                        switch (edx & 0x3fff)
+                                                        {
+                                                            case 0x3000:
+                                                                edx >>= 14;
+                                                                ch -= 15;
+                                                                return 0x0b;
+                                                            case 0x1000:
+                                                                edx >>= 14;
+                                                                ch -= 15;
+                                                                return -12;
+                                                            case 0x2000:
+                                                                edx >>= 14;
+                                                                ch -= 15;
+                                                                return 0x0c;
+                                                            default:
+                                                                edx >>= 14;
+                                                                ch -= 15;
+                                                                return -13;
+                                                        }
+                                                }
+                                        }
                                 }
-                            }
                         }
-                    }
                 }
             }
 
-            void UnpackV1 ()
+            void UnpackV1()
             {
                 int src = 0; // dword_462E74
                 int dst = 0; // dword_462E78
                 byte[] frame = new byte[0x1000]; // word_461A28
-                PopulateLzssFrame (frame);
+                PopulateLzssFrame(frame);
                 int ebp = 0xfee;
                 while (src < m_input.Length)
                 {
@@ -559,9 +560,9 @@ namespace GameRes.Formats.Ffa
                         else
                         {
                             int offset = m_input[src++];
-                            int count  = m_input[src++];
+                            int count = m_input[src++];
                             offset |= (count & 0xf0) << 4;
-                            count   = (count & 0x0f) + 3;
+                            count = (count & 0x0f) + 3;
                             for (; count != 0; --count)
                             {
                                 byte al = frame[offset++];
@@ -579,12 +580,12 @@ namespace GameRes.Formats.Ffa
                 }
             }
 
-            void UnpackV0 (byte[] input, byte[] output)
+            void UnpackV0(byte[] input, byte[] output)
             {
                 int src = 0;
                 int dst = 0;
                 byte[] frame = new byte[0x1000]; // word_461A28
-                PopulateLzssFrame (frame);
+                PopulateLzssFrame(frame);
                 int ebp = 0xfee;
                 while (src < input.Length)
                 {
@@ -601,9 +602,9 @@ namespace GameRes.Formats.Ffa
                         else
                         {
                             int offset = input[src++];
-                            int count  = input[src++];
+                            int count = input[src++];
                             offset |= (count & 0xf0) << 4;
-                            count   = (count & 0x0f) + 3;
+                            count = (count & 0x0f) + 3;
                             for (int i = 0; i < count; ++i)
                             {
                                 byte al = frame[offset++];
@@ -619,7 +620,7 @@ namespace GameRes.Formats.Ffa
                 }
             }
 
-            void PopulateLzssFrame (byte[] frame)
+            void PopulateLzssFrame(byte[] frame)
             {
                 int fill = 0;
                 int ecx;

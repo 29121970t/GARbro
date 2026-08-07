@@ -44,19 +44,20 @@ namespace GARbro.GUI
     /// </summary>
     public partial class SettingsWindow : Window
     {
-        public SettingsWindow ()
+        public SettingsWindow()
         {
             InitializeComponent();
 
             this.DataContext = this.ViewModel = CreateSettingsTree();
-            this.Closing += (s, e) => {
+            this.Closing += (s, e) =>
+            {
                 var section = SectionsPane.SelectedItem as SettingsSectionView;
                 if (section != null)
                     LastSelectedSection = section.Label;
             };
         }
 
-        static readonly IEnumerable<IResourceSetting> ViewerSettings = new [] {
+        static readonly IEnumerable<IResourceSetting> ViewerSettings = new[] {
             MainWindow.DownScaleImage,
         };
 
@@ -64,7 +65,7 @@ namespace GARbro.GUI
 
         static string LastSelectedSection = null;
 
-        private void OnSectionChanged (object sender, System.Windows.RoutedEventArgs e)
+        private void OnSectionChanged(object sender, System.Windows.RoutedEventArgs e)
         {
             this.SettingsPane.Child = null;
             var section = SectionsPane.SelectedValue as SettingsSectionView;
@@ -72,27 +73,27 @@ namespace GARbro.GUI
                 this.SettingsPane.Child = section.Panel;
         }
 
-        private void Button_ClickApply (object sender, System.Windows.RoutedEventArgs e)
+        private void Button_ClickApply(object sender, System.Windows.RoutedEventArgs e)
         {
             ApplyChanges();
         }
 
-        private void Button_ClickOk (object sender, System.Windows.RoutedEventArgs e)
+        private void Button_ClickOk(object sender, System.Windows.RoutedEventArgs e)
         {
             ApplyChanges();
             DialogResult = true;
         }
 
-        private void ApplyChanges ()
+        private void ApplyChanges()
         {
             if (!ViewModel.HasChanges)
                 return;
             if (OnApplyChanges != null)
-                OnApplyChanges (this, EventArgs.Empty);
+                OnApplyChanges(this, EventArgs.Empty);
             ViewModel.HasChanges = false;
         }
 
-        private SettingsViewModel CreateSettingsTree ()
+        private SettingsViewModel CreateSettingsTree()
         {
             SettingsSectionView[] list = {
                 new SettingsSectionView {
@@ -106,135 +107,143 @@ namespace GARbro.GUI
             };
             SettingsSectionView selected_section = null;
             if (LastSelectedSection != null)
-                selected_section = EnumerateSections (list).FirstOrDefault (s => s.Label == LastSelectedSection);
+                selected_section = EnumerateSections(list).FirstOrDefault(s => s.Label == LastSelectedSection);
             if (null == selected_section)
                 selected_section = list[0];
             selected_section.IsSelected = true;
             return new SettingsViewModel { Root = list };
         }
 
-        IEnumerable<SettingsSectionView> EnumerateFormatsSettings ()
+        IEnumerable<SettingsSectionView> EnumerateFormatsSettings()
         {
             var list = new List<SettingsSectionView>();
-            var formats = FormatCatalog.Instance.Formats.Where (f => f.Settings != null && f.Settings.Any());
-            foreach (var format in formats.OrderBy (f => f.Tag))
+            var formats = FormatCatalog.Instance.Formats.Where(f => f.Settings != null && f.Settings.Any());
+            foreach (var format in formats.OrderBy(f => f.Tag))
             {
-                var pane = CreateSectionPanel (format.Settings);
+                var pane = CreateSectionPanel(format.Settings);
                 if (pane.Children.Count > 0)
                 {
-                    var section = new SettingsSectionView {
+                    var section = new SettingsSectionView
+                    {
                         Label = format.Tag,
-                        SectionTitle = guiStrings.TextFormats+" :: "+format.Tag,
+                        SectionTitle = guiStrings.TextFormats + " :: " + format.Tag,
                         Panel = pane
                     };
-                    list.Add (section);
+                    list.Add(section);
                 }
             }
             return list;
         }
 
-        Panel CreateSectionPanel (IEnumerable<IResourceSetting> settings)
+        Panel CreateSectionPanel(IEnumerable<IResourceSetting> settings)
         {
             var pane = new WrapPanel();
             foreach (var setting in settings)
             {
-                var widget = CreateSettingWidget (setting, setting.Value);
+                var widget = CreateSettingWidget(setting, setting.Value);
                 if (widget != null)
-                    pane.Children.Add (widget);
+                    pane.Children.Add(widget);
             }
             return pane;
         }
 
-        UIElement CreateCheckBoxWidget (IResourceSetting setting)
+        UIElement CreateCheckBoxWidget(IResourceSetting setting)
         {
-            return new CheckBox {
+            return new CheckBox
+            {
                 Template = (ControlTemplate)this.Resources["BoundCheckBox"],
-                DataContext = CreateSettingView<bool> (setting),
+                DataContext = CreateSettingView<bool>(setting),
             };
         }
 
-        UIElement CreateEncodingWidget (IResourceSetting setting)
+        UIElement CreateEncodingWidget(IResourceSetting setting)
         {
-            var view = CreateSettingView<Encoding> (setting);
+            var view = CreateSettingView<Encoding>(setting);
             // XXX make a control template in XAML instead
-            var container = new StackPanel {
+            var container = new StackPanel
+            {
                 Orientation = Orientation.Vertical,
-                Margin = new Thickness (2.0),
+                Margin = new Thickness(2.0),
                 DataContext = view,
             };
-            var caption = new TextBlock {
+            var caption = new TextBlock
+            {
                 Text = view.Text,
                 ToolTip = view.Description,
             };
-            var combo_box = new ComboBox {
-                ItemsSource = MainWindow.GetEncodingList (true),
-                Margin = new Thickness (0,4,0,0),
+            var combo_box = new ComboBox
+            {
+                ItemsSource = MainWindow.GetEncodingList(true),
+                Margin = new Thickness(0, 4, 0, 0),
                 DisplayMemberPath = "EncodingName",
                 ToolTip = view.Description,
             };
-            var binding = new Binding ("Value") {
+            var binding = new Binding("Value")
+            {
                 Mode = BindingMode.TwoWay,
                 UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged,
             };
-            BindingOperations.SetBinding (combo_box, ComboBox.SelectedItemProperty, binding);
-            container.Children.Add (caption);
-            container.Children.Add (combo_box);
+            BindingOperations.SetBinding(combo_box, ComboBox.SelectedItemProperty, binding);
+            container.Children.Add(caption);
+            container.Children.Add(combo_box);
             return container;
         }
 
-        UIElement CreateGaugeWidget (FixedGaugeSetting setting)
+        UIElement CreateGaugeWidget(FixedGaugeSetting setting)
         {
-            return new Slider {
+            return new Slider
+            {
                 Template = (ControlTemplate)this.Resources["BoundSlider"],
-                DataContext = CreateSettingView<int> (setting),
-                Ticks = new DoubleCollection (setting.ValuesSet.Select (x => (double)x)),
+                DataContext = CreateSettingView<int>(setting),
+                Ticks = new DoubleCollection(setting.ValuesSet.Select(x => (double)x)),
             };
         }
 
-        UIElement CreateDropDownWidget (FixedSetSetting setting)
+        UIElement CreateDropDownWidget(FixedSetSetting setting)
         {
-            return new ComboBox {
+            return new ComboBox
+            {
                 Template = (ControlTemplate)this.Resources["BoundDropDownList"],
-                DataContext = CreateSettingView<object> (setting),
+                DataContext = CreateSettingView<object>(setting),
             };
         }
 
-        UIElement CreateSettingWidget<TUnknown> (IResourceSetting setting, TUnknown value)
+        UIElement CreateSettingWidget<TUnknown>(IResourceSetting setting, TUnknown value)
         {
             if (setting is FixedGaugeSetting)
-                return CreateGaugeWidget (setting as FixedGaugeSetting);
+                return CreateGaugeWidget(setting as FixedGaugeSetting);
             if (setting is FixedSetSetting)
-                return CreateDropDownWidget (setting as FixedSetSetting);
+                return CreateDropDownWidget(setting as FixedSetSetting);
             if (value is bool)
-                return CreateCheckBoxWidget (setting);
+                return CreateCheckBoxWidget(setting);
             if (value is Encoding)
-                return CreateEncodingWidget (setting);
-            Trace.WriteLine (string.Format ("Unknown setting type {0}", value.GetType()), "[GUI]");
+                return CreateEncodingWidget(setting);
+            Trace.WriteLine(string.Format("Unknown setting type {0}", value.GetType()), "[GUI]");
             return null;
         }
 
-        ISettingView CreateSettingView<TValue> (IResourceSetting setting)
+        ISettingView CreateSettingView<TValue>(IResourceSetting setting)
         {
-            var view = new ResourceSettingView<TValue> (setting);
-            view.ValueChanged   += (s, e) => ViewModel.HasChanges = true;
+            var view = new ResourceSettingView<TValue>(setting);
+            view.ValueChanged += (s, e) => ViewModel.HasChanges = true;
             this.OnApplyChanges += (s, e) => view.Apply();
             return view;
         }
 
-        static IEnumerable<SettingsSectionView> EnumerateSections (IEnumerable<SettingsSectionView> list)
+        static IEnumerable<SettingsSectionView> EnumerateSections(IEnumerable<SettingsSectionView> list)
         {
             foreach (var section in list)
             {
                 yield return section;
                 if (section.Children != null)
                 {
-                    foreach (var child in EnumerateSections (section.Children))
+                    foreach (var child in EnumerateSections(section.Children))
                         yield return child;
                 }
             }
         }
 
-        private void tvi_MouseRightButtonDown (object sender, MouseButtonEventArgs e)
+        private void tvi_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
         {
             var item = sender as TreeViewItem;
             if (item != null && e.RightButton == MouseButtonState.Pressed)
@@ -245,7 +254,7 @@ namespace GARbro.GUI
             }
         }
 
-        public delegate void ApplyEventHandler (object sender, EventArgs e);
+        public delegate void ApplyEventHandler(object sender, EventArgs e);
 
         public event ApplyEventHandler OnApplyChanges;
     }
@@ -254,10 +263,12 @@ namespace GARbro.GUI
     {
         public IEnumerable<SettingsSectionView> Root { get; set; }
 
-        bool    m_has_changes;
-        public bool HasChanges {
+        bool m_has_changes;
+        public bool HasChanges
+        {
             get { return m_has_changes; }
-            set {
+            set
+            {
                 if (value != m_has_changes)
                 {
                     m_has_changes = value;
@@ -268,23 +279,24 @@ namespace GARbro.GUI
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        void OnPropertyChanged ([CallerMemberName] string propertyName = "")
+        void OnPropertyChanged([CallerMemberName] string propertyName = "")
         {
             if (PropertyChanged != null)
             {
-                PropertyChanged (this, new PropertyChangedEventArgs (propertyName));
+                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
             }
         }
     }
 
     public class SettingsSectionView
     {
-        public string        Label { get; set; }
-        public bool     IsSelected { get; set; }
-        public UIElement     Panel { get; set; }
+        public string Label { get; set; }
+        public bool IsSelected { get; set; }
+        public UIElement Panel { get; set; }
 
         string m_title;
-        public string SectionTitle {
+        public string SectionTitle
+        {
             get { return m_title ?? Label; }
             set { m_title = value; }
         }
@@ -295,11 +307,11 @@ namespace GARbro.GUI
     public interface ISettingView
     {
         IResourceSetting Source { get; }
-        bool          IsChanged { get; }
-        string             Text { get; }
-        string      Description { get; }
+        bool IsChanged { get; }
+        string Text { get; }
+        string Description { get; }
 
-        void Apply ();
+        void Apply();
 
         event PropertyChangedEventHandler ValueChanged;
     }
@@ -307,15 +319,17 @@ namespace GARbro.GUI
     public class ResourceSettingView<TValue> : ISettingView
     {
         public IResourceSetting Source { get; private set; }
-        public bool          IsChanged { get; private set; }
-        public string             Text { get { return Source.Text; } }
-        public string      Description { get { return Source.Description; } }
+        public bool IsChanged { get; private set; }
+        public string Text { get { return Source.Text; } }
+        public string Description { get { return Source.Description; } }
 
         TValue m_value;
-        public TValue Value {
+        public TValue Value
+        {
             get { return m_value; }
-            set {
-                if (!EqualityComparer<TValue>.Default.Equals (m_value, value))
+            set
+            {
+                if (!EqualityComparer<TValue>.Default.Equals(m_value, value))
                 {
                     m_value = value;
                     IsChanged = true;
@@ -324,13 +338,13 @@ namespace GARbro.GUI
             }
         }
 
-        public ResourceSettingView (IResourceSetting src)
+        public ResourceSettingView(IResourceSetting src)
         {
             Source = src;
             m_value = (TValue)src.Value;
         }
 
-        public void Apply ()
+        public void Apply()
         {
             if (IsChanged)
             {
@@ -341,11 +355,11 @@ namespace GARbro.GUI
 
         public event PropertyChangedEventHandler ValueChanged;
 
-        void OnValueChanged ()
+        void OnValueChanged()
         {
             if (ValueChanged != null)
             {
-                ValueChanged (this, new PropertyChangedEventArgs ("Value"));
+                ValueChanged(this, new PropertyChangedEventArgs("Value"));
             }
         }
     }
@@ -353,7 +367,7 @@ namespace GARbro.GUI
     public static class TreeViewItemExtensions
     {
         /// <returns>Depth of the given TreeViewItem</returns>
-        public static int GetDepth (this TreeViewItem item)
+        public static int GetDepth(this TreeViewItem item)
         {
             var tvi = item.GetParent() as TreeViewItem;
             if (tvi != null)
@@ -363,9 +377,9 @@ namespace GARbro.GUI
 
         /// <returns>Control that contains specified TreeViewItem
         /// (either TreeView or another TreeViewItem).</returns>
-        public static ItemsControl GetParent (this TreeViewItem item)
+        public static ItemsControl GetParent(this TreeViewItem item)
         {
-            return ItemsControl.ItemsControlFromItemContainer (item);
+            return ItemsControl.ItemsControlFromItemContainer(item);
         }
     }
 
@@ -373,17 +387,17 @@ namespace GARbro.GUI
     {
         public double Length { get; set; }
 
-        public object Convert (object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
         {
             var item = value as TreeViewItem;
             if (item == null)
                 return new Thickness(0);
             double thickness = Length * item.GetDepth();
 
-            return new Thickness (thickness, 0, 0, 0);
+            return new Thickness(thickness, 0, 0, 0);
         }
 
-        public object ConvertBack (object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
         {
             throw new System.NotImplementedException();
         }
@@ -391,10 +405,12 @@ namespace GARbro.GUI
 
     internal class GuiResourceSetting : ResourceSettingBase, INotifyPropertyChanged
     {
-        public override object Value {
+        public override object Value
+        {
             get { return Settings.Default[Name]; }
-            set {
-                if (!Settings.Default[Name].Equals (value))
+            set
+            {
+                if (!Settings.Default[Name].Equals(value))
                 {
                     Settings.Default[Name] = value;
                     OnPropertyChanged();
@@ -402,21 +418,21 @@ namespace GARbro.GUI
             }
         }
 
-        public GuiResourceSetting () { }
+        public GuiResourceSetting() { }
 
-        public GuiResourceSetting (string name)
+        public GuiResourceSetting(string name)
         {
             Name = name;
-            Text = guiStrings.ResourceManager.GetString (name, guiStrings.Culture) ?? name;
+            Text = guiStrings.ResourceManager.GetString(name, guiStrings.Culture) ?? name;
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        void OnPropertyChanged ([CallerMemberName] string propertyName = "")
+        void OnPropertyChanged([CallerMemberName] string propertyName = "")
         {
             if (PropertyChanged != null)
             {
-                PropertyChanged (this, new PropertyChangedEventArgs (propertyName));
+                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
             }
         }
     }

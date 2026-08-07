@@ -36,46 +36,47 @@ namespace GameRes.Formats.Unity
     /// </summary>
     internal sealed class AssetReader : IDisposable
     {
-        IBinaryStream   m_input;
-        int             m_format;
+        IBinaryStream m_input;
+        int m_format;
 
         const int MaxStringLength = 0x100000;
 
         public Stream Source { get { return m_input.AsStream; } }
-        public int    Format { get { return m_format; } }
-        public long Position {
+        public int Format { get { return m_format; } }
+        public long Position
+        {
             get { return m_input.Position; }
             set { m_input.Position = value; }
         }
 
-        public AssetReader (Stream input, string name) : this (BinaryStream.FromStream (input, name))
+        public AssetReader(Stream input, string name) : this(BinaryStream.FromStream(input, name))
         {
         }
 
-        public AssetReader (IBinaryStream input)
+        public AssetReader(IBinaryStream input)
         {
             m_input = input;
-            SetupReaders (0, false);
+            SetupReaders(0, false);
         }
 
-        public Action       Align;
+        public Action Align;
         public Func<ushort> ReadUInt16;
-        public Func<short>  ReadInt16;
-        public Func<uint>   ReadUInt32;
-        public Func<int>    ReadInt32;
-        public Func<long>   ReadInt64;
-        public Func<long>   ReadId;
-        public Func<long>   ReadOffset;
+        public Func<short> ReadInt16;
+        public Func<uint> ReadUInt32;
+        public Func<int> ReadInt32;
+        public Func<long> ReadInt64;
+        public Func<long> ReadId;
+        public Func<long> ReadOffset;
 
-        public void SetupReaders (Asset asset)
+        public void SetupReaders(Asset asset)
         {
-            SetupReaders (asset.Format, asset.IsLittleEndian);
+            SetupReaders(asset.Format, asset.IsLittleEndian);
         }
 
         /// <summary>
         /// Setup reader endianness accordingly.
         /// </summary>
-        public void SetupReaders (int format, bool is_little_endian)
+        public void SetupReaders(int format, bool is_little_endian)
         {
             m_format = format;
             if (is_little_endian)
@@ -88,15 +89,16 @@ namespace GameRes.Formats.Unity
             }
             else
             {
-                ReadUInt16 = () => Binary.BigEndian (m_input.ReadUInt16());
-                ReadUInt32 = () => Binary.BigEndian (m_input.ReadUInt32());
-                ReadInt16 = () => Binary.BigEndian (m_input.ReadInt16());
-                ReadInt32 = () => Binary.BigEndian (m_input.ReadInt32());
-                ReadInt64 = () => Binary.BigEndian (m_input.ReadInt64());
+                ReadUInt16 = () => Binary.BigEndian(m_input.ReadUInt16());
+                ReadUInt32 = () => Binary.BigEndian(m_input.ReadUInt32());
+                ReadInt16 = () => Binary.BigEndian(m_input.ReadInt16());
+                ReadInt32 = () => Binary.BigEndian(m_input.ReadInt32());
+                ReadInt64 = () => Binary.BigEndian(m_input.ReadInt64());
             }
             if (m_format >= 14 || m_format == 9)
             {
-                Align = () => {
+                Align = () =>
+                {
                     long pos = m_input.Position;
                     if (0 != (pos & 3))
                         m_input.Position = (pos + 3) & ~3L;
@@ -104,7 +106,7 @@ namespace GameRes.Formats.Unity
             }
             else
             {
-                Align = () => {};
+                Align = () => { };
             }
             if (m_format >= 14)
                 ReadId = ReadInt64;
@@ -119,7 +121,7 @@ namespace GameRes.Formats.Unity
         /// <summary>
         /// Set asset ID length.  If <paramref name="long_id"/> is <c>true</c> IDs are 64-bit, otherwise 32-bit.
         /// </summary>
-        public void SetupReadId (bool long_ids)
+        public void SetupReadId(bool long_ids)
         {
             if (long_ids)
                 ReadId = ReadInt64;
@@ -127,54 +129,54 @@ namespace GameRes.Formats.Unity
                 ReadId = () => ReadInt32();
         }
 
-        public void Skip (int count)
+        public void Skip(int count)
         {
-            m_input.Seek (count, SeekOrigin.Current);
+            m_input.Seek(count, SeekOrigin.Current);
         }
 
         /// <summary>
         /// Read bytes into specified buffer.
         /// </summary>
-        public int Read (byte[] buffer, int offset, int count)
+        public int Read(byte[] buffer, int offset, int count)
         {
-            return m_input.Read (buffer, offset, count);
+            return m_input.Read(buffer, offset, count);
         }
 
         /// <summary>
         /// Read null-terminated UTF8 string.
         /// </summary>
-        public string ReadCString ()
+        public string ReadCString()
         {
-            return m_input.ReadCString (Encoding.UTF8);
+            return m_input.ReadCString(Encoding.UTF8);
         }
 
         /// <summary>
         /// Read UTF8 string prefixed with length.
         /// </summary>
-        public string ReadString ()
+        public string ReadString()
         {
             int length = ReadInt32();
             if (0 == length)
                 return string.Empty;
             if (length < 0 || length > MaxStringLength)
                 throw new InvalidFormatException();
-            var bytes = ReadBytes (length);
-            return Encoding.UTF8.GetString (bytes);
+            var bytes = ReadBytes(length);
+            return Encoding.UTF8.GetString(bytes);
         }
 
         /// <summary>
         /// Read <paramref name="length"/> bytes from stream and return them in a byte array.
         /// May return less than <paramref name="length"/> bytes if end of file was encountered.
         /// </summary>
-        public byte[] ReadBytes (int length)
+        public byte[] ReadBytes(int length)
         {
-            return m_input.ReadBytes (length);
+            return m_input.ReadBytes(length);
         }
 
         /// <summary>
         /// Read unsigned 8-bits byte from a stream.
         /// </summary>
-        public byte ReadByte ()
+        public byte ReadByte()
         {
             return m_input.ReadUInt8();
         }
@@ -182,7 +184,7 @@ namespace GameRes.Formats.Unity
         /// <summary>
         /// Read byte and interpret is as a bool value, non-zero resulting in <c>true</c>.
         /// </summary>
-        public bool ReadBool ()
+        public bool ReadBool()
         {
             return ReadByte() != 0;
         }
@@ -190,7 +192,7 @@ namespace GameRes.Formats.Unity
         [StructLayout(LayoutKind.Explicit)]
         struct Union
         {
-            [FieldOffset (0)]
+            [FieldOffset(0)]
             public uint u;
             [FieldOffset(0)]
             public float f;
@@ -199,7 +201,7 @@ namespace GameRes.Formats.Unity
         /// <summary>
         /// Read float value from a stream.
         /// </summary>
-        public float ReadFloat ()
+        public float ReadFloat()
         {
             var buf = new Union();
             buf.u = ReadUInt32();
@@ -207,14 +209,14 @@ namespace GameRes.Formats.Unity
         }
 
         bool _disposed = false;
-        public void Dispose ()
+        public void Dispose()
         {
             if (!_disposed)
             {
                 m_input.Dispose();
                 _disposed = true;
             }
-            GC.SuppressFinalize (this);
+            GC.SuppressFinalize(this);
         }
     }
 }

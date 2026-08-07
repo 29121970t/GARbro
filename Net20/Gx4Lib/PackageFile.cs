@@ -32,19 +32,19 @@ namespace GameRes.Gx4Lib
 {
     public class PackageFile
     {
-        public PFHeaders Deserialize (Stream input)
+        public PFHeaders Deserialize(Stream input)
         {
             var bin = new BinaryFormatter { Binder = new Gx4TypeBinder() };
-            return bin.Deserialize (input) as PFHeaders;
+            return bin.Deserialize(input) as PFHeaders;
         }
     }
 
     [Serializable]
     public class PFHeader
     {
-        public string   FileName;
-        public long     readStartBytePos;
-        public long     ByteLength;
+        public string FileName;
+        public long readStartBytePos;
+        public long ByteLength;
     }
 
     [Serializable]
@@ -65,19 +65,19 @@ namespace GameRes.Gx4Lib
 
     internal class Gx4TypeBinder : SerializationBinder
     {
-        public override Type BindToType (string assemblyName, string typeName)
+        public override Type BindToType(string assemblyName, string typeName)
         {
             if ("GX4Lib" == assemblyName)
             {
-                if (typeName.StartsWith ("GX4.PackageFile`1+PFHeaders[["))
+                if (typeName.StartsWith("GX4.PackageFile`1+PFHeaders[["))
                 {
-                    if (0 == string.Compare (typeName, 29, "UnityEngine.AudioClip", 0, 21))
+                    if (0 == string.Compare(typeName, 29, "UnityEngine.AudioClip", 0, 21))
                         return typeof(PFAudioHeaders);
-                    if (0 == string.Compare (typeName, 29, "UnityEngine.Texture2D", 0, 21))
+                    if (0 == string.Compare(typeName, 29, "UnityEngine.Texture2D", 0, 21))
                         return typeof(PFImageHeaders);
                     return typeof(PFHeaders);
                 }
-                else if (typeName.StartsWith ("GX4.PackageFile`1+PFHeader[["))
+                else if (typeName.StartsWith("GX4.PackageFile`1+PFHeader[["))
                 {
                     return typeof(PFHeader);
                 }

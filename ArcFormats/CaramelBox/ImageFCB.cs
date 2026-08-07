@@ -39,54 +39,54 @@ namespace GameRes.Formats.CaramelBox
     [Export(typeof(ImageFormat))]
     public class FcbFormat : ImageFormat
     {
-        public override string         Tag { get { return "FCB"; } }
+        public override string Tag { get { return "FCB"; } }
         public override string Description { get { return "Caramel BOX image format"; } }
-        public override uint     Signature { get { return 0x31626366; } } // 'fcb1'
+        public override uint Signature { get { return 0x31626366; } } // 'fcb1'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
-            var header = stream.ReadHeader (0x10);
+            var header = stream.ReadHeader(0x10);
             return new FcbMetaData
             {
-                Width  = header.ToUInt32 (4),
-                Height = header.ToUInt32 (8),
-                Method = header.ToInt32 (12),
-                BPP    = 32,
+                Width = header.ToUInt32(4),
+                Height = header.ToUInt32(8),
+                Method = header.ToInt32(12),
+                BPP = 32,
             };
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
             var meta = (FcbMetaData)info;
             byte[] input;
             if (1 == meta.Method)
             {
                 stream.Position = 0x14;
-                int unpacked_size = Binary.BigEndian (stream.ReadInt32());
+                int unpacked_size = Binary.BigEndian(stream.ReadInt32());
                 stream.ReadInt32(); // packed_size
                 input = new byte[unpacked_size];
-                using (var z = new ZLibStream (stream.AsStream, CompressionMode.Decompress, true))
-                    if (unpacked_size != z.Read (input, 0, unpacked_size))
+                using (var z = new ZLibStream(stream.AsStream, CompressionMode.Decompress, true))
+                    if (unpacked_size != z.Read(input, 0, unpacked_size))
                         throw new EndOfStreamException();
             }
             else if (0 == meta.Method)
             {
                 stream.Position = 0x10;
-                using (var tz = new TzCompression (stream.AsStream))
+                using (var tz = new TzCompression(stream.AsStream))
                     input = tz.Unpack();
             }
             else
                 throw new InvalidFormatException();
-            var pixels = Unpack (input, info);
-            return ImageData.Create (info, PixelFormats.Bgra32, null, pixels);
+            var pixels = Unpack(input, info);
+            return ImageData.Create(info, PixelFormats.Bgra32, null, pixels);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("FcbFormat.Write not implemented");
+            throw new System.NotImplementedException("FcbFormat.Write not implemented");
         }
 
-        byte[] Unpack (byte[] input, ImageMetaData info)
+        byte[] Unpack(byte[] input, ImageMetaData info)
         {
             byte[] ref_pixel = { 0x80, 0x80, 0x80, 0xFF };
             var pixel = new byte[4];
@@ -137,7 +137,7 @@ namespace GameRes.Formats.CaramelBox
                                         v = input[src++] | v << 8;
                                         delta[0] = ((v >> 20) & 0x7F) - 64;
                                         delta[1] = ((v >> 14) & 0x3F) - 32;
-                                        delta[2] = ((v >> 8)  & 0x3F) - 32;
+                                        delta[2] = ((v >> 8) & 0x3F) - 32;
                                         delta[3] = v - 128;
                                     }
                                 }
@@ -147,7 +147,7 @@ namespace GameRes.Formats.CaramelBox
                                     v = input[src++] | v << 8;
                                     delta[0] = ((v >> 14) & 0x3F) - 32;
                                     delta[1] = ((v >> 10) & 0x0F) - 8;
-                                    delta[2] = ((v >> 6)  & 0x0F) - 8;
+                                    delta[2] = ((v >> 6) & 0x0F) - 8;
                                     delta[3] = (v & 0x3F) - 32;
                                 }
                             }
@@ -156,7 +156,7 @@ namespace GameRes.Formats.CaramelBox
                                 v = input[src++] | v << 8;
                                 v = input[src++] | v << 8;
                                 delta[0] = ((v >> 13) & 0xFF) - 128;
-                                delta[1] = ((v >> 7)  & 0x3F) - 32;
+                                delta[1] = ((v >> 7) & 0x3F) - 32;
                                 delta[2] = (v & 0x7F) - 64;
                                 delta[3] = 0;
                             }

@@ -40,18 +40,18 @@ namespace GameRes.Formats.PkWare
     {
         public readonly SharpZip.ZipEntry NativeEntry;
 
-        public ZipEntry (SharpZip.ZipEntry zip_entry)
+        public ZipEntry(SharpZip.ZipEntry zip_entry)
         {
             NativeEntry = zip_entry;
             Name = zip_entry.Name;
-            Type = FormatCatalog.Instance.GetTypeFromName (zip_entry.Name);
+            Type = FormatCatalog.Instance.GetTypeFromName(zip_entry.Name);
             IsPacked = true;
             // design decision of having 32bit entry sizes was made early during GameRes
             // library development. nevertheless, large files will be extracted correctly
             // despite the fact that size is reported as uint.MaxValue, because extraction is
             // performed by .Net framework based on real size value.
-            Size = (uint)Math.Min (zip_entry.CompressedSize, uint.MaxValue);
-            UnpackedSize = (uint)Math.Min (zip_entry.Size, uint.MaxValue);
+            Size = (uint)Math.Min(zip_entry.CompressedSize, uint.MaxValue);
+            UnpackedSize = (uint)Math.Min(zip_entry.Size, uint.MaxValue);
             Offset = zip_entry.Offset;
         }
     }
@@ -62,15 +62,15 @@ namespace GameRes.Formats.PkWare
 
         public SharpZip.ZipFile Native { get { return m_zip; } }
 
-        public PkZipArchive (ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, SharpZip.ZipFile native)
-            : base (arc, impl, dir)
+        public PkZipArchive(ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, SharpZip.ZipFile native)
+            : base(arc, impl, dir)
         {
             m_zip = native;
         }
 
         #region IDisposable implementation
         bool _zip_disposed = false;
-        protected override void Dispose (bool disposing)
+        protected override void Dispose(bool disposing)
         {
             if (!_zip_disposed)
             {
@@ -78,7 +78,7 @@ namespace GameRes.Formats.PkWare
                     m_zip.Close();
                 _zip_disposed = true;
             }
-            base.Dispose (disposing);
+            base.Dispose(disposing);
         }
         #endregion
     }
@@ -92,30 +92,30 @@ namespace GameRes.Formats.PkWare
     [Export(typeof(ArchiveFormat))]
     public class ZipOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "ZIP"; } }
+        public override string Tag { get { return "ZIP"; } }
         public override string Description { get { return "PKWARE archive format"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool  IsHierarchic { get { return true; } }
-        public override bool      CanWrite { get { return true; } }
+        public override uint Signature { get { return 0; } }
+        public override bool IsHierarchic { get { return true; } }
+        public override bool CanWrite { get { return true; } }
 
         static readonly byte[] PkDirSignature = { (byte)'P', (byte)'K', 5, 6 };
 
-        public ZipOpener ()
+        public ZipOpener()
         {
             Settings = new[] { ZipEncoding };
             Extensions = new string[] { "zip", "vndat" };
         }
 
-        EncodingSetting ZipEncoding = new EncodingSetting ("ZIPEncodingCP", "DefaultEncoding");
+        EncodingSetting ZipEncoding = new EncodingSetting("ZIPEncodingCP", "DefaultEncoding");
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            if (-1 == SearchForSignature (file, PkDirSignature))
+            if (-1 == SearchForSignature(file, PkDirSignature))
                 return null;
             var input = file.CreateStream();
             try
             {
-                return OpenZipArchive (file, input);
+                return OpenZipArchive(file, input);
             }
             catch
             {
@@ -124,18 +124,18 @@ namespace GameRes.Formats.PkWare
             }
         }
 
-        internal ArcFile OpenZipArchive (ArcView file, Stream input)
+        internal ArcFile OpenZipArchive(ArcView file, Stream input)
         {
             SharpZip.ZipStrings.CodePage = Properties.Settings.Default.ZIPEncodingCP;
-            var zip = new SharpZip.ZipFile (input);
+            var zip = new SharpZip.ZipFile(input);
             try
             {
-                var files = zip.Cast<SharpZip.ZipEntry>().Where (z => !z.IsDirectory);
-                bool has_encrypted = files.Any (z => z.IsCrypted);
+                var files = zip.Cast<SharpZip.ZipEntry>().Where(z => !z.IsDirectory);
+                bool has_encrypted = files.Any(z => z.IsCrypted);
                 if (has_encrypted)
-                    zip.Password = QueryPassword (file);
-                var dir = files.Select (z => new ZipEntry (z) as Entry).ToList();
-                return new PkZipArchive (file, this, dir, zip);
+                    zip.Password = QueryPassword(file);
+                var dir = files.Select(z => new ZipEntry(z) as Entry).ToList();
+                return new PkZipArchive(file, this, dir, zip);
             }
             catch
             {
@@ -144,86 +144,87 @@ namespace GameRes.Formats.PkWare
             }
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var zarc = (PkZipArchive)arc;
             var zent = (ZipEntry)entry;
-            return zarc.Native.GetInputStream (zent.NativeEntry);
+            return zarc.Native.GetInputStream(zent.NativeEntry);
         }
 
         /// <summary>
         /// Search for ZIP 'End of central directory record' near the end of file.
         /// Returns offset of 'PK' signature or -1 if no signature was found.
         /// </summary>
-        internal unsafe long SearchForSignature (ArcView file, byte[] signature)
+        internal unsafe long SearchForSignature(ArcView file, byte[] signature)
         {
             if (signature.Length < 4)
-                throw new ArgumentException ("Invalid ZIP file signature", "signature");
+                throw new ArgumentException("Invalid ZIP file signature", "signature");
 
-            uint tail_size = (uint)Math.Min (file.MaxOffset, 0x10016L);
+            uint tail_size = (uint)Math.Min(file.MaxOffset, 0x10016L);
             if (tail_size < 0x16)
                 return -1;
             var start_offset = file.MaxOffset - tail_size;
-            using (var view = file.CreateViewAccessor (start_offset, tail_size))
-            using (var pointer = new ViewPointer (view, start_offset))
+            using (var view = file.CreateViewAccessor(start_offset, tail_size))
+            using (var pointer = new ViewPointer(view, start_offset))
             {
                 byte* ptr_end = pointer.Value;
-                byte* ptr = ptr_end + tail_size-0x16;
+                byte* ptr = ptr_end + tail_size - 0x16;
                 for (; ptr >= ptr_end; --ptr)
                 {
                     if (signature[3] == ptr[3] && signature[2] == ptr[2] &&
                         signature[1] == ptr[1] && signature[0] == ptr[0])
-                        return start_offset + (ptr-ptr_end);
+                        return start_offset + (ptr - ptr_end);
                 }
                 return -1;
             }
         }
 
-        string QueryPassword (ArcView file)
+        string QueryPassword(ArcView file)
         {
-            var options = Query<ZipOptions> (arcStrings.ZIPEncryptedNotice);
+            var options = Query<ZipOptions>(arcStrings.ZIPEncryptedNotice);
             return options.Password;
         }
 
-        public override ResourceOptions GetDefaultOptions ()
+        public override ResourceOptions GetDefaultOptions()
         {
-            return new ZipOptions {
+            return new ZipOptions
+            {
                 CompressionLevel = Properties.Settings.Default.ZIPCompression,
                 FileNameEncoding = ZipEncoding.Get<Encoding>(),
                 Password = Properties.Settings.Default.ZIPPassword,
             };
         }
 
-        public override ResourceOptions GetOptions (object widget)
+        public override ResourceOptions GetOptions(object widget)
         {
             if (widget is GUI.WidgetZIP)
                 Properties.Settings.Default.ZIPPassword = ((GUI.WidgetZIP)widget).Password.Text;
             return GetDefaultOptions();
         }
 
-        public override object GetAccessWidget ()
+        public override object GetAccessWidget()
         {
-            return new GUI.WidgetZIP (DefaultScheme.KnownKeys);
+            return new GUI.WidgetZIP(DefaultScheme.KnownKeys);
         }
 
         // TODO: GUI widget for options
 
-        public override void Create (Stream output, IEnumerable<Entry> list, ResourceOptions options,
+        public override void Create(Stream output, IEnumerable<Entry> list, ResourceOptions options,
                                      EntryCallback callback)
         {
-            var zip_options = GetOptions<ZipOptions> (options);
+            var zip_options = GetOptions<ZipOptions>(options);
             int callback_count = 0;
-            using (var zip = new ZipArchive (output, ZipArchiveMode.Create, true, zip_options.FileNameEncoding))
+            using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true, zip_options.FileNameEncoding))
             {
                 foreach (var entry in list)
                 {
-                    var zip_entry = zip.CreateEntry (entry.Name, zip_options.CompressionLevel);
-                    using (var input = File.OpenRead (entry.Name))
+                    var zip_entry = zip.CreateEntry(entry.Name, zip_options.CompressionLevel);
+                    using (var input = File.OpenRead(entry.Name))
                     using (var zip_file = zip_entry.Open())
                     {
                         if (null != callback)
-                            callback (++callback_count, entry, arcStrings.MsgAddingFile);
-                        input.CopyTo (zip_file);
+                            callback(++callback_count, entry, arcStrings.MsgAddingFile);
+                        input.CopyTo(zip_file);
                     }
                 }
             }
@@ -241,7 +242,7 @@ namespace GameRes.Formats.PkWare
     public class ZipOptions : ResourceOptions
     {
         public CompressionLevel CompressionLevel { get; set; }
-        public         Encoding FileNameEncoding { get; set; }
-        public           string         Password { get; set; }
+        public Encoding FileNameEncoding { get; set; }
+        public string Password { get; set; }
     }
 }

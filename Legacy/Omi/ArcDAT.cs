@@ -35,70 +35,70 @@ namespace GameRes.Formats.Omi
     [Export(typeof(ArchiveFormat))]
     public class DatOpener : ArchiveFormat
     {
-        public override string         Tag => "DAT/OMI";
+        public override string Tag => "DAT/OMI";
         public override string Description => "OMI Script Engine resource archive";
-        public override uint     Signature => 0;
-        public override bool  IsHierarchic => false;
-        public override bool      CanWrite => false;
+        public override uint Signature => 0;
+        public override bool IsHierarchic => false;
+        public override bool CanWrite => false;
 
         internal const uint DefaultKey = 7654321u;
 
-        public DatOpener ()
+        public DatOpener()
         {
             ContainedFormats = new[] { "BMP", "TGA", "WAV", "TXT" };
         }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            if (!VFS.IsPathEqualsToFileName (file.Name, "scrdat"))
+            if (!VFS.IsPathEqualsToFileName(file.Name, "scrdat"))
                 return null;
             using (var input = file.CreateStream())
-            using (var index = new DecryptedStream (input, DefaultKey, 0))
+            using (var index = new DecryptedStream(input, DefaultKey, 0))
             {
                 var line = index.ReadLine();
-                int count = int.Parse (line);
-                if (!IsSaneCount (count))
+                int count = int.Parse(line);
+                if (!IsSaneCount(count))
                     return null;
-                var dir = new List<Entry> (count);
+                var dir = new List<Entry>(count);
                 for (int i = 0; i < count; ++i)
                 {
                     var name = index.ReadLine();
                     line = index.ReadLine();
-                    uint size = uint.Parse (line);
-                    var entry = Create<PackedEntry> (name);
+                    uint size = uint.Parse(line);
+                    var entry = Create<PackedEntry>(name);
                     entry.Size = size;
                     entry.IsPacked = entry.Type == "image";
-                    dir.Add (entry);
+                    dir.Add(entry);
                 }
                 long data_pos = index.Position;
                 for (int i = 0; i < count; ++i)
                 {
                     dir[i].Offset = data_pos;
-                    if (!dir[i].CheckPlacement (file.MaxOffset))
+                    if (!dir[i].CheckPlacement(file.MaxOffset))
                         return null;
                     data_pos += dir[i].Size;
                 }
-                return new ArcFile (file, this, dir);
+                return new ArcFile(file, this, dir);
             }
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var pent = (PackedEntry)entry;
-            Stream input = arc.File.CreateStream (entry.Offset, entry.Size);
-            input = new DecryptedStream (input, DefaultKey, (uint)entry.Offset);
+            Stream input = arc.File.CreateStream(entry.Offset, entry.Size);
+            input = new DecryptedStream(input, DefaultKey, (uint)entry.Offset);
             if (!pent.IsPacked)
                 return input;
-            using (var packed = new BinaryStream (input, pent.Name))
+            using (var packed = new BinaryStream(input, pent.Name))
             {
-                var unpacked = DecompressRle (packed);
+                var unpacked = DecompressRle(packed);
                 if (pent.UnpackedSize == 0)
                     pent.UnpackedSize = (uint)unpacked.Length;
-                return new BinMemoryStream (unpacked, pent.Name);
+                return new BinMemoryStream(unpacked, pent.Name);
             }
         }
 
-        internal static byte[] DecompressRle (IBinaryStream input)
+        internal static byte[] DecompressRle(IBinaryStream input)
         {
             int size = input.ReadInt32();
             var output = new byte[size * 2];
@@ -106,16 +106,16 @@ namespace GameRes.Formats.Omi
             int dst = 0;
             while (dst < output.Length)
             {
-                input.Read (output, dst, 2);
-                if (output.ToUInt16 (dst) == rle_marker)
+                input.Read(output, dst, 2);
+                if (output.ToUInt16(dst) == rle_marker)
                 {
-                    input.Read (output, dst, 2);
+                    input.Read(output, dst, 2);
                     dst += 2;
                     int count = input.ReadUInt16() - 1;
                     if (count > 0)
                     {
                         count *= 2;
-                        Binary.CopyOverlapped (output, dst-2, dst, count);
+                        Binary.CopyOverlapped(output, dst - 2, dst, count);
                         dst += count;
                     }
                 }
@@ -130,7 +130,7 @@ namespace GameRes.Formats.Omi
 
     internal class DecryptedStream : InputProxyStream
     {
-        private uint        m_key;
+        private uint m_key;
 
         static readonly Encoding Encoding = Encodings.cp932;
 
@@ -138,10 +138,10 @@ namespace GameRes.Formats.Omi
         public override long Position
         {
             get => BaseStream.Position;
-            set => throw new NotSupportedException ("Stream.Position property is not supported");
+            set => throw new NotSupportedException("Stream.Position property is not supported");
         }
 
-        public DecryptedStream (Stream stream, uint key, uint start_offset) : base (stream)
+        public DecryptedStream(Stream stream, uint key, uint start_offset) : base(stream)
         {
             if (start_offset > 0)
             {
@@ -154,58 +154,58 @@ namespace GameRes.Formats.Omi
             m_key = key;
         }
 
-        public override int Read (byte[] buffer, int offset, int count)
+        public override int Read(byte[] buffer, int offset, int count)
         {
-            int read = BaseStream.Read (buffer, offset, count);
-            Decrypt (buffer, offset, read);
+            int read = BaseStream.Read(buffer, offset, count);
+            Decrypt(buffer, offset, read);
             return read;
         }
 
         byte[] m_byte_buffer = new byte[1];
 
-        public override int ReadByte ()
+        public override int ReadByte()
         {
             int b = BaseStream.ReadByte();
             if (-1 != b)
             {
                 m_byte_buffer[0] = (byte)b;
-                Decrypt (m_byte_buffer, 0, 1);
+                Decrypt(m_byte_buffer, 0, 1);
                 b = m_byte_buffer[0];
             }
             return b;
         }
 
-        internal void Decrypt (byte[] data, int offset, int count)
+        internal void Decrypt(byte[] data, int offset, int count)
         {
             for (int i = 0; i < count; ++i)
             {
-                data[offset+i] = (byte)(Binary.RotByteR (data[offset+i], 1) - m_key);
+                data[offset + i] = (byte)(Binary.RotByteR(data[offset + i], 1) - m_key);
                 m_key = 5 * m_key - 3;
             }
         }
 
         byte[] m_buffer;
 
-        public string ReadLine ()
+        public string ReadLine()
         {
             if (null == m_buffer)
                 m_buffer = new byte[32];
             int size = 0;
-            for (;;)
+            for (; ; )
             {
                 int b = ReadByte();
                 if (-1 == b || '\n' == b)
                     break;
                 if (m_buffer.Length == size)
                 {
-                    Array.Resize (ref m_buffer, checked(size/2*3));
+                    Array.Resize(ref m_buffer, checked(size / 2 * 3));
                 }
                 m_buffer[size++] = (byte)b;
             }
-            return Encoding.GetString (m_buffer, 0, size);
+            return Encoding.GetString(m_buffer, 0, size);
         }
 
-        public override long Seek (long offset, SeekOrigin origin)
+        public override long Seek(long offset, SeekOrigin origin)
         {
             throw new NotSupportedException();
         }

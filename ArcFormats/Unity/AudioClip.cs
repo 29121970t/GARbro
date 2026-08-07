@@ -44,23 +44,23 @@ namespace GameRes.Formats.Unity
 
     internal class AudioClip
     {
-        public string   m_Name;
-        public int      m_LoadType;
-        public int      m_Channels;
-        public int      m_Frequency;
-        public int      m_BitsPerSample;
-        public float    m_Length;
-        public bool     m_IsTrackerFormat;
-        public int      m_SubsoundIndex;
-        public bool     m_PreloadAudioData;
-        public bool     m_LoadInBackground;
-        public bool     m_Legacy3D;
-        public string   m_Source;
-        public long     m_Offset;
-        public long     m_Size;
-        public int      m_CompressionFormat;
+        public string m_Name;
+        public int m_LoadType;
+        public int m_Channels;
+        public int m_Frequency;
+        public int m_BitsPerSample;
+        public float m_Length;
+        public bool m_IsTrackerFormat;
+        public int m_SubsoundIndex;
+        public bool m_PreloadAudioData;
+        public bool m_LoadInBackground;
+        public bool m_Legacy3D;
+        public string m_Source;
+        public long m_Offset;
+        public long m_Size;
+        public int m_CompressionFormat;
 
-        public void Load (AssetReader reader)
+        public void Load(AssetReader reader)
         {
             m_Name = reader.ReadString();
             reader.Align();
@@ -97,11 +97,11 @@ namespace GameRes.Formats.Unity
 
     internal class StreamingInfo
     {
-        public long     Offset;
-        public uint     Size;
-        public string   Path;
+        public long Offset;
+        public uint Size;
+        public string Path;
 
-        public void Load (AssetReader reader)
+        public void Load(AssetReader reader)
         {
             Offset = reader.ReadOffset();
             Size = reader.ReadUInt32();

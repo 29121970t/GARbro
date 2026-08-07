@@ -40,9 +40,9 @@ namespace GARbro.GUI
     {
         private class ProgressChangedData
         {
-            public string        Text { get; set; }
+            public string Text { get; set; }
             public string Description { get; set; }
-            public object   UserState { get; set; }
+            public object UserState { get; set; }
         }
 
         private string _windowTitle;
@@ -77,7 +77,7 @@ namespace GARbro.GUI
         /// <summary>
         /// Initializes a new instance of the <see cref="ProgressDialog"/> class.
         /// </summary>
-        public ProgressDialog ()
+        public ProgressDialog()
         {
             InitializeComponent();
 
@@ -125,11 +125,11 @@ namespace GARbro.GUI
         public string Text
         {
             get { return _text ?? string.Empty; }
-            set 
-            { 
+            set
+            {
                 _text = value;
                 if (_dialog != null)
-                    _dialog.SetLine (1, Text, UseCompactPathsForText, IntPtr.Zero);
+                    _dialog.SetLine(1, Text, UseCompactPathsForText, IntPtr.Zero);
             }
         }
 
@@ -154,14 +154,14 @@ namespace GARbro.GUI
         public bool UseCompactPathsForText
         {
             get { return _useCompactPathsForText; }
-            set 
+            set
             {
                 _useCompactPathsForText = value;
                 if (_dialog != null)
-                    _dialog.SetLine (1, Text, _useCompactPathsForText, IntPtr.Zero);
+                    _dialog.SetLine(1, Text, _useCompactPathsForText, IntPtr.Zero);
             }
         }
-	
+
         /// <summary>
         /// Gets or sets additional details about the operation being carried out.
         /// </summary>
@@ -182,11 +182,11 @@ namespace GARbro.GUI
         public string Description
         {
             get { return _description ?? string.Empty; }
-            set 
-            { 
+            set
+            {
                 _description = value;
                 if (_dialog != null)
-                    _dialog.SetLine (2, Description, UseCompactPathsForDescription, IntPtr.Zero);
+                    _dialog.SetLine(2, Description, UseCompactPathsForDescription, IntPtr.Zero);
             }
         }
 
@@ -214,7 +214,7 @@ namespace GARbro.GUI
             set
             {
                 _useCompactPathsForDescription = value;
-                if( _dialog != null )
+                if (_dialog != null)
                     _dialog.SetLine(2, Description, UseCompactPathsForDescription, IntPtr.Zero);
             }
         }
@@ -313,8 +313,8 @@ namespace GARbro.GUI
         {
             get
             {
-                _backgroundWorker.ReportProgress (-1); // Call with an out-of-range percentage will update the value of
-                                                       // _cancellationPending but do nothing else.
+                _backgroundWorker.ReportProgress(-1); // Call with an out-of-range percentage will update the value of
+                                                      // _cancellationPending but do nothing else.
                 return _cancellationPending;
             }
         }
@@ -373,9 +373,9 @@ namespace GARbro.GUI
         ///   the <see cref="DoWork"/> event handler.
         /// </para>
         /// </remarks>
-        public void Show ()
+        public void Show()
         {
-            Show (null);
+            Show(null);
         }
 
         /// <summary>
@@ -393,9 +393,9 @@ namespace GARbro.GUI
         ///   the <see cref="DoWork"/> event handler.
         /// </para>
         /// </remarks>
-        public void Show (object argument)
+        public void Show(object argument)
         {
-            RunProgressDialog (IntPtr.Zero, argument);
+            RunProgressDialog(IntPtr.Zero, argument);
         }
 
         /// <summary>
@@ -423,7 +423,7 @@ namespace GARbro.GUI
         /// </remarks>
         public void ShowDialog()
         {
-            ShowDialog (null, null);
+            ShowDialog(null, null);
         }
 
         /// <summary>
@@ -450,9 +450,9 @@ namespace GARbro.GUI
         ///   When possible, it is recommended that you use a modeless dialog using the <see cref="Show()"/> function.
         /// </para>
         /// </remarks>
-        public void ShowDialog (Window owner)
+        public void ShowDialog(Window owner)
         {
-            ShowDialog (owner, null);
+            ShowDialog(owner, null);
         }
 
         /// <summary>
@@ -480,42 +480,42 @@ namespace GARbro.GUI
         ///   When possible, it is recommended that you use a modeless dialog using the <see cref="Show()"/> function.
         /// </para>
         /// </remarks>
-        public void ShowDialog (Window owner, object argument)
+        public void ShowDialog(Window owner, object argument)
         {
-            RunProgressDialog (owner == null ? NativeMethods.GetActiveWindow() : new WindowInteropHelper(owner).Handle, argument);
+            RunProgressDialog(owner == null ? NativeMethods.GetActiveWindow() : new WindowInteropHelper(owner).Handle, argument);
         }
 
         const int SW_HIDE = 0;
         const int SW_SHOW = 5;
 
-        public void Hide ()
+        public void Hide()
         {
             if (null == _dialog)
                 return;
             var hwnd = GetWindowHandle();
             if (hwnd != IntPtr.Zero)
-                NativeMethods.ShowWindow (hwnd, SW_HIDE);
+                NativeMethods.ShowWindow(hwnd, SW_HIDE);
         }
 
-        public void Restore ()
+        public void Restore()
         {
             if (null == _dialog)
                 return;
             var hwnd = GetWindowHandle();
             if (hwnd != IntPtr.Zero)
-                NativeMethods.ShowWindow (hwnd, SW_SHOW); 
+                NativeMethods.ShowWindow(hwnd, SW_SHOW);
         }
 
         /// <summary>
         /// Get win32 handle of the progress dialog window.
         /// </summary>
-        public IntPtr GetWindowHandle ()
+        public IntPtr GetWindowHandle()
         {
             var ole = _dialog as Interop.IOleWindow;
             if (null == ole)
                 return IntPtr.Zero;
             IntPtr hwnd;
-            ole.GetWindow (out hwnd);
+            ole.GetWindow(out hwnd);
             return hwnd;
         }
 
@@ -534,9 +534,9 @@ namespace GARbro.GUI
         /// </remarks>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="percentProgress"/> is out of range.</exception>
         /// <exception cref="InvalidOperationException">The progress dialog is not currently being displayed.</exception>
-        public void ReportProgress (int percentProgress)
+        public void ReportProgress(int percentProgress)
         {
-            ReportProgress (percentProgress, null, null, null);
+            ReportProgress(percentProgress, null, null, null);
         }
 
         /// <summary>
@@ -548,9 +548,9 @@ namespace GARbro.GUI
         /// <remarks>Call this method from the <see cref="DoWork"/> event handler if you want to report progress.</remarks>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="percentProgress"/> is out of range.</exception>
         /// <exception cref="InvalidOperationException">The progress dialog is not currently being displayed.</exception>
-        public void ReportProgress (int percentProgress, string text, string description)
+        public void ReportProgress(int percentProgress, string text, string description)
         {
-            ReportProgress (percentProgress, text, description, null);
+            ReportProgress(percentProgress, text, description, null);
         }
 
         /// <summary>
@@ -563,121 +563,121 @@ namespace GARbro.GUI
         /// <remarks>Call this method from the <see cref="DoWork"/> event handler if you want to report progress.</remarks>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="percentProgress"/> is out of range.</exception>
         /// <exception cref="InvalidOperationException">The progress dialog is not currently being displayed.</exception>
-        public void ReportProgress (int percentProgress, string text, string description, object userState)
+        public void ReportProgress(int percentProgress, string text, string description, object userState)
         {
             if (percentProgress < 0 || percentProgress > 100)
-                throw new ArgumentOutOfRangeException ("percentProgress");
+                throw new ArgumentOutOfRangeException("percentProgress");
             if (_dialog == null)
-                throw new InvalidOperationException ("The progress dialog is not shown.");
-            _backgroundWorker.ReportProgress (percentProgress, new ProgressChangedData { Text = text, Description = description, UserState = userState });
+                throw new InvalidOperationException("The progress dialog is not shown.");
+            _backgroundWorker.ReportProgress(percentProgress, new ProgressChangedData { Text = text, Description = description, UserState = userState });
         }
 
         /// <summary>
         /// Raises the <see cref="DoWork"/> event.
         /// </summary>
         /// <param name="e">The <see cref="DoWorkEventArgs"/> containing data for the event.</param>
-        protected virtual void OnDoWork (DoWorkEventArgs e)
+        protected virtual void OnDoWork(DoWorkEventArgs e)
         {
             var handler = DoWork;
             if (handler != null)
-                handler (this, e);
+                handler(this, e);
         }
 
         /// <summary>
         /// Raises the <see cref="RunWorkerCompleted"/> event.
         /// </summary>
         /// <param name="e">The <see cref="EventArgs"/> containing data for the event.</param>
-        protected virtual void OnRunWorkerCompleted (RunWorkerCompletedEventArgs e)
+        protected virtual void OnRunWorkerCompleted(RunWorkerCompletedEventArgs e)
         {
             var handler = RunWorkerCompleted;
             if (handler != null)
-                handler (this, e);
+                handler(this, e);
         }
 
         /// <summary>
         /// Raises the <see cref="ProgressChanged"/> event.
         /// </summary>
         /// <param name="e">The <see cref="ProgressChangedEventArgs"/> containing data for the event.</param>
-        protected virtual void OnProgressChanged (ProgressChangedEventArgs e)
+        protected virtual void OnProgressChanged(ProgressChangedEventArgs e)
         {
             var handler = ProgressChanged;
             if (handler != null)
-                handler (this, e);
+                handler(this, e);
         }
 
-        private void RunProgressDialog (IntPtr owner, object argument)
+        private void RunProgressDialog(IntPtr owner, object argument)
         {
             if (_backgroundWorker.IsBusy)
-                throw new InvalidOperationException ("The progress dialog is already running.");
+                throw new InvalidOperationException("The progress dialog is already running.");
 
             _cancellationPending = false;
             _dialog = new Interop.ProgressDialog();
-            _dialog.SetTitle (WindowTitle);
+            _dialog.SetTitle(WindowTitle);
 
             if (CancellationText.Length > 0)
-                _dialog.SetCancelMsg (CancellationText, null);
-            _dialog.SetLine (1, Text, UseCompactPathsForText, IntPtr.Zero);
-            _dialog.SetLine (2, Description, UseCompactPathsForDescription, IntPtr.Zero);
+                _dialog.SetCancelMsg(CancellationText, null);
+            _dialog.SetLine(1, Text, UseCompactPathsForText, IntPtr.Zero);
+            _dialog.SetLine(2, Description, UseCompactPathsForDescription, IntPtr.Zero);
 
             var flags = Interop.ProgressDialogFlags.Normal;
             if (owner != IntPtr.Zero)
                 flags |= Interop.ProgressDialogFlags.Modal;
             switch (ProgressBarStyle)
             {
-            case ProgressBarStyle.None:
-                flags |= Interop.ProgressDialogFlags.NoProgressBar;
-                break;
-            case ProgressBarStyle.MarqueeProgressBar:
-                if (NativeMethods.IsWindowsVistaOrLater)
-                    flags |= Interop.ProgressDialogFlags.MarqueeProgress;
-                else
-                    flags |= Interop.ProgressDialogFlags.NoProgressBar; // Older than Vista doesn't support marquee.
-                break;
+                case ProgressBarStyle.None:
+                    flags |= Interop.ProgressDialogFlags.NoProgressBar;
+                    break;
+                case ProgressBarStyle.MarqueeProgressBar:
+                    if (NativeMethods.IsWindowsVistaOrLater)
+                        flags |= Interop.ProgressDialogFlags.MarqueeProgress;
+                    else
+                        flags |= Interop.ProgressDialogFlags.NoProgressBar; // Older than Vista doesn't support marquee.
+                    break;
             }
-            if( ShowTimeRemaining )
+            if (ShowTimeRemaining)
                 flags |= Interop.ProgressDialogFlags.AutoTime;
-            if( !ShowCancelButton )
+            if (!ShowCancelButton)
                 flags |= Interop.ProgressDialogFlags.NoCancel;
-            if( !MinimizeBox )
+            if (!MinimizeBox)
                 flags |= Interop.ProgressDialogFlags.NoMinimize;
 
-            _dialog.StartProgressDialog (owner, null, flags, IntPtr.Zero);
-            _backgroundWorker.RunWorkerAsync (argument);
+            _dialog.StartProgressDialog(owner, null, flags, IntPtr.Zero);
+            _backgroundWorker.RunWorkerAsync(argument);
         }
 
-        private void InitializeComponent ()
+        private void InitializeComponent()
         {
             _backgroundWorker = new BackgroundWorker();
             _backgroundWorker.WorkerReportsProgress = true;
             _backgroundWorker.WorkerSupportsCancellation = true;
-            _backgroundWorker.DoWork += new DoWorkEventHandler (_backgroundWorker_DoWork);
-            _backgroundWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler (_backgroundWorker_RunWorkerCompleted);
-            _backgroundWorker.ProgressChanged += new ProgressChangedEventHandler (_backgroundWorker_ProgressChanged);
+            _backgroundWorker.DoWork += new DoWorkEventHandler(_backgroundWorker_DoWork);
+            _backgroundWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(_backgroundWorker_RunWorkerCompleted);
+            _backgroundWorker.ProgressChanged += new ProgressChangedEventHandler(_backgroundWorker_ProgressChanged);
 
         }
 
-        private void _backgroundWorker_DoWork (object sender, DoWorkEventArgs e)
+        private void _backgroundWorker_DoWork(object sender, DoWorkEventArgs e)
         {
-            OnDoWork (e);
+            OnDoWork(e);
         }
 
-        private void _backgroundWorker_RunWorkerCompleted (object sender, RunWorkerCompletedEventArgs e)
+        private void _backgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
             _dialog.StopProgressDialog();
-            Marshal.ReleaseComObject (_dialog);
+            Marshal.ReleaseComObject(_dialog);
             _dialog = null;
 
-            OnRunWorkerCompleted (new RunWorkerCompletedEventArgs((!e.Cancelled && e.Error == null) ? e.Result : null, e.Error, e.Cancelled));
+            OnRunWorkerCompleted(new RunWorkerCompletedEventArgs((!e.Cancelled && e.Error == null) ? e.Result : null, e.Error, e.Cancelled));
         }
 
-        private void _backgroundWorker_ProgressChanged (object sender, ProgressChangedEventArgs e)
+        private void _backgroundWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)
         {
             _cancellationPending = _dialog.HasUserCancelled();
             // ReportProgress doesn't allow values outside this range. However, CancellationPending will call
             // BackgroundWorker.ReportProgress directly with a value that is outside this range to update the value of the property.
             if (e.ProgressPercentage >= 0 && e.ProgressPercentage <= 100)
             {
-                _dialog.SetProgress ((uint)e.ProgressPercentage, 100);
+                _dialog.SetProgress((uint)e.ProgressPercentage, 100);
                 var data = e.UserState as ProgressChangedData;
                 if (data != null)
                 {
@@ -685,7 +685,7 @@ namespace GARbro.GUI
                         Text = data.Text;
                     if (data.Description != null)
                         Description = data.Description;
-                    OnProgressChanged (new ProgressChangedEventArgs (e.ProgressPercentage, data.UserState));
+                    OnProgressChanged(new ProgressChangedEventArgs(e.ProgressPercentage, data.UserState));
                 }
             }
         }

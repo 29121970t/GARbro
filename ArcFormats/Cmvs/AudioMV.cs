@@ -33,17 +33,17 @@ namespace GameRes.Formats.Purple
     [Export(typeof(AudioFormat))]
     public class MvAudio : AudioFormat
     {
-        public override string         Tag { get { return "MV"; } }
+        public override string Tag { get { return "MV"; } }
         public override string Description { get { return "PVNS engine compressed audio format"; } }
-        public override uint     Signature { get { return 0x53564B4D; } } // 'MKVS'
+        public override uint Signature { get { return 0x53564B4D; } } // 'MKVS'
 
-        public override SoundInput TryOpen (IBinaryStream file)
+        public override SoundInput TryOpen(IBinaryStream file)
         {
-            using (var reader = new MvDecoder (file))
+            using (var reader = new MvDecoder(file))
             {
                 reader.Unpack();
-                var input = new MemoryStream (reader.Data);
-                var sound = new RawPcmInput (input, reader.Format);
+                var input = new MemoryStream(reader.Data);
+                var sound = new RawPcmInput(input, reader.Format);
                 file.Dispose();
                 return sound;
             }
@@ -52,32 +52,32 @@ namespace GameRes.Formats.Purple
 
     internal class MvDecoderBase : IDisposable
     {
-        private IBinaryStream   m_input;
-        private int             m_bits;
-        private int             m_bits_count = 0;
+        private IBinaryStream m_input;
+        private int m_bits;
+        private int m_bits_count = 0;
 
-        protected WaveFormat    m_format;
-        protected byte[]        m_output;
-        protected int           m_channel_size;
+        protected WaveFormat m_format;
+        protected byte[] m_output;
+        protected int m_channel_size;
 
-        public byte[]       Data { get { return m_output; } }
+        public byte[] Data { get { return m_output; } }
         public WaveFormat Format { get { return m_format; } }
 
-        protected MvDecoderBase (IBinaryStream input)
+        protected MvDecoderBase(IBinaryStream input)
         {
             m_input = input;
         }
 
-        internal void SetPosition (long pos)
+        internal void SetPosition(long pos)
         {
             m_input.Position = pos;
             m_bits_count = 0;
         }
 
-        internal int GetBits (int count)
+        internal int GetBits(int count)
         {
             int v = 0;
-            while (count --> 0)
+            while (count-- > 0)
             {
                 if (0 == m_bits_count)
                 {
@@ -91,15 +91,15 @@ namespace GameRes.Formats.Purple
             return v;
         }
 
-        internal int GetCount ()
+        internal int GetCount()
         {
             int n = 0;
-            while (GetBits (1) > 0)
+            while (GetBits(1) > 0)
                 ++n;
             return n;
         }
 
-        internal static short Clamp (int sample)
+        internal static short Clamp(int sample)
         {
             if (sample > 0x7FFF)
                 return 0x7FFF;
@@ -110,12 +110,12 @@ namespace GameRes.Formats.Purple
         }
 
         #region IDisposable Members
-        public void Dispose ()
+        public void Dispose()
         {
-            Dispose (true);
+            Dispose(true);
         }
 
-        protected virtual void Dispose (bool disposing)
+        protected virtual void Dispose(bool disposing)
         {
         }
         #endregion
@@ -123,25 +123,25 @@ namespace GameRes.Formats.Purple
 
     internal sealed class MvDecoder : MvDecoderBase
     {
-        int             m_samples;
+        int m_samples;
 
-        public MvDecoder (IBinaryStream input) : base (input)
+        public MvDecoder(IBinaryStream input) : base(input)
         {
-            var header = input.ReadHeader (0x12);
-            m_channel_size = header.ToInt32 (4);
-            m_format.FormatTag          = 1;
-            m_format.BitsPerSample      = 16;
-            m_format.Channels           = header[0xC];
-            m_format.SamplesPerSecond   = header.ToUInt16 (0xA);
-            m_format.BlockAlign         = (ushort)(m_format.Channels*m_format.BitsPerSample/8);
+            var header = input.ReadHeader(0x12);
+            m_channel_size = header.ToInt32(4);
+            m_format.FormatTag = 1;
+            m_format.BitsPerSample = 16;
+            m_format.Channels = header[0xC];
+            m_format.SamplesPerSecond = header.ToUInt16(0xA);
+            m_format.BlockAlign = (ushort)(m_format.Channels * m_format.BitsPerSample / 8);
             m_format.AverageBytesPerSecond = m_format.BlockAlign * m_format.SamplesPerSecond;
             m_output = new byte[m_format.BlockAlign * m_channel_size];
-            m_samples = header.ToInt32 (0xE);
+            m_samples = header.ToInt32(0xE);
         }
 
-        public void Unpack ()
+        public void Unpack()
         {
-            SetPosition (0x12);
+            SetPosition(0x12);
             var pre_sample1 = new int[0x400];
             var pre_sample2 = new int[0x400];
             var pre_sample3 = new int[0x140 * m_format.Channels];
@@ -151,8 +151,8 @@ namespace GameRes.Formats.Purple
             {
                 for (int c = 0; c < m_format.Channels; ++c)
                 {
-                    int count = GetBits (10);
-                    int v32 = (int)SampleTable[GetBits (10)];
+                    int count = GetBits(10);
+                    int v32 = (int)SampleTable[GetBits(10)];
                     for (int j = 0; j < pre_sample1.Length; ++j)
                         pre_sample1[j] = 0;
                     for (int j = 0; j < count; ++j)
@@ -160,14 +160,14 @@ namespace GameRes.Formats.Purple
                         int bit_count = GetCount();
                         if (bit_count != 0)
                         {
-                            int coef = GetBits (bit_count);
+                            int coef = GetBits(bit_count);
                             if (coef < (1 << (bit_count - 1)))
                                 coef += 1 - (1 << bit_count);
                             pre_sample1[j] = v32 * coef;
                         }
                         else
                         {
-                            j += GetBits (3);
+                            j += GetBits(3);
                         }
                     }
                     int pre3_idx = 0;
@@ -205,18 +205,18 @@ namespace GameRes.Formats.Purple
                     }
                     for (int j = 0; j < 0x140; ++j)
                     {
-                        short sample = Clamp (pre_sample3[j] >> 1);
-                        LittleEndian.Pack (sample, m_output, dst);
+                        short sample = Clamp(pre_sample3[j] >> 1);
+                        LittleEndian.Pack(sample, m_output, dst);
                         dst += 2; // ??? shouldn't channel interleaving be taken into account?
                     }
                 }
             }
         }
 
-        static MvDecoder ()
+        static MvDecoder()
         {
             var table = new uint[0x400];
-            Array.Copy (SampleTable, 0, table, 0x192, SampleTable.Length);
+            Array.Copy(SampleTable, 0, table, 0x192, SampleTable.Length);
             SampleTable = table;
         }
 

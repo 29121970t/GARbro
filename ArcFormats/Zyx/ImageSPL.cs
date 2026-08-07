@@ -38,18 +38,18 @@ namespace GameRes.Formats.Zyx
 
     internal class SplMetaData : ImageMetaData
     {
-        public Tile[]   Tiles;
-        public long     DataOffset;
+        public Tile[] Tiles;
+        public long DataOffset;
     }
 
     [Export(typeof(ImageFormat))]
     public class SplFormat : ImageFormat
     {
-        public override string         Tag { get { return "SPL"; } }
+        public override string Tag { get { return "SPL"; } }
         public override string Description { get { return "Zyx tiled image format"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
             int count = file.ReadInt16();
             if (count < 0 || count > 0x100)
@@ -62,10 +62,10 @@ namespace GameRes.Formats.Zyx
                 {
                     var tile = new Tile();
                     tile.Left = file.ReadInt16();
-                    tile.Top  = file.ReadInt16();
+                    tile.Top = file.ReadInt16();
                     if (tile.Left < 0 || tile.Top < 0)
                         return null;
-                    tile.Right  = file.ReadInt16();
+                    tile.Right = file.ReadInt16();
                     tile.Bottom = file.ReadInt16();
                     if (tile.Right <= tile.Left || tile.Bottom <= tile.Top)
                         return null;
@@ -94,35 +94,35 @@ namespace GameRes.Formats.Zyx
             };
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
             var meta = (SplMetaData)info;
-            var reader = new SplReader (stream.AsStream, meta);
-            reader.Unpack ();
-            return ImageData.Create (info, PixelFormats.Bgr24, null, reader.Data);
+            var reader = new SplReader(stream.AsStream, meta);
+            reader.Unpack();
+            return ImageData.Create(info, PixelFormats.Bgr24, null, reader.Data);
         }
-        
-        public override void Write (Stream file, ImageData image)
+
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("SplFormat.Write not implemented");
+            throw new System.NotImplementedException("SplFormat.Write not implemented");
         }
     }
 
     internal class SplReader
     {
-        Stream      m_input;
-        byte[]      m_output;
+        Stream m_input;
+        byte[] m_output;
 
         public byte[] Data { get { return m_output; } }
 
-        public SplReader (Stream input, SplMetaData info)
+        public SplReader(Stream input, SplMetaData info)
         {
             m_output = new byte[3 * info.Width * info.Height];
             m_input = input;
             m_input.Position = info.DataOffset;
         }
 
-        public void Unpack ()
+        public void Unpack()
         {
             int dst = 0;
             while (dst < m_output.Length)
@@ -133,73 +133,73 @@ namespace GameRes.Formats.Zyx
                     break;
                 switch (b)
                 {
-                case 0:
-                    count = m_input.ReadByte();
-                    if (count != -1)
-                    {
-                        byte p1 = m_output[dst - 3];
-                        byte p2 = m_output[dst - 2];
-                        byte p3 = m_output[dst - 1];
-                        for (int i = 0; i < count; ++i)
+                    case 0:
+                        count = m_input.ReadByte();
+                        if (count != -1)
                         {
-                            m_output[dst++] = p1;
-                            m_output[dst++] = p2;
-                            m_output[dst++] = p3;
+                            byte p1 = m_output[dst - 3];
+                            byte p2 = m_output[dst - 2];
+                            byte p3 = m_output[dst - 1];
+                            for (int i = 0; i < count; ++i)
+                            {
+                                m_output[dst++] = p1;
+                                m_output[dst++] = p2;
+                                m_output[dst++] = p3;
+                            }
                         }
-                    }
-                    break;
-                case 1:
-                    count = m_input.ReadByte();
-                    b = m_input.ReadByte();
-                    if (-1 != count && -1 != b)
-                    {
-                        int src = dst - 3 * b;
-                        count *= 3;
-                        Binary.CopyOverlapped (m_output, src, dst, count);
+                        break;
+                    case 1:
+                        count = m_input.ReadByte();
+                        b = m_input.ReadByte();
+                        if (-1 != count && -1 != b)
+                        {
+                            int src = dst - 3 * b;
+                            count *= 3;
+                            Binary.CopyOverlapped(m_output, src, dst, count);
+                            dst += count;
+                        }
+                        break;
+                    case 2:
+                        count = m_input.ReadByte();
+                        b = ReadWord();
+                        if (-1 != count && -1 != b)
+                        {
+                            int src = dst - 3 * b;
+                            count *= 3;
+                            Binary.CopyOverlapped(m_output, src, dst, count);
+                            dst += count;
+                        }
+                        break;
+                    case 3:
+                        b = m_input.ReadByte();
+                        if (b != -1)
+                        {
+                            int src = dst - 3 * b;
+                            m_output[dst++] = m_output[src++];
+                            m_output[dst++] = m_output[src++];
+                            m_output[dst++] = m_output[src++];
+                        }
+                        break;
+                    case 4:
+                        b = ReadWord();
+                        if (b != -1)
+                        {
+                            int src = dst - 3 * b;
+                            m_output[dst++] = m_output[src++];
+                            m_output[dst++] = m_output[src++];
+                            m_output[dst++] = m_output[src++];
+                        }
+                        break;
+                    default:
+                        count = 3 * (b - 4);
+                        m_input.ReadExactly(m_output, dst, count);
                         dst += count;
-                    }
-                    break;
-                case 2:
-                    count = m_input.ReadByte();
-                    b = ReadWord();
-                    if (-1 != count && -1 != b)
-                    {
-                        int src = dst - 3 * b;
-                        count *= 3;
-                        Binary.CopyOverlapped (m_output, src, dst, count);
-                        dst += count;
-                    }
-                    break;
-                case 3:
-                    b = m_input.ReadByte();
-                    if (b != -1)
-                    {
-                        int src = dst - 3 * b;
-                        m_output[dst++] = m_output[src++];
-                        m_output[dst++] = m_output[src++];
-                        m_output[dst++] = m_output[src++];
-                    }
-                    break;
-                case 4:
-                    b = ReadWord();
-                    if (b != -1)
-                    {
-                        int src = dst - 3 * b;
-                        m_output[dst++] = m_output[src++];
-                        m_output[dst++] = m_output[src++];
-                        m_output[dst++] = m_output[src++];
-                    }
-                    break;
-                default:
-                    count = 3 * (b - 4);
-                    m_input.Read (m_output, dst, count);
-                    dst += count;
-                    break;
+                        break;
                 }
             }
         }
 
-        private int ReadWord ()
+        private int ReadWord()
         {
             int lo = m_input.ReadByte();
             if (-1 == lo)

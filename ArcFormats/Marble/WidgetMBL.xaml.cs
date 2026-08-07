@@ -11,11 +11,11 @@ namespace GameRes.Formats.GUI
     /// </summary>
     public partial class WidgetMBL : Grid
     {
-        public WidgetMBL ()
+        public WidgetMBL()
         {
-            InitializeComponent ();
-            var keys = new[] { new KeyValuePair<string, string> (arcStrings.ArcDefault, "") };
-            EncScheme.ItemsSource = keys.Concat (MblOpener.KnownKeys);
+            InitializeComponent();
+            var keys = new[] { new KeyValuePair<string, string>(arcStrings.ArcDefault, "") };
+            EncScheme.ItemsSource = keys.Concat(MblOpener.KnownKeys);
             if (-1 == EncScheme.SelectedIndex)
                 EncScheme.SelectedIndex = 0;
         }

@@ -41,47 +41,48 @@ namespace GameRes.Formats.HyperWorks
     [Export(typeof(ImageFormat))]
     public class I24Format : ImageFormat
     {
-        public override string         Tag => "I24";
+        public override string Tag => "I24";
         public override string Description => "HyperWorks RGB image format";
-        public override uint     Signature => 0x41343249; // 'I24A'
+        public override uint Signature => 0x41343249; // 'I24A'
 
-        public I24Format ()
+        public I24Format()
         {
             Signatures = new[] { 0x41343249u, 0x20343249u };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x18);
-            int bpp = header.ToInt16 (0x10);
+            var header = file.ReadHeader(0x18);
+            int bpp = header.ToInt16(0x10);
             if (bpp != 24)
                 return null;
-            return new I24MetaData {
-                Width  = header.ToUInt16 (0xC),
-                Height = header.ToUInt16 (0xE),
-                BPP    = bpp,
+            return new I24MetaData
+            {
+                Width = header.ToUInt16(0xC),
+                Height = header.ToUInt16(0xE),
+                BPP = bpp,
                 Version = header[3],
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new I24Decoder (file, (I24MetaData)info);
+            var reader = new I24Decoder(file, (I24MetaData)info);
             return reader.Unpack();
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("I24Format.Write not implemented");
+            throw new System.NotImplementedException("I24Format.Write not implemented");
         }
     }
 
     internal class I24Decoder
     {
-        IBinaryStream   m_input;
-        I24MetaData     m_info;
+        IBinaryStream m_input;
+        I24MetaData m_info;
 
-        public I24Decoder (IBinaryStream input, I24MetaData info)
+        public I24Decoder(IBinaryStream input, I24MetaData info)
         {
             m_input = input;
             m_info = info;
@@ -98,35 +99,35 @@ namespace GameRes.Formats.HyperWorks
 
         class Node
         {
-            public Node     next;
-            public int      depth;
-            public int      token;
+            public Node next;
+            public int depth;
+            public int token;
         }
 
         struct DictRec
         {
-            public Link     link;
-            public int      bitSize;
-            public int      token;
+            public Link link;
+            public int bitSize;
+            public int token;
         }
 
         class Link
         {
-            public Link[]   children = new Link[2];
-            public int      token;
+            public Link[] children = new Link[2];
+            public int token;
         }
 
         DictRec[] dTable_1 = new DictRec[256];
         DictRec[] dTable_2 = new DictRec[256];
         DictRec[] dTable_3 = new DictRec[256];
 
-        Link[] tBuffer_1 = InitNodeList<Link> (684);
-        Link[] tBuffer_2 = InitNodeList<Link> (22);
-        Link[] tBuffer_3 = InitNodeList<Link> (502);
+        Link[] tBuffer_1 = InitNodeList<Link>(684);
+        Link[] tBuffer_2 = InitNodeList<Link>(22);
+        Link[] tBuffer_3 = InitNodeList<Link>(502);
 
-        Node[] bTable_1 = InitNodeList<Node> (342);
-        Node[] bTable_2 = InitNodeList<Node> (11);
-        Node[] bTable_3 = InitNodeList<Node> (251);
+        Node[] bTable_1 = InitNodeList<Node>(342);
+        Node[] bTable_2 = InitNodeList<Node>(11);
+        Node[] bTable_3 = InitNodeList<Node>(251);
 
         static T[] InitNodeList<T>(int count) where T : new()
         {
@@ -136,7 +137,7 @@ namespace GameRes.Formats.HyperWorks
             return list;
         }
 
-        public ImageData Unpack ()
+        public ImageData Unpack()
         {
             m_input.Position = 0x18;
             int stride = m_info.iWidth * 4;
@@ -164,17 +165,17 @@ namespace GameRes.Formats.HyperWorks
                             bits = val;
                             bitCount = 8;
                         }
-                        InitTree (bTable_1, 342);
-                        InitTree (bTable_2, 11);
-                        InitTree (bTable_3, 251);
+                        InitTree(bTable_1, 342);
+                        InitTree(bTable_2, 11);
+                        InitTree(bTable_3, 251);
 
                         RebuildTree(bTable_1, dTable_1, tBuffer_1, 342);
                         RebuildTree(bTable_2, dTable_2, tBuffer_2, 11);
                         RebuildTree(bTable_3, dTable_3, tBuffer_3, 251);
                         byteCount = 0x3FFF;
                     }
-                    int color_token = GetToken (dTable_1);
-                    int shift_token = GetToken (dTable_2);
+                    int color_token = GetToken(dTable_1);
+                    int shift_token = GetToken(dTable_2);
 
                     int shift_idx = 2 * shift_token;
                     short s1 = shift_table[shift_idx];
@@ -185,8 +186,8 @@ namespace GameRes.Formats.HyperWorks
                         {
                             while (shift_idx > 0)
                             {
-                                shift_table[shift_idx]   = shift_table[shift_idx - 2];
-                                shift_table[shift_idx+1] = shift_table[shift_idx - 1];
+                                shift_table[shift_idx] = shift_table[shift_idx - 2];
+                                shift_table[shift_idx + 1] = shift_table[shift_idx - 1];
                                 shift_idx -= 2;
                             }
                             shift_table[0] = s1;
@@ -194,7 +195,7 @@ namespace GameRes.Formats.HyperWorks
                         }
                         else
                         {
-                            shift_table[shift_idx    ] = shift_table[shift_idx - 2];
+                            shift_table[shift_idx] = shift_table[shift_idx - 2];
                             shift_table[shift_idx + 1] = shift_table[shift_idx - 1];
                             shift_table[shift_idx - 2] = s1;
                             shift_table[shift_idx - 1] = s2;
@@ -205,7 +206,7 @@ namespace GameRes.Formats.HyperWorks
                     {
                         int count = color_token - 214;
                         x += count;
-                        while (count --> 0)
+                        while (count-- > 0)
                         {
                             line[p++] = line_buffer[s2][src++];
                             line[p++] = line_buffer[s2][src++];
@@ -217,30 +218,30 @@ namespace GameRes.Formats.HyperWorks
                     {
                         sbyte r = shift_R[color_token];
                         if (r == -3)
-                            r = (sbyte)(GetToken (dTable_3) + 3);
-                        line[p+2] = (byte)(line_buffer[s2][src+2] - r);
+                            r = (sbyte)(GetToken(dTable_3) + 3);
+                        line[p + 2] = (byte)(line_buffer[s2][src + 2] - r);
 
                         sbyte g = shift_G[color_token];
                         if (g == -3)
                             g = (sbyte)(GetToken(dTable_3) + 3);
-                        line[p+1] = (byte)(line_buffer[s2][src+1] - g);
+                        line[p + 1] = (byte)(line_buffer[s2][src + 1] - g);
 
                         sbyte b = shift_B[color_token];
                         if (b == -3)
                             b = (sbyte)(GetToken(dTable_3) + 3);
                         line[p] = (byte)(line_buffer[s2][src] - b);
-                        line[p+3] = 0;
+                        line[p + 3] = 0;
                         p += 4;
                         ++x;
                     }
                 }
-                Buffer.BlockCopy (line_buffer[0], 0, pixels, dst, stride);
+                Buffer.BlockCopy(line_buffer[0], 0, pixels, dst, stride);
                 dst += stride;
             }
-            return ImageData.Create (m_info, PixelFormats.Bgr32, null, pixels, stride);
+            return ImageData.Create(m_info, PixelFormats.Bgr32, null, pixels, stride);
         }
 
-        private void InitTree (Node[] tree, int count) // sub_408FB0
+        private void InitTree(Node[] tree, int count) // sub_408FB0
         {
             for (int i = 0; i < count; ++i)
             {
@@ -252,13 +253,13 @@ namespace GameRes.Formats.HyperWorks
             if (length <= 1)
                 return;
             length -= 1;
-            int fieldWidth = GetBits (3);
+            int fieldWidth = GetBits(3);
             int tIdx = 0;
             while (length > 0)
             {
                 if (GetNextBit() != 0)
                 {
-                    tree[tIdx++].depth = GetBits (fieldWidth);
+                    tree[tIdx++].depth = GetBits(fieldWidth);
                     --length;
                 }
                 else
@@ -272,7 +273,7 @@ namespace GameRes.Formats.HyperWorks
             }
         }
 
-        private void RebuildTree (Node[] tree, DictRec[] dict, Link[] links, int count)
+        private void RebuildTree(Node[] tree, DictRec[] dict, Link[] links, int count)
         {
             for (int i = 0; i < 256; ++i)
             {
@@ -291,7 +292,7 @@ namespace GameRes.Formats.HyperWorks
                 return;
 
             var node = tree[next_idx++];
-            while (count --> 0)
+            while (count-- > 0)
             {
                 int depth = tree[next_idx].depth;
                 if (depth != 0)
@@ -358,7 +359,7 @@ namespace GameRes.Formats.HyperWorks
                             dict[ptr_t2].link = t3_ptr;
                             t3_i++;
                         }
-                        while (d1 --> 0)
+                        while (d1-- > 0)
                         {
                             int v26 = (d3 >> 31) & 1;
                             d3 <<= 1;
@@ -380,7 +381,7 @@ namespace GameRes.Formats.HyperWorks
                 {
                     int d1 = dict_idx << (8 - bit_size);
                     int d2 = 1 << (8 - bit_size);
-                    while (d2 --> 0)
+                    while (d2-- > 0)
                     {
                         dict[d1].bitSize = bit_size;
                         dict[d1].token = node.token;
@@ -392,7 +393,7 @@ namespace GameRes.Formats.HyperWorks
             }
         }
 
-        int GetToken (DictRec[] table)
+        int GetToken(DictRec[] table)
         {
             var table_ptr = table[(bits >> 8) & 0xFF];
             int count = table_ptr.bitSize;
@@ -419,7 +420,7 @@ namespace GameRes.Formats.HyperWorks
                     int path = GetNextBit() & 1;
                     link = link.children[path];
                     if (null == link)
-                        throw new InvalidFormatException ("Invalid tree path");
+                        throw new InvalidFormatException("Invalid tree path");
                 }
                 while (link.children[0] != null);
                 return link.token;
@@ -431,7 +432,7 @@ namespace GameRes.Formats.HyperWorks
             return (byte)m_input.ReadByte();
         }
 
-        private int GetNextBit ()
+        private int GetNextBit()
         {
             bits <<= 1;
             if (0 == --bitCount)
@@ -442,7 +443,7 @@ namespace GameRes.Formats.HyperWorks
             return (bits >> 16) & 1;
         }
 
-        private int GetBitLength ()
+        private int GetBitLength()
         {
             if (GetNextBit() != 0)
                 return 0;
@@ -452,10 +453,10 @@ namespace GameRes.Formats.HyperWorks
                 ++i;
             }
             while (0 == GetNextBit());
-            return (1 << i) | GetBits (i);
+            return (1 << i) | GetBits(i);
         }
 
-        private int GetBits (int count)
+        private int GetBits(int count)
         {
             int n = count;
             if (count >= bitCount)
@@ -517,7 +518,7 @@ namespace GameRes.Formats.HyperWorks
             -1, 0, 1, 2, -3, -2, -1, 0, 1, 2, -3, -2, -1, 0, 1, 2, -3, -2, -1, 0, 1, 2,
             -3, -2, -1, 0, 1, 2, -3, -2, -1, 0, 1, 2, -3, -2, -1, 0, 1, 2, -3, -2, -1, 0,
             1, 2, -3, -2, -1, 0, 1, 2, -3, -2, -1, 0, 1, 2, -3, -2, -1, 0, 1, 2, -3, -2,
-            -1, 0, 1, 2, -3, -2, -1, 0, 1, 2, -3, -2, -1, 0, 1, 2, 
+            -1, 0, 1, 2, -3, -2, -1, 0, 1, 2, -3, -2, -1, 0, 1, 2,
         };
     }
 }

@@ -40,13 +40,13 @@ namespace GameRes.Formats.Ikura
     [Export(typeof(ImageFormat))]
     public class TanFormat : ImageFormat
     {
-        public override string         Tag { get { return "TAN"; } }
+        public override string Tag { get { return "TAN"; } }
         public override string Description { get { return "D.O. animation resource"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            if (!file.Name.HasExtension (".tan"))
+            if (!file.Name.HasExtension(".tan"))
                 return null;
             int count = file.ReadUInt16();
             if (0 == count)
@@ -56,35 +56,38 @@ namespace GameRes.Formats.Ikura
             uint h = file.ReadUInt16();
             if (0 == w || 0 == h)
                 return null;
-            return new TanMetaData {
-                Width = w, Height = h, BPP = 8,
+            return new TanMetaData
+            {
+                Width = w,
+                Height = h,
+                BPP = 8,
                 DataOffset = (uint)file.Position,
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new TanReader (file, (TanMetaData)info);
-            var pixels = reader.UnpackFrame (0);
-            return ImageData.Create (info, reader.Format, reader.Palette, pixels);
+            var reader = new TanReader(file, (TanMetaData)info);
+            var pixels = reader.UnpackFrame(0);
+            return ImageData.Create(info, reader.Format, reader.Palette, pixels);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("TanFormat.Write not implemented");
+            throw new System.NotImplementedException("TanFormat.Write not implemented");
         }
     }
 
     internal class TanReader
     {
-        IBinaryStream       m_input;
-        byte[]              m_output;
-        TanMetaData         m_info;
+        IBinaryStream m_input;
+        byte[] m_output;
+        TanMetaData m_info;
 
-        public PixelFormat    Format { get; private set; }
+        public PixelFormat Format { get; private set; }
         public BitmapPalette Palette { get; private set; }
 
-        public TanReader (IBinaryStream input, TanMetaData info)
+        public TanReader(IBinaryStream input, TanMetaData info)
         {
             m_input = input;
             m_output = new byte[info.Width * info.Height];
@@ -92,14 +95,14 @@ namespace GameRes.Formats.Ikura
             Format = 8 == m_info.BPP ? PixelFormats.Indexed8 : PixelFormats.Bgr24;
         }
 
-        public byte[] UnpackFrame (int frame)
+        public byte[] UnpackFrame(int frame)
         {
             m_input.Position = m_info.DataOffset;
             if (8 == m_info.BPP)
-                Palette = ImageFormat.ReadPalette (m_input.AsStream);
+                Palette = ImageFormat.ReadPalette(m_input.AsStream);
             int count = m_input.ReadUInt16();
             if (frame >= count)
-                throw new InvalidFormatException ("Not enough frames in TAN file.");
+                throw new InvalidFormatException("Not enough frames in TAN file.");
             long base_pos = m_input.Position + 4 * count;
             var frame_table = new uint[count];
             for (int i = 0; i < count; ++i)
@@ -117,7 +120,7 @@ namespace GameRes.Formats.Ikura
             return m_output;
         }
 
-        void Unpack8bpp ()
+        void Unpack8bpp()
         {
             int dst = 0;
             while (dst < m_output.Length)
@@ -128,21 +131,21 @@ namespace GameRes.Formats.Ikura
                 {
                     count = m_input.ReadUInt8();
                     byte v = m_input.ReadUInt8();
-                    while (count --> 0)
+                    while (count-- > 0)
                         m_output[dst++] = v;
                 }
                 else if (0 == ctl--)
                 {
                     count = m_input.ReadUInt8();
                     int offset = m_input.ReadUInt8();
-                    Binary.CopyOverlapped (m_output, dst-offset, dst, count);
+                    Binary.CopyOverlapped(m_output, dst - offset, dst, count);
                     dst += count;
                 }
                 else if (0 == ctl--)
                 {
                     count = m_input.ReadUInt8();
                     int offset = m_input.ReadUInt16();
-                    Binary.CopyOverlapped (m_output, dst-offset, dst, count);
+                    Binary.CopyOverlapped(m_output, dst - offset, dst, count);
                     dst += count;
                 }
                 else if (0 == ctl--)
@@ -156,13 +159,13 @@ namespace GameRes.Formats.Ikura
                 else
                 {
                     count = ctl;
-                    m_input.Read (m_output, dst, count);
+                    m_input.Read(m_output, dst, count);
                     dst += count;
                 }
             }
         }
 
-        void Unpack24bpp ()
+        void Unpack24bpp()
         {
             throw new NotImplementedException();
         }

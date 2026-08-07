@@ -38,24 +38,24 @@ namespace GameRes.Formats.Cri
     [Export(typeof(AudioFormat))]
     public class HcaAudio : AudioFormat
     {
-        public override string         Tag { get { return "HCA"; } }
+        public override string Tag { get { return "HCA"; } }
         public override string Description { get { return "CRI MiddleWare high compressed audio"; } }
-        public override uint     Signature { get { return 0x00414348; } } // 'HCA'
+        public override uint Signature { get { return 0x00414348; } } // 'HCA'
 
-        public HcaAudio ()
+        public HcaAudio()
         {
             Signatures = new uint[] { 0x00414348, 0x80C1C3C8 };
         }
 
-        static readonly Tuple<uint, uint> DefaultKey = Tuple.Create (0x30DBE1ABu, 0xCC554639u);
+        static readonly Tuple<uint, uint> DefaultKey = Tuple.Create(0x30DBE1ABu, 0xCC554639u);
 
-        public override SoundInput TryOpen (IBinaryStream file)
+        public override SoundInput TryOpen(IBinaryStream file)
         {
-            return new HcaInput (file.AsStream, ConversionFormat.IeeeFloat, DefaultKey);
+            return new HcaInput(file.AsStream, ConversionFormat.IeeeFloat, DefaultKey);
         }
     }
 
-    public enum ConversionFormat : ushort 
+    public enum ConversionFormat : ushort
     {
         Pcm = 1,
         IeeeFloat = 3,
@@ -63,11 +63,11 @@ namespace GameRes.Formats.Cri
 
     internal class HcaInput : SoundInput
     {
-        HcaReader       m_reader;
-        long            m_position;
-        int             m_bitrate;
-        Array[]         m_decoded_blocks;
-        int             m_decoded_block_size;
+        HcaReader m_reader;
+        long m_position;
+        int m_bitrate;
+        Array[] m_decoded_blocks;
+        int m_decoded_block_size;
 
         public override long Position
         {
@@ -75,38 +75,38 @@ namespace GameRes.Formats.Cri
             set { m_position = value; }
         }
 
-        public override bool        CanSeek { get { return true; } }
+        public override bool CanSeek { get { return true; } }
         public override string SourceFormat { get { return "hca"; } }
-        public override int   SourceBitrate { get { return m_bitrate; } }
+        public override int SourceBitrate { get { return m_bitrate; } }
 
-        public HcaInput (Stream file, ConversionFormat target, Tuple<uint, uint> key) : base (file)
+        public HcaInput(Stream file, ConversionFormat target, Tuple<uint, uint> key) : base(file)
         {
-            m_reader = new HcaReader (file, key.Item1, key.Item2);
-            m_reader.InitConversion (target);
+            m_reader = new HcaReader(file, key.Item1, key.Item2);
+            m_reader.InitConversion(target);
             Format = m_reader.Format;
             m_bitrate = (int)(Format.SamplesPerSecond * m_reader.BlockSize / (0x80 * Format.Channels));
             m_decoded_block_size = (int)(0x80 * Format.Channels * Format.BitsPerSample);
             PcmSize = m_reader.BlockCount * m_decoded_block_size;
             m_decoded_blocks = new Array[m_reader.BlockCount];
 
-            InitBackgroundReader (target);
+            InitBackgroundReader(target);
         }
 
-        public override int Read (byte[] buffer, int offset, int count)
+        public override int Read(byte[] buffer, int offset, int count)
         {
             long block_pos;
-            int block_index = (int)Math.DivRem (m_position, m_decoded_block_size, out block_pos);
+            int block_index = (int)Math.DivRem(m_position, m_decoded_block_size, out block_pos);
             if (block_index < 0 || block_index > m_decoded_blocks.Length)
                 return 0;
             int total_read = 0;
             while (block_index < m_decoded_blocks.Length && count > 0)
             {
                 if (null == m_decoded_blocks[block_index])
-                    FillBlock (block_index);
+                    FillBlock(block_index);
                 if (null == m_decoded_blocks[block_index])
                     break;
-                int available = Math.Min (count, m_decoded_block_size - (int)block_pos);
-                Buffer.BlockCopy (m_decoded_blocks[block_index], (int)block_pos, buffer, offset, available);
+                int available = Math.Min(count, m_decoded_block_size - (int)block_pos);
+                Buffer.BlockCopy(m_decoded_blocks[block_index], (int)block_pos, buffer, offset, available);
                 m_position += available;
                 total_read += available;
                 count -= available;
@@ -119,28 +119,28 @@ namespace GameRes.Formats.Cri
             return total_read;
         }
 
-        void InitBackgroundReader (ConversionFormat target)
+        void InitBackgroundReader(ConversionFormat target)
         {
             m_block_queue = new BlockingCollection<Tuple<int, Array>>();
             m_cancel_source = new CancellationTokenSource();
 
             var token = m_cancel_source.Token;
             if (ConversionFormat.IeeeFloat == target)
-                m_conversion_task = Task.Factory.StartNew (() => m_reader.ConvertParallel (m_block_queue, HcaReader.PackSampleFloat, token), token);
+                m_conversion_task = Task.Factory.StartNew(() => m_reader.ConvertParallel(m_block_queue, HcaReader.PackSampleFloat, token), token);
             else
-                m_conversion_task = Task.Factory.StartNew (() => m_reader.ConvertParallel (m_block_queue, HcaReader.PackSample16, token), token);
+                m_conversion_task = Task.Factory.StartNew(() => m_reader.ConvertParallel(m_block_queue, HcaReader.PackSample16, token), token);
         }
 
         BlockingCollection<Tuple<int, Array>> m_block_queue;
-        Task                    m_conversion_task;
+        Task m_conversion_task;
         CancellationTokenSource m_cancel_source;
 
-        void FillBlock (int block_index)
+        void FillBlock(int block_index)
         {
             var token = m_cancel_source.Token;
             while (!m_block_queue.IsCompleted && null == m_decoded_blocks[block_index])
             {
-                var block = m_block_queue.Take (token);
+                var block = m_block_queue.Take(token);
                 if (block.Item1 >= m_decoded_blocks.Length)
                     throw new IndexOutOfRangeException();
                 m_decoded_blocks[block.Item1] = block.Item2;
@@ -149,7 +149,7 @@ namespace GameRes.Formats.Cri
 
         #region IDisposable Members
         bool _hca_disposed = false;
-        protected override void Dispose (bool disposing)
+        protected override void Dispose(bool disposing)
         {
             if (!_hca_disposed)
             {
@@ -177,7 +177,7 @@ namespace GameRes.Formats.Cri
                     m_reader.Dispose();
                 }
                 _hca_disposed = true;
-                base.Dispose (disposing);
+                base.Dispose(disposing);
             }
         }
         #endregion
@@ -185,25 +185,25 @@ namespace GameRes.Formats.Cri
 
     internal sealed class HcaReader : IDisposable
     {
-        WaveFormat      m_format;
-        byte[]          m_input;
+        WaveFormat m_format;
+        byte[] m_input;
 
         public WaveFormat Format { get { return m_format; } }
-        public uint   BlockCount { get { return m_fmt_block_count.Value; } }
-        public int     BlockSize { get { return m_comp.BlockSize; } }
+        public uint BlockCount { get { return m_fmt_block_count.Value; } }
+        public int BlockSize { get { return m_comp.BlockSize; } }
 
-        public HcaReader (Stream input, uint key1, uint key2)
+        public HcaReader(Stream input, uint key1, uint key2)
         {
-            using (var file = new BigEndianReader (input, Encoding.UTF8, true))
-                ParseHeader (file);
-            m_ath = new AthTable (m_ath_type.Value, m_format.SamplesPerSecond);
-            m_cipher = new Cipher (m_ciph_type.Value, key1, key2);
-            m_block = new ThreadLocal<byte[]> (() => new byte[m_comp.BlockSize]);
+            using (var file = new BigEndianReader(input, Encoding.UTF8, true))
+                ParseHeader(file);
+            m_ath = new AthTable(m_ath_type.Value, m_format.SamplesPerSecond);
+            m_cipher = new Cipher(m_ciph_type.Value, key1, key2);
+            m_block = new ThreadLocal<byte[]>(() => new byte[m_comp.BlockSize]);
 
-            InitBuffer (input);
+            InitBuffer(input);
         }
 
-        delegate void SampleWriter (float f, BinaryWriter output);
+        delegate void SampleWriter(float f, BinaryWriter output);
 
         static readonly Dictionary<ConversionFormat, ushort> FormatBpsMap = new Dictionary<ConversionFormat, ushort> {
             { ConversionFormat.Pcm,         16 },
@@ -214,36 +214,36 @@ namespace GameRes.Formats.Cri
             { ConversionFormat.IeeeFloat,   (f, output) => output.Write (PackSampleFloat (f)) },
         };
 
-        int             m_version;
-        int             m_data_offset;
-        uint?           m_fmt_block_count;
-        int?            m_ciph_type;
-        int?            m_ath_type;
-        CompParams      m_comp;
-        float           m_rva_volume = 1.0f;
-        AthTable        m_ath;
-        Cipher          m_cipher;
+        int m_version;
+        int m_data_offset;
+        uint? m_fmt_block_count;
+        int? m_ciph_type;
+        int? m_ath_type;
+        CompParams m_comp;
+        float m_rva_volume = 1.0f;
+        AthTable m_ath;
+        Cipher m_cipher;
 
-        ThreadLocal<Channel[]>  m_channel;
-        ThreadLocal<byte[]>     m_block;
+        ThreadLocal<Channel[]> m_channel;
+        ThreadLocal<byte[]> m_block;
 
-        public byte[] Unpack (ConversionFormat target)
+        public byte[] Unpack(ConversionFormat target)
         {
-            InitWaveFormat (target);
+            InitWaveFormat(target);
             var output = new byte[BlockCount * 0x400 * m_format.BlockAlign];
             var convert_sample = ConversionMap[target];
-            using (var mem = new MemoryStream (output))
-            using (var writer = new BinaryWriter (mem))
-                ConvertSequential (f => convert_sample (f, writer));
+            using (var mem = new MemoryStream(output))
+            using (var writer = new BinaryWriter(mem))
+                ConvertSequential(f => convert_sample(f, writer));
             return output;
         }
 
-        public void InitConversion (ConversionFormat target)
+        public void InitConversion(ConversionFormat target)
         {
-            InitWaveFormat (target);
+            InitWaveFormat(target);
         }
 
-        void InitWaveFormat (ConversionFormat target)
+        void InitWaveFormat(ConversionFormat target)
         {
             m_format.FormatTag = (ushort)target;
             m_format.BitsPerSample = FormatBpsMap[target];
@@ -251,14 +251,14 @@ namespace GameRes.Formats.Cri
             m_format.AverageBytesPerSecond = m_format.SamplesPerSecond * m_format.BlockAlign;
         }
 
-        void InitBuffer (Stream input)
+        void InitBuffer(Stream input)
         {
             var mem = input as MemoryStream;
             if (null == mem)
             {
                 m_input = new byte[input.Length];
                 input.Position = m_data_offset;
-                input.Read (m_input, m_data_offset, m_input.Length-m_data_offset);
+                input.ReadExactly(m_input, m_data_offset, m_input.Length - m_data_offset);
             }
             else
             {
@@ -273,54 +273,54 @@ namespace GameRes.Formats.Cri
             }
         }
 
-        void ParseHeader (BigEndianReader input)
+        void ParseHeader(BigEndianReader input)
         {
-            uint signature = ReadSignature (input);
+            uint signature = ReadSignature(input);
             if (signature != 0x48434100) // 'HCA'
                 throw new InvalidFormatException();
             m_version = input.ReadUInt16();
             m_data_offset = input.ReadUInt16();
             while (input.Position < m_data_offset)
             {
-                signature = ReadSignature (input);
+                signature = ReadSignature(input);
                 switch (signature)
                 {
-                case 0x666D7400: // 'fmt'
-                    uint format = input.ReadUInt32();
-                    m_format.Channels = (byte)(format >> 24);
-                    m_format.SamplesPerSecond = format & 0xFFFFFF;
-                    m_fmt_block_count = input.ReadUInt32();
-                    input.Skip (4);
-                    continue;
+                    case 0x666D7400: // 'fmt'
+                        uint format = input.ReadUInt32();
+                        m_format.Channels = (byte)(format >> 24);
+                        m_format.SamplesPerSecond = format & 0xFFFFFF;
+                        m_fmt_block_count = input.ReadUInt32();
+                        input.Skip(4);
+                        continue;
 
-                case 0x636F6D70: // 'comp'
-                    m_comp = new CompParams { BlockSize = input.ReadUInt16() };
-                    input.Read (m_comp.R, 0, 8);
-                    input.Skip (2);
-                    continue;
+                    case 0x636F6D70: // 'comp'
+                        m_comp = new CompParams { BlockSize = input.ReadUInt16() };
+                        input.Read(m_comp.R, 0, 8);
+                        input.Skip(2);
+                        continue;
 
-                case 0x6C6F6F70: // 'loop'
-                    input.Skip (12);
-                    continue;
+                    case 0x6C6F6F70: // 'loop'
+                        input.Skip(12);
+                        continue;
 
-                case 0x63697068: // 'ciph'
-                    m_ciph_type = input.ReadUInt16();
-                    continue;
+                    case 0x63697068: // 'ciph'
+                        m_ciph_type = input.ReadUInt16();
+                        continue;
 
-                case 0x72766100: // 'rva'
-                    m_rva_volume = input.ReadSingle();
-                    continue;
+                    case 0x72766100: // 'rva'
+                        m_rva_volume = input.ReadSingle();
+                        continue;
 
-                case 0x61746800: // 'ath'
-                    m_ath_type = input.ReadUInt16();
-                    continue;
+                    case 0x61746800: // 'ath'
+                        m_ath_type = input.ReadUInt16();
+                        continue;
                 }
                 break; // unknown section encountered
             }
             if (null == m_fmt_block_count || null == m_comp)
-                throw new NotSupportedException ("Not supported HCA format");
+                throw new NotSupportedException("Not supported HCA format");
             if (m_comp.BlockSize < 8)
-                throw new InvalidFormatException ("Invalid HCA block size");
+                throw new InvalidFormatException("Invalid HCA block size");
             if (0 == m_format.Channels || m_format.Channels > 16)
                 throw new InvalidFormatException();
 
@@ -344,7 +344,7 @@ namespace GameRes.Formats.Cri
             InitChannels();
         }
 
-        void InitChannels ()
+        void InitChannels()
         {
             var r = new byte[0x10];
             int step = m_format.Channels / m_comp.R[2];
@@ -355,91 +355,92 @@ namespace GameRes.Formats.Cri
                 {
                     switch (step)
                     {
-                    case 2:
-                    case 3:
-                        r[c] = 1;
-                        r[c+1] = 2;
-                        break;
-                    case 4:
-                        if (0 == m_comp.R[3])
-                        {
-                            r[c+2] = 1;
-                            r[c+3] = 2;
-                        }
-                        goto case 2;
-                    case 5:
-                        if (m_comp.R[3] <= 2)
-                        {
-                            r[c+3] = 1;
-                            r[c+4] = 2;
-                        }
-                        goto case 2;
-                    case 6:
-                    case 7:
-                        r[c+4] = 1;
-                        r[c+5] = 2;
-                        goto case 2;
-                    case 8:
-                        r[c+6] = 1;
-                        r[c+7] = 2;
-                        goto case 6;
+                        case 2:
+                        case 3:
+                            r[c] = 1;
+                            r[c + 1] = 2;
+                            break;
+                        case 4:
+                            if (0 == m_comp.R[3])
+                            {
+                                r[c + 2] = 1;
+                                r[c + 3] = 2;
+                            }
+                            goto case 2;
+                        case 5:
+                            if (m_comp.R[3] <= 2)
+                            {
+                                r[c + 3] = 1;
+                                r[c + 4] = 2;
+                            }
+                            goto case 2;
+                        case 6:
+                        case 7:
+                            r[c + 4] = 1;
+                            r[c + 5] = 2;
+                            goto case 2;
+                        case 8:
+                            r[c + 6] = 1;
+                            r[c + 7] = 2;
+                            goto case 6;
                     }
                 }
             }
-            m_channel = new ThreadLocal<Channel[]> (() => {
+            m_channel = new ThreadLocal<Channel[]>(() =>
+            {
                 var channels = new Channel[m_format.Channels];
                 for (int i = 0; i < channels.Length; ++i)
                 {
-                    channels[i] = new Channel (r[i], m_comp.R[5], m_comp.R[6]);
+                    channels[i] = new Channel(r[i], m_comp.R[5], m_comp.R[6]);
                 }
                 return channels;
             });
         }
 
-        void ConvertSequential (Action<float> pack_sample)
+        void ConvertSequential(Action<float> pack_sample)
         {
             foreach (var block_offset in GetBlockOffsets())
             {
                 if (block_offset + m_comp.BlockSize > m_input.Length)
                     throw new EndOfStreamException();
-                Buffer.BlockCopy (m_input, block_offset, m_block.Value, 0, m_comp.BlockSize);
+                Buffer.BlockCopy(m_input, block_offset, m_block.Value, 0, m_comp.BlockSize);
                 DecodeBlock();
                 for (int j = 0; j < 8; ++j)
-                for (int k = 0; k < 0x80; ++k)
-                for (int c = 0; c < m_format.Channels; ++c)
-                {
-                    float f = m_channel.Value[c].Samples[j,k] * m_rva_volume;
-                    pack_sample (f);
-                }
+                    for (int k = 0; k < 0x80; ++k)
+                        for (int c = 0; c < m_format.Channels; ++c)
+                        {
+                            float f = m_channel.Value[c].Samples[j, k] * m_rva_volume;
+                            pack_sample(f);
+                        }
             }
         }
 
-        public void ConvertParallel<SampleType> (BlockingCollection<Tuple<int, Array>> output, Func<float, SampleType> convert_sample, CancellationToken token)
+        public void ConvertParallel<SampleType>(BlockingCollection<Tuple<int, Array>> output, Func<float, SampleType> convert_sample, CancellationToken token)
         {
             try
             {
                 // despite the fact that parallel decoding is considerably faster (roughly x[number of cores])
                 // it hurts playback badly due to locks inside BlockingCollection.Take()
-//                Parallel.ForEach (Enumerable.Range (0, (int)BlockCount), block_num =>
-                foreach (int block_num in Enumerable.Range (0, (int)BlockCount))
+                //                Parallel.ForEach (Enumerable.Range (0, (int)BlockCount), block_num =>
+                foreach (int block_num in Enumerable.Range(0, (int)BlockCount))
                 {
                     int block_offset = m_data_offset + block_num * m_comp.BlockSize;
                     if (block_offset + m_comp.BlockSize > m_input.Length)
                         throw new EndOfStreamException();
                     token.ThrowIfCancellationRequested();
-                    Buffer.BlockCopy (m_input, block_offset, m_block.Value, 0, m_comp.BlockSize);
+                    Buffer.BlockCopy(m_input, block_offset, m_block.Value, 0, m_comp.BlockSize);
                     DecodeBlock();
                     token.ThrowIfCancellationRequested();
                     var decoded = new SampleType[0x400 * m_format.Channels];
                     int i = 0;
                     for (int j = 0; j < 8; ++j)
-                    for (int k = 0; k < 0x80; ++k)
-                    for (int c = 0; c < m_format.Channels; ++c)
-                    {
-                        float f = m_channel.Value[c].Samples[j,k] * m_rva_volume;
-                        decoded[i++] = convert_sample (f);
-                    }
-                    output.Add (new Tuple<int, Array> (block_num, decoded), token);
+                        for (int k = 0; k < 0x80; ++k)
+                            for (int c = 0; c < m_format.Channels; ++c)
+                            {
+                                float f = m_channel.Value[c].Samples[j, k] * m_rva_volume;
+                                decoded[i++] = convert_sample(f);
+                            }
+                    output.Add(new Tuple<int, Array>(block_num, decoded), token);
                 }
             }
             finally
@@ -448,7 +449,7 @@ namespace GameRes.Formats.Cri
             }
         }
 
-        IEnumerable<int> GetBlockOffsets ()
+        IEnumerable<int> GetBlockOffsets()
         {
             int block_offset = m_data_offset;
             for (int i = 0; i < m_fmt_block_count; ++i)
@@ -458,39 +459,39 @@ namespace GameRes.Formats.Cri
             }
         }
 
-        void DecodeBlock ()
+        void DecodeBlock()
         {
             var block = m_block.Value;
-            if (CheckSum (block) != 0)
-                throw new InvalidFormatException ("Data checksum mismatch");
+            if (CheckSum(block) != 0)
+                throw new InvalidFormatException("Data checksum mismatch");
 
-            m_cipher.Decipher (block);
-            using (var input = new MemoryStream (block, 0, block.Length-2))
-            using (var bits = new HsaBitStream (input))
+            m_cipher.Decipher(block);
+            using (var input = new MemoryStream(block, 0, block.Length - 2))
+            using (var bits = new HsaBitStream(input))
             {
-                if (0xFFFF != bits.GetBits (16))
+                if (0xFFFF != bits.GetBits(16))
                     return;
 
                 var decoder = m_channel.Value;
-                int t = bits.GetBits (9) << 8;
-                t -= bits.GetBits (7);
+                int t = bits.GetBits(9) << 8;
+                t -= bits.GetBits(7);
                 for (int i = 0; i < decoder.Length; ++i)
-                    decoder[i].Decode1 (bits, m_comp.R9, t, m_ath.Table);
+                    decoder[i].Decode1(bits, m_comp.R9, t, m_ath.Table);
                 for (int i = 0; i < 8; ++i)
                 {
                     for (int j = 0; j < decoder.Length; ++j)
-                        decoder[j].Decode2 (bits);
+                        decoder[j].Decode2(bits);
                     for (int j = 0; j < decoder.Length; ++j)
-                        decoder[j].Decode3 (m_comp.R9, m_comp.R[7], m_comp.R[6] + m_comp.R[5], m_comp.R[4]);
-                    for (int j = 0; j < decoder.Length-1; ++j)
-                        decoder[j].Decode4 (i, m_comp.R[4]-m_comp.R[5], m_comp.R[5], m_comp.R[6], decoder[j+1]);
+                        decoder[j].Decode3(m_comp.R9, m_comp.R[7], m_comp.R[6] + m_comp.R[5], m_comp.R[4]);
+                    for (int j = 0; j < decoder.Length - 1; ++j)
+                        decoder[j].Decode4(i, m_comp.R[4] - m_comp.R[5], m_comp.R[5], m_comp.R[6], decoder[j + 1]);
                     for (int j = 0; j < decoder.Length; ++j)
-                        decoder[j].Decode5 (i);
+                        decoder[j].Decode5(i);
                 }
             }
         }
 
-        public static float PackSampleFloat (float f)
+        public static float PackSampleFloat(float f)
         {
             if (f > 1)
                 f = 1;
@@ -499,7 +500,7 @@ namespace GameRes.Formats.Cri
             return f;
         }
 
-        public static short PackSample16 (float f)
+        public static short PackSample16(float f)
         {
             int s = (int)(f * 0x7FFF);
             if (s > 0x7FFF)
@@ -509,12 +510,12 @@ namespace GameRes.Formats.Cri
             return (short)s;
         }
 
-        static uint ReadSignature (BigEndianReader input)
+        static uint ReadSignature(BigEndianReader input)
         {
             return input.ReadUInt32() & 0x7F7F7F7F;
         }
 
-        static ushort CheckSum (byte[] data, ushort sum = 0)
+        static ushort CheckSum(byte[] data, ushort sum = 0)
         {
             for (int i = 0; i < data.Length; ++i)
                 sum = (ushort)((sum << 8) ^ CheckSumTable[(sum >> 8) ^ data[i]]);
@@ -523,9 +524,9 @@ namespace GameRes.Formats.Cri
 
         internal class CompParams
         {
-            public int      BlockSize;
-            public byte[]   R = new byte[8];
-            public int      R9;
+            public int BlockSize;
+            public byte[] R = new byte[8];
+            public int R9;
         }
 
         internal class AthTable
@@ -534,15 +535,15 @@ namespace GameRes.Formats.Cri
 
             public byte[] Table { get { return m_table; } }
 
-            public AthTable (int type, uint key)
+            public AthTable(int type, uint key)
             {
                 if (1 == type)
-                    Init (key);
+                    Init(key);
                 else if (0 != type)
-                    throw new InvalidFormatException ("Unknown HCA ath type");
+                    throw new InvalidFormatException("Unknown HCA ath type");
             }
 
-            void Init (uint key)
+            void Init(uint key)
             {
                 uint v = 0;
                 for (int i = 0; i < 0x80; i++, v += key)
@@ -606,9 +607,9 @@ namespace GameRes.Formats.Cri
 
         internal class Cipher
         {
-            byte[]  m_table = new byte[0x100];
+            byte[] m_table = new byte[0x100];
 
-            public Cipher (int type, uint key1, uint key2)
+            public Cipher(int type, uint key1, uint key2)
             {
                 if (0 == (key1 | key2))
                     type = 0;
@@ -617,24 +618,24 @@ namespace GameRes.Formats.Cri
                 else if (1 == type)
                     Init1();
                 else if (56 == type)
-                    Init56 (key1, key2);
+                    Init56(key1, key2);
                 else
-                    throw new InvalidFormatException ("Unknown HCA cipher type");
+                    throw new InvalidFormatException("Unknown HCA cipher type");
             }
 
-            public void Decipher (byte[] block)
+            public void Decipher(byte[] block)
             {
                 for (int i = 0; i < block.Length; ++i)
                     block[i] = m_table[block[i]];
             }
 
-            void Init0 ()
+            void Init0()
             {
                 for (int i = 0; i < 0x100; ++i)
                     m_table[i] = (byte)i;
             }
 
-            void Init1 ()
+            void Init1()
             {
                 for (int i = 1, v = 0; i < 0xFF; ++i)
                 {
@@ -647,29 +648,29 @@ namespace GameRes.Formats.Cri
                 m_table[0xFF] = 0xFF;
             }
 
-            void Init56 (uint key1, uint key2)
+            void Init56(uint key1, uint key2)
             {
-                throw new NotImplementedException ("Encrypted HCA streams not implemented");
+                throw new NotImplementedException("Encrypted HCA streams not implemented");
             }
         }
 
         internal class Channel
         {
-		    float[]  Block = new float[0x80];
-		    float[]  Base = new float[0x80];
-		    sbyte[]  Value = new sbyte[0x80];
-		    sbyte[]  Scale = new sbyte[0x80];
-		    sbyte[]  Value2 = new sbyte[8];
-            int      Type;
-            int      ScaleVersion = 1;
-            int      ValuePtr; // pointer within Value
-            int      Count;
-            float[]  Sample1 = new float[0x80];
-            float[]  Sample2 = new float[0x80];
-            float[]  Sample3 = new float[0x80];
-            public float[,] Samples = new float[8,0x80];
+            float[] Block = new float[0x80];
+            float[] Base = new float[0x80];
+            sbyte[] Value = new sbyte[0x80];
+            sbyte[] Scale = new sbyte[0x80];
+            sbyte[] Value2 = new sbyte[8];
+            int Type;
+            int ScaleVersion = 1;
+            int ValuePtr; // pointer within Value
+            int Count;
+            float[] Sample1 = new float[0x80];
+            float[] Sample2 = new float[0x80];
+            float[] Sample3 = new float[0x80];
+            public float[,] Samples = new float[8, 0x80];
 
-            public Channel (int type, int r06, int r07)
+            public Channel(int type, int r06, int r07)
             {
                 Type = type;
                 ValuePtr = r06 + r07;
@@ -679,27 +680,27 @@ namespace GameRes.Formats.Cri
                 Count = count;
             }
 
-            public void Decode1 (HsaBitStream bits, int a, int b, byte[] ath)
+            public void Decode1(HsaBitStream bits, int a, int b, byte[] ath)
             {
-                int v = bits.GetBits (3);
+                int v = bits.GetBits(3);
                 if (v >= 6)
                 {
                     for (int i = 0; i < Count; ++i)
-                        Value[i] = (sbyte)bits.GetBits (6);
+                        Value[i] = (sbyte)bits.GetBits(6);
                 }
                 else if (v != 0)
                 {
-                    int v1 = bits.GetBits (6);
+                    int v1 = bits.GetBits(6);
                     int v2 = (1 << v) - 1;
                     int v3 = v2 >> 1;
                     Value[0] = (sbyte)v1;
                     for (int i = 1; i < Count; ++i)
                     {
-                        int v4 = bits.GetBits (v);
+                        int v4 = bits.GetBits(v);
                         if (v4 != v2)
                             v1 += v4 - v3;
                         else
-                            v1 = bits.GetBits (6);
+                            v1 = bits.GetBits(6);
                         Value[i] = (sbyte)v1;
                     }
                 }
@@ -710,20 +711,20 @@ namespace GameRes.Formats.Cri
                 }
                 if (2 == Type)
                 {
-                    v = bits.Peek (4);
+                    v = bits.Peek(4);
                     Value2[0] = (sbyte)v;
                     if (v < 15)
                     {
                         for (int i = 0; i < 8; ++i)
-                            Value2[i] = (sbyte)bits.GetBits (4);
+                            Value2[i] = (sbyte)bits.GetBits(4);
                     }
                 }
                 else
                 {
                     for (int i = 0; i < a; ++i)
-                        Value[ValuePtr+i] = (sbyte)bits.GetBits (6);
+                        Value[ValuePtr + i] = (sbyte)bits.GetBits(6);
                 }
-                for(int i = 0; i < Count; ++i)
+                for (int i = 0; i < Count; ++i)
                 {
                     v = Value[i];
                     if (v != 0)
@@ -744,25 +745,25 @@ namespace GameRes.Formats.Cri
                     Base[i] = Decode1Value[Value[i]] * Decode1Scale[Scale[i]];
             }
 
-            public void Decode2 (HsaBitStream bits)
+            public void Decode2(HsaBitStream bits)
             {
                 for (int i = 0; i < Count; ++i)
                 {
                     float f;
                     int scale = Scale[i];
                     int bit_size = Decode2Table1[scale];
-                    int v = bits.GetBits (bit_size);
+                    int v = bits.GetBits(bit_size);
                     if (scale < 8)
                     {
                         v += scale << 4;
-                        bits.Seek (Decode2Table2[v] - bit_size);
+                        bits.Seek(Decode2Table2[v] - bit_size);
                         f = Decode2Table3[v];
                     }
                     else
                     {
                         v = (1 - ((v & 1) << 1)) * (v >> 1);
                         if (0 == v)
-                            bits.Seek (-1);
+                            bits.Seek(-1);
                         f = (float)v;
                     }
                     Block[i] = Base[i] * f;
@@ -771,20 +772,20 @@ namespace GameRes.Formats.Cri
                     Block[i] = 0;
             }
 
-            public void Decode3 (int a, int b, int c, int d)
+            public void Decode3(int a, int b, int c, int d)
             {
                 if (Type != 2 && b != 0)
                 {
                     for (int i = 0, k = c, l = c - 1; i < a; ++i)
-                    for(int j = 0; j < b && k < d; ++j, ++l)
-                    {
-                        Block[k++] = Decode3Table[Value[ValuePtr+i] - Value[l]] * Block[l];
-                    }
+                        for (int j = 0; j < b && k < d; ++j, ++l)
+                        {
+                            Block[k++] = Decode3Table[Value[ValuePtr + i] - Value[l]] * Block[l];
+                        }
                     Block[0x7F] = 0;
                 }
             }
 
-            public void Decode4 (int index, int a, int b, int c, Channel next)
+            public void Decode4(int index, int a, int b, int c, Channel next)
             {
                 if (1 == Type && c != 0)
                 {
@@ -799,7 +800,7 @@ namespace GameRes.Formats.Cri
                 }
             }
 
-            public void Decode5 (int index)
+            public void Decode5(int index)
             {
                 int s, s1, s2;
                 float[] src = Block;
@@ -845,15 +846,15 @@ namespace GameRes.Formats.Cri
                         {
                             float a = src[s1++];
                             float b = src[s2++];
-                            float c = Decode5Table1[i,l1++];
-                            float d = Decode5Table2[i,l2++];
+                            float c = Decode5Table1[i, l1++];
+                            float d = Decode5Table2[i, l2++];
                             dst[d1++] = a * c - b * d;
                             dst[d2--] = a * d + b * c;
                         }
                         s1 += count2;
                         s2 += count2;
                         d1 += count2;
-                        d2 += count2*3;
+                        d2 += count2 * 3;
                     }
                     var t = src;
                     src = dst;
@@ -868,9 +869,9 @@ namespace GameRes.Formats.Cri
                 s1 = 0x40; // within Sample2
                 s2 = 0; // within Sample3
                 for (int i = 0; i < 0x40; i++)
-                    Samples[index,w++] = Sample2[s1++] * Decode5Table3[s++] + Sample3[s2++];
+                    Samples[index, w++] = Sample2[s1++] * Decode5Table3[s++] + Sample3[s2++];
                 for (int i = 0; i < 0x40; i++)
-                    Samples[index,w++] = Decode5Table3[s++] * Sample2[--s1] - Sample3[s2++];
+                    Samples[index, w++] = Decode5Table3[s++] * Sample2[--s1] - Sample3[s2++];
                 s1 = 0x3F; // within Sample2
                 s2 = 0; // within Sample3
                 for (int i = 0; i < 0x40; i++)
@@ -1152,7 +1153,7 @@ namespace GameRes.Formats.Cri
 
         #region IDisposable Members
         bool _disposed = false;
-        public void Dispose ()
+        public void Dispose()
         {
             if (!_disposed)
             {
@@ -1169,12 +1170,12 @@ namespace GameRes.Formats.Cri
     /// </summary>
     internal class HsaBitStream : BitStream
     {
-        public HsaBitStream (Stream file, bool leave_open = false)
-            : base (file, leave_open)
+        public HsaBitStream(Stream file, bool leave_open = false)
+            : base(file, leave_open)
         {
         }
 
-        public int Peek (int count)
+        public int Peek(int count)
         {
             while (m_cached_bits < count)
             {
@@ -1188,26 +1189,26 @@ namespace GameRes.Formats.Cri
             return (m_bits >> (m_cached_bits - count)) & mask;
         }
 
-        public int GetBits (int count)
+        public int GetBits(int count)
         {
-            var b = Peek (count);
+            var b = Peek(count);
             m_cached_bits -= count;
             return b;
         }
 
-        public void Seek (int offset)
+        public void Seek(int offset)
         {
             if (offset > 0 && offset <= m_cached_bits)
             {
                 m_cached_bits -= offset;
                 return;
             }
-            var position = Math.Max (Input.Position * 8 - m_cached_bits + offset, 0);
+            var position = Math.Max(Input.Position * 8 - m_cached_bits + offset, 0);
             Reset();
             Input.Position = position / 8;
             int bit_pos = (int)position & 7;
             if (0 != bit_pos)
-                GetBits (bit_pos);
+                GetBits(bit_pos);
         }
     }
 }

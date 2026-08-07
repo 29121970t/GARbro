@@ -36,112 +36,112 @@ namespace GameRes.Formats.AliceSoft
 {
     internal class DcfMetaData : ImageMetaData
     {
-        public string   BaseName;
-        public long     DataOffset;
-        public bool     IsPcf;
+        public string BaseName;
+        public long DataOffset;
+        public bool IsPcf;
     }
 
     internal interface IBaseImageReader
     {
-        int     BPP { get; }
+        int BPP { get; }
         byte[] Data { get; }
 
-        void Unpack ();
+        void Unpack();
     }
 
     [Export(typeof(ImageFormat))]
     public class DcfFormat : ImageFormat
     {
-        public override string         Tag { get { return "DCF"; } }
+        public override string Tag { get { return "DCF"; } }
         public override string Description { get { return "AliceSoft System incremental image"; } }
-        public override uint     Signature { get { return 0x20666364; } } // 'dcf '
+        public override uint Signature { get { return 0x20666364; } } // 'dcf '
 
-        public DcfFormat ()
+        public DcfFormat()
         {
             Extensions = new[] { "dcf", "pcf" };
             Signatures = new[] { 0x20666364u, 0x20666370u };
         }
 
-        static readonly ResourceInstance<AfaOpener> Afa = new ResourceInstance<AfaOpener> ("AFA");
+        static readonly ResourceInstance<AfaOpener> Afa = new ResourceInstance<AfaOpener>("AFA");
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
-            var header = stream.ReadHeader (0x1C);
-            uint header_size = header.ToUInt32 (4);
+            var header = stream.ReadHeader(0x1C);
+            uint header_size = header.ToUInt32(4);
             long data_pos = 8 + header_size;
-            if (header.ToInt32 (8) != 1)
+            if (header.ToInt32(8) != 1)
                 return null;
-            uint width  = header.ToUInt32 (0x0C);
-            uint height = header.ToUInt32 (0x10);
-            int bpp = header.ToInt32 (0x14);
-            int name_length = header.ToInt32 (0x18);
+            uint width = header.ToUInt32(0x0C);
+            uint height = header.ToUInt32(0x10);
+            int bpp = header.ToInt32(0x14);
+            int name_length = header.ToInt32(0x18);
             if (name_length <= 0)
                 return null;
             int shift = (name_length % 7) + 1;
-            var name_bits = stream.ReadBytes (name_length);
+            var name_bits = stream.ReadBytes(name_length);
             for (int i = 0; i < name_length; ++i)
             {
-                name_bits[i] = Binary.RotByteL (name_bits[i], shift);
+                name_bits[i] = Binary.RotByteL(name_bits[i], shift);
             }
             return new DcfMetaData
             {
                 Width = width,
                 Height = height,
                 BPP = bpp,
-                BaseName = Afa.Value.NameEncoding.GetString (name_bits),
+                BaseName = Afa.Value.NameEncoding.GetString(name_bits),
                 DataOffset = data_pos,
                 IsPcf = stream.Signature == 0x20666370u,
             };
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
-            var reader = new DcfReader (stream, (DcfMetaData)info);
+            var reader = new DcfReader(stream, (DcfMetaData)info);
             reader.Unpack();
-            return ImageData.Create (reader.Info, reader.Format, null, reader.Data, reader.Stride);
+            return ImageData.Create(reader.Info, reader.Format, null, reader.Data, reader.Stride);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("DcfFormat.Write not implemented");
+            throw new System.NotImplementedException("DcfFormat.Write not implemented");
         }
     }
 
     internal sealed class DcfReader : IBaseImageReader
     {
-        IBinaryStream       m_input;
-        DcfMetaData         m_info;
-        byte[]              m_output;
-        byte[]              m_mask = null;
-        byte[]              m_base = null;
-        int                 m_overlay_bpp;
-        int                 m_base_bpp;
+        IBinaryStream m_input;
+        DcfMetaData m_info;
+        byte[] m_output;
+        byte[] m_mask = null;
+        byte[] m_base = null;
+        int m_overlay_bpp;
+        int m_base_bpp;
 
-        static readonly ResourceInstance<ImageFormat> s_QntFormat = new ResourceInstance<ImageFormat> ("QNT");
-        static readonly ResourceInstance<ImageFormat> s_DcfFormat = new ResourceInstance<ImageFormat> ("DCF");
+        static readonly ResourceInstance<ImageFormat> s_QntFormat = new ResourceInstance<ImageFormat>("QNT");
+        static readonly ResourceInstance<ImageFormat> s_DcfFormat = new ResourceInstance<ImageFormat>("DCF");
 
-        internal ImageFormat  Qnt { get { return s_QntFormat.Value; } }
-        internal ImageFormat  Dcf { get { return s_DcfFormat.Value; } }
+        internal ImageFormat Qnt { get { return s_QntFormat.Value; } }
+        internal ImageFormat Dcf { get { return s_DcfFormat.Value; } }
 
-        public int            BPP { get { return m_base_bpp; } }
+        public int BPP { get { return m_base_bpp; } }
         public ImageMetaData Info { get; private set; }
-        public byte[]        Data { get { return m_output; } }
+        public byte[] Data { get { return m_output; } }
         public PixelFormat Format { get; private set; }
-        public int         Stride { get; private set; }
+        public int Stride { get; private set; }
 
-        public DcfReader (IBinaryStream input, DcfMetaData info)
+        public DcfReader(IBinaryStream input, DcfMetaData info)
         {
             m_input = input;
             m_info = info;
             Info = info;
         }
 
-        public void Unpack ()
+        public void Unpack()
         {
             int pt_x = 0;
             int pt_y = 0;
             long next_pos = m_info.DataOffset;
-            for (;;)
+            for (; ; )
             {
                 m_input.Position = next_pos;
                 uint id = m_input.ReadUInt32();
@@ -152,8 +152,8 @@ namespace GameRes.Formats.AliceSoft
                     if (unpacked_size <= 0)
                         continue;
                     m_mask = new byte[unpacked_size];
-                    using (var input = new ZLibStream (m_input.AsStream, CompressionMode.Decompress, true))
-                        input.Read (m_mask, 0, unpacked_size);
+                    using (var input = new ZLibStream(m_input.AsStream, CompressionMode.Decompress, true))
+                        input.ReadExactly(m_mask, 0, unpacked_size);
                 }
                 else if (0x6C647470 == id) // 'ptdl'
                 {
@@ -166,14 +166,14 @@ namespace GameRes.Formats.AliceSoft
             long qnt_pos = m_input.Position;
             if (m_input.ReadUInt32() != Qnt.Signature)
                 throw new InvalidFormatException();
-            using (var reg = new StreamRegion (m_input.AsStream, qnt_pos, true))
-            using (var qnt = new BinaryStream (reg, m_input.Name))
+            using (var reg = new StreamRegion(m_input.AsStream, qnt_pos, true))
+            using (var qnt = new BinaryStream(reg, m_input.Name))
             {
-                var qnt_info = Qnt.ReadMetaData (qnt) as QntMetaData;
+                var qnt_info = Qnt.ReadMetaData(qnt) as QntMetaData;
                 if (null == qnt_info)
                     throw new InvalidFormatException();
 
-                var overlay = new QntFormat.Reader (reg, qnt_info);
+                var overlay = new QntFormat.Reader(reg, qnt_info);
                 overlay.Unpack();
                 m_overlay_bpp = overlay.BPP;
                 if (m_mask != null || m_info.IsPcf)
@@ -185,36 +185,36 @@ namespace GameRes.Formats.AliceSoft
                         SetEmptyBase();
                     qnt_info.OffsetX = pt_x;
                     qnt_info.OffsetY = pt_y;
-                    BlendOverlay (qnt_info, overlay.Data);
+                    BlendOverlay(qnt_info, overlay.Data);
                     m_output = m_base;
-                    SetFormat (m_info.iWidth, m_base_bpp);
+                    SetFormat(m_info.iWidth, m_base_bpp);
                 }
                 else if (m_base != null)
                 {
-                    m_output = MaskOverlay (overlay.Data);
-                    SetFormat (m_info.iWidth, m_overlay_bpp);
+                    m_output = MaskOverlay(overlay.Data);
+                    SetFormat(m_info.iWidth, m_overlay_bpp);
                 }
                 else
                 {
                     m_output = overlay.Data;
-                    SetFormat (qnt_info.iWidth, m_overlay_bpp);
+                    SetFormat(qnt_info.iWidth, m_overlay_bpp);
                 }
             }
         }
 
-        void SetFormat (int width, int bpp)
+        void SetFormat(int width, int bpp)
         {
             Format = 24 == bpp ? PixelFormats.Bgr24 : PixelFormats.Bgra32;
             Stride = width * (bpp / 8);
         }
 
-        void SetEmptyBase ()
+        void SetEmptyBase()
         {
             m_base_bpp = 32;
             m_base = new byte[m_info.Width * m_info.Height * 4];
         }
 
-        byte[] MaskOverlay (byte[] overlay)
+        byte[] MaskOverlay(byte[] overlay)
         {
             int blocks_x = m_info.iWidth / 0x10;
             int blocks_y = m_info.iHeight / 0x10;
@@ -226,23 +226,23 @@ namespace GameRes.Formats.AliceSoft
             for (int y = 0; y < blocks_y; ++y)
             {
                 int base_pos = y * 0x10 * base_stride;
-                int dst_pos  = y * 0x10 * overlay_stride;
+                int dst_pos = y * 0x10 * overlay_stride;
                 for (int x = 0; x < blocks_x; ++x)
                 {
                     if (0 == m_mask[mask_pos++])
                         continue;
                     for (int by = 0; by < 0x10; ++by)
                     {
-                        int src = base_pos + by * base_stride    + x * 0x10 * base_step;
-                        int dst = dst_pos  + by * overlay_stride + x * 0x10 * overlay_step;
+                        int src = base_pos + by * base_stride + x * 0x10 * base_step;
+                        int dst = dst_pos + by * overlay_stride + x * 0x10 * overlay_step;
                         for (int bx = 0; bx < 0x10; ++bx)
                         {
-                            overlay[dst  ] = m_base[src  ];
-                            overlay[dst+1] = m_base[src+1];
-                            overlay[dst+2] = m_base[src+2];
+                            overlay[dst] = m_base[src];
+                            overlay[dst + 1] = m_base[src + 1];
+                            overlay[dst + 2] = m_base[src + 2];
                             if (4 == overlay_step)
                             {
-                                overlay[dst+3] = 4 == base_step ? m_base[src+3] : (byte)0xFF;
+                                overlay[dst + 3] = 4 == base_step ? m_base[src + 3] : (byte)0xFF;
                             }
                             src += base_step;
                             dst += overlay_step;
@@ -253,7 +253,7 @@ namespace GameRes.Formats.AliceSoft
             return overlay;
         }
 
-        void BlendOverlay (ImageMetaData overlay_info, byte[] overlay)
+        void BlendOverlay(ImageMetaData overlay_info, byte[] overlay)
         {
             int ovl_x = overlay_info.OffsetX;
             int ovl_y = overlay_info.OffsetY;
@@ -277,25 +277,25 @@ namespace GameRes.Formats.AliceSoft
             {
                 for (int x = 0; x < overlay_info.iWidth; ++x)
                 {
-                    byte src_alpha = overlay[src+3];
+                    byte src_alpha = overlay[src + 3];
                     if (src_alpha != 0)
                     {
-                        if (0xFF == src_alpha || 0 == m_base[dst+3])
+                        if (0xFF == src_alpha || 0 == m_base[dst + 3])
                         {
-                            m_base[dst]   = overlay[src];
-                            m_base[dst+1] = overlay[src+1];
-                            m_base[dst+2] = overlay[src+2];
-                            m_base[dst+3] = src_alpha;
+                            m_base[dst] = overlay[src];
+                            m_base[dst + 1] = overlay[src + 1];
+                            m_base[dst + 2] = overlay[src + 2];
+                            m_base[dst + 3] = src_alpha;
                         }
                         else
                         {
-                            m_base[dst+0] = (byte)((overlay[src+0] * src_alpha
-                                                    + m_base[dst+0] * (0xFF - src_alpha)) / 0xFF);
-                            m_base[dst+1] = (byte)((overlay[src+1] * src_alpha
-                                                    + m_base[dst+1] * (0xFF - src_alpha)) / 0xFF);
-                            m_base[dst+2] = (byte)((overlay[src+2] * src_alpha
-                                                    + m_base[dst+2] * (0xFF - src_alpha)) / 0xFF);
-                            m_base[dst+3] = (byte)Math.Max (src_alpha, m_base[dst+3]);
+                            m_base[dst + 0] = (byte)((overlay[src + 0] * src_alpha
+                                                    + m_base[dst + 0] * (0xFF - src_alpha)) / 0xFF);
+                            m_base[dst + 1] = (byte)((overlay[src + 1] * src_alpha
+                                                    + m_base[dst + 1] * (0xFF - src_alpha)) / 0xFF);
+                            m_base[dst + 2] = (byte)((overlay[src + 2] * src_alpha
+                                                    + m_base[dst + 2] * (0xFF - src_alpha)) / 0xFF);
+                            m_base[dst + 3] = (byte)Math.Max(src_alpha, m_base[dst + 3]);
                         }
                     }
                     dst += 4;
@@ -305,36 +305,36 @@ namespace GameRes.Formats.AliceSoft
             }
         }
 
-        void ReadBaseImage ()
+        void ReadBaseImage()
         {
             try
             {
-                string dir_name = VFS.GetDirectoryName (m_info.FileName);
-                string base_name = Path.ChangeExtension (m_info.BaseName, "qnt");
-                base_name = VFS.CombinePath (dir_name, base_name);
+                string dir_name = VFS.GetDirectoryName(m_info.FileName);
+                string base_name = Path.ChangeExtension(m_info.BaseName, "qnt");
+                base_name = VFS.CombinePath(dir_name, base_name);
                 ImageFormat base_format = null;
                 Func<IBinaryStream, ImageMetaData, IBaseImageReader> create_reader;
-                if (VFS.FileExists (base_name))
+                if (VFS.FileExists(base_name))
                 {
                     base_format = Qnt;
-                    create_reader = (s, m) => new QntFormat.Reader (s.AsStream, (QntMetaData)m);
+                    create_reader = (s, m) => new QntFormat.Reader(s.AsStream, (QntMetaData)m);
                 }
                 else
                 {
-                    base_name = Path.ChangeExtension (m_info.BaseName, "pcf");
-                    if (VFS.IsPathEqualsToFileName (m_info.FileName, base_name))
+                    base_name = Path.ChangeExtension(m_info.BaseName, "pcf");
+                    if (VFS.IsPathEqualsToFileName(m_info.FileName, base_name))
                         return;
-                    base_name = VFS.CombinePath (dir_name, base_name);
+                    base_name = VFS.CombinePath(dir_name, base_name);
                     base_format = Dcf;
-                    create_reader = (s, m) => new DcfReader (s, (DcfMetaData)m);
+                    create_reader = (s, m) => new DcfReader(s, (DcfMetaData)m);
                 }
-                using (var base_file = VFS.OpenBinaryStream (base_name))
+                using (var base_file = VFS.OpenBinaryStream(base_name))
                 {
-                    var base_info = base_format.ReadMetaData (base_file);
+                    var base_info = base_format.ReadMetaData(base_file);
                     if (null != base_info && m_info.Width == base_info.Width && m_info.Height == base_info.Height)
                     {
                         base_info.FileName = base_name;
-                        var reader = create_reader (base_file, base_info);
+                        var reader = create_reader(base_file, base_info);
                         reader.Unpack();
                         m_base_bpp = reader.BPP;
                         m_base = reader.Data;
@@ -343,7 +343,7 @@ namespace GameRes.Formats.AliceSoft
             }
             catch (Exception X)
             {
-                Trace.WriteLine (X.Message, "[DCF]");
+                Trace.WriteLine(X.Message, "[DCF]");
             }
         }
     }

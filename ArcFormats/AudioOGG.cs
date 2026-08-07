@@ -34,7 +34,7 @@ namespace GameRes.Formats
 {
     public class OggInput : SoundInput
     {
-        VorbisReader    m_reader;
+        VorbisReader m_reader;
 
         public override long Position
         {
@@ -59,23 +59,23 @@ namespace GameRes.Formats
 
         public override string SourceFormat { get { return "ogg"; } }
 
-        public OggInput (Stream file) : base (file)
+        public OggInput(Stream file) : base(file)
         {
-            m_reader = new VorbisReader (Source, false);
+            m_reader = new VorbisReader(Source, false);
             var format = new GameRes.WaveFormat();
-            format.FormatTag                = 3; // WAVE_FORMAT_IEEE_FLOAT
-            format.Channels                 = (ushort)m_reader.Channels;
-            format.SamplesPerSecond         = (uint)m_reader.SampleRate;
-            format.BitsPerSample            = 32;
-            format.BlockAlign               = (ushort)(4 * format.Channels);
-            format.AverageBytesPerSecond    = format.SamplesPerSecond * format.BlockAlign;
+            format.FormatTag = 3; // WAVE_FORMAT_IEEE_FLOAT
+            format.Channels = (ushort)m_reader.Channels;
+            format.SamplesPerSecond = (uint)m_reader.SampleRate;
+            format.BitsPerSample = 32;
+            format.BlockAlign = (ushort)(4 * format.Channels);
+            format.AverageBytesPerSecond = format.SamplesPerSecond * format.BlockAlign;
             this.Format = format;
             this.PcmSize = (long)(m_reader.TotalTime.TotalSeconds * format.SamplesPerSecond * format.Channels * sizeof(float));
         }
 
-        public override void Reset ()
+        public override void Reset()
         {
-            m_reader.TimePosition = TimeSpan.FromSeconds (0);
+            m_reader.TimePosition = TimeSpan.FromSeconds(0);
         }
 
         // This buffer can be static because it can only be used by 1 instance per thread
@@ -98,10 +98,10 @@ namespace GameRes.Formats
             }
 
             // let ReadSamples(float[], int, int) do the actual reading; adjust count back to bytes
-            int cnt = m_reader.ReadSamples (cb, 0, count) * sizeof(float);
+            int cnt = m_reader.ReadSamples(cb, 0, count) * sizeof(float);
 
             // move the data back to the request buffer
-            Buffer.BlockCopy (cb, 0, buffer, offset, cnt);
+            Buffer.BlockCopy(cb, 0, buffer, offset, cnt);
 
             // done!
             return cnt;
@@ -109,7 +109,7 @@ namespace GameRes.Formats
 
         #region IDisposable Members
         bool _ogg_disposed = false;
-        protected override void Dispose (bool disposing)
+        protected override void Dispose(bool disposing)
         {
             if (!_ogg_disposed)
             {
@@ -118,7 +118,7 @@ namespace GameRes.Formats
                     m_reader.Dispose();
                 }
                 _ogg_disposed = true;
-                base.Dispose (disposing);
+                base.Dispose(disposing);
             }
         }
         #endregion
@@ -127,35 +127,35 @@ namespace GameRes.Formats
     [Export(typeof(AudioFormat))]
     public sealed class OggAudio : AudioFormat
     {
-        public override string         Tag { get { return "OGG"; } }
+        public override string Tag { get { return "OGG"; } }
         public override string Description { get { return "Ogg/Vorbis audio format"; } }
-        public override uint     Signature { get { return 0x5367674f; } } // 'OggS'
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x5367674f; } } // 'OggS'
+        public override bool CanWrite { get { return false; } }
 
-        LocalResourceSetting FixCrc = new LocalResourceSetting ("OGGFixCrc");
+        LocalResourceSetting FixCrc = new LocalResourceSetting("OGGFixCrc");
 
-        public OggAudio ()
+        public OggAudio()
         {
             Signatures = new uint[] { 0x5367674F, 0 };
             Settings = new[] { FixCrc };
         }
 
-        public override SoundInput TryOpen (IBinaryStream file)
+        public override SoundInput TryOpen(IBinaryStream file)
         {
             Stream input = file.AsStream;
             if (file.Signature == Wav.Signature)
             {
-                var header = file.ReadHeader (0x14);
-                if (!header.AsciiEqual (8, "WAVEfmt "))
+                var header = file.ReadHeader(0x14);
+                if (!header.AsciiEqual(8, "WAVEfmt "))
                     return null;
-                uint fmt_size = header.ToUInt32 (0x10);
+                uint fmt_size = header.ToUInt32(0x10);
                 long fmt_pos = file.Position;
                 ushort format = file.ReadUInt16();
                 if (format != 0x676F && format != 0x6770 && format != 0x6771 && format != 0x674F)
                     return null;
                 // interpret WAVE 'data' section as Ogg stream
                 file.Position = fmt_pos + ((fmt_size + 1) & ~1);
-                for (;;) // ended by end-of-stream exception
+                for (; ; ) // ended by end-of-stream exception
                 {
                     uint section_id = file.ReadUInt32();
                     uint section_size = file.ReadUInt32();
@@ -165,22 +165,22 @@ namespace GameRes.Formats
                         uint id = file.ReadUInt32();
                         if (id != Signature)
                             return null;
-                        input = new StreamRegion (input, ogg_pos, section_size);
+                        input = new StreamRegion(input, ogg_pos, section_size);
                         break;
                     }
-                    file.Seek ((section_size + 1) & ~1u, SeekOrigin.Current);
+                    file.Seek((section_size + 1) & ~1u, SeekOrigin.Current);
                 }
             }
             else if (file.Signature != this.Signature)
                 return null;
             if (FixCrc.Get<bool>())
-                input = new SeekableStream (new OggRestoreStream (input));
-            return new OggInput (input);
+                input = new SeekableStream(new OggRestoreStream(input));
+            return new OggInput(input);
         }
 
         public static AudioFormat Instance { get { return s_OggFormat.Value; } }
 
-        static readonly ResourceInstance<AudioFormat> s_OggFormat = new ResourceInstance<AudioFormat> ("OGG");
+        static readonly ResourceInstance<AudioFormat> s_OggFormat = new ResourceInstance<AudioFormat>("OGG");
     }
 
     /// <summary>
@@ -188,20 +188,20 @@ namespace GameRes.Formats
     /// </summary>
     internal class OggRestoreStream : InputProxyStream
     {
-        bool                m_eof;
-        bool                m_ogg_ended;
+        bool m_eof;
+        bool m_ogg_ended;
 
-        byte[]              m_page = new byte[0x10000];
-        int                 m_page_pos = 0;
-        int                 m_page_length = 0;
+        byte[] m_page = new byte[0x10000];
+        int m_page_pos = 0;
+        int m_page_length = 0;
 
         public override bool CanSeek { get { return false; } }
 
-        public OggRestoreStream (Stream input) : base (input)
+        public OggRestoreStream(Stream input) : base(input)
         {
         }
 
-        public override int Read (byte[] buffer, int offset, int count)
+        public override int Read(byte[] buffer, int offset, int count)
         {
             int total_read = 0;
             while (count > 0 && !m_eof)
@@ -210,7 +210,7 @@ namespace GameRes.Formats
                 {
                     if (m_ogg_ended)
                     {
-                        int read = BaseStream.Read (buffer, offset, count);
+                        int read = BaseStream.Read(buffer, offset, count);
                         total_read += read;
                         m_eof = 0 == read;
                         break;
@@ -219,8 +219,8 @@ namespace GameRes.Formats
                 }
                 if (m_eof)
                     break;
-                int available = Math.Min (m_page_length - m_page_pos, count);
-                Buffer.BlockCopy (m_page, m_page_pos, buffer, offset, available);
+                int available = Math.Min(m_page_length - m_page_pos, count);
+                Buffer.BlockCopy(m_page, m_page_pos, buffer, offset, available);
                 m_page_pos += available;
                 offset += available;
                 count -= available;
@@ -229,16 +229,16 @@ namespace GameRes.Formats
             return total_read;
         }
 
-        void NextPage ()
+        void NextPage()
         {
             m_page_pos = 0;
-            m_page_length = BaseStream.Read (m_page, 0, 0x1B);
+            m_page_length = BaseStream.Read(m_page, 0, 0x1B);
             if (0 == m_page_length)
             {
                 m_eof = true;
                 return;
             }
-            if (m_page_length < 0x1B || !m_page.AsciiEqual ("OggS"))
+            if (m_page_length < 0x1B || !m_page.AsciiEqual("OggS"))
             {
                 m_ogg_ended = true;
                 return;
@@ -250,7 +250,7 @@ namespace GameRes.Formats
             m_page[0x19] = 0;
             if (segment_count != 0)
             {
-                int table_length = BaseStream.Read (m_page, 0x1B, segment_count);
+                int table_length = BaseStream.Read(m_page, 0x1B, segment_count);
                 m_page_length += table_length;
                 if (table_length != segment_count)
                 {
@@ -261,10 +261,10 @@ namespace GameRes.Formats
                 int segment_table = 0x1B;
                 for (int i = 0; i < segment_count; ++i)
                     segments_length += m_page[segment_table++];
-                m_page_length += BaseStream.Read (m_page, 0x1B+segment_count, segments_length);
+                m_page_length += BaseStream.Read(m_page, 0x1B + segment_count, segments_length);
             }
-            uint crc = Crc32Normal.UpdateCrc (0, m_page, 0, m_page_length);
-            LittleEndian.Pack (crc, m_page, 0x16);
+            uint crc = Crc32Normal.UpdateCrc(0, m_page, 0, m_page_length);
+            LittleEndian.Pack(crc, m_page, 0x16);
         }
     }
 }

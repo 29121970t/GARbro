@@ -35,79 +35,79 @@ namespace GameRes.Formats.Cri
     {
         public byte Format;
         public uint DataOffset;
-        public int  AlignedWidth;
-        public int  AlignedHeight;
+        public int AlignedWidth;
+        public int AlignedHeight;
     }
 
     [Export(typeof(ImageFormat))]
     public class XtxFormat : ImageFormat
     {
-        public override string         Tag { get { return "XTX"; } }
+        public override string Tag { get { return "XTX"; } }
         public override string Description { get { return "Xbox 360 texture format"; } }
-        public override uint     Signature { get { return 0x00787478; } } // 'xtx'
+        public override uint Signature { get { return 0x00787478; } } // 'xtx'
 
-        public XtxFormat ()
+        public XtxFormat()
         {
             Signatures = new uint[] { 0x00787478, 0 };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
-            var header = stream.ReadHeader (0x20).ToArray();
-            if (!Binary.AsciiEqual (header, 0, "xtx\0"))
+            var header = stream.ReadHeader(0x20).ToArray();
+            if (!Binary.AsciiEqual(header, 0, "xtx\0"))
             {
-                var header_size = LittleEndian.ToUInt32 (header, 0);
+                var header_size = LittleEndian.ToUInt32(header, 0);
                 if (header_size >= 0x1000) // XXX use some arbitrary "large" value to avoid call to Stream.Length
                     return null;
                 stream.Position = header_size;
-                if (0x20 != stream.Read (header, 0, 0x20))
+                if (0x20 != stream.Read(header, 0, 0x20))
                     return null;
-                if (!Binary.AsciiEqual (header, 0, "xtx\0"))
+                if (!Binary.AsciiEqual(header, 0, "xtx\0"))
                     return null;
             }
             if (header[4] > 2)
                 return null;
-            int aligned_width  = BigEndian.ToInt32 (header, 8);
-            int aligned_height = BigEndian.ToInt32 (header, 0xC);
+            int aligned_width = BigEndian.ToInt32(header, 8);
+            int aligned_height = BigEndian.ToInt32(header, 0xC);
             if (aligned_width <= 0 || aligned_height <= 0)
                 return null;
             return new XtxMetaData
             {
-                Width   = BigEndian.ToUInt32 (header, 0x10),
-                Height  = BigEndian.ToUInt32 (header, 0x14),
-                OffsetX = BigEndian.ToInt32 (header, 0x18),
-                OffsetY = BigEndian.ToInt32 (header, 0x1C),
-                BPP     = 32,
-                Format  = header[4],
-                AlignedWidth  = aligned_width,
+                Width = BigEndian.ToUInt32(header, 0x10),
+                Height = BigEndian.ToUInt32(header, 0x14),
+                OffsetX = BigEndian.ToInt32(header, 0x18),
+                OffsetY = BigEndian.ToInt32(header, 0x1C),
+                BPP = 32,
+                Format = header[4],
+                AlignedWidth = aligned_width,
                 AlignedHeight = aligned_height,
-                DataOffset  = (uint)stream.Position,
+                DataOffset = (uint)stream.Position,
             };
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
-            var reader = new XtxReader (stream.AsStream, (XtxMetaData)info);
+            var reader = new XtxReader(stream.AsStream, (XtxMetaData)info);
             var pixels = reader.Unpack();
-            return ImageData.Create (info, reader.Format, null, pixels);
+            return ImageData.Create(info, reader.Format, null, pixels);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("XtxFormat.Write not implemented");
+            throw new System.NotImplementedException("XtxFormat.Write not implemented");
         }
     }
 
     internal sealed class XtxReader
     {
-        Stream      m_input;
-        int         m_width;
-        int         m_height;
+        Stream m_input;
+        int m_width;
+        int m_height;
         XtxMetaData m_info;
 
         public PixelFormat Format { get; private set; }
 
-        public XtxReader (Stream input, XtxMetaData info)
+        public XtxReader(Stream input, XtxMetaData info)
         {
             m_input = input;
             m_info = info;
@@ -115,7 +115,7 @@ namespace GameRes.Formats.Cri
             m_height = (int)m_info.Height;
         }
 
-        public byte[] Unpack ()
+        public byte[] Unpack()
         {
             m_input.Position = m_info.DataOffset;
             Format = PixelFormats.Bgra32;
@@ -127,78 +127,78 @@ namespace GameRes.Formats.Cri
                 return ReadTex2();
         }
 
-        byte[] ReadTex0 ()
+        byte[] ReadTex0()
         {
             int output_stride = m_width * 4;
-            var output = new byte[output_stride*m_height];
+            var output = new byte[output_stride * m_height];
             int total = m_info.AlignedWidth * m_info.AlignedHeight;
-            var texture = new byte[total*4];
-            m_input.Read (texture, 0, texture.Length);
+            var texture = new byte[total * 4];
+            m_input.ReadExactly(texture);
             int src = 0;
             for (int i = 0; i < total; ++i)
             {
-                int y = GetY (i, m_info.AlignedWidth, 4);
-                int x = GetX (i, m_info.AlignedWidth, 4);
+                int y = GetY(i, m_info.AlignedWidth, 4);
+                int x = GetX(i, m_info.AlignedWidth, 4);
                 if (y < m_height && x < m_width)
                 {
                     int dst = output_stride * y + x * 4;
-                    output[dst]   = texture[src+3];
-                    output[dst+1] = texture[src+2];
-                    output[dst+2] = texture[src+1];
-                    output[dst+3] = texture[src];
+                    output[dst] = texture[src + 3];
+                    output[dst + 1] = texture[src + 2];
+                    output[dst + 2] = texture[src + 1];
+                    output[dst + 3] = texture[src];
                 }
                 src += 4;
             }
             return output;
         }
 
-        byte[] ReadTex1 ()
+        byte[] ReadTex1()
         {
             int total = m_info.AlignedWidth * m_info.AlignedHeight;
-            var texture = new byte[total*2];
-            var packed = new byte[total*2];
-            m_input.Read (texture, 0, texture.Length);
+            var texture = new byte[total * 2];
+            var packed = new byte[total * 2];
+            m_input.ReadExactly(texture);
             int stride = m_info.AlignedWidth;
             int src = 0;
             for (int i = 0; i < total; ++i)
             {
-                int y = GetY (i, m_info.AlignedWidth, 2);
-                int x = GetX (i, m_info.AlignedWidth, 2);
+                int y = GetY(i, m_info.AlignedWidth, 2);
+                int x = GetX(i, m_info.AlignedWidth, 2);
                 int dst = (x + y * stride) * 2;
-                packed[dst]   = texture[src+1];
-                packed[dst+1] = texture[src];
+                packed[dst] = texture[src + 1];
+                packed[dst + 1] = texture[src];
                 src += 2;
             }
             Format = PixelFormats.Bgr565;
-            throw new NotImplementedException ("XTX textures format 1 not implemented");
-//            return packed;
+            throw new NotImplementedException("XTX textures format 1 not implemented");
+            //            return packed;
         }
 
-        byte[] ReadTex2 ()
+        byte[] ReadTex2()
         {
             int tex_width = m_info.AlignedWidth >> 2;
             int total = tex_width * (m_info.AlignedHeight >> 2);
             var texture = new byte[m_info.AlignedWidth * m_info.AlignedHeight];
             var packed = new byte[m_info.AlignedWidth * m_info.AlignedHeight];
-            m_input.Read (texture, 0, texture.Length);
+            m_input.ReadExactly(texture);
             int src = 0;
             for (int i = 0; i < total; ++i)
             {
-                int y = GetY (i, tex_width, 0x10);
-                int x = GetX (i, tex_width, 0x10);
+                int y = GetY(i, tex_width, 0x10);
+                int x = GetX(i, tex_width, 0x10);
                 int dst = (x + y * tex_width) * 16;
                 for (int j = 0; j < 8; ++j)
                 {
-                    packed[dst++] = texture[src+1];
+                    packed[dst++] = texture[src + 1];
                     packed[dst++] = texture[src];
                     src += 2;
                 }
             }
-            var dxt = new DirectDraw.DxtDecoder (packed, m_info);
+            var dxt = new DirectDraw.DxtDecoder(packed, m_info);
             return dxt.UnpackDXT5();
         }
 
-        static int GetY (int i, int width, byte level)
+        static int GetY(int i, int width, byte level)
         {
             int v1 = (level >> 2) + (level >> 1 >> (level >> 2));
             int v2 = i << v1;
@@ -210,7 +210,7 @@ namespace GameRes.Formats.Cri
                     + (((v3 >> (v1 + 7)) / ((width + 31) >> 5)) << 2)) << 3);
         }
 
-        static int GetX (int i, int width, byte level)
+        static int GetX(int i, int width, byte level)
         {
             int v1 = (level >> 2) + (level >> 1 >> (level >> 2));
             int v2 = i << v1;

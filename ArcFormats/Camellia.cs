@@ -40,92 +40,92 @@ namespace GameRes.Cryptography
 {
     public class Camellia
     {
-        uint[]  m_key;
+        uint[] m_key;
 
-        public Camellia (uint[] key)
+        public Camellia(uint[] key)
         {
             m_key = key;
         }
 
-        public Camellia (byte[] key)
+        public Camellia(byte[] key)
         {
-            m_key = GenerateKey (key);
+            m_key = GenerateKey(key);
         }
 
-        public static uint[] GenerateKey (string passphrase)
+        public static uint[] GenerateKey(string passphrase)
         {
-            int length = Math.Min (passphrase.Length, 16);
+            int length = Math.Min(passphrase.Length, 16);
             var key = new byte[16];
-            Encoding.UTF8.GetBytes (passphrase, 0, length, key, 0);
-            return GenerateKey (key);
+            Encoding.UTF8.GetBytes(passphrase, 0, length, key, 0);
+            return GenerateKey(key);
         }
 
-        static uint[] GenerateKey (byte[] key)
+        static uint[] GenerateKey(byte[] key)
         {
             if (key.Length != 16)
-                throw new ApplicationException ("[Camellia] Invalid key length.");
+                throw new ApplicationException("[Camellia] Invalid key length.");
             uint s0, s1, s2, s3;
             var k = new uint[52];
-            k[48] = s0 = BigEndian.ToUInt32 (key, 0);
-            k[49] = s1 = BigEndian.ToUInt32 (key, 4);
-            k[50] = s2 = BigEndian.ToUInt32 (key, 8);
-            k[51] = s3 = BigEndian.ToUInt32 (key, 12);
+            k[48] = s0 = BigEndian.ToUInt32(key, 0);
+            k[49] = s1 = BigEndian.ToUInt32(key, 4);
+            k[50] = s2 = BigEndian.ToUInt32(key, 8);
+            k[51] = s3 = BigEndian.ToUInt32(key, 12);
 
             /* Use the Feistel routine to scramble the key material */
-            Feistel (s0, s1, ref s2, ref s3, 0);
-            Feistel (s2, s3, ref s0, ref s1, 2);
+            Feistel(s0, s1, ref s2, ref s3, 0);
+            Feistel(s2, s3, ref s0, ref s1, 2);
 
             s0 ^= k[48]; s1 ^= k[49]; s2 ^= k[50]; s3 ^= k[51];
-            Feistel (s0, s1, ref s2, ref s3, 4);
-            Feistel (s2, s3, ref s0, ref s1, 6);
+            Feistel(s0, s1, ref s2, ref s3, 4);
+            Feistel(s2, s3, ref s0, ref s1, 6);
 
             /* Fill the keyTable. Requires many block rotations. */
             k[44] = s0; k[45] = s1; k[46] = s2; k[47] = s3;
-            RotLeft128 (ref s0, ref s1, ref s2, ref s3, 15);	/* KA <<< 15 */
+            RotLeft128(ref s0, ref s1, ref s2, ref s3, 15);	/* KA <<< 15 */
             k[36] = s0; k[37] = s1; k[38] = s2; k[39] = s3;
-            RotLeft128 (ref s0, ref s1, ref s2, ref s3, 15);	/* KA <<< 30 */
+            RotLeft128(ref s0, ref s1, ref s2, ref s3, 15);	/* KA <<< 30 */
             k[32] = s0; k[33] = s1; k[34] = s2; k[35] = s3;
-            RotLeft128 (ref s0, ref s1, ref s2, ref s3, 15);	/* KA <<< 45 */
+            RotLeft128(ref s0, ref s1, ref s2, ref s3, 15);	/* KA <<< 45 */
             k[24] = s0; k[25] = s1;
-            RotLeft128 (ref s0, ref s1, ref s2, ref s3, 15);	/* KA <<< 60 */
+            RotLeft128(ref s0, ref s1, ref s2, ref s3, 15);	/* KA <<< 60 */
             k[20] = s0; k[21] = s1; k[22] = s2; k[23] = s3;
-            RotLeft128 (ref s1, ref s2, ref s3, ref s0, 2);	    /* KA <<< 94 */
-            k[ 8] = s1; k[ 9] = s2; k[10] = s3; k[11] = s0;
-            RotLeft128 (ref s1, ref s2, ref s3, ref s0, 17);	/* KA <<<111 */
-            k[ 0] = s1; k[ 1] = s2; k[ 2] = s3; k[ 3] = s0;
+            RotLeft128(ref s1, ref s2, ref s3, ref s0, 2);	    /* KA <<< 94 */
+            k[8] = s1; k[9] = s2; k[10] = s3; k[11] = s0;
+            RotLeft128(ref s1, ref s2, ref s3, ref s0, 17);	/* KA <<<111 */
+            k[0] = s1; k[1] = s2; k[2] = s3; k[3] = s0;
 
             s0 = k[48]; s1 = k[49]; s2 = k[50]; s3 = k[51];
-            RotLeft128 (ref s0, ref s1, ref s2, ref s3, 15);	/* KL <<< 15 */
+            RotLeft128(ref s0, ref s1, ref s2, ref s3, 15);	/* KL <<< 15 */
             k[40] = s0; k[41] = s1; k[42] = s2; k[43] = s3;
-            RotLeft128 (ref s0, ref s1, ref s2, ref s3, 30);	/* KL <<< 45 */
+            RotLeft128(ref s0, ref s1, ref s2, ref s3, 30);	/* KL <<< 45 */
             k[28] = s0; k[29] = s1; k[30] = s2; k[31] = s3;
-            RotLeft128 (ref s0, ref s1, ref s2, ref s3, 15);	/* KL <<< 60 */
+            RotLeft128(ref s0, ref s1, ref s2, ref s3, 15);	/* KL <<< 60 */
             k[26] = s2; k[27] = s3;
-            RotLeft128 (ref s0, ref s1, ref s2, ref s3, 17);	/* KL <<< 77 */
+            RotLeft128(ref s0, ref s1, ref s2, ref s3, 17);	/* KL <<< 77 */
             k[16] = s0; k[17] = s1; k[18] = s2; k[19] = s3;
-            RotLeft128 (ref s0, ref s1, ref s2, ref s3, 17);	/* KL <<< 94 */
+            RotLeft128(ref s0, ref s1, ref s2, ref s3, 17);	/* KL <<< 94 */
             k[12] = s0; k[13] = s1; k[14] = s2; k[15] = s3;
-            RotLeft128 (ref s0, ref s1, ref s2, ref s3, 17);	/* KL <<<111 */
-            k[ 4] = s0; k[ 5] = s1; k[ 6] = s2; k[ 7] = s3;
+            RotLeft128(ref s0, ref s1, ref s2, ref s3, 17);	/* KL <<<111 */
+            k[4] = s0; k[5] = s1; k[6] = s2; k[7] = s3;
 
             return k;
         }
 
-        static void Feistel (uint s0, uint s1, ref uint s2, ref uint s3, int k)
+        static void Feistel(uint s0, uint s1, ref uint s2, ref uint s3, int k)
         {
             uint t0 = s0 ^ SIGMA[k];
-            uint t1 = s1 ^ SIGMA[k+1];
+            uint t1 = s1 ^ SIGMA[k + 1];
             uint t2 = SBOX1_1110[t1 & 0xFF] ^ SBOX4_4404[(t1 >> 8) & 0xFF];
             uint t3 = SBOX4_4404[t0 & 0xFF] ^ SBOX3_3033[(t0 >> 8) & 0xFF]
                     ^ SBOX2_0222[(t0 >> 16) & 0xFF] ^ SBOX1_1110[t0 >> 24];
             t2 ^= t3;
-            t3  = Binary.RotR (t3, 8);
+            t3 = Binary.RotR(t3, 8);
             t2 ^= SBOX3_3033[(t1 >> 16) & 0xFF] ^ SBOX2_0222[t1 >> 24];
             s3 ^= t3 ^ t2;
             s2 ^= t2;
         }
 
-        static void RotLeft128 (ref uint s0, ref uint s1, ref uint s2, ref uint s3, int n)
+        static void RotLeft128(ref uint s0, ref uint s1, ref uint s2, ref uint s3, int n)
         {
             uint t0 = s0 >> (32 - n);
             s0 = s0 << n | s1 >> (32 - n);
@@ -143,14 +143,14 @@ namespace GameRes.Cryptography
         [ThreadStatic]
         static uint[] dst_block;
 
-        public void DecryptBlock (long block_offset, byte[] buffer, int index)
+        public void DecryptBlock(long block_offset, byte[] buffer, int index)
         {
             if (null == buffer)
-                throw new ArgumentNullException ("buffer");
+                throw new ArgumentNullException("buffer");
             if (index < 0)
-                throw new ArgumentOutOfRangeException ("index");
+                throw new ArgumentOutOfRangeException("index");
             if (buffer.Length < 16 || index > buffer.Length - 16)
-                throw new ArgumentException ("index");
+                throw new ArgumentException("index");
 
             const int total_rounds = 3;
 
@@ -164,13 +164,13 @@ namespace GameRes.Cryptography
                     uint* src = (uint*)raw;
 
                     int roll_bits = ((int)(block_offset >> 4) & 0x0F) + 16;
-                    dst_block[0] = RotL (src[0], roll_bits);
-                    dst_block[1] = RotR (src[1], roll_bits);
-                    dst_block[2] = RotL (src[2], roll_bits);
-                    dst_block[3] = RotR (src[3], roll_bits);
+                    dst_block[0] = RotL(src[0], roll_bits);
+                    dst_block[1] = RotR(src[1], roll_bits);
+                    dst_block[2] = RotL(src[2], roll_bits);
+                    dst_block[3] = RotR(src[3], roll_bits);
                 }
                 fixed (uint* block = dst_block)
-                    CopyConvertEndianness16 (block, block);
+                    CopyConvertEndianness16(block, block);
             }
             dst_block[0] ^= m_key[0];
             dst_block[1] ^= m_key[1];
@@ -184,37 +184,37 @@ namespace GameRes.Cryptography
             {
                 for (int j = 0; j < total_rounds; j++)
                 {
-                    temp    = m_key[k+2] ^ dst_block[0];
-                    U       = SBOX3_3033[(temp >> 8)  & 0xFF] ^ SBOX4_4404[temp & 0xFF]
+                    temp = m_key[k + 2] ^ dst_block[0];
+                    U = SBOX3_3033[(temp >> 8) & 0xFF] ^ SBOX4_4404[temp & 0xFF]
                             ^ SBOX2_0222[(temp >> 16) & 0xFF] ^ SBOX1_1110[(temp >> 24)];
 
-                    temp    = m_key[k+3] ^ dst_block[1];
-                    D       = SBOX4_4404[(temp >> 8)  & 0xFF] ^ SBOX1_1110[temp & 0xFF]
+                    temp = m_key[k + 3] ^ dst_block[1];
+                    D = SBOX4_4404[(temp >> 8) & 0xFF] ^ SBOX1_1110[temp & 0xFF]
                             ^ SBOX3_3033[(temp >> 16) & 0xFF] ^ SBOX2_0222[(temp >> 24)];
 
                     dst_block[2] ^= U ^ D;
-                    dst_block[3] ^= U ^ D ^ RotR (U, 8);
+                    dst_block[3] ^= U ^ D ^ RotR(U, 8);
 
-                    temp    = m_key[k] ^ dst_block[2];
-                    U       = SBOX3_3033[(temp >> 8)  & 0xFF] ^ SBOX4_4404[temp & 0xFF]
+                    temp = m_key[k] ^ dst_block[2];
+                    U = SBOX3_3033[(temp >> 8) & 0xFF] ^ SBOX4_4404[temp & 0xFF]
                             ^ SBOX2_0222[(temp >> 16) & 0xFF] ^ SBOX1_1110[(temp >> 24)];
 
-                    temp    = m_key[k+1] ^ dst_block[3];
-                    D       = SBOX4_4404[(temp >> 8)  & 0xFF] ^ SBOX1_1110[temp & 0xFF]
+                    temp = m_key[k + 1] ^ dst_block[3];
+                    D = SBOX4_4404[(temp >> 8) & 0xFF] ^ SBOX1_1110[temp & 0xFF]
                             ^ SBOX3_3033[(temp >> 16) & 0xFF] ^ SBOX2_0222[(temp >> 24)];
 
                     dst_block[0] ^= U ^ D;
-                    dst_block[1] ^= U ^ D ^ RotR (U, 8);
+                    dst_block[1] ^= U ^ D ^ RotR(U, 8);
 
                     k += 4;
                 }
 
                 if (i < total_rounds - 1)
                 {
-                    dst_block[1] ^= RotL (dst_block[0] & m_key[k+2], 1);
-                    dst_block[0] ^= dst_block[1] | m_key[k+3];
-                    dst_block[2] ^= dst_block[3] | m_key[k+1];
-                    dst_block[3] ^= RotL (dst_block[2] & m_key[k], 1);
+                    dst_block[1] ^= RotL(dst_block[0] & m_key[k + 2], 1);
+                    dst_block[0] ^= dst_block[1] | m_key[k + 3];
+                    dst_block[2] ^= dst_block[3] | m_key[k + 1];
+                    dst_block[3] ^= RotL(dst_block[2] & m_key[k], 1);
                     k += 4;
                 }
             }
@@ -222,30 +222,30 @@ namespace GameRes.Cryptography
             temp = dst_block[1]; dst_block[1] = dst_block[3]; dst_block[3] = temp;
 
             dst_block[0] ^= m_key[k];
-            dst_block[1] ^= m_key[k+1];
-            dst_block[2] ^= m_key[k+2];
-            dst_block[3] ^= m_key[k+3];
+            dst_block[1] ^= m_key[k + 1];
+            dst_block[2] ^= m_key[k + 2];
+            dst_block[3] ^= m_key[k + 3];
 
-            CopyUIntToBytes (dst_block, buffer, index);
+            CopyUIntToBytes(dst_block, buffer, index);
         }
 
-        unsafe private static void CopyConvertEndianness16 (uint* src, uint* dst)
+        unsafe private static void CopyConvertEndianness16(uint* src, uint* dst)
         {
-            dst[0] = RotL (src[0], 8) & 0x00FF00FF | RotR (src[0], 8) & 0xFF00FF00;
-            dst[1] = RotL (src[1], 8) & 0x00FF00FF | RotR (src[1], 8) & 0xFF00FF00;
-            dst[2] = RotL (src[2], 8) & 0x00FF00FF | RotR (src[2], 8) & 0xFF00FF00;
-            dst[3] = RotL (src[3], 8) & 0x00FF00FF | RotR (src[3], 8) & 0xFF00FF00;
+            dst[0] = RotL(src[0], 8) & 0x00FF00FF | RotR(src[0], 8) & 0xFF00FF00;
+            dst[1] = RotL(src[1], 8) & 0x00FF00FF | RotR(src[1], 8) & 0xFF00FF00;
+            dst[2] = RotL(src[2], 8) & 0x00FF00FF | RotR(src[2], 8) & 0xFF00FF00;
+            dst[3] = RotL(src[3], 8) & 0x00FF00FF | RotR(src[3], 8) & 0xFF00FF00;
         }
 
-        private static void CopyBytesToUInt (byte[] src, int index, uint[] dst)
+        private static void CopyBytesToUInt(byte[] src, int index, uint[] dst)
         {
-            dst[0] = (uint)(src[index] << 24 | src[index+1] << 16 | src[index+2] << 8 | src[index]); index += 4;
-            dst[1] = (uint)(src[index] << 24 | src[index+1] << 16 | src[index+2] << 8 | src[index]); index += 4;
-            dst[2] = (uint)(src[index] << 24 | src[index+1] << 16 | src[index+2] << 8 | src[index]); index += 4;
-            dst[3] = (uint)(src[index] << 24 | src[index+1] << 16 | src[index+2] << 8 | src[index]);
+            dst[0] = (uint)(src[index] << 24 | src[index + 1] << 16 | src[index + 2] << 8 | src[index]); index += 4;
+            dst[1] = (uint)(src[index] << 24 | src[index + 1] << 16 | src[index + 2] << 8 | src[index]); index += 4;
+            dst[2] = (uint)(src[index] << 24 | src[index + 1] << 16 | src[index + 2] << 8 | src[index]); index += 4;
+            dst[3] = (uint)(src[index] << 24 | src[index + 1] << 16 | src[index + 2] << 8 | src[index]);
         }
 
-        private static void CopyUIntToBytes (uint[] src, byte[] dst, int index)
+        private static void CopyUIntToBytes(uint[] src, byte[] dst, int index)
         {
             for (int i = 0; i < 4; ++i)
             {
@@ -256,12 +256,12 @@ namespace GameRes.Cryptography
             }
         }
 
-        private static uint RotL (uint x, int n)
+        private static uint RotL(uint x, int n)
         {
             return (x << n) | (x >> (32 - n));
         }
 
-        private static uint RotR (uint x, int n)
+        private static uint RotR(uint x, int n)
         {
             return (x >> n) | (x << (32 - n));
         }

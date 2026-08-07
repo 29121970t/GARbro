@@ -34,139 +34,139 @@ namespace GameRes.Formats.DirectDraw
 {
     internal class DdsMetaData : ImageMetaData
     {
-        public int      DataOffset;
-        public DdsPF    PixelFlags;
-        public string   FourCC;
-        public uint     RBitMask;
-        public uint     GBitMask;
-        public uint     BBitMask;
-        public uint     ABitMask;
+        public int DataOffset;
+        public DdsPF PixelFlags;
+        public string FourCC;
+        public uint RBitMask;
+        public uint GBitMask;
+        public uint BBitMask;
+        public uint ABitMask;
     }
 
     [Flags]
     internal enum DdsPF : uint
     {
-        AlphaPixels     = 1,
-        Alpha           = 2,
-        FourCC          = 4,
-        Rgb             = 0x40,
-        Yuv             = 0x200,
-        Luminance       = 0x20000,
+        AlphaPixels = 1,
+        Alpha = 2,
+        FourCC = 4,
+        Rgb = 0x40,
+        Yuv = 0x200,
+        Luminance = 0x20000,
     }
 
     [Export(typeof(ImageFormat))]
     public class DdsFormat : ImageFormat
     {
-        public override string         Tag { get { return "DDS"; } }
+        public override string Tag { get { return "DDS"; } }
         public override string Description { get { return "Direct Draw Surface format"; } }
-        public override uint     Signature { get { return 0x20534444; } } // 'DDS'
+        public override uint Signature { get { return 0x20534444; } } // 'DDS'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
-            var header = stream.ReadHeader (0x6C);
-            int dwSize = header.ToInt32 (4);
+            var header = stream.ReadHeader(0x6C);
+            int dwSize = header.ToInt32(4);
             if (dwSize < 0x7C)
                 return null;
-            var bitflags = (DdsPF)header.ToUInt32 (0x50);
+            var bitflags = (DdsPF)header.ToUInt32(0x50);
             string four_cc = null;
-            if (bitflags.HasFlag (DdsPF.FourCC))
-                four_cc = Binary.GetCString (header.ToArray(), 0x54, 4, Encoding.ASCII);
+            if (bitflags.HasFlag(DdsPF.FourCC))
+                four_cc = Binary.GetCString(header.ToArray(), 0x54, 4, Encoding.ASCII);
             return new DdsMetaData
             {
-                Width  = header.ToUInt32 (0x10),
-                Height = header.ToUInt32 (0xC),
-                BPP    = header.ToInt32 (0x58),
+                Width = header.ToUInt32(0x10),
+                Height = header.ToUInt32(0xC),
+                BPP = header.ToInt32(0x58),
                 PixelFlags = bitflags,
                 FourCC = four_cc,
-                RBitMask = header.ToUInt32 (0x5C),
-                GBitMask = header.ToUInt32 (0x60),
-                BBitMask = header.ToUInt32 (0x64),
-                ABitMask = header.ToUInt32 (0x68),
+                RBitMask = header.ToUInt32(0x5C),
+                GBitMask = header.ToUInt32(0x60),
+                BBitMask = header.ToUInt32(0x64),
+                ABitMask = header.ToUInt32(0x68),
                 DataOffset = 4 + dwSize,
             };
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
             var meta = (DdsMetaData)info;
-            if (meta.PixelFlags.HasFlag (DdsPF.Yuv | DdsPF.Luminance))
-                throw new NotSupportedException ("Not supported DDS texture color format");
+            if (meta.PixelFlags.HasFlag(DdsPF.Yuv | DdsPF.Luminance))
+                throw new NotSupportedException("Not supported DDS texture color format");
             stream.Position = meta.DataOffset;
             byte[] pixels;
             PixelFormat format = PixelFormats.Bgra32;
-            if (string.IsNullOrEmpty (meta.FourCC))
+            if (string.IsNullOrEmpty(meta.FourCC))
             {
-                if (meta.PixelFlags.HasFlag (DdsPF.Rgb)
+                if (meta.PixelFlags.HasFlag(DdsPF.Rgb)
                     && (0 == meta.RBitMask || 0 == meta.GBitMask || 0 == meta.BBitMask))
                     throw new InvalidFormatException();
-                pixels = ReadPixelData (stream.AsStream, meta);
-                if (!meta.PixelFlags.HasFlag (DdsPF.AlphaPixels) || meta.ABitMask == 0)
+                pixels = ReadPixelData(stream.AsStream, meta);
+                if (!meta.PixelFlags.HasFlag(DdsPF.AlphaPixels) || meta.ABitMask == 0)
                     format = PixelFormats.Bgr32;
             }
             else if ("DXT5" == meta.FourCC)
             {
-                var input = stream.ReadBytes ((int)meta.Width * (int)meta.Height);
-                var dxt = new DxtDecoder (input, meta);
+                var input = stream.ReadBytes((int)meta.Width * (int)meta.Height);
+                var dxt = new DxtDecoder(input, meta);
                 pixels = dxt.UnpackDXT5();
             }
             else if ("DXT3" == meta.FourCC)
             {
-                var input = stream.ReadBytes ((int)meta.Width * (int)meta.Height);
-                var dxt = new DxtDecoder (input, meta);
+                var input = stream.ReadBytes((int)meta.Width * (int)meta.Height);
+                var dxt = new DxtDecoder(input, meta);
                 pixels = dxt.UnpackDXT3();
             }
             else if ("DXT1" == meta.FourCC)
             {
-                var input = stream.ReadBytes ((int)meta.Width * (int)meta.Height / 2);
-                var dxt = new DxtDecoder (input, meta);
+                var input = stream.ReadBytes((int)meta.Width * (int)meta.Height / 2);
+                var dxt = new DxtDecoder(input, meta);
                 pixels = dxt.UnpackDXT1();
             }
             else
-                throw new NotImplementedException ("Compressed DDS textures not implemented");
-            return ImageData.Create (info, format, null, pixels);
+                throw new NotImplementedException("Compressed DDS textures not implemented");
+            return ImageData.Create(info, format, null, pixels);
         }
 
-        byte[] ReadPixelData (Stream stream, DdsMetaData info)
+        byte[] ReadPixelData(Stream stream, DdsMetaData info)
         {
-            int src_pixel_size = (info.BPP+7) / 8;
-            int input_size = (int)info.Width*(int)info.Height*src_pixel_size;
-            var input = new byte[input_size+4];
+            int src_pixel_size = (info.BPP + 7) / 8;
+            int input_size = (int)info.Width * (int)info.Height * src_pixel_size;
+            var input = new byte[input_size + 4];
             stream.Position = info.DataOffset;
-            if (input_size != stream.Read (input, 0, input_size))
-                throw new InvalidFormatException ("Unexpected end of file");
+            if (input_size != stream.Read(input, 0, input_size))
+                throw new InvalidFormatException("Unexpected end of file");
             if (32 == info.BPP && 0xFF0000 == info.RBitMask && 0x00FF00 == info.GBitMask && 0x0000FF == info.BBitMask)
                 return input;
-            var output = new byte[info.Width*info.Height*4];
+            var output = new byte[info.Width * info.Height * 4];
             int dst = 0;
             Func<int, uint> get_pixel;
             if (8 == info.BPP)
                 get_pixel = x => input[x];
             else if (info.BPP <= 16)
-                get_pixel = x => LittleEndian.ToUInt16 (input, x);
+                get_pixel = x => LittleEndian.ToUInt16(input, x);
             else
-                get_pixel = x => LittleEndian.ToUInt32 (input, x);
+                get_pixel = x => LittleEndian.ToUInt32(input, x);
             Func<uint, uint, byte> convert_pixel;
             if (info.BPP > 24)
                 convert_pixel = (p, mask) => (byte)((p & mask) * 0xFFL / mask);
             else
                 convert_pixel = (p, mask) => (byte)((p & mask) * 0xFFu / mask);
-            bool has_alpha = info.PixelFlags.HasFlag (DdsPF.AlphaPixels) && info.ABitMask != 0;
+            bool has_alpha = info.PixelFlags.HasFlag(DdsPF.AlphaPixels) && info.ABitMask != 0;
             for (int src = 0; src < input_size; src += src_pixel_size)
             {
-                uint src_pixel = get_pixel (src);
-                output[dst++] = convert_pixel (src_pixel, info.BBitMask);
-                output[dst++] = convert_pixel (src_pixel, info.GBitMask);
-                output[dst++] = convert_pixel (src_pixel, info.RBitMask);
+                uint src_pixel = get_pixel(src);
+                output[dst++] = convert_pixel(src_pixel, info.BBitMask);
+                output[dst++] = convert_pixel(src_pixel, info.GBitMask);
+                output[dst++] = convert_pixel(src_pixel, info.RBitMask);
                 if (has_alpha)
-                    output[dst] = convert_pixel (src_pixel, info.ABitMask);
+                    output[dst] = convert_pixel(src_pixel, info.ABitMask);
                 dst++;
             }
             return output;
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("DdsFormat.Write not implemented");
+            throw new System.NotImplementedException("DdsFormat.Write not implemented");
         }
     }
 }

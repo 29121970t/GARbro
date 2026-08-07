@@ -41,21 +41,21 @@ namespace GameRes.Formats.Ags
     [ExportMetadata("Priority", -1)]
     public class CgFormat : ImageFormat
     {
-        public override string         Tag { get { return "CG"; } }
+        public override string Tag { get { return "CG"; } }
         public override string Description { get { return "Anime Game System image format"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("CgFormat.Write not implemented");
+            throw new System.NotImplementedException("CgFormat.Write not implemented");
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
             int sig = file.ReadByte();
             if (sig >= 0x20)
                 return null;
-            int width  = file.ReadInt16();
+            int width = file.ReadInt16();
             int height = file.ReadInt16();
             if (width <= 0 || height <= 0 || width > 4096 || height > 4096)
                 return null;
@@ -70,8 +70,8 @@ namespace GameRes.Formats.Ags
             {
                 meta.OffsetX = file.ReadInt16();
                 meta.OffsetY = file.ReadInt16();
-                meta.Right   = file.ReadInt16();
-                meta.Bottom  = file.ReadInt16();
+                meta.Right = file.ReadInt16();
+                meta.Bottom = file.ReadInt16();
                 if (meta.OffsetX > meta.Right || meta.OffsetY > meta.Bottom ||
                     meta.Right > width || meta.Bottom > height ||
                     meta.OffsetX < 0 || meta.OffsetY < 0)
@@ -80,29 +80,29 @@ namespace GameRes.Formats.Ags
             return meta;
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
-            using (var reader = new Reader (stream, (CgMetaData)info))
+            using (var reader = new Reader(stream, (CgMetaData)info))
                 return reader.Image;
         }
 
         internal sealed class Reader : IImageDecoder
         {
-            IBinaryStream   m_input;
-            ImageData       m_image;
-            byte[]          m_output;
-            int             m_type;
-            int             m_width;
-            int             m_height;
-            int             m_left;
-            int             m_top;
-            int             m_right;
-            int             m_bottom;
-            bool            m_should_dispose;
+            IBinaryStream m_input;
+            ImageData m_image;
+            byte[] m_output;
+            int m_type;
+            int m_width;
+            int m_height;
+            int m_left;
+            int m_top;
+            int m_right;
+            int m_bottom;
+            bool m_should_dispose;
 
-            public Stream            Source { get { m_input.Position = 0; return m_input.AsStream; } }
+            public Stream Source { get { m_input.Position = 0; return m_input.AsStream; } }
             public ImageFormat SourceFormat { get { return null; } }
-            public ImageMetaData       Info { get; private set; }
+            public ImageMetaData Info { get; private set; }
             public ImageData Image
             {
                 get
@@ -110,18 +110,18 @@ namespace GameRes.Formats.Ags
                     if (null == m_image)
                     {
                         Unpack();
-                        m_image = ImageData.Create (Info, PixelFormats.Bgr24, null, m_output, m_width*3);
+                        m_image = ImageData.Create(Info, PixelFormats.Bgr24, null, m_output, m_width * 3);
                     }
                     return m_image;
                 }
             }
             public byte[] Data { get { return m_output; } }
 
-            public Reader (IBinaryStream file, CgMetaData info) : this (file, info, null, true)
+            public Reader(IBinaryStream file, CgMetaData info) : this(file, info, null, true)
             {
             }
 
-            public Reader (IBinaryStream file, CgMetaData info, byte[] base_image, bool leave_open = false)
+            public Reader(IBinaryStream file, CgMetaData info, byte[] base_image, bool leave_open = false)
             {
                 m_type = info.Type;
                 m_width = (int)info.Width;
@@ -150,7 +150,7 @@ namespace GameRes.Formats.Ags
             };
             readonly int[] ShiftTable;
 
-            private int[] InitShiftTable ()
+            private int[] InitShiftTable()
             {
                 var table = new int[8];
                 for (int i = 0; i < 8; ++i)
@@ -160,15 +160,15 @@ namespace GameRes.Formats.Ags
                 return table;
             }
 
-            private byte[] CreateBackground ()
+            private byte[] CreateBackground()
             {
-                var bg = new byte[3*m_width*m_height];
+                var bg = new byte[3 * m_width * m_height];
                 for (int i = 1; i < bg.Length; i += 3)
                     bg[i] = 0xFF;
                 return bg;
             }
 
-            public void Unpack ()
+            public void Unpack()
             {
                 if (0 != (m_type & 0x10))
                     UnpackRGB();
@@ -176,7 +176,7 @@ namespace GameRes.Formats.Ags
                     UnpackIndexed();
             }
 
-            public void UnpackRGB ()
+            public void UnpackRGB()
             {
                 int right = 3 * (m_width * m_top + m_right);
                 int left = 3 * (m_width * m_top + m_left);
@@ -223,18 +223,18 @@ namespace GameRes.Formats.Ags
                         if (0 != shift)
                         {
                             int src = dst + ShiftTable[shift];
-                            Binary.CopyOverlapped (m_output, src, dst, count * 3);
+                            Binary.CopyOverlapped(m_output, src, dst, count * 3);
                         }
                         dst += 3 * count;
                     }
-                    left += m_width*3; //640*3;
-                    right += m_width*3; //640*3;
+                    left += m_width * 3; //640*3;
+                    right += m_width * 3; //640*3;
                 }
             }
 
-            public void UnpackIndexed ()
+            public void UnpackIndexed()
             {
-                byte[] palette = m_input.ReadBytes (0x180);
+                byte[] palette = m_input.ReadBytes(0x180);
                 int right = 3 * (m_width * m_top + m_right);
                 int left = 3 * (m_width * m_top + m_left); // 3 * (Rect.left + 640 * Rect.top);
                 for (int i = m_top; i != m_bottom; ++i)
@@ -247,8 +247,8 @@ namespace GameRes.Formats.Ags
                         {
                             int color = 3 * (v13 & 0x7F);
                             m_output[dst] = palette[color];
-                            m_output[dst+1] = palette[color+1];
-                            m_output[dst+2] = palette[color+2];
+                            m_output[dst + 1] = palette[color + 1];
+                            m_output[dst + 2] = palette[color + 2];
                             dst += 3;
                             continue;
                         }
@@ -271,18 +271,18 @@ namespace GameRes.Formats.Ags
                         if (0 != shift)
                         {
                             int src = dst + ShiftTable[shift];
-                            Binary.CopyOverlapped (m_output, src, dst, count * 3);
+                            Binary.CopyOverlapped(m_output, src, dst, count * 3);
                         }
                         dst += 3 * count;
                     }
-                    right += m_width*3;
-                    left += m_width*3;
+                    right += m_width * 3;
+                    left += m_width * 3;
                 }
             }
 
             #region IDisposable Members
             bool m_disposed = false;
-            public void Dispose ()
+            public void Dispose()
             {
                 if (!m_disposed)
                 {
@@ -292,7 +292,7 @@ namespace GameRes.Formats.Ags
                     }
                     m_disposed = true;
                 }
-                GC.SuppressFinalize (this);
+                GC.SuppressFinalize(this);
             }
             #endregion
         }

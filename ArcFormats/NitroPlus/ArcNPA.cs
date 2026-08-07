@@ -41,35 +41,35 @@ namespace GameRes.Formats.NitroPlus
     internal class NpaEntry : PackedEntry
     {
         public byte[] RawName;
-        public int    FolderId;
+        public int FolderId;
     }
 
     internal class NpaArchive : ArcFile
     {
         public EncryptionScheme Scheme { get; private set; }
-        public int                 Key { get; private set; }
-        public byte[]         KeyTable { get { return m_key_table.Value; } }
+        public int Key { get; private set; }
+        public byte[] KeyTable { get { return m_key_table.Value; } }
 
         private Lazy<byte[]> m_key_table;
 
-        public NpaArchive (ArcView arc, ArchiveFormat impl, ICollection<Entry> dir,
+        public NpaArchive(ArcView arc, ArchiveFormat impl, ICollection<Entry> dir,
                            EncryptionScheme scheme, int key)
-            : base (arc, impl, dir)
+            : base(arc, impl, dir)
         {
-            Scheme   = scheme;
-            Key      = key;
-            m_key_table = new Lazy<byte[]> (() => NpaOpener.GenerateKeyTable (scheme));
+            Scheme = scheme;
+            Key = key;
+            m_key_table = new Lazy<byte[]>(() => NpaOpener.GenerateKeyTable(scheme));
         }
     }
 
     [Serializable]
     public class EncryptionScheme
     {
-        public NpaTitleId   TitleId;
-        public uint         NameKey;
-        public byte[]       Order;
+        public NpaTitleId TitleId;
+        public uint NameKey;
+        public byte[] Order;
 
-        public EncryptionScheme (NpaTitleId id, uint key, byte[] order)
+        public EncryptionScheme(NpaTitleId id, uint key, byte[] order)
         {
             TitleId = id;
             NameKey = key;
@@ -96,18 +96,18 @@ namespace GameRes.Formats.NitroPlus
     {
         public EncryptionScheme Scheme { get; set; }
         public bool CompressContents { get; set; }
-        public int              Key1 { get; set; }
-        public int              Key2 { get; set; }
+        public int Key1 { get; set; }
+        public int Key2 { get; set; }
     }
 
     [Export(typeof(ArchiveFormat))]
     public class NpaOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "NPA"; } }
+        public override string Tag { get { return "NPA"; } }
         public override string Description { get { return arcStrings.NPADescription; } }
-        public override uint     Signature { get { return 0x0141504e; } } // NPA\x01
-        public override bool  IsHierarchic { get { return true; } }
-        public override bool      CanWrite { get { return true; } }
+        public override uint Signature { get { return 0x0141504e; } } // NPA\x01
+        public override bool IsHierarchic { get { return true; } }
+        public override bool CanWrite { get { return true; } }
 
         public static Dictionary<string, EncryptionScheme> KnownSchemes = new Dictionary<string, EncryptionScheme>();
 
@@ -120,18 +120,18 @@ namespace GameRes.Formats.NitroPlus
         public const int DefaultKey1 = 0x4147414e;
         public const int DefaultKey2 = 0x21214f54;
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            int key1 = file.View.ReadInt32 (7);
-            int key2 = file.View.ReadInt32 (11);
-            bool compressed = 0 != file.View.ReadByte (15);
-            bool encrypted  = 0 != file.View.ReadByte (16);
-    		int total_count = file.View.ReadInt32 (17);
-		    int folder_count = file.View.ReadInt32 (21);
-		    int file_count = file.View.ReadInt32 (25);
+            int key1 = file.View.ReadInt32(7);
+            int key2 = file.View.ReadInt32(11);
+            bool compressed = 0 != file.View.ReadByte(15);
+            bool encrypted = 0 != file.View.ReadByte(16);
+            int total_count = file.View.ReadInt32(17);
+            int folder_count = file.View.ReadInt32(21);
+            int file_count = file.View.ReadInt32(25);
             if (total_count < folder_count + file_count)
                 return null;
-		    uint dir_size = file.View.ReadUInt32 (37);
+            uint dir_size = file.View.ReadUInt32(37);
             if (dir_size >= file.MaxOffset)
                 return null;
 
@@ -139,77 +139,78 @@ namespace GameRes.Formats.NitroPlus
             var game_id = NpaTitleId.NotEncrypted;
             if (encrypted)
             {
-                enc = QueryGameEncryption (file.Name);
+                enc = QueryGameEncryption(file.Name);
                 if (null == enc)
-                    throw new OperationCanceledException (garStrings.MsgUnknownEncryption);
+                    throw new OperationCanceledException(garStrings.MsgUnknownEncryption);
                 game_id = enc.TitleId;
             }
 
-            int key = GetArchiveKey (game_id, key1, key2);
+            int key = GetArchiveKey(game_id, key1, key2);
 
             long cur_offset = 41;
-            var dir = new List<Entry> (file_count);
+            var dir = new List<Entry>(file_count);
             for (int i = 0; i < total_count; ++i)
             {
-                int name_size = file.View.ReadInt32 (cur_offset);
+                int name_size = file.View.ReadInt32(cur_offset);
                 if ((uint)name_size >= dir_size)
                     return null;
-                int type = file.View.ReadByte (cur_offset+4+name_size);
+                int type = file.View.ReadByte(cur_offset + 4 + name_size);
                 if (1 != type) // ignore directory entries
                 {
                     var raw_name = new byte[name_size];
-                    file.View.Read (cur_offset+4, raw_name, 0, (uint)name_size);
+                    file.View.Read(cur_offset + 4, raw_name, 0, (uint)name_size);
                     for (int x = 0; x < name_size; ++x)
-                        raw_name[x] += DecryptName (x, i, key);
+                        raw_name[x] += DecryptName(x, i, key);
                     var info_offset = cur_offset + 5 + name_size;
 
-                    int  id = file.View.ReadInt32 (info_offset);
-                    uint offset = file.View.ReadUInt32 (info_offset+4);
-                    uint size = file.View.ReadUInt32 (info_offset+8);
-                    uint unpacked_size = file.View.ReadUInt32 (info_offset+12);
+                    int id = file.View.ReadInt32(info_offset);
+                    uint offset = file.View.ReadUInt32(info_offset + 4);
+                    uint size = file.View.ReadUInt32(info_offset + 8);
+                    uint unpacked_size = file.View.ReadUInt32(info_offset + 12);
 
-                    var entry = new NpaEntry {
-                        Name        = Encodings.cp932.GetString (raw_name),
-                        Offset      = dir_size+offset+41,
-                        Size        = size,
+                    var entry = new NpaEntry
+                    {
+                        Name = Encodings.cp932.GetString(raw_name),
+                        Offset = dir_size + offset + 41,
+                        Size = size,
                         UnpackedSize = unpacked_size,
-                        RawName     = raw_name,
-                        FolderId    = id,
+                        RawName = raw_name,
+                        FolderId = id,
                     };
-                    if (!entry.CheckPlacement (file.MaxOffset))
+                    if (!entry.CheckPlacement(file.MaxOffset))
                         return null;
-                    entry.Type = FormatCatalog.Instance.GetTypeFromName (entry.Name);
+                    entry.Type = FormatCatalog.Instance.GetTypeFromName(entry.Name);
                     entry.IsPacked = compressed && entry.Type != "image";
-                    dir.Add (entry);
+                    dir.Add(entry);
                 }
                 cur_offset += 4 + name_size + 17;
             }
             if (enc != null)
-                return new NpaArchive (file, this, dir, enc, key);
+                return new NpaArchive(file, this, dir, enc, key);
             else
-                return new ArcFile (file, this, dir);
+                return new ArcFile(file, this, dir);
         }
 
-        public override void Create (Stream output, IEnumerable<Entry> list, ResourceOptions options,
+        public override void Create(Stream output, IEnumerable<Entry> list, ResourceOptions options,
                                      EntryCallback callback)
         {
-            var npa_options = GetOptions<NpaOptions> (options);
+            var npa_options = GetOptions<NpaOptions>(options);
             int callback_count = 0;
 
             // build file index
-            var index = new Indexer (list, npa_options);
+            var index = new Indexer(list, npa_options);
 
             output.Position = 41 + index.Size;
             long data_offset = 0;
 
             // write files
-            foreach (var entry in index.Entries.Where (e => e.Type != "directory"))
+            foreach (var entry in index.Entries.Where(e => e.Type != "directory"))
             {
                 if (data_offset > uint.MaxValue)
                     throw new FileSizeException();
                 if (null != callback)
-                    callback (callback_count++, entry, arcStrings.MsgAddingFile);
-                using (var file = File.OpenRead (entry.Name))
+                    callback(callback_count++, entry, arcStrings.MsgAddingFile);
+                using (var file = File.OpenRead(entry.Name))
                 {
                     var size = file.Length;
                     if (size > uint.MaxValue)
@@ -218,22 +219,22 @@ namespace GameRes.Formats.NitroPlus
                     entry.UnpackedSize = (uint)size;
                     Stream destination = output;
                     if (null != npa_options.Scheme)
-                        destination = new EncryptedStream (output, entry, npa_options.Scheme, index.Key);
+                        destination = new EncryptedStream(output, entry, npa_options.Scheme, index.Key);
                     try
                     {
                         if (entry.IsPacked)
                         {
                             var start = destination.Position;
-                            using (var zstream = new ZLibStream (destination, CompressionMode.Compress,
+                            using (var zstream = new ZLibStream(destination, CompressionMode.Compress,
                                                                 CompressionLevel.Level9, true))
                             {
-                                file.CopyTo (zstream);
+                                file.CopyTo(zstream);
                             }
                             entry.Size = (uint)(destination.Position - start);
                         }
                         else
                         {
-                            file.CopyTo (destination);
+                            file.CopyTo(destination);
                             entry.Size = entry.UnpackedSize;
                         }
                     }
@@ -246,66 +247,66 @@ namespace GameRes.Formats.NitroPlus
                 }
             }
             if (null != callback)
-                callback (callback_count++, null, arcStrings.MsgWritingIndex);
+                callback(callback_count++, null, arcStrings.MsgWritingIndex);
 
             output.Position = 0;
-            using (var header = new BinaryWriter (output, Encoding.ASCII, true))
+            using (var header = new BinaryWriter(output, Encoding.ASCII, true))
             {
-                header.Write (Signature);
-                header.Write ((short)0);
-                header.Write ((byte)0);
-                header.Write (npa_options.Key1);
-                header.Write (npa_options.Key2);
-                header.Write (npa_options.CompressContents);
-                header.Write (npa_options.Scheme != null);
-                header.Write (index.TotalCount);
-                header.Write (index.FolderCount);
-                header.Write (index.FileCount);
-                header.Write ((long)0);
-                header.Write (index.Size);
+                header.Write(Signature);
+                header.Write((short)0);
+                header.Write((byte)0);
+                header.Write(npa_options.Key1);
+                header.Write(npa_options.Key2);
+                header.Write(npa_options.CompressContents);
+                header.Write(npa_options.Scheme != null);
+                header.Write(index.TotalCount);
+                header.Write(index.FolderCount);
+                header.Write(index.FileCount);
+                header.Write((long)0);
+                header.Write(index.Size);
                 int entry_number = 0;
                 foreach (var entry in index.Entries)
                 {
-                    header.Write (entry.RawName.Length);
+                    header.Write(entry.RawName.Length);
                     for (int i = 0; i < entry.RawName.Length; ++i)
                     {
-                        header.Write ((byte)(entry.RawName[i] - DecryptName (i, entry_number, index.Key)));
+                        header.Write((byte)(entry.RawName[i] - DecryptName(i, entry_number, index.Key)));
                     }
-                    header.Write ((byte)("directory" == entry.Type ? 1 : 2));
-                    header.Write (entry.FolderId);
-                    header.Write ((uint)entry.Offset);
-                    header.Write (entry.Size);
-                    header.Write (entry.UnpackedSize);
+                    header.Write((byte)("directory" == entry.Type ? 1 : 2));
+                    header.Write(entry.FolderId);
+                    header.Write((uint)entry.Offset);
+                    header.Write(entry.Size);
+                    header.Write(entry.UnpackedSize);
                     ++entry_number;
                 }
             }
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             Stream input;
             if (arc is NpaArchive && entry is NpaEntry)
-                input = new EncryptedStream (arc as NpaArchive, entry as NpaEntry);
+                input = new EncryptedStream(arc as NpaArchive, entry as NpaEntry);
             else
-                input = arc.File.CreateStream (entry.Offset, entry.Size);
-            return UnpackEntry (input, entry as PackedEntry);
+                input = arc.File.CreateStream(entry.Offset, entry.Size);
+            return UnpackEntry(input, entry as PackedEntry);
         }
 
-        private Stream UnpackEntry (Stream input, PackedEntry entry)
+        private Stream UnpackEntry(Stream input, PackedEntry entry)
         {
             if (null != entry && entry.IsPacked)
-                return new ZLibStream (input, CompressionMode.Decompress);
+                return new ZLibStream(input, CompressionMode.Decompress);
             return input;
         }
 
-        internal static byte DecryptName (int index, int curfile, int arc_key)
+        internal static byte DecryptName(int index, int curfile, int arc_key)
         {
-            int key = 0xFC*index;
+            int key = 0xFC * index;
 
             key -= arc_key >> 0x18;
             key -= arc_key >> 0x10;
             key -= arc_key >> 0x08;
-            key -= arc_key  & 0xff;
+            key -= arc_key & 0xff;
 
             key -= curfile >> 0x18;
             key -= curfile >> 0x10;
@@ -315,7 +316,7 @@ namespace GameRes.Formats.NitroPlus
             return (byte)(key & 0xff);
         }
 
-        internal static int GetArchiveKey (NpaTitleId game_id, int key1, int key2)
+        internal static int GetArchiveKey(NpaTitleId game_id, int key1, int key2)
         {
             if (NpaTitleId.LAMENTO == game_id)
                 return key1 + key2;
@@ -323,7 +324,7 @@ namespace GameRes.Formats.NitroPlus
                 return key1 * key2;
         }
 
-        internal static byte GetKeyFromEntry (NpaEntry entry, EncryptionScheme scheme, int arc_key)
+        internal static byte GetKeyFromEntry(NpaEntry entry, EncryptionScheme scheme, int arc_key)
         {
             int key = (int)scheme.NameKey;
             var name = entry.RawName;
@@ -340,25 +341,25 @@ namespace GameRes.Formats.NitroPlus
             return (byte)key;
         }
 
-        public static byte[] GenerateKeyTable (EncryptionScheme scheme)
+        public static byte[] GenerateKeyTable(EncryptionScheme scheme)
         {
             byte[] order = scheme.Order;
             if (null == order)
-                throw new ArgumentException ("Encryption key table not defined", "title_id");
+                throw new ArgumentException("Encryption key table not defined", "title_id");
 
             var table = new byte[256];
             for (int i = 0; i < 256; ++i)
             {
                 int edx = i << 4;
                 int dl = (edx + order[i & 0x0f]) & 0xff;
-                int dh = (edx + (order[i>>4] << 8)) & 0xff00;
+                int dh = (edx + (order[i >> 4] << 8)) & 0xff00;
                 edx = (dh | dl) >> 4;
                 var eax = BaseTable[i];
                 table[eax] = (byte)(edx & 0xff);
             }
-            for (int i = 17; i < order.Length; i+=2)
+            for (int i = 17; i < order.Length; i += 2)
             {
-                int ecx = order[i-1];
+                int ecx = order[i - 1];
                 int edx = order[i];
                 byte tmp = table[ecx];
                 table[ecx] = table[edx];
@@ -379,50 +380,51 @@ namespace GameRes.Formats.NitroPlus
             return table;
         }
 
-        public override ResourceOptions GetDefaultOptions ()
+        public override ResourceOptions GetDefaultOptions()
         {
-            return new NpaOptions {
-                Scheme           = GetScheme (Properties.Settings.Default.NPAScheme),
+            return new NpaOptions
+            {
+                Scheme = GetScheme(Properties.Settings.Default.NPAScheme),
                 CompressContents = Properties.Settings.Default.NPACompressContents,
-                Key1             = (int)Properties.Settings.Default.NPAKey1,
-                Key2             = (int)Properties.Settings.Default.NPAKey2,
+                Key1 = (int)Properties.Settings.Default.NPAKey1,
+                Key2 = (int)Properties.Settings.Default.NPAKey2,
             };
         }
 
-        public override object GetAccessWidget ()
+        public override object GetAccessWidget()
         {
             return new GUI.WidgetNPA();
         }
 
-        public override object GetCreationWidget ()
+        public override object GetCreationWidget()
         {
             return new GUI.CreateNPAWidget();
         }
 
-        EncryptionScheme QueryGameEncryption (string arc_name)
+        EncryptionScheme QueryGameEncryption(string arc_name)
         {
             EncryptionScheme scheme = null;
-            var title = FormatCatalog.Instance.LookupGame (arc_name);
-            if (!string.IsNullOrEmpty (title))
-                scheme = GetScheme (title);
+            var title = FormatCatalog.Instance.LookupGame(arc_name);
+            if (!string.IsNullOrEmpty(title))
+                scheme = GetScheme(title);
             if (null == scheme)
             {
-                var options = Query<NpaOptions> (arcStrings.ArcEncryptedNotice);
+                var options = Query<NpaOptions>(arcStrings.ArcEncryptedNotice);
                 scheme = options.Scheme;
             }
             return scheme;
         }
 
-        public static NpaTitleId GetTitleId (string title)
+        public static NpaTitleId GetTitleId(string title)
         {
-            var scheme = GetScheme (title);
+            var scheme = GetScheme(title);
             return scheme != null ? scheme.TitleId : NpaTitleId.NotEncrypted;
         }
 
-        public static EncryptionScheme GetScheme (string title)
+        public static EncryptionScheme GetScheme(string title)
         {
             EncryptionScheme scheme;
-            if (KnownSchemes.TryGetValue (title, out scheme))
+            if (KnownSchemes.TryGetValue(title, out scheme))
                 return scheme;
             else
                 return null;
@@ -453,91 +455,91 @@ namespace GameRes.Formats.NitroPlus
     /// </summary>
     internal class Indexer
     {
-        List<NpaEntry>  m_entries;
-        Encoding        m_encoding = Encodings.cp932.WithFatalFallback();
-        int             m_key;
-        int             m_size = 0;
-        int             m_directory_count = 0;
-        int             m_file_count = 0;
+        List<NpaEntry> m_entries;
+        Encoding m_encoding = Encodings.cp932.WithFatalFallback();
+        int m_key;
+        int m_size = 0;
+        int m_directory_count = 0;
+        int m_file_count = 0;
 
         public IEnumerable<NpaEntry> Entries { get { return m_entries; } }
 
-        public int         Key { get { return m_key; } }
-        public int        Size { get { return m_size; } }
-        public int  TotalCount { get { return m_entries.Count; } }
+        public int Key { get { return m_key; } }
+        public int Size { get { return m_size; } }
+        public int TotalCount { get { return m_entries.Count; } }
         public int FolderCount { get { return m_directory_count; } }
-        public int   FileCount { get { return m_file_count; } }
+        public int FileCount { get { return m_file_count; } }
 
-        public Indexer (IEnumerable<Entry> source_list, NpaOptions options)
+        public Indexer(IEnumerable<Entry> source_list, NpaOptions options)
         {
-            m_entries = new List<NpaEntry> (source_list.Count());
+            m_entries = new List<NpaEntry>(source_list.Count());
             var title_id = null != options.Scheme ? options.Scheme.TitleId : NpaTitleId.NotEncrypted;
-            m_key = NpaOpener.GetArchiveKey (title_id, options.Key1, options.Key2);
+            m_key = NpaOpener.GetArchiveKey(title_id, options.Key1, options.Key2);
 
             foreach (var entry in source_list)
             {
                 string name = entry.Name;
                 try
                 {
-                    var dir = Path.GetDirectoryName (name);
+                    var dir = Path.GetDirectoryName(name);
                     int folder_id = 0;
-                    if (!string.IsNullOrEmpty (dir))
-                        folder_id = AddDirectory (dir);
+                    if (!string.IsNullOrEmpty(dir))
+                        folder_id = AddDirectory(dir);
 
                     bool compress = options.CompressContents;
                     if (compress) // don't compress images
-                        compress = !FormatCatalog.Instance.LookupFileName (name).OfType<ImageFormat>().Any();
+                        compress = !FormatCatalog.Instance.LookupFileName(name).OfType<ImageFormat>().Any();
                     var npa_entry = new NpaEntry
                     {
-                        Name        = name,
-                        IsPacked    = compress,
-                        RawName     = m_encoding.GetBytes (name),
-                        FolderId    = folder_id,
+                        Name = name,
+                        IsPacked = compress,
+                        RawName = m_encoding.GetBytes(name),
+                        FolderId = folder_id,
                     };
                     ++m_file_count;
-                    AddEntry (npa_entry);
+                    AddEntry(npa_entry);
                 }
                 catch (EncoderFallbackException X)
                 {
-                    throw new InvalidFileName (name, arcStrings.MsgIllegalCharacters, X);
+                    throw new InvalidFileName(name, arcStrings.MsgIllegalCharacters, X);
                 }
             }
         }
 
-        void AddEntry (NpaEntry entry)
+        void AddEntry(NpaEntry entry)
         {
-            m_entries.Add (entry);
+            m_entries.Add(entry);
             m_size += 4 + entry.RawName.Length + 17;
         }
 
         Dictionary<string, int> m_directory_map = new Dictionary<string, int>();
 
-        int AddDirectory (string dir)
+        int AddDirectory(string dir)
         {
             int folder_id = 0;
-            if (m_directory_map.TryGetValue (dir, out folder_id))
+            if (m_directory_map.TryGetValue(dir, out folder_id))
                 return folder_id;
             string path = "";
-            foreach (var component in dir.Split (Path.DirectorySeparatorChar))
+            foreach (var component in dir.Split(Path.DirectorySeparatorChar))
             {
-                path = Path.Combine (path, component);
-                if (m_directory_map.TryGetValue (path, out folder_id))
+                path = Path.Combine(path, component);
+                if (m_directory_map.TryGetValue(path, out folder_id))
                     continue;
                 folder_id = ++m_directory_count;
                 m_directory_map[path] = folder_id;
 
                 var npa_entry = new NpaEntry
                 {
-                    Name        = path,
-                    Type        = "directory",
-                    Offset      = 0,
-                    Size        = 0,
+                    Name = path,
+                    Type = "directory",
+                    Offset = 0,
+                    Size = 0,
                     UnpackedSize = 0,
-                    IsPacked    = false,
-                    RawName     = m_encoding.GetBytes (path),
-                    FolderId    = folder_id,
+                    IsPacked = false,
+                    RawName = m_encoding.GetBytes(path),
+                    FolderId = folder_id,
                 };
-                AddEntry (npa_entry);
+                AddEntry(npa_entry);
             }
             return folder_id;
         }
@@ -548,49 +550,49 @@ namespace GameRes.Formats.NitroPlus
     /// </summary>
     internal class EncryptedStream : Stream
     {
-        private Stream          m_stream;
-        private Lazy<byte[]>    m_encrypted;
-        private int             m_encrypted_length;
-        private bool            m_read_mode;
-        private long            m_base_pos;
+        private Stream m_stream;
+        private Lazy<byte[]> m_encrypted;
+        private int m_encrypted_length;
+        private bool m_read_mode;
+        private long m_base_pos;
 
-        public override bool  CanRead { get { return m_read_mode && m_stream.CanRead; } }
-        public override bool  CanSeek { get { return m_stream.CanSeek; } }
+        public override bool CanRead { get { return m_read_mode && m_stream.CanRead; } }
+        public override bool CanSeek { get { return m_stream.CanSeek; } }
         public override bool CanWrite { get { return !m_read_mode && m_stream.CanWrite; } }
-        public override long   Length { get { return m_stream.Length - m_base_pos; } }
+        public override long Length { get { return m_stream.Length - m_base_pos; } }
         public override long Position
         {
             get { return m_stream.Position - m_base_pos; }
             set { m_stream.Position = m_base_pos + value; }
         }
 
-        delegate byte CryptFunc (int index, byte value);
+        delegate byte CryptFunc(int index, byte value);
         CryptFunc Encrypt;
 
-        public EncryptedStream (NpaArchive arc, NpaEntry entry)
+        public EncryptedStream(NpaArchive arc, NpaEntry entry)
         {
             m_read_mode = true;
-            m_encrypted_length = GetEncryptedLength (entry, arc.Scheme.TitleId);
+            m_encrypted_length = GetEncryptedLength(entry, arc.Scheme.TitleId);
             if (m_encrypted_length > entry.Size)
                 m_encrypted_length = (int)entry.Size;
-            int key = NpaOpener.GetKeyFromEntry (entry, arc.Scheme, arc.Key);
+            int key = NpaOpener.GetKeyFromEntry(entry, arc.Scheme, arc.Key);
 
-            m_stream = arc.File.CreateStream (entry.Offset, entry.Size);
-            m_encrypted = new Lazy<byte[]> (() => InitEncrypted (key, arc.Scheme.TitleId, arc.KeyTable));
+            m_stream = arc.File.CreateStream(entry.Offset, entry.Size);
+            m_encrypted = new Lazy<byte[]>(() => InitEncrypted(key, arc.Scheme.TitleId, arc.KeyTable));
             m_base_pos = m_stream.Position;
         }
 
-        public EncryptedStream (Stream output, NpaEntry entry, EncryptionScheme scheme, int arc_key)
+        public EncryptedStream(Stream output, NpaEntry entry, EncryptionScheme scheme, int arc_key)
         {
             m_read_mode = false;
-            m_encrypted_length = GetEncryptedLength (entry, scheme.TitleId);
-            int key = NpaOpener.GetKeyFromEntry (entry, scheme, arc_key);
+            m_encrypted_length = GetEncryptedLength(entry, scheme.TitleId);
+            int key = NpaOpener.GetKeyFromEntry(entry, scheme, arc_key);
 
             m_stream = output;
-            m_encrypted = new Lazy<byte[]> (() => new byte[m_encrypted_length]);
+            m_encrypted = new Lazy<byte[]>(() => new byte[m_encrypted_length]);
             m_base_pos = m_stream.Position;
 
-            byte[] decrypt_table = NpaOpener.GenerateKeyTable (scheme);
+            byte[] decrypt_table = NpaOpener.GenerateKeyTable(scheme);
             byte[] encrypt_table = new byte[256];
             for (int i = 0; i < 256; ++i)
                 encrypt_table[decrypt_table[i]] = (byte)i;
@@ -605,7 +607,7 @@ namespace GameRes.Formats.NitroPlus
             }
         }
 
-        int GetEncryptedLength (NpaEntry entry, NpaTitleId game_id)
+        int GetEncryptedLength(NpaEntry entry, NpaTitleId game_id)
         {
             int length = 0x1000;
             if (game_id != NpaTitleId.LAMENTO)
@@ -613,13 +615,13 @@ namespace GameRes.Formats.NitroPlus
             return length;
         }
 
-        byte[] InitEncrypted (int key, NpaTitleId game_id, byte[] key_table)
+        byte[] InitEncrypted(int key, NpaTitleId game_id, byte[] key_table)
         {
             var position = Position;
             if (0 != position)
                 Position = 0;
             byte[] buffer = new byte[m_encrypted_length];
-            m_encrypted_length = m_stream.Read (buffer, 0, m_encrypted_length);
+            m_encrypted_length = m_stream.Read(buffer, 0, m_encrypted_length);
             Position = position;
 
             if (game_id == NpaTitleId.LAMENTO)
@@ -641,71 +643,71 @@ namespace GameRes.Formats.NitroPlus
             m_stream.Flush();
         }
 
-        public override long Seek (long offset, SeekOrigin origin)
+        public override long Seek(long offset, SeekOrigin origin)
         {
             if (SeekOrigin.Begin == origin)
                 offset += m_base_pos;
-            offset = m_stream.Seek (offset, origin);
+            offset = m_stream.Seek(offset, origin);
             return offset - m_base_pos;
         }
 
-        public override void SetLength (long length)
+        public override void SetLength(long length)
         {
-            throw new NotSupportedException ("EncryptedStream.SetLength is not supported");
+            throw new NotSupportedException("EncryptedStream.SetLength is not supported");
         }
 
-        public override int Read (byte[] buffer, int offset, int count)
+        public override int Read(byte[] buffer, int offset, int count)
         {
             var position = Position;
             if (position >= m_encrypted_length)
-                return m_stream.Read (buffer, offset, count);
-            int read = Math.Min (m_encrypted_length - (int)position, count);
-            Buffer.BlockCopy (m_encrypted.Value, (int)position, buffer, offset, read);
-            m_stream.Seek (read, SeekOrigin.Current);
+                return m_stream.Read(buffer, offset, count);
+            int read = Math.Min(m_encrypted_length - (int)position, count);
+            Buffer.BlockCopy(m_encrypted.Value, (int)position, buffer, offset, read);
+            m_stream.Seek(read, SeekOrigin.Current);
             if (read < count)
             {
-                read += m_stream.Read (buffer, offset+read, count-read);
+                read += m_stream.Read(buffer, offset + read, count - read);
             }
             return read;
         }
 
-        public override int ReadByte ()
+        public override int ReadByte()
         {
             var position = Position;
             if (position >= m_encrypted_length)
                 return m_stream.ReadByte();
-            m_stream.Seek (1, SeekOrigin.Current);
+            m_stream.Seek(1, SeekOrigin.Current);
             return m_encrypted.Value[(int)position];
         }
 
-        public override void Write (byte[] buffer, int offset, int count)
+        public override void Write(byte[] buffer, int offset, int count)
         {
             var position = Position;
             if (position < m_encrypted_length)
             {
-                int limit = (int)position + Math.Min (m_encrypted_length - (int)position, count);
+                int limit = (int)position + Math.Min(m_encrypted_length - (int)position, count);
                 for (int i = (int)position; i < limit; ++i, ++offset, --count)
                 {
-                    m_encrypted.Value[i] = Encrypt (i, buffer[offset]);
+                    m_encrypted.Value[i] = Encrypt(i, buffer[offset]);
                 }
-                m_stream.Write (m_encrypted.Value, (int)position, limit-(int)position);
+                m_stream.Write(m_encrypted.Value, (int)position, limit - (int)position);
             }
             if (count > 0)
-                m_stream.Write (buffer, offset, count);
+                m_stream.Write(buffer, offset, count);
         }
 
-        public override void WriteByte (byte value)
+        public override void WriteByte(byte value)
         {
             var position = Position;
             if (position < m_encrypted_length)
-                value = Encrypt ((int)position, value);
-            m_stream.WriteByte (value);
+                value = Encrypt((int)position, value);
+            m_stream.WriteByte(value);
         }
         #endregion
 
         #region IDisposable Members
         bool disposed = false;
-        protected override void Dispose (bool disposing)
+        protected override void Dispose(bool disposing)
         {
             if (!disposed)
             {
@@ -715,7 +717,7 @@ namespace GameRes.Formats.NitroPlus
                 }
                 m_encrypted = null;
                 disposed = true;
-                base.Dispose (disposing);
+                base.Dispose(disposing);
             }
         }
         #endregion

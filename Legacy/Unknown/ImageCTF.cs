@@ -32,65 +32,66 @@ namespace GameRes.Formats.Unknown
 {
     internal class CtfMetaData : ImageMetaData
     {
-        public int  UnpackedSize;
-        public int  ROffset;
-        public int  GOffset;
-        public int  BOffset;
-        public int  AlphaOffset;
+        public int UnpackedSize;
+        public int ROffset;
+        public int GOffset;
+        public int BOffset;
+        public int AlphaOffset;
         public bool IsCompressed;
     }
 
     [Export(typeof(ImageFormat))]
     public class CtfFormat : ImageFormat
     {
-        public override string         Tag { get { return "CTF"; } }
+        public override string Tag { get { return "CTF"; } }
         public override string Description { get { return "'Unknown' image format"; } }
-        public override uint     Signature { get { return 0x46465443; } } // 'CTFF'
+        public override uint Signature { get { return 0x46465443; } } // 'CTFF'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x28);
+            var header = file.ReadHeader(0x28);
             int bpp = header[0x20];
             if (bpp != 24)
                 return null;
-            int alpha_offset = header.ToInt32 (0x1C);
-            return new CtfMetaData {
-                Width  = header.ToUInt16 (4),
-                Height = header.ToUInt16 (6),
+            int alpha_offset = header.ToInt32(0x1C);
+            return new CtfMetaData
+            {
+                Width = header.ToUInt16(4),
+                Height = header.ToUInt16(6),
                 BPP = alpha_offset != 0 ? 32 : bpp,
-                UnpackedSize = header.ToInt32 (0xC),
-                ROffset = header.ToInt32 (0x10),
-                GOffset = header.ToInt32 (0x14),
-                BOffset = header.ToInt32 (0x18),
+                UnpackedSize = header.ToInt32(0xC),
+                ROffset = header.ToInt32(0x10),
+                GOffset = header.ToInt32(0x14),
+                BOffset = header.ToInt32(0x18),
                 AlphaOffset = alpha_offset,
                 IsCompressed = header[0x22] == 0xFF,
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new CtfReader (file, (CtfMetaData)info);
+            var reader = new CtfReader(file, (CtfMetaData)info);
             var pixels = reader.Unpack();
-            return ImageData.Create (info, reader.Format, null, pixels, reader.Stride);
+            return ImageData.Create(info, reader.Format, null, pixels, reader.Stride);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("CtfFormat.Write not implemented");
+            throw new System.NotImplementedException("CtfFormat.Write not implemented");
         }
     }
 
     internal class CtfReader
     {
-        IBinaryStream   m_input;
-        CtfMetaData     m_info;
-        byte[]          m_output;
-        int             m_stride;
+        IBinaryStream m_input;
+        CtfMetaData m_info;
+        byte[] m_output;
+        int m_stride;
 
         public PixelFormat Format { get; private set; }
-        public int         Stride { get { return m_stride; } }
+        public int Stride { get { return m_stride; } }
 
-        public CtfReader (IBinaryStream input, CtfMetaData info)
+        public CtfReader(IBinaryStream input, CtfMetaData info)
         {
             m_input = input;
             m_info = info;
@@ -102,13 +103,13 @@ namespace GameRes.Formats.Unknown
                 Format = PixelFormats.Bgra32;
         }
 
-        public byte[] Unpack ()
+        public byte[] Unpack()
         {
             m_input.Position = 0x48;
             var channels = new byte[m_info.UnpackedSize];
-            using (var lzss = new LzssStream (m_input.AsStream, LzssMode.Decompress, true))
-            using (var input = new BinaryStream (lzss, m_input.Name))
-                UnpackRle (input, channels);
+            using (var lzss = new LzssStream(m_input.AsStream, LzssMode.Decompress, true))
+            using (var input = new BinaryStream(lzss, m_input.Name))
+                UnpackRle(input, channels);
 
             int dst = 0;
             int pixel_size = m_info.BPP / 8;
@@ -124,11 +125,11 @@ namespace GameRes.Formats.Unknown
             {
                 for (int x = 0; x < width; ++x)
                 {
-                    m_output[dst  ] = channels[bsrc++];
-                    m_output[dst+1] = channels[gsrc++];
-                    m_output[dst+2] = channels[rsrc++];
+                    m_output[dst] = channels[bsrc++];
+                    m_output[dst + 1] = channels[gsrc++];
+                    m_output[dst + 2] = channels[rsrc++];
                     if (has_alpha)
-                        m_output[dst+3] = channels[asrc++];
+                        m_output[dst + 3] = channels[asrc++];
                     dst += pixel_size;
                 }
                 dst += gap;
@@ -136,9 +137,9 @@ namespace GameRes.Formats.Unknown
             return m_output;
         }
 
-        void UnpackRle (IBinaryStream input, byte[] output)
+        void UnpackRle(IBinaryStream input, byte[] output)
         {
-            var header = input.ReadBytes (0x18);
+            var header = input.ReadBytes(0x18);
             byte count_limit = header[5];
             int dst = 0;
             while (dst < output.Length)

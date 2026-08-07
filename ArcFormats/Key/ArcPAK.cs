@@ -35,33 +35,33 @@ namespace GameRes.Formats.Key
     [Export(typeof(ArchiveFormat))]
     public class PakOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "PAK/KEY"; } }
+        public override string Tag { get { return "PAK/KEY"; } }
         public override string Description { get { return "Key resource archive"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
         static Encoding DefaultEncoding = Encoding.UTF8;
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            int count = file.View.ReadInt32 (4);
-            if (!IsSaneCount (count))
+            int count = file.View.ReadInt32(4);
+            if (!IsSaneCount(count))
                 return null;
-            uint data_offset = file.View.ReadUInt32 (0);
+            uint data_offset = file.View.ReadUInt32(0);
             if (data_offset <= 0x24 || data_offset >= file.MaxOffset)
                 return null;
-            uint block_size = file.View.ReadUInt32 (0xC);
+            uint block_size = file.View.ReadUInt32(0xC);
             if (0 == block_size)
                 return null;
             uint first_offset = data_offset / block_size;
             if (first_offset * block_size != data_offset)
                 return null;
-            byte flags = file.View.ReadByte (0x21);
+            byte flags = file.View.ReadByte(0x21);
             uint index_offset = 0x24;
             while (index_offset < data_offset)
             {
-                if (file.View.ReadUInt32 (index_offset) == first_offset)
+                if (file.View.ReadUInt32(index_offset) == first_offset)
                     break;
                 index_offset += 4;
             }
@@ -75,35 +75,35 @@ namespace GameRes.Formats.Key
                 names = new string[count];
                 using (var input = file.CreateStream())
                 {
-                    uint names_offset = file.View.ReadUInt32 (index_offset - 4);
+                    uint names_offset = file.View.ReadUInt32(index_offset - 4);
                     input.Position = names_offset;
                     for (int i = 0; i < count; ++i)
                     {
-                        names[i] = input.ReadCString (encoding);
+                        names[i] = input.ReadCString(encoding);
                     }
                 }
             }
             else
             {
-                names = Enumerable.Range (0, count).Select (x => x.ToString ("D5")).ToArray();
+                names = Enumerable.Range(0, count).Select(x => x.ToString("D5")).ToArray();
             }
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
                 var entry = new Entry { Name = names[i] };
-                entry.Offset = (long)file.View.ReadUInt32 (index_offset) * block_size;
-                entry.Size   = file.View.ReadUInt32 (index_offset+4);
-                if (!entry.CheckPlacement (file.MaxOffset))
+                entry.Offset = (long)file.View.ReadUInt32(index_offset) * block_size;
+                entry.Size = file.View.ReadUInt32(index_offset + 4);
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
-                dir.Add (entry);
+                dir.Add(entry);
                 index_offset += 8;
             }
             foreach (var entry in dir)
             {
-                uint signature = file.View.ReadUInt32 (entry.Offset);
-                entry.ChangeType (AutoEntry.DetectFileType (signature));
+                uint signature = file.View.ReadUInt32(entry.Offset);
+                entry.ChangeType(AutoEntry.DetectFileType(signature));
             }
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
     }
 

@@ -42,10 +42,10 @@ namespace GARbro.GUI
     public class DirectoryViewModel : ObservableCollection<EntryViewModel>
     {
         public IReadOnlyList<string> Path { get; private set; }
-        public IEnumerable<Entry>  Source { get; private set; }
-        public bool             IsArchive { get; private set; }
+        public IEnumerable<Entry> Source { get; private set; }
+        public bool IsArchive { get; private set; }
 
-        public DirectoryViewModel (IEnumerable<string> path, IEnumerable<Entry> filelist, bool is_archive)
+        public DirectoryViewModel(IEnumerable<string> path, IEnumerable<Entry> filelist, bool is_archive)
         {
             Path = path.ToList();
             Source = filelist;
@@ -53,32 +53,32 @@ namespace GARbro.GUI
             ImportFromSource();
         }
 
-        protected void ImportFromSource ()
+        protected void ImportFromSource()
         {
             var last_dir = Path.Last();
-            if (IsArchive || !string.IsNullOrEmpty (last_dir) && null != Directory.GetParent (last_dir))
+            if (IsArchive || !string.IsNullOrEmpty(last_dir) && null != Directory.GetParent(last_dir))
             {
-                Add (new EntryViewModel (new SubDirEntry (".."), -2));
+                Add(new EntryViewModel(new SubDirEntry(".."), -2));
             }
             foreach (var entry in Source)
             {
                 int prio = entry is SubDirEntry ? -1 : 0;
-                Add (new EntryViewModel (entry, prio));
+                Add(new EntryViewModel(entry, prio));
             }
         }
 
-        public EntryViewModel Find (string name)
+        public EntryViewModel Find(string name)
         {
-            return this.FirstOrDefault (e => e.Name.Equals (name, StringComparison.InvariantCultureIgnoreCase));
+            return this.FirstOrDefault(e => e.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase));
         }
     }
 
     public class EntryViewModel : INotifyPropertyChanged
     {
-        public EntryViewModel (Entry entry, int priority)
+        public EntryViewModel(Entry entry, int priority)
         {
             Source = entry;
-            Name = SafeGetFileName (entry.Name);
+            Name = SafeGetFileName(entry.Name);
             Priority = priority;
         }
 
@@ -87,12 +87,12 @@ namespace GARbro.GUI
         /// <summary>
         /// Same as Path.GetFileName, but ignores invalid charactes
         /// </summary>
-        string SafeGetFileName (string filename)
+        string SafeGetFileName(string filename)
         {
-            var name_start = filename.LastIndexOfAny (SeparatorCharacters);
+            var name_start = filename.LastIndexOfAny(SeparatorCharacters);
             if (-1 == name_start)
                 return filename;
-            return filename.Substring (name_start+1);
+            return filename.Substring(name_start + 1);
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -108,47 +108,47 @@ namespace GARbro.GUI
                 if (Source.Type != value)
                 {
                     Source.Type = value;
-                    OnPropertyChanged ("Type");
+                    OnPropertyChanged("Type");
                 }
             }
         }
-        public uint?  Size { get { return IsDirectory ? null : (uint?)Source.Size; } }
-        public int    Priority { get; private set; }
-        public bool   IsDirectory { get { return Priority < 0; } }
+        public uint? Size { get { return IsDirectory ? null : (uint?)Source.Size; } }
+        public int Priority { get; private set; }
+        public bool IsDirectory { get { return Priority < 0; } }
 
-        private void OnPropertyChanged (string property = "")
+        private void OnPropertyChanged(string property = "")
         {
             if (PropertyChanged != null)
             {
-                PropertyChanged (this, new PropertyChangedEventArgs (property));
+                PropertyChanged(this, new PropertyChangedEventArgs(property));
             }
         }
     }
 
     public sealed class FileSystemComparer : IComparer
     {
-        private string              m_property;
-        private int                 m_direction;
-        private static Comparer     s_default_comparer = new Comparer (CultureInfo.CurrentUICulture);
+        private string m_property;
+        private int m_direction;
+        private static Comparer s_default_comparer = new Comparer(CultureInfo.CurrentUICulture);
 
-        public FileSystemComparer (string property, ListSortDirection direction)
+        public FileSystemComparer(string property, ListSortDirection direction)
         {
             m_property = property;
             m_direction = direction == ListSortDirection.Ascending ? 1 : -1;
         }
 
-        public int Compare (object a, object b)
+        public int Compare(object a, object b)
         {
             var v_a = a as EntryViewModel;
             var v_b = b as EntryViewModel;
             if (null == v_a || null == v_b)
-                return s_default_comparer.Compare (a, b) * m_direction;
+                return s_default_comparer.Compare(a, b) * m_direction;
 
             if (v_a.Priority < v_b.Priority)
                 return -1;
             if (v_a.Priority > v_b.Priority)
                 return 1;
-            if (string.IsNullOrEmpty (m_property))
+            if (string.IsNullOrEmpty(m_property))
                 return 0;
             int order;
             if (m_property != "Name")
@@ -156,31 +156,31 @@ namespace GARbro.GUI
                 if ("Type" == m_property)
                 {
                     // empty strings placed in the end
-                    if (string.IsNullOrEmpty (v_a.Type))
-                        order = string.IsNullOrEmpty (v_b.Type) ? 0 : m_direction;
-                    else if (string.IsNullOrEmpty (v_b.Type))
+                    if (string.IsNullOrEmpty(v_a.Type))
+                        order = string.IsNullOrEmpty(v_b.Type) ? 0 : m_direction;
+                    else if (string.IsNullOrEmpty(v_b.Type))
                         order = -m_direction;
                     else
-                        order = string.Compare (v_a.Type, v_b.Type, true) * m_direction;
+                        order = string.Compare(v_a.Type, v_b.Type, true) * m_direction;
                 }
                 else
                 {
-                    var prop_a = a.GetType ().GetProperty (m_property).GetValue (a);
-                    var prop_b = b.GetType ().GetProperty (m_property).GetValue (b);
-                    order = s_default_comparer.Compare (prop_a, prop_b) * m_direction;
+                    var prop_a = a.GetType().GetProperty(m_property).GetValue(a);
+                    var prop_b = b.GetType().GetProperty(m_property).GetValue(b);
+                    order = s_default_comparer.Compare(prop_a, prop_b) * m_direction;
                 }
                 if (0 == order)
-                    order = CompareNames (v_a.Name, v_b.Name);
+                    order = CompareNames(v_a.Name, v_b.Name);
             }
             else
-                order = CompareNames (v_a.Name, v_b.Name) * m_direction;
+                order = CompareNames(v_a.Name, v_b.Name) * m_direction;
             return order;
         }
 
-        static int CompareNames (string a, string b)
+        static int CompareNames(string a, string b)
         {
-//            return NativeMethods.StrCmpLogicalW (a, b);
-            return string.Compare (a, b, StringComparison.CurrentCultureIgnoreCase);
+            //            return NativeMethods.StrCmpLogicalW (a, b);
+            return string.Compare(a, b, StringComparison.CurrentCultureIgnoreCase);
         }
     }
 
@@ -190,11 +190,12 @@ namespace GARbro.GUI
     public class ImageFormatModel
     {
         public ImageFormat Source { get; private set; }
-        public string Tag {
+        public string Tag
+        {
             get { return null != Source ? Source.Tag : guiStrings.TextAsIs; }
         }
 
-        public ImageFormatModel (ImageFormat impl = null)
+        public ImageFormatModel(ImageFormat impl = null)
         {
             Source = impl;
         }
@@ -206,36 +207,36 @@ namespace GARbro.GUI
     public class DirectoryPosition
     {
         public IEnumerable<string> Path { get; set; }
-        public string              Item { get; set; }
+        public string Item { get; set; }
 
-        public DirectoryPosition (DirectoryViewModel vm, EntryViewModel item)
+        public DirectoryPosition(DirectoryViewModel vm, EntryViewModel item)
         {
             Path = vm.Path;
             Item = null != item ? item.Name : null;
         }
 
-        public DirectoryPosition (string filename)
+        public DirectoryPosition(string filename)
         {
-            Path = new string[] { System.IO.Path.GetDirectoryName (filename) };
-            Item = System.IO.Path.GetFileName (filename);
+            Path = new string[] { System.IO.Path.GetDirectoryName(filename) };
+            Item = System.IO.Path.GetFileName(filename);
         }
     }
 
     public class EntryTypeConverter : IValueConverter
     {
-        public object Convert (object value, Type targetType, object parameter, CultureInfo culture)
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             var type = value as string;
-            if (!string.IsNullOrEmpty (type))
+            if (!string.IsNullOrEmpty(type))
             {
-                var translation = guiStrings.ResourceManager.GetString ("Type_"+type, guiStrings.Culture);
-                if (!string.IsNullOrEmpty (translation))
+                var translation = guiStrings.ResourceManager.GetString("Type_" + type, guiStrings.Culture);
+                if (!string.IsNullOrEmpty(translation))
                     return translation;
             }
             return value;
         }
 
-        public object ConvertBack (object value, Type targetType, object parameter, CultureInfo culture)
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
             throw new NotImplementedException();
         }

@@ -35,17 +35,17 @@ namespace GameRes.Formats.Kaguya
     [Export(typeof(ImageFormat))]
     public class AoFormat : ApFormat
     {
-        public override string         Tag { get { return "AO/KAGUYA"; } }
+        public override string Tag { get { return "AO/KAGUYA"; } }
         public override string Description { get { return "KaGuYa script engine image format"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool      CanWrite { get { return true; } }
+        public override uint Signature { get { return 0; } }
+        public override bool CanWrite { get { return true; } }
 
-        public AoFormat ()
+        public AoFormat()
         {
             Extensions = new string[] { "sp_" };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
             int A = stream.ReadByte();
             int O = stream.ReadByte();
@@ -62,24 +62,24 @@ namespace GameRes.Formats.Kaguya
             return info;
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
             stream.Position = 0x14;
-            return ReadBitmapData (stream, info);
+            return ReadBitmapData(stream, info);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            using (var output = new BinaryWriter (file, Encoding.ASCII, true))
+            using (var output = new BinaryWriter(file, Encoding.ASCII, true))
             {
-                output.Write ((byte)'A');
-                output.Write ((byte)'O');
-                output.Write (image.Width);
-                output.Write (image.Height);
-                output.Write ((short)24);
-                output.Write (image.OffsetX);
-                output.Write (image.OffsetY);
-                WriteBitmapData (file, image);
+                output.Write((byte)'A');
+                output.Write((byte)'O');
+                output.Write(image.Width);
+                output.Write(image.Height);
+                output.Write((short)24);
+                output.Write(image.OffsetX);
+                output.Write(image.OffsetY);
+                WriteBitmapData(file, image);
             }
         }
     }

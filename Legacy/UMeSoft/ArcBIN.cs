@@ -34,96 +34,97 @@ namespace GameRes.Formats.UMeSoft
     [Export(typeof(ArchiveFormat))]
     public class BinOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "BIN/UME"; } }
+        public override string Tag { get { return "BIN/UME"; } }
         public override string Description { get { return "U-Me Soft resources archive"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            int count = file.View.ReadInt32 (0);
+            int count = file.View.ReadInt32(0);
             if ((count & 0xFFFF) != 0)
                 return null;
             count = (count >> 16) - 1;
-            if (!IsSaneCount (count))
+            if (!IsSaneCount(count))
                 return null;
 
             uint index_offset = 0xC;
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
-                var name = file.View.ReadUInt32 (index_offset).ToString ("D5");
-                var entry = new PackedEntry {
-                    Name   = name,
-                    Offset = file.View.ReadUInt32 (index_offset+4) << 11,
-                    Size   = file.View.ReadUInt32 (index_offset+8),
+                var name = file.View.ReadUInt32(index_offset).ToString("D5");
+                var entry = new PackedEntry
+                {
+                    Name = name,
+                    Offset = file.View.ReadUInt32(index_offset + 4) << 11,
+                    Size = file.View.ReadUInt32(index_offset + 8),
                 };
-                if (!entry.CheckPlacement (file.MaxOffset))
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
-                dir.Add (entry);
+                dir.Add(entry);
                 index_offset += 12;
             }
             foreach (PackedEntry entry in dir)
             {
                 uint signature;
-                if (entry.Size > 13 && file.View.AsciiEqual (entry.Offset+2, "ike"))
+                if (entry.Size > 13 && file.View.AsciiEqual(entry.Offset + 2, "ike"))
                 {
-                    int unpacked_size = IkeReader.DecodeSize (file.View.ReadByte (entry.Offset+10),
-                                                              file.View.ReadByte (entry.Offset+11),
-                                                              file.View.ReadByte (entry.Offset+12));
+                    int unpacked_size = IkeReader.DecodeSize(file.View.ReadByte(entry.Offset + 10),
+                                                              file.View.ReadByte(entry.Offset + 11),
+                                                              file.View.ReadByte(entry.Offset + 12));
                     entry.IsPacked = true;
                     entry.UnpackedSize = (uint)unpacked_size;
-                    signature = file.View.ReadUInt32 (entry.Offset+0xF);
+                    signature = file.View.ReadUInt32(entry.Offset + 0xF);
                     entry.Offset += 13;
-                    entry.Size   -= 13;
+                    entry.Size -= 13;
                 }
                 else
-                    signature = file.View.ReadUInt32 (entry.Offset);
-                entry.ChangeType (AutoEntry.DetectFileType (signature));
+                    signature = file.View.ReadUInt32(entry.Offset);
+                entry.ChangeType(AutoEntry.DetectFileType(signature));
             }
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var pent = entry as PackedEntry;
             if (null == pent || !pent.IsPacked)
-                return base.OpenEntry (arc, entry);
-            using (var input = arc.File.CreateStream (entry.Offset, entry.Size))
+                return base.OpenEntry(arc, entry);
+            using (var input = arc.File.CreateStream(entry.Offset, entry.Size))
             {
-                var reader = new IkeReader (input, (int)pent.UnpackedSize);
+                var reader = new IkeReader(input, (int)pent.UnpackedSize);
                 var data = reader.Unpack();
-                return new BinMemoryStream (data, entry.Name);
+                return new BinMemoryStream(data, entry.Name);
             }
         }
     }
 
     internal class IkeReader
     {
-        IBinaryStream   m_input;
-        byte[]          m_output;
+        IBinaryStream m_input;
+        byte[] m_output;
 
-        public IkeReader (IBinaryStream input, int unpacked_size)
+        public IkeReader(IBinaryStream input, int unpacked_size)
         {
             m_input = input;
             m_output = new byte[unpacked_size];
         }
 
-        public static int DecodeSize (byte a, byte b, byte c)
+        public static int DecodeSize(byte a, byte b, byte c)
         {
             return b + ((c + (a >> 2 << 8)) << 8);
         }
 
-        public static IBinaryStream CreateStream (IBinaryStream input, int unpacked_size)
+        public static IBinaryStream CreateStream(IBinaryStream input, int unpacked_size)
         {
             input.Position = 0xD;
-            var ike = new IkeReader (input, unpacked_size);
+            var ike = new IkeReader(input, unpacked_size);
             var data = ike.Unpack();
-            return new BinMemoryStream (data);
+            return new BinMemoryStream(data);
         }
 
-        public byte[] Unpack ()
+        public byte[] Unpack()
         {
             m_bits = 2;
             GetBit();
@@ -228,8 +229,8 @@ namespace GameRes.Formats.UMeSoft
                     }
                     count = 2;
                 }
-                count = Math.Min (count, m_output.Length - dst);
-                Binary.CopyOverlapped (m_output, dst+offset, dst, count);
+                count = Math.Min(count, m_output.Length - dst);
+                Binary.CopyOverlapped(m_output, dst + offset, dst, count);
                 dst += count;
             }
             return m_output;
@@ -237,7 +238,7 @@ namespace GameRes.Formats.UMeSoft
 
         int m_bits;
 
-        int GetBit ()
+        int GetBit()
         {
             int bit = m_bits & 1;
             m_bits >>= 1;

@@ -9,10 +9,10 @@ namespace GameRes.Formats.GUI
     /// </summary>
     public partial class WidgetLEAF : StackPanel
     {
-        public WidgetLEAF (IEnumerable<string> titles)
+        public WidgetLEAF(IEnumerable<string> titles)
         {
             this.InitializeComponent();
-            this.DataContext = titles.OrderBy (x => x);
+            this.DataContext = titles.OrderBy(x => x);
         }
     }
 }

@@ -38,58 +38,60 @@ namespace GameRes.Formats.Lune
     [ExportMetadata("Priority", -2)]
     public class PackOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "PACK/LUNE"; } }
+        public override string Tag { get { return "PACK/LUNE"; } }
         public override string Description { get { return "Lune Adv Game engine resource archive"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public PackOpener ()
+        public PackOpener()
         {
             Extensions = new string[] { "dat", "wda" };
         }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            uint first_offset = file.View.ReadUInt32 (0);
+            uint first_offset = file.View.ReadUInt32(0);
             if (first_offset <= 8 || first_offset >= file.MaxOffset || 0 != (first_offset & 7))
                 return null;
             int count = (int)(first_offset / 8);
-            if (!IsSaneCount (count))
+            if (!IsSaneCount(count))
                 return null;
-            var base_name = Path.GetFileNameWithoutExtension (file.Name);
-            string type = file.Name.HasAnyOfExtensions (".wda", ".bgm") ? "audio"
-                        : file.Name.HasExtension (".scr") ? "script"
+            var base_name = Path.GetFileNameWithoutExtension(file.Name);
+            string type = file.Name.HasAnyOfExtensions(".wda", ".bgm") ? "audio"
+                        : file.Name.HasExtension(".scr") ? "script"
                         : "image";
             if (base_name == "pack")
-                base_name = Path.GetExtension (file.Name).TrimStart ('.');
+                base_name = Path.GetExtension(file.Name).TrimStart('.');
             uint index_offset = 0;
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
-                var entry = new Entry {
-                    Name = string.Format ("{0}#{1:D5}", base_name, i),
+                var entry = new Entry
+                {
+                    Name = string.Format("{0}#{1:D5}", base_name, i),
                     Type = type,
-                    Offset = file.View.ReadUInt32 (index_offset),
-                    Size   = file.View.ReadUInt32 (index_offset+4),
+                    Offset = file.View.ReadUInt32(index_offset),
+                    Size = file.View.ReadUInt32(index_offset + 4),
                 };
-                if (entry.Offset < first_offset || !entry.CheckPlacement (file.MaxOffset))
+                if (entry.Offset < first_offset || !entry.CheckPlacement(file.MaxOffset))
                     return null;
                 if (entry.Size > 0)
-                    dir.Add (entry);
+                    dir.Add(entry);
                 index_offset += 8;
             }
-            if (dir.Count == 0 || dir[dir.Count-1].Offset + dir[dir.Count-1].Size != file.MaxOffset)
+            if (dir.Count == 0 || dir[dir.Count - 1].Offset + dir[dir.Count - 1].Size != file.MaxOffset)
                 return null;
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
-            if (!arc.File.Name.HasAnyOfExtensions (".wda", ".bgm"))
-                return base.OpenEntry (arc, entry);
-            uint sample_rate = arc.File.Name.HasExtension (".bgm") ? 44100u : 22050u;
-            var format = new WaveFormat {
+            if (!arc.File.Name.HasAnyOfExtensions(".wda", ".bgm"))
+                return base.OpenEntry(arc, entry);
+            uint sample_rate = arc.File.Name.HasExtension(".bgm") ? 44100u : 22050u;
+            var format = new WaveFormat
+            {
                 FormatTag = 1,
                 Channels = 1,
                 SamplesPerSecond = sample_rate,
@@ -98,48 +100,49 @@ namespace GameRes.Formats.Lune
             };
             format.SetBPS();
             byte[] wav_header;
-            using (var output = new MemoryStream (0x2C))
+            using (var output = new MemoryStream(0x2C))
             {
-                WaveAudio.WriteRiffHeader (output, format, entry.Size);
+                WaveAudio.WriteRiffHeader(output, format, entry.Size);
                 wav_header = output.ToArray();
             }
-            var pcm_data = arc.File.CreateStream (entry.Offset, entry.Size);
-            return new PrefixStream (wav_header, pcm_data);
+            var pcm_data = arc.File.CreateStream(entry.Offset, entry.Size);
+            return new PrefixStream(wav_header, pcm_data);
         }
 
-        public override IImageDecoder OpenImage (ArcFile arc, Entry entry)
+        public override IImageDecoder OpenImage(ArcFile arc, Entry entry)
         {
-            var input = arc.File.CreateStream (entry.Offset, entry.Size);
+            var input = arc.File.CreateStream(entry.Offset, entry.Size);
             if (0 == input.Signature)
-                return new Pack2ImageDecoder (input);
-            else if (arc.File.Name.HasExtension (".msk"))
-                return new PackMaskDecoder (input);
+                return new Pack2ImageDecoder(input);
+            else if (arc.File.Name.HasExtension(".msk"))
+                return new PackMaskDecoder(input);
             else
-                return new PackImageDecoder (input);
+                return new PackImageDecoder(input);
         }
     }
 
     internal class PackImageDecoder : BinaryImageDecoder
     {
-        protected int   m_start_pos;
-        protected int   m_stride;
-        protected int   m_first_pixel_size;
-        protected byte  m_max_pixel = 0x20;
+        protected int m_start_pos;
+        protected int m_stride;
+        protected int m_first_pixel_size;
+        protected byte m_max_pixel = 0x20;
 
 
-        public PixelFormat       Format { get; protected set; }
+        public PixelFormat Format { get; protected set; }
 
-        public PackImageDecoder (IBinaryStream input) : base (input)
+        public PackImageDecoder(IBinaryStream input) : base(input)
         {
             ReadHeader();
             m_start_pos = (int)m_input.Position;
             m_stride = (int)Info.Width * Format.BitsPerPixel / 8;
         }
 
-        protected virtual void ReadHeader ()
+        protected virtual void ReadHeader()
         {
             Format = PixelFormats.Bgr24;
-            Info = new ImageMetaData {
+            Info = new ImageMetaData
+            {
                 Width = m_input.ReadUInt16(),
                 Height = m_input.ReadUInt16(),
                 BPP = 24,
@@ -147,29 +150,29 @@ namespace GameRes.Formats.Lune
             m_first_pixel_size = 1;
         }
 
-        protected override ImageData GetImageData ()
+        protected override ImageData GetImageData()
         {
             m_input.Position = m_start_pos;
             var data = ReadDataBytes();
-            using (var bits = new MsbBitStream (m_input.AsStream, true))
+            using (var bits = new MsbBitStream(m_input.AsStream, true))
             {
                 var pixels = new byte[m_stride * (int)Info.Height];
                 if (24 == Info.BPP)
-                    Unpack24bpp (bits, data, pixels);
+                    Unpack24bpp(bits, data, pixels);
                 else
-                    Unpack8bpp (bits, data, pixels);
-                return ImageData.Create (Info, Format, null, pixels);
+                    Unpack8bpp(bits, data, pixels);
+                return ImageData.Create(Info, Format, null, pixels);
             }
         }
 
-        protected void Unpack24bpp (MsbBitStream bits, byte[] data, byte[] output)
+        protected void Unpack24bpp(MsbBitStream bits, byte[] data, byte[] output)
         {
             int src = 0, dst = 0;
             for (int i = 0; i < m_first_pixel_size; ++i)
                 output[dst++] = data[src++];
             while (dst < output.Length)
             {
-                int ctl = bits.GetBits (2);
+                int ctl = bits.GetBits(2);
                 byte v;
                 if (0 == ctl)
                 {
@@ -177,7 +180,7 @@ namespace GameRes.Formats.Lune
                 }
                 else
                 {
-                    v = output[dst-3];
+                    v = output[dst - 3];
                     if (ctl == 2)
                     {
                         if (bits.GetNextBit() != 0)
@@ -187,7 +190,7 @@ namespace GameRes.Formats.Lune
                     }
                     else if (ctl == 3)
                     {
-                        ctl = bits.GetBits (2);
+                        ctl = bits.GetBits(2);
                         if (ctl == 2)
                         {
                             if (bits.GetNextBit() != 0)
@@ -197,7 +200,7 @@ namespace GameRes.Formats.Lune
                         }
                         else if (ctl == 3)
                         {
-                            ctl = bits.GetBits (2);
+                            ctl = bits.GetBits(2);
                             if (ctl == 2)
                             {
                                 if (bits.GetNextBit() != 0)
@@ -207,12 +210,12 @@ namespace GameRes.Formats.Lune
                             }
                             else if (ctl == 3)
                             {
-                                switch (bits.GetBits (2))
+                                switch (bits.GetBits(2))
                                 {
-                                case 3:  v -= 7; break;
-                                case 2:  v += 7; break;
-                                case 1:  v -= 6; break;
-                                default: v += 6; break;
+                                    case 3: v -= 7; break;
+                                    case 2: v += 7; break;
+                                    case 1: v -= 6; break;
+                                    default: v += 6; break;
                                 }
                             }
                             else if (ctl == 1)
@@ -230,7 +233,7 @@ namespace GameRes.Formats.Lune
             }
         }
 
-        protected void Unpack8bpp (MsbBitStream bits, byte[] data, byte[] output)
+        protected void Unpack8bpp(MsbBitStream bits, byte[] data, byte[] output)
         {
             int src = 0;
             int dst = 0;
@@ -241,15 +244,15 @@ namespace GameRes.Formats.Lune
             int x = 1;
             while (dst < output.Length)
             {
-                int ctl = bits.GetBits (2);
+                int ctl = bits.GetBits(2);
                 if (0 == ctl)
                 {
                     int count;
                     if (bit_count > 0)
-                        count = bits.GetBits (14 - bit_count);
+                        count = bits.GetBits(14 - bit_count);
                     else
-                        count = bits.GetBits (6);
-                    while (count --> 0 && dst < output.Length)
+                        count = bits.GetBits(6);
+                    while (count-- > 0 && dst < output.Length)
                     {
                         if (y == 0 || x + 1 == m_stride)
                             output[dst] = init_value;
@@ -284,7 +287,7 @@ namespace GameRes.Formats.Lune
                     if (bits.GetNextBit() != 0)
                         output[dst] = output[dst - m_stride];
                     else
-                        output[dst] = output[dst-1];
+                        output[dst] = output[dst - 1];
                 }
                 ++dst;
                 if (++x == m_stride)
@@ -306,12 +309,12 @@ namespace GameRes.Formats.Lune
             }
         }
 
-        protected byte[] ReadDataBytes ()
+        protected byte[] ReadDataBytes()
         {
             uint data_pos = m_input.ReadUInt32();
             long ctl_pos = m_input.Position;
-            m_input.Seek (data_pos, SeekOrigin.Current);
-            var data = m_input.ReadBytes ((int)(m_input.Length - data_pos));
+            m_input.Seek(data_pos, SeekOrigin.Current);
+            var data = m_input.ReadBytes((int)(m_input.Length - data_pos));
             if (0 == data.Length)
                 throw new InvalidFormatException();
             m_input.Position = ctl_pos;
@@ -321,12 +324,13 @@ namespace GameRes.Formats.Lune
 
     internal sealed class PackMaskDecoder : PackImageDecoder
     {
-        public PackMaskDecoder (IBinaryStream input) : base (input) { }
+        public PackMaskDecoder(IBinaryStream input) : base(input) { }
 
-        protected override void ReadHeader ()
+        protected override void ReadHeader()
         {
             Format = PixelFormats.Gray8;
-            Info = new ImageMetaData {
+            Info = new ImageMetaData
+            {
                 Width = m_input.ReadUInt16(),
                 Height = m_input.ReadUInt16(),
                 BPP = 8
@@ -336,22 +340,23 @@ namespace GameRes.Formats.Lune
 
     internal class Pack2ImageDecoder : PackImageDecoder
     {
-        public Pack2ImageDecoder (IBinaryStream input) : base (input) { }
+        public Pack2ImageDecoder(IBinaryStream input) : base(input) { }
 
-        protected override void ReadHeader ()
+        protected override void ReadHeader()
         {
-            Info = new ImageMetaData {
+            Info = new ImageMetaData
+            {
                 OffsetX = m_input.ReadInt16(),
                 OffsetY = m_input.ReadInt16(),
-                Width   = m_input.ReadUInt16(),
-                Height  = m_input.ReadUInt16(),
-                BPP     = m_input.ReadUInt16(),
+                Width = m_input.ReadUInt16(),
+                Height = m_input.ReadUInt16(),
+                BPP = m_input.ReadUInt16(),
             };
             if (Info.BPP < 4 || Info.BPP > 24)
                 throw new InvalidFormatException();
             m_first_pixel_size = 3;
             Format = Info.BPP == 24 ? PixelFormats.Bgr24
-                   : Info.BPP == 4  ? PixelFormats.Gray4
+                   : Info.BPP == 4 ? PixelFormats.Gray4
                                     : PixelFormats.Gray8;
         }
     }

@@ -52,26 +52,26 @@ namespace GameRes.Formats.Unity
 
     internal class Texture2D
     {
-        public string   m_Name;
-        public int      m_Width;
-        public int      m_Height;
-        public int      m_CompleteImageSize;
+        public string m_Name;
+        public int m_Width;
+        public int m_Height;
+        public int m_CompleteImageSize;
         public TextureFormat m_TextureFormat;
-        public int      m_MipCount;
-        public bool     m_IsReadable;
-        public bool     m_ReadAllowed;
-        public int      m_ImageCount;
-        public int      m_TextureDimension;
-        public int      m_FilterMode;
-        public int      m_Aniso;
-        public float    m_MipBias;
-        public int      m_WrapMode;
-        public int      m_LightFormat;
-        public int      m_ColorSpace;
-        public int      m_DataLength;
-        public byte[]   m_Data;
+        public int m_MipCount;
+        public bool m_IsReadable;
+        public bool m_ReadAllowed;
+        public int m_ImageCount;
+        public int m_TextureDimension;
+        public int m_FilterMode;
+        public int m_Aniso;
+        public float m_MipBias;
+        public int m_WrapMode;
+        public int m_LightFormat;
+        public int m_ColorSpace;
+        public int m_DataLength;
+        public byte[] m_Data;
 
-        public void Load (AssetReader reader)
+        public void Load(AssetReader reader)
         {
             m_Name = reader.ReadString();
             reader.Align();
@@ -97,17 +97,17 @@ namespace GameRes.Formats.Unity
             m_DataLength = reader.ReadInt32();
         }
 
-        public void Load (AssetReader reader, UnityTypeData type)
+        public void Load(AssetReader reader, UnityTypeData type)
         {
             if ("2021.1.3f1" == type.Version) // type.Hashes[28] == [0D 08 41 4C FD 5B DB 0D 22 79 20 11 BD A9 AB 26]
             {
-                Load2021 (reader);
+                Load2021(reader);
                 return;
             }
             if (type.Version != "2017.3.1f1" && type.Version != "2019.3.0f1" && type.Version != "2017.4.3f1")
             {
-                Load (reader);
-                if (0 == m_DataLength && type.Version.StartsWith ("2017.")) // "2017.2.0f3" || "2017.1.1p1"
+                Load(reader);
+                if (0 == m_DataLength && type.Version.StartsWith("2017.")) // "2017.2.0f3" || "2017.1.1p1"
                     reader.ReadInt64();
                 return;
             }
@@ -138,7 +138,7 @@ namespace GameRes.Formats.Unity
             m_DataLength = reader.ReadInt32();
         }
 
-        public void Load2017 (AssetReader reader)
+        public void Load2017(AssetReader reader)
         {
             m_Name = reader.ReadString();
             reader.Align();
@@ -164,7 +164,7 @@ namespace GameRes.Formats.Unity
             m_DataLength = reader.ReadInt32();
         }
 
-        public void Load2021 (AssetReader reader)
+        public void Load2021(AssetReader reader)
         {
             m_Name = reader.ReadString();
             reader.Align();
@@ -193,12 +193,12 @@ namespace GameRes.Formats.Unity
             m_DataLength = reader.ReadInt32();
         }
 
-        public void LoadData (AssetReader reader)
+        public void LoadData(AssetReader reader)
         {
-            m_Data = reader.ReadBytes (m_DataLength);
+            m_Data = reader.ReadBytes(m_DataLength);
         }
 
-        public void Import (IDictionary fields)
+        public void Import(IDictionary fields)
         {
             m_Name = fields["m_Name"] as string ?? "";
             m_Width = (int)(fields["m_Width"] ?? 0);
@@ -215,148 +215,149 @@ namespace GameRes.Formats.Unity
 
     internal class Texture2DDecoder : IImageDecoder
     {
-        AssetReader     m_reader;
-        Texture2D       m_texture;
-        ImageData       m_image;
+        AssetReader m_reader;
+        Texture2D m_texture;
+        ImageData m_image;
 
-        public Stream            Source { get { m_reader.Position = 0; return m_reader.Source; } }
+        public Stream Source { get { m_reader.Position = 0; return m_reader.Source; } }
         public ImageFormat SourceFormat { get { return null; } }
-        public PixelFormat       Format { get; private set; }
-        public ImageMetaData       Info { get; private set; }
-        public ImageData          Image { get { return m_image ?? (m_image = Unpack()); } }
+        public PixelFormat Format { get; private set; }
+        public ImageMetaData Info { get; private set; }
+        public ImageData Image { get { return m_image ?? (m_image = Unpack()); } }
 
-        public Texture2DDecoder (Texture2D texture, AssetReader input)
+        public Texture2DDecoder(Texture2D texture, AssetReader input)
         {
             m_reader = input;
             m_texture = texture;
-            Info = new ImageMetaData {
-                Width   = (uint)m_texture.m_Width,
-                Height  = (uint)m_texture.m_Height,
+            Info = new ImageMetaData
+            {
+                Width = (uint)m_texture.m_Width,
+                Height = (uint)m_texture.m_Height,
             };
-            SetFormat (m_texture.m_TextureFormat);
+            SetFormat(m_texture.m_TextureFormat);
         }
 
-        void SetFormat (TextureFormat format)
+        void SetFormat(TextureFormat format)
         {
             switch (format)
             {
-            case TextureFormat.Alpha8:
-                Format = PixelFormats.Gray8;
-                Info.BPP = 8;
-                break;
+                case TextureFormat.Alpha8:
+                    Format = PixelFormats.Gray8;
+                    Info.BPP = 8;
+                    break;
 
-            case TextureFormat.R16:
-                Format = PixelFormats.Gray16;
-                Info.BPP = 16;
-                break;
+                case TextureFormat.R16:
+                    Format = PixelFormats.Gray16;
+                    Info.BPP = 16;
+                    break;
 
-            case TextureFormat.RGB24:
-                Format = PixelFormats.Rgb24;
-                Info.BPP = 24;
-                break;
+                case TextureFormat.RGB24:
+                    Format = PixelFormats.Rgb24;
+                    Info.BPP = 24;
+                    break;
 
-            case TextureFormat.RGB565:
-                Format = PixelFormats.Bgr565;
-                Info.BPP = 16;
-                break;
+                case TextureFormat.RGB565:
+                    Format = PixelFormats.Bgr565;
+                    Info.BPP = 16;
+                    break;
 
-            default:
-                Format = PixelFormats.Bgra32;
-                Info.BPP = 32;
-                break;
+                default:
+                    Format = PixelFormats.Bgra32;
+                    Info.BPP = 32;
+                    break;
             }
         }
 
-        ImageData Unpack ()
+        ImageData Unpack()
         {
             if (null == m_texture.m_Data || 0 == m_texture.m_Data.Length)
-                m_texture.LoadData (m_reader);
+                m_texture.LoadData(m_reader);
             byte[] pixels;
             switch (m_texture.m_TextureFormat)
             {
-            case TextureFormat.DXT1:
-                {
-                    var decoder = new DxtDecoder (m_texture.m_Data, Info);
-                    pixels = decoder.UnpackDXT1();
+                case TextureFormat.DXT1:
+                    {
+                        var decoder = new DxtDecoder(m_texture.m_Data, Info);
+                        pixels = decoder.UnpackDXT1();
+                        break;
+                    }
+                case TextureFormat.DXT5:
+                    {
+                        var decoder = new DxtDecoder(m_texture.m_Data, Info);
+                        pixels = decoder.UnpackDXT5();
+                        break;
+                    }
+                case TextureFormat.Alpha8:
+                case TextureFormat.R16:
+                case TextureFormat.RGB24:
+                case TextureFormat.BGRA32:
+                case TextureFormat.RGB565:
+                    pixels = m_texture.m_Data;
                     break;
-                }
-            case TextureFormat.DXT5:
-                {
-                    var decoder = new DxtDecoder (m_texture.m_Data, Info);
-                    pixels = decoder.UnpackDXT5();
+
+                case TextureFormat.ARGB32:
+                    pixels = ConvertArgb(m_texture.m_Data);
                     break;
-                }
-            case TextureFormat.Alpha8:
-            case TextureFormat.R16:
-            case TextureFormat.RGB24:
-            case TextureFormat.BGRA32:
-            case TextureFormat.RGB565:
-                pixels = m_texture.m_Data;
-                break;
 
-            case TextureFormat.ARGB32:
-                pixels = ConvertArgb (m_texture.m_Data);
-                break;
-
-            case TextureFormat.RGBA32:
-                pixels = ConvertRgba (m_texture.m_Data);
-                break;
-
-            case TextureFormat.ARGB4444:
-                pixels = ConvertArgb16 (m_texture.m_Data);
-                break;
-
-            case TextureFormat.BC7:
-                {
-                    var decoder = new Bc7Decoder (m_texture.m_Data, Info);
-                    pixels = decoder.Unpack();
+                case TextureFormat.RGBA32:
+                    pixels = ConvertRgba(m_texture.m_Data);
                     break;
-                }
-            default:
-                throw new NotImplementedException (string.Format ("Not supported Unity Texture2D format '{0}'.", m_texture.m_TextureFormat));
+
+                case TextureFormat.ARGB4444:
+                    pixels = ConvertArgb16(m_texture.m_Data);
+                    break;
+
+                case TextureFormat.BC7:
+                    {
+                        var decoder = new Bc7Decoder(m_texture.m_Data, Info);
+                        pixels = decoder.Unpack();
+                        break;
+                    }
+                default:
+                    throw new NotImplementedException(string.Format("Not supported Unity Texture2D format '{0}'.", m_texture.m_TextureFormat));
             }
-            return ImageData.CreateFlipped (Info, Format, null, pixels, (int)Info.Width*((Format.BitsPerPixel+7)/8));
+            return ImageData.CreateFlipped(Info, Format, null, pixels, (int)Info.Width * ((Format.BitsPerPixel + 7) / 8));
         }
 
-        byte[] ConvertArgb (byte[] data)
+        byte[] ConvertArgb(byte[] data)
         {
             // XXX conversion performed in-place.
             for (int i = 0; i < data.Length; i += 4)
             {
-                uint x = BigEndian.ToUInt32 (data, i);
-                LittleEndian.Pack (x, data, i);
+                uint x = BigEndian.ToUInt32(data, i);
+                LittleEndian.Pack(x, data, i);
             }
             return data;
         }
 
-        byte[] ConvertArgb16 (byte[] data)
+        byte[] ConvertArgb16(byte[] data)
         {
             var output = new byte[data.Length * 2];
             int dst = 0;
             for (int i = 0; i < data.Length; i += 2)
             {
-                ushort p = LittleEndian.ToUInt16 (data, i);
-                output[dst++] = (byte)( (p        & 0xF) * 0x11);
-                output[dst++] = (byte)(((p >>  4) & 0xF) * 0x11);
-                output[dst++] = (byte)(((p >>  8) & 0xF) * 0x11);
+                ushort p = LittleEndian.ToUInt16(data, i);
+                output[dst++] = (byte)((p & 0xF) * 0x11);
+                output[dst++] = (byte)(((p >> 4) & 0xF) * 0x11);
+                output[dst++] = (byte)(((p >> 8) & 0xF) * 0x11);
                 output[dst++] = (byte)(((p >> 12) & 0xF) * 0x11);
             }
             return output;
         }
 
-        byte[] ConvertRgba (byte[] data)
+        byte[] ConvertRgba(byte[] data)
         {
             for (int i = 0; i < data.Length; i += 4)
             {
                 byte r = data[i];
-                data[i] = data[i+2];
-                data[i+2] = r;
+                data[i] = data[i + 2];
+                data[i + 2] = r;
             }
             return data;
         }
 
         bool m_disposed = false;
-        public void Dispose ()
+        public void Dispose()
         {
             if (!m_disposed)
             {

@@ -35,102 +35,102 @@ namespace GameRes.Formats.UMeSoft
     {
         public bool IsPacked;
         public bool HasAlpha;
-        public int  AlphaOffset;
+        public int AlphaOffset;
     }
 
     [Export(typeof(ImageFormat))]
     public class GrxFormat : ImageFormat
     {
-        public override string         Tag { get { return "GRX"; } }
+        public override string Tag { get { return "GRX"; } }
         public override string Description { get { return "U-Me Soft image format"; } }
-        public override uint     Signature { get { return 0x1A585247; } } // 'GRX'
+        public override uint Signature { get { return 0x1A585247; } } // 'GRX'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
             file.Position = 4;
-            return ReadInfo (file);
+            return ReadInfo(file);
         }
 
-        internal GrxMetaData ReadInfo (IBinaryStream file)
+        internal GrxMetaData ReadInfo(IBinaryStream file)
         {
             var info = new GrxMetaData();
-            info.IsPacked   = file.ReadByte() != 0;
-            info.HasAlpha   = file.ReadByte() != 0;
-            info.BPP        = file.ReadUInt16();
-            info.Width      = file.ReadUInt16();
-            info.Height     = file.ReadUInt16();
+            info.IsPacked = file.ReadByte() != 0;
+            info.HasAlpha = file.ReadByte() != 0;
+            info.BPP = file.ReadUInt16();
+            info.Width = file.ReadUInt16();
+            info.Height = file.ReadUInt16();
             info.AlphaOffset = file.ReadInt32();
             return info;
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new Reader (file.AsStream, (GrxMetaData)info);
+            var reader = new Reader(file.AsStream, (GrxMetaData)info);
             reader.Unpack();
-            return ImageData.Create (info, reader.Format, null, reader.Data, reader.Stride);
+            return ImageData.Create(info, reader.Format, null, reader.Data, reader.Stride);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("GrxFormat.Write not implemented");
+            throw new System.NotImplementedException("GrxFormat.Write not implemented");
         }
 
         internal class Reader
         {
-            Stream      m_input;
-            byte[]      m_output;
+            Stream m_input;
+            byte[] m_output;
             GrxMetaData m_info;
-            int         m_pixel_size;
-            int         m_aligned_width;
+            int m_pixel_size;
+            int m_aligned_width;
 
-            public byte[]        Data { get { return m_output; } }
+            public byte[] Data { get { return m_output; } }
             public PixelFormat Format { get; private set; }
-            public int         Stride { get; private set; }
+            public int Stride { get; private set; }
 
-            public Reader (Stream input, GrxMetaData info)
+            public Reader(Stream input, GrxMetaData info)
             {
                 m_input = input;
                 m_info = info;
                 m_pixel_size = (m_info.BPP + 7) / 8;
                 switch (m_info.BPP)
                 {
-                case 32:
-                    Format = PixelFormats.Bgr32;
-                    break;
-                case 24:
-                    Format = PixelFormats.Bgr32;
-                    m_pixel_size = 4;
-                    break;
-                case 16:
-                    Format = PixelFormats.Bgr565;
-                    break;
-                case 15:
-                    Format = PixelFormats.Bgr555;
-                    break;
-                case 8:
-                    Format = PixelFormats.Gray8;
-                    break;
-                default:
-                    throw new InvalidFormatException();
+                    case 32:
+                        Format = PixelFormats.Bgr32;
+                        break;
+                    case 24:
+                        Format = PixelFormats.Bgr32;
+                        m_pixel_size = 4;
+                        break;
+                    case 16:
+                        Format = PixelFormats.Bgr565;
+                        break;
+                    case 15:
+                        Format = PixelFormats.Bgr555;
+                        break;
+                    case 8:
+                        Format = PixelFormats.Gray8;
+                        break;
+                    default:
+                        throw new InvalidFormatException();
                 }
                 m_aligned_width = ((int)m_info.Width + 3) & ~3;
                 Stride = m_aligned_width * m_pixel_size;
                 m_output = new byte[Stride * (int)info.Height];
             }
 
-            public void Unpack ()
+            public void Unpack()
             {
                 m_input.Position = 0x10;
                 if (!m_info.IsPacked)
-                    m_input.Read (m_output, 0, m_output.Length);
+                    m_input.ReadExactly(m_output);
                 else
-                    UnpackColorData (m_output, (m_info.BPP + 7) / 8, m_pixel_size);
+                    UnpackColorData(m_output, (m_info.BPP + 7) / 8, m_pixel_size);
 
                 if (m_info.HasAlpha && m_info.AlphaOffset > 0)
                 {
                     m_input.Position = 0x10 + m_info.AlphaOffset;
                     var alpha = new byte[m_aligned_width * (int)m_info.Height];
-                    UnpackColorData (alpha, 1, 1);
+                    UnpackColorData(alpha, 1, 1);
                     if (m_info.BPP >= 24)
                     {
                         int dst = 3;
@@ -146,11 +146,11 @@ namespace GameRes.Formats.UMeSoft
                         Format = PixelFormats.Bgra32;
                     }
                     else if (16 == m_info.BPP)
-                        ApplyAlpha16bpp (alpha);
+                        ApplyAlpha16bpp(alpha);
                 }
             }
 
-            void ApplyAlpha16bpp (byte[] alpha)
+            void ApplyAlpha16bpp(byte[] alpha)
             {
                 int dst_stride = m_aligned_width * 4;
                 var pixels = new byte[dst_stride * (int)m_info.Height];
@@ -162,11 +162,11 @@ namespace GameRes.Formats.UMeSoft
                 {
                     for (int x = 0; x < m_info.Width; ++x)
                     {
-                        int pixel = LittleEndian.ToUInt16 (m_output, src + x*2);
+                        int pixel = LittleEndian.ToUInt16(m_output, src + x * 2);
                         pixels[dst++] = (byte)((pixel & 0x001F) * 0xFF / 0x001F);
                         pixels[dst++] = (byte)((pixel & 0x07E0) * 0xFF / 0x07E0);
                         pixels[dst++] = (byte)((pixel & 0xF800) * 0xFF / 0xF800);
-                        pixels[dst++] = alpha[a+x];
+                        pixels[dst++] = alpha[a + x];
                     }
                     dst += gap;
                     src += Stride;
@@ -178,19 +178,19 @@ namespace GameRes.Formats.UMeSoft
                 Format = PixelFormats.Bgra32;
             }
 
-            static readonly int[,] OffsetTable = new int[2,16] {
+            static readonly int[,] OffsetTable = new int[2, 16] {
                 { 0, -1, -1, -1,  0, -2, -2, -2,  0, -4, -4, -4, -2, -2, -4, -4 },
                 { 0,  0, -1,  1, -2,  0, -2,  2, -4,  0, -4,  4, -4,  4, -2,  2 },
             };
 
-            void UnpackColorData (byte[] output, int src_pixel_size, int dst_pixel_size)
+            void UnpackColorData(byte[] output, int src_pixel_size, int dst_pixel_size)
             {
                 int[] offset_step = new int[16];
 
                 int stride = ((int)m_info.Width * dst_pixel_size + 3) & ~3;
                 int delta = stride - (int)m_info.Width * dst_pixel_size;
                 for (int i = 0; i < 16; i++)
-                    offset_step[i] = OffsetTable[0,i] * stride + OffsetTable[1,i] * dst_pixel_size;
+                    offset_step[i] = OffsetTable[0, i] * stride + OffsetTable[1, i] * dst_pixel_size;
 
                 int dst = 0;
                 for (uint y = 0; y < m_info.Height; ++y)
@@ -215,7 +215,7 @@ namespace GameRes.Formats.UMeSoft
                                 if (src_pixel_size == dst_pixel_size)
                                 {
                                     count *= dst_pixel_size;
-                                    if (count != m_input.Read (output, dst, count))
+                                    if (count != m_input.Read(output, dst, count))
                                         throw new InvalidFormatException();
                                     dst += count;
                                 }
@@ -223,7 +223,7 @@ namespace GameRes.Formats.UMeSoft
                                 {
                                     for (int i = 0; i < count; ++i)
                                     {
-                                        if (src_pixel_size != m_input.Read (output, dst, src_pixel_size))
+                                        if (src_pixel_size != m_input.Read(output, dst, src_pixel_size))
                                             throw new InvalidFormatException();
                                         dst += dst_pixel_size;
                                     }
@@ -231,13 +231,13 @@ namespace GameRes.Formats.UMeSoft
                             }
                             else
                             {
-                                if (src_pixel_size != m_input.Read (output, dst, src_pixel_size))
+                                if (src_pixel_size != m_input.Read(output, dst, src_pixel_size))
                                     throw new InvalidFormatException();
                                 --count;
                                 dst += dst_pixel_size;
-                                for (int i = count*dst_pixel_size; i > 0; i--)
+                                for (int i = count * dst_pixel_size; i > 0; i--)
                                 {
-                                    output[dst] = output[dst-dst_pixel_size];
+                                    output[dst] = output[dst - dst_pixel_size];
                                     dst++;
                                 }
                             }
@@ -250,14 +250,14 @@ namespace GameRes.Formats.UMeSoft
                                 for (int i = 0; i < count; i++)
                                 {
                                     for (int j = 0; j < src_pixel_size; ++j)
-                                        output[dst+j] = output[src+j];
+                                        output[dst + j] = output[src + j];
                                     dst += dst_pixel_size;
                                 }
                             }
                             else
                             {
                                 count *= dst_pixel_size;
-                                Binary.CopyOverlapped (output, src, dst, count);
+                                Binary.CopyOverlapped(output, src, dst, count);
                                 dst += count;
                             }
                         }
@@ -281,23 +281,23 @@ namespace GameRes.Formats.UMeSoft
 
     internal class SgxMetaData : ImageMetaData
     {
-        public int           GrxOffset;
+        public int GrxOffset;
         public ImageMetaData GrxInfo;
     }
 
     [Export(typeof(ImageFormat))]
     public class SgxFormat : GrxFormat
     {
-        public override string         Tag { get { return "SGX"; } }
+        public override string Tag { get { return "SGX"; } }
         public override string Description { get { return "U-Me Soft multi-frame image format"; } }
-        public override uint     Signature { get { return 0x1A584753; } } // 'SGX'
+        public override uint Signature { get { return 0x1A584753; } } // 'SGX'
 
-        public SgxFormat ()
+        public SgxFormat()
         {
             Extensions = new string[] { "grx" };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
             file.Position = 4;
             int offset = file.ReadInt32();
@@ -307,25 +307,25 @@ namespace GameRes.Formats.UMeSoft
             uint signature = file.ReadUInt32();
             if (signature != base.Signature)
                 return null;
-            var info = ReadInfo (file);
+            var info = ReadInfo(file);
             return new SgxMetaData
             {
-                Width   = info.Width,
-                Height  = info.Height,
-                BPP     = info.BPP,
+                Width = info.Width,
+                Height = info.Height,
+                BPP = info.BPP,
                 GrxOffset = offset,
                 GrxInfo = info
             };
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
             var meta = (SgxMetaData)info;
-            using (var grx = new StreamRegion (stream.AsStream, meta.GrxOffset, true))
+            using (var grx = new StreamRegion(stream.AsStream, meta.GrxOffset, true))
             {
-                var reader = new Reader (grx, (GrxMetaData)meta.GrxInfo);
+                var reader = new Reader(grx, (GrxMetaData)meta.GrxInfo);
                 reader.Unpack();
-                return ImageData.Create (info, reader.Format, null, reader.Data, reader.Stride);
+                return ImageData.Create(info, reader.Format, null, reader.Data, reader.Stride);
             }
         }
     }

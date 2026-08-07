@@ -40,24 +40,24 @@ namespace GameRes.Formats.Rugp
     [Export(typeof(ImageFormat))]
     public class RipFormat : ImageFormat
     {
-        public override string         Tag { get { return "RIP"; } }
+        public override string Tag { get { return "RIP"; } }
         public override string Description { get { return "rUGP compressed image format"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public RipFormat ()
+        public RipFormat()
         {
             Extensions = new string[] { "rip", "sia" };
         }
 
         // signature set to 0 because all serialized rUGP objects have same signature.
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
             if (file.Signature != CRioArchive.ObjectSignature)
                 return null;
-            var rio = new CRioArchive (file);
+            var rio = new CRioArchive(file);
             uint signature;
-            var class_ref = rio.LoadRioTypeCore (out signature);
+            var class_ref = rio.LoadRioTypeCore(out signature);
             CRip img;
             if ("CRip007" == class_ref)
                 img = new CRip007();
@@ -65,41 +65,41 @@ namespace GameRes.Formats.Rugp
                 img = new CRip();
             else
                 return null;
-            return img.ReadMetaData (rio);
+            return img.ReadMetaData(rio);
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
             var meta = (RioMetaData)info;
             file.Position = meta.ObjectOffset;
-            var arc = new CRioArchive (file);
+            var arc = new CRioArchive(file);
             var img = meta.Rip;
-            img.Deserialize (arc);
-            return ImageData.Create (info, img.Format, null, img.Pixels);
+            img.Deserialize(arc);
+            return ImageData.Create(info, img.Format, null, img.Pixels);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("RipFormat.Write not implemented");
+            throw new System.NotImplementedException("RipFormat.Write not implemented");
         }
     }
 
     internal class CRip : CObject
     {
-        protected int   Version;
-        protected int   m_width;
-        protected int   m_height;
-        protected int   m_x;
-        protected int   m_y;
-        protected int   m_w;
-        protected int   m_h;
-        protected int   m_flags;   // field_30
+        protected int Version;
+        protected int m_width;
+        protected int m_height;
+        protected int m_x;
+        protected int m_y;
+        protected int m_w;
+        protected int m_h;
+        protected int m_flags;   // field_30
         protected byte[] m_pixels;
 
         public PixelFormat Format { get; protected set; }
-        public byte[]      Pixels { get { return m_pixels; } }
+        public byte[] Pixels { get { return m_pixels; } }
 
-        public override void Deserialize (CRioArchive arc)
+        public override void Deserialize(CRioArchive arc)
         {
             Version = arc.ReadInt32();
             m_x = arc.ReadUInt16();
@@ -111,11 +111,11 @@ namespace GameRes.Formats.Rugp
             m_flags = arc.ReadInt32();
             int size = arc.ReadInt32();
             arc.ReadInt32(); // field_34
-            var data = arc.ReadBytes (size);
-            m_pixels = Uncompress (data);
+            var data = arc.ReadBytes(size);
+            m_pixels = Uncompress(data);
         }
 
-        public virtual ImageMetaData ReadMetaData (CRioArchive arc)
+        public virtual ImageMetaData ReadMetaData(CRioArchive arc)
         {
             uint object_pos = (uint)arc.Input.Position;
             arc.ReadInt32();
@@ -151,24 +151,24 @@ namespace GameRes.Formats.Rugp
             };
         }
 
-        byte[] Uncompress (byte[] data)
+        byte[] Uncompress(byte[] data)
         {
             int flags = m_flags & 0xFF;
             if (1 == flags)
-                return UncompressSia (data);
+                return UncompressSia(data);
             byte[] pixels = null;
             if (2 == flags)
             {
-                using (var mem = new MemoryStream (data))
-                using (var input = new MsbBitStream (mem))
+                using (var mem = new MemoryStream(data))
+                using (var input = new MsbBitStream(mem))
                 {
                     Format = PixelFormats.Bgr32;
                     pixels = new byte[4 * m_width * m_height];
                     switch ((m_flags >> 16) & 0xFF)
                     {
-                    case 1: UncompressRgb1 (input, pixels); break;
-                    case 2: UncompressRgb2 (input, pixels); break;
-                    case 3: UncompressRgb3 (input, pixels); break;
+                        case 1: UncompressRgb1(input, pixels); break;
+                        case 2: UncompressRgb2(input, pixels); break;
+                        case 3: UncompressRgb3(input, pixels); break;
                     }
                 }
             }
@@ -178,7 +178,7 @@ namespace GameRes.Formats.Rugp
                 {
                     Format = PixelFormats.Bgra32;
                     pixels = new byte[4 * m_w * m_h];
-                    UncompressRgba (data, pixels);
+                    UncompressRgba(data, pixels);
                 }
             }
             if (null == pixels)
@@ -186,7 +186,7 @@ namespace GameRes.Formats.Rugp
             return pixels;
         }
 
-        byte[] UncompressSia (byte[] input)
+        byte[] UncompressSia(byte[] input)
         {
             var output = new byte[m_width * m_height];
             Format = PixelFormats.Gray8;
@@ -215,7 +215,7 @@ namespace GameRes.Formats.Rugp
             return output;
         }
 
-        void UncompressRgb1 (IBitStream input, byte[] output)
+        void UncompressRgb1(IBitStream input, byte[] output)
         {
             int stride = m_width * 4;
             int rgb = 0;
@@ -226,23 +226,23 @@ namespace GameRes.Formats.Rugp
                 {
                     if (input.GetNextBit() != 0)
                     {
-                        int b = ReadLong (input, rgb);
-                        int g = ReadLong (input, rgb >> 8);
-                        int r = ReadLong (input, rgb >> 16);
+                        int b = ReadLong(input, rgb);
+                        int g = ReadLong(input, rgb >> 8);
+                        int r = ReadLong(input, rgb >> 16);
                         rgb = r << 16 | g << 8 | b;
                     }
-                    LittleEndian.Pack (rgb, output, dst);
+                    LittleEndian.Pack(rgb, output, dst);
                     dst += 4;
                 }
             }
         }
 
-        void UncompressRgb2 (IBitStream input, byte[] output)
+        void UncompressRgb2(IBitStream input, byte[] output)
         {
-            throw new NotImplementedException ("CRip.UncompressRgb2 not implemented.");
+            throw new NotImplementedException("CRip.UncompressRgb2 not implemented.");
         }
 
-        void UncompressRgb3 (IBitStream input, byte[] output)
+        void UncompressRgb3(IBitStream input, byte[] output)
         {
             int stride = m_width * 4;
             int rgb = 0;
@@ -253,22 +253,22 @@ namespace GameRes.Formats.Rugp
                 {
                     if (input.GetNextBit() != 0)
                     {
-                        int b = ReadLong  (input, rgb) + 3;
-                        int g = ReadShort (input, rgb >> 8) + 1;
-                        int r = ReadLong  (input, rgb >> 16) + 3;
+                        int b = ReadLong(input, rgb) + 3;
+                        int g = ReadShort(input, rgb >> 8) + 1;
+                        int r = ReadLong(input, rgb >> 16) + 3;
                         rgb = r << 16 | g << 8 | b;
                     }
-                    LittleEndian.Pack (rgb, output, dst);
+                    LittleEndian.Pack(rgb, output, dst);
                     dst += 4;
                 }
             }
         }
 
-        void UncompressRgba (byte[] input, byte[] output)
+        void UncompressRgba(byte[] input, byte[] output)
         {
-            int src = input.ToInt32 (0);
-            using (var mem = new MemoryStream (input, 4, src - 4))
-            using (var bits = new MsbBitStream (mem))
+            int src = input.ToInt32(0);
+            using (var mem = new MemoryStream(input, 4, src - 4))
+            using (var bits = new MsbBitStream(mem))
             {
                 int dst = 0;
                 for (int y = 0; y < m_h; ++y)
@@ -285,12 +285,12 @@ namespace GameRes.Formats.Rugp
                             {
                                 if (bits.GetNextBit() != 0)
                                 {
-                                    int b = ReadABits (bits, rgb)       + 3;
-                                    int g = ReadABits (bits, rgb >> 8)  + 3;
-                                    int r = ReadABits (bits, rgb >> 16) + 3;
+                                    int b = ReadABits(bits, rgb) + 3;
+                                    int g = ReadABits(bits, rgb >> 8) + 3;
+                                    int r = ReadABits(bits, rgb >> 16) + 3;
                                     rgb = r << 16 | g << 8 | b;
                                 }
-                                LittleEndian.Pack (rgb | alpha << 24, output, dst);
+                                LittleEndian.Pack(rgb | alpha << 24, output, dst);
                                 dst += 4;
                             }
                         }
@@ -302,7 +302,7 @@ namespace GameRes.Formats.Rugp
                         if (x >= m_w)
                             break;
                         if (bits.GetNextBit() != 0)
-                            alpha = (bits.GetBits (7) << 1) + 1;
+                            alpha = (bits.GetBits(7) << 1) + 1;
                         else if (bits.GetNextBit() != 0)
                             alpha = 0xFF;
                         else
@@ -312,7 +312,7 @@ namespace GameRes.Formats.Rugp
             }
         }
 
-        int ReadLong (IBitStream input, int prev)
+        int ReadLong(IBitStream input, int prev)
         {
             prev &= 0xFC;
             if ((prev >> 2) == 0)
@@ -320,7 +320,7 @@ namespace GameRes.Formats.Rugp
                 if (input.GetNextBit() == 0)
                     return prev;
                 else if (input.GetNextBit() == 0)
-                    return input.GetBits (6) << 2;
+                    return input.GetBits(6) << 2;
                 else if (input.GetNextBit() == 0)
                     return 4;
                 else if (input.GetNextBit() == 0)
@@ -333,7 +333,7 @@ namespace GameRes.Formats.Rugp
                 if (input.GetNextBit() == 0)
                     return input.GetNextBit() << 2;
                 else if (input.GetNextBit() == 0)
-                    return input.GetBits (6) << 2;
+                    return input.GetBits(6) << 2;
                 else if (input.GetNextBit() == 0)
                     return 8;
                 else if (input.GetNextBit() == 0)
@@ -346,7 +346,7 @@ namespace GameRes.Formats.Rugp
                 if (input.GetNextBit() == 0)
                     return 0xFC;
                 else if (input.GetNextBit() == 0)
-                    return input.GetBits (6) << 2;
+                    return input.GetBits(6) << 2;
                 else if (input.GetNextBit() != 0)
                     return 0xF4 + (-input.GetNextBit() & 0xFC);
                 else
@@ -358,7 +358,7 @@ namespace GameRes.Formats.Rugp
                 {
                     if (input.GetNextBit() == 0)
                         return prev;
-                    return input.GetBits (6) << 2;
+                    return input.GetBits(6) << 2;
                 }
                 if (input.GetNextBit() == 0)
                 {
@@ -374,17 +374,17 @@ namespace GameRes.Formats.Rugp
                     else
                         return prev + 8;
                 }
-                switch (input.GetBits (2))
+                switch (input.GetBits(2))
                 {
-                case 0:  return Math.Min (prev + 16, 0xFC);
-                case 1:  return Math.Max (prev - 16, 0);
-                case 2:  return Math.Min (prev + 24, 0xFC);
-                default: return Math.Max (prev - 24, 0);
+                    case 0: return Math.Min(prev + 16, 0xFC);
+                    case 1: return Math.Max(prev - 16, 0);
+                    case 2: return Math.Min(prev + 24, 0xFC);
+                    default: return Math.Max(prev - 24, 0);
                 }
             }
         }
 
-        int ReadShort (IBitStream input, int prev)
+        int ReadShort(IBitStream input, int prev)
         {
             prev &= 0xFE;
             if (input.GetNextBit() == 0)
@@ -392,7 +392,7 @@ namespace GameRes.Formats.Rugp
                 if (input.GetNextBit() == 0)
                     return prev;
                 else
-                    return input.GetBits (6) << 2;
+                    return input.GetBits(6) << 2;
             }
             else if (input.GetNextBit() == 0)
             {
@@ -410,17 +410,17 @@ namespace GameRes.Formats.Rugp
             }
             else
             {
-                switch (input.GetBits (2))
+                switch (input.GetBits(2))
                 {
-                case 0:  return Math.Min (prev + 8, 0xFE);
-                case 1:  return Math.Max (prev - 8, 0);
-                case 2:  return Math.Min (prev + 12, 0xFE);
-                default: return Math.Max (prev - 12, 0);
+                    case 0: return Math.Min(prev + 8, 0xFE);
+                    case 1: return Math.Max(prev - 8, 0);
+                    case 2: return Math.Min(prev + 12, 0xFE);
+                    default: return Math.Max(prev - 12, 0);
                 }
             }
         }
 
-        int ReadABits (IBitStream input, int prev)
+        int ReadABits(IBitStream input, int prev)
         {
             prev &= 0xFC;
             if (input.GetNextBit() == 0)
@@ -428,7 +428,7 @@ namespace GameRes.Formats.Rugp
                 if (input.GetNextBit() == 0)
                     return prev;
                 else
-                    return input.GetBits (6) << 2;
+                    return input.GetBits(6) << 2;
             }
             else if (input.GetNextBit() == 0)
             {
@@ -446,12 +446,12 @@ namespace GameRes.Formats.Rugp
             }
             else
             {
-                switch (input.GetBits (2))
+                switch (input.GetBits(2))
                 {
-                case 0:  return Math.Min (prev + 16, 0xFC);
-                case 1:  return Math.Max (prev - 16, 0);
-                case 2:  return Math.Min (prev + 24, 0xFC);
-                default: return Math.Max (prev - 24, 0);
+                    case 0: return Math.Min(prev + 16, 0xFC);
+                    case 1: return Math.Max(prev - 16, 0);
+                    case 2: return Math.Min(prev + 24, 0xFC);
+                    default: return Math.Max(prev - 24, 0);
                 }
             }
         }
@@ -459,12 +459,12 @@ namespace GameRes.Formats.Rugp
 
     internal class CRip007 : CRip
     {
-        byte[]   CompressInfo;
-        CObject  field_4C;
+        byte[] CompressInfo;
+        CObject field_4C;
 
-        public bool      HasAlpha { get { return ((m_flags & 0xFF) - 2) == 1; } }
+        public bool HasAlpha { get { return ((m_flags & 0xFF) - 2) == 1; } }
 
-        public override void Deserialize (CRioArchive arc)
+        public override void Deserialize(CRioArchive arc)
         {
             Version = arc.ReadInt32();
             m_width = arc.ReadUInt16();
@@ -474,17 +474,17 @@ namespace GameRes.Formats.Rugp
             m_w = arc.ReadUInt16();
             m_h = arc.ReadUInt16();
             m_flags = arc.ReadInt32();
-            CompressInfo = arc.ReadBytes (7);
+            CompressInfo = arc.ReadBytes(7);
             if (arc.GetObjectSchema() >= 2)
-                field_4C = arc.ReadRioReference ("CSbm");
+                field_4C = arc.ReadRioReference("CSbm");
             int size = arc.ReadInt32();
             arc.ReadInt32(); // field_3C
-            var data = arc.ReadBytes (size);
-            m_pixels = Uncompress (data);
+            var data = arc.ReadBytes(size);
+            m_pixels = Uncompress(data);
             Format = HasAlpha ? PixelFormats.Bgra32 : PixelFormats.Bgr32;
         }
 
-        public override ImageMetaData ReadMetaData (CRioArchive arc)
+        public override ImageMetaData ReadMetaData(CRioArchive arc)
         {
             uint object_pos = (uint)arc.Input.Position;
             arc.ReadInt32();
@@ -500,21 +500,21 @@ namespace GameRes.Formats.Rugp
             };
         }
 
-        byte[] Uncompress (byte[] data)
+        byte[] Uncompress(byte[] data)
         {
-            using (var input = new MemoryStream (data))
-            using (var bits = new MsbBitStream (input))
+            using (var input = new MemoryStream(data))
+            using (var bits = new MsbBitStream(input))
             {
                 var pixels = new byte[4 * m_width * m_height];
                 if (HasAlpha)
-                    UncompressRgba (bits, pixels);
+                    UncompressRgba(bits, pixels);
                 else
-                    UncompressRgb (bits, pixels);
+                    UncompressRgb(bits, pixels);
                 return pixels;
             }
         }
 
-        void UncompressRgb (IBitStream input, byte[] output)
+        void UncompressRgb(IBitStream input, byte[] output)
         {
             int stride = m_width * 4;
             int q = CompressInfo[0];
@@ -534,13 +534,13 @@ namespace GameRes.Formats.Rugp
                     int x = 0;
                     while (x < m_width)
                     {
-                        int count = GetInt (input);
+                        int count = GetInt(input);
                         x += count;
                         do
                         {
                             if (input.GetNextBit() > 0)
                             {
-                                rgb = LittleEndian.ToInt32 (output, dst - stride);
+                                rgb = LittleEndian.ToInt32(output, dst - stride);
                                 if (rgb != 0)
                                 {
                                     rgb -= baseline;
@@ -552,13 +552,13 @@ namespace GameRes.Formats.Rugp
                                 int r = 0, g = 0, b = 0;
                                 if (input.GetNextBit() > 0)
                                 {
-                                    g = GetSigned (input);
+                                    g = GetSigned(input);
                                 }
                                 int b_inc = 0;
                                 if (input.GetNextBit() > 0)
                                 {
                                     bool sign = input.GetNextBit() > 0;
-                                    int v = GetInt (input);
+                                    int v = GetInt(input);
                                     b_inc = tblQuantTransfer[q, v];
                                     if (sign)
                                         b_inc = -b_inc;
@@ -567,7 +567,7 @@ namespace GameRes.Formats.Rugp
                                 if (input.GetNextBit() > 0)
                                 {
                                     bool sign = input.GetNextBit() > 0;
-                                    int v = GetInt (input);
+                                    int v = GetInt(input);
                                     r_inc = tblQuantTransfer[q, v];
                                     if (sign)
                                         r_inc = -r_inc;
@@ -608,7 +608,7 @@ namespace GameRes.Formats.Rugp
                             }
                             if (rgb != 0)
                                 rgb += baseline;
-                            LittleEndian.Pack (rgb, output, dst);
+                            LittleEndian.Pack(rgb, output, dst);
                             dst += 4;
                             --count;
                         }
@@ -616,11 +616,11 @@ namespace GameRes.Formats.Rugp
                         if (x >= m_width)
                             break;
 
-                        count = GetInt (input);
+                        count = GetInt(input);
                         x += count;
-                        while (count --> 0)
+                        while (count-- > 0)
                         {
-                            LittleEndian.Pack (rgb, output, dst);
+                            LittleEndian.Pack(rgb, output, dst);
                             dst += 4;
                         }
                     }
@@ -628,7 +628,7 @@ namespace GameRes.Formats.Rugp
             }
         }
 
-        void UncompressRgba (IBitStream input, byte[] output)
+        void UncompressRgba(IBitStream input, byte[] output)
         {
             int stride = 4 * m_width;
             int q = CompressInfo[0];
@@ -657,12 +657,12 @@ namespace GameRes.Formats.Rugp
                         int alpha_inc = 0;
                         if (input.GetNextBit() > 0)
                         {
-                            alpha_inc = GetSigned (input);
+                            alpha_inc = GetSigned(input);
                         }
                         alpha += alpha_inc;
                         if (0 == alpha || 31 == alpha)
                         {
-                            chunk_size = GetInt (input);
+                            chunk_size = GetInt(input);
                         }
                     }
                     if (alpha != 0)
@@ -671,7 +671,7 @@ namespace GameRes.Formats.Rugp
                             --chunk_size;
                         if (0 == repeat_count)
                         {
-                            repeat_count = GetInt (input);
+                            repeat_count = GetInt(input);
                             repeat = !repeat;
                         }
                         --repeat_count;
@@ -686,13 +686,13 @@ namespace GameRes.Formats.Rugp
                                 int g = 0;
                                 if (input.GetNextBit() > 0)
                                 {
-                                    g = GetSigned (input);
+                                    g = GetSigned(input);
                                 }
                                 int b_inc = 0;
                                 if (input.GetNextBit() > 0)
                                 {
                                     bool sign = input.GetNextBit() > 0;
-                                    int v = GetInt (input);
+                                    int v = GetInt(input);
                                     b_inc = tblQuantTransfer[q, v];
                                     if (sign)
                                         b_inc = -b_inc;
@@ -701,7 +701,7 @@ namespace GameRes.Formats.Rugp
                                 if (input.GetNextBit() > 0)
                                 {
                                     bool sign = input.GetNextBit() > 0;
-                                    int v = GetInt (input);
+                                    int v = GetInt(input);
                                     r_inc = tblQuantTransfer[q, v];
                                     if (sign)
                                         r_inc = -r_inc;
@@ -734,7 +734,7 @@ namespace GameRes.Formats.Rugp
                             pixel |= 0xFF000000u;
                         else
                             pixel |= (uint)(alpha << 27);
-                        LittleEndian.Pack (pixel, output, dst);
+                        LittleEndian.Pack(pixel, output, dst);
                         dst += 4;
                         line_buf[x++] = rgb;
                     }
@@ -748,7 +748,7 @@ namespace GameRes.Formats.Rugp
             }
         }
 
-        static int GetInt (IBitStream input)
+        static int GetInt(IBitStream input)
         {
             int n = 1;
             while (input.GetNextBit() > 0)
@@ -759,10 +759,10 @@ namespace GameRes.Formats.Rugp
             return n;
         }
 
-        static int GetSigned (IBitStream input)
+        static int GetSigned(IBitStream input)
         {
             bool sign = input.GetNextBit() > 0;
-            int n = GetInt (input);
+            int n = GetInt(input);
             return sign ? -n : n;
         }
 

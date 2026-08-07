@@ -36,8 +36,8 @@ namespace GameRes.Formats.Lilim
     {
         public readonly AbmImageData FrameInfo;
 
-        public AbmArchive (ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, AbmImageData info)
-            : base (arc, impl, dir)
+        public AbmArchive(ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, AbmImageData info)
+            : base(arc, impl, dir)
         {
             FrameInfo = info;
         }
@@ -45,11 +45,11 @@ namespace GameRes.Formats.Lilim
 
     internal class AbmImageData : ImageMetaData
     {
-        public int      Mode;
-        public uint     BaseOffset;
-        public uint     FrameOffset;
+        public int Mode;
+        public uint BaseOffset;
+        public uint FrameOffset;
 
-        public AbmImageData Clone ()
+        public AbmImageData Clone()
         {
             return this.MemberwiseClone() as AbmImageData;
         }
@@ -63,44 +63,45 @@ namespace GameRes.Formats.Lilim
     [Export(typeof(ArchiveFormat))]
     public class AbmOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "ABM"; } }
+        public override string Tag { get { return "ABM"; } }
         public override string Description { get { return "LiLiM/Le.Chocolat multi-frame bitmap"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            if ('B' != file.View.ReadByte (0) || 'M' != file.View.ReadByte (1))
+            if ('B' != file.View.ReadByte(0) || 'M' != file.View.ReadByte(1))
                 return null;
-            int type = file.View.ReadSByte (0x1C);
+            int type = file.View.ReadSByte(0x1C);
             if (type != 1 && type != 2)
                 return null;
 
-            int count = file.View.ReadInt16 (0x3A);
-            if (!IsSaneCount (count))
+            int count = file.View.ReadInt16(0x3A);
+            if (!IsSaneCount(count))
                 return null;
 
-            uint width = file.View.ReadUInt32 (0x12);
-            uint height = file.View.ReadUInt32 (0x16);
+            uint width = file.View.ReadUInt32(0x12);
+            uint height = file.View.ReadUInt32(0x16);
             int pixel_size = 2 == type ? 4 : 3;
-            uint bitmap_data_size = width*height*(uint)pixel_size;
+            uint bitmap_data_size = width * height * (uint)pixel_size;
 
-            var dir = new List<Entry> (count);
-            long next_offset = file.View.ReadUInt32 (0x42);
+            var dir = new List<Entry>(count);
+            long next_offset = file.View.ReadUInt32(0x42);
             uint current_offset = 0x46;
-            string base_name = Path.GetFileNameWithoutExtension (file.Name);
+            string base_name = Path.GetFileNameWithoutExtension(file.Name);
             for (int i = 0; i < count; ++i)
             {
-                var entry = new AbmEntry {
-                    Name = string.Format ("{0}#{1:D4}", base_name, i),
+                var entry = new AbmEntry
+                {
+                    Name = string.Format("{0}#{1:D4}", base_name, i),
                     Type = "image",
                     Offset = next_offset,
                     Index = i,
                 };
                 if (i + 1 != count)
                 {
-                    next_offset = file.View.ReadUInt32 (current_offset);
+                    next_offset = file.View.ReadUInt32(current_offset);
                     current_offset += 4;
                 }
                 else
@@ -108,10 +109,10 @@ namespace GameRes.Formats.Lilim
                 if (next_offset <= entry.Offset)
                     return null;
                 entry.Size = (uint)(next_offset - entry.Offset);
-                if (!entry.CheckPlacement (file.MaxOffset))
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
                 entry.UnpackedSize = 0x12 + bitmap_data_size;
-                dir.Add (entry);
+                dir.Add(entry);
             }
             var image_info = new AbmImageData
             {
@@ -121,15 +122,15 @@ namespace GameRes.Formats.Lilim
                 Mode = type,
                 BaseOffset = (uint)dir[0].Offset,
             };
-            return new AbmArchive (file, this, dir, image_info);
+            return new AbmArchive(file, this, dir, image_info);
         }
 
-        public override IImageDecoder OpenImage (ArcFile arc, Entry entry)
+        public override IImageDecoder OpenImage(ArcFile arc, Entry entry)
         {
             var abm = arc as AbmArchive;
             var frame = entry as AbmEntry;
             if (null == abm || null == frame)
-                return base.OpenImage (arc, entry);
+                return base.OpenImage(arc, entry);
 
             var frame_info = abm.FrameInfo;
             if (frame.Index != 0)
@@ -137,84 +138,84 @@ namespace GameRes.Formats.Lilim
                 frame_info = frame_info.Clone();
                 frame_info.FrameOffset = (uint)frame.Offset;
             }
-            var input = arc.File.CreateStream (0, (uint)arc.File.MaxOffset);
-            return new AbmReader (input, frame_info);
+            var input = arc.File.CreateStream(0, (uint)arc.File.MaxOffset);
+            return new AbmReader(input, frame_info);
         }
     }
 
     internal sealed class AbmReader : BinaryImageDecoder
     {
-        byte[]          m_output;
-        AbmImageData    m_info;
-        int             m_bpp;
+        byte[] m_output;
+        AbmImageData m_info;
+        int m_bpp;
 
-        public AbmReader (IBinaryStream file, AbmImageData info) : base (file, info)
+        public AbmReader(IBinaryStream file, AbmImageData info) : base(file, info)
         {
             m_info = info;
         }
 
-        protected override ImageData GetImageData ()
+        protected override ImageData GetImageData()
         {
             switch (m_info.Mode)
             {
-            case 8:
-            case -8:
-                m_input.Position = 0x36;
-                var palette = ImageFormat.ReadPalette (m_input.AsStream);
-                var bitmap_size = m_info.Width * m_info.Height;
-                m_output = new byte[bitmap_size];
-                m_input.Position = m_info.BaseOffset;
-                if (8 == m_info.Mode)
-                {
-                    m_bpp = 8;
-                    if (m_output.Length != m_input.Read (m_output, 0, m_output.Length))
-                        throw new EndOfStreamException();
-                    return ImageData.Create (m_info, PixelFormats.Indexed8, palette, m_output);
-                }
-                else
-                {
-                    var alpha = new byte[bitmap_size];
-                    UnpackStream8 (m_input, m_output, alpha);
-                    m_output = ApplyAlpha (m_output, alpha, palette);
+                case 8:
+                case -8:
+                    m_input.Position = 0x36;
+                    var palette = ImageFormat.ReadPalette(m_input.AsStream);
+                    var bitmap_size = m_info.Width * m_info.Height;
+                    m_output = new byte[bitmap_size];
+                    m_input.Position = m_info.BaseOffset;
+                    if (8 == m_info.Mode)
+                    {
+                        m_bpp = 8;
+                        if (m_output.Length != m_input.Read(m_output, 0, m_output.Length))
+                            throw new EndOfStreamException();
+                        return ImageData.Create(m_info, PixelFormats.Indexed8, palette, m_output);
+                    }
+                    else
+                    {
+                        var alpha = new byte[bitmap_size];
+                        UnpackStream8(m_input, m_output, alpha);
+                        m_output = ApplyAlpha(m_output, alpha, palette);
+                        m_bpp = 32;
+                    }
+                    break;
+
+                case 2:
                     m_bpp = 32;
-                }
-                break;
+                    m_input.Position = m_info.FrameOffset;
+                    m_output = UnpackV2(m_input);
+                    break;
 
-            case 2:
-                m_bpp = 32;
-                m_input.Position = m_info.FrameOffset;
-                m_output = UnpackV2 (m_input);
-                break;
+                case 1:
+                case 24:
+                case 32:
+                    if (1 == m_info.Mode)
+                        m_bpp = 24;
+                    else
+                        m_bpp = m_info.Mode;
 
-            case 1:
-            case 24:
-            case 32:
-                if (1 == m_info.Mode)
-                    m_bpp = 24;
-                else
-                    m_bpp = m_info.Mode;
+                    int total_length = (int)(m_info.Width * m_info.Height * m_bpp / 8);
+                    m_output = new byte[total_length];
+                    m_input.Position = m_info.BaseOffset;
+                    if (1 == m_info.Mode)
+                    {
+                        if (total_length != m_input.Read(m_output, 0, (total_length)))
+                            throw new EndOfStreamException();
+                    }
+                    else if (24 == m_bpp)
+                        UnpackStream24(m_input, m_output, total_length);
+                    else
+                        UnpackStream32(m_input, m_output, total_length);
+                    break;
 
-                int total_length = (int)(m_info.Width * m_info.Height * m_bpp / 8);
-                m_output = new byte[total_length];
-                m_input.Position = m_info.BaseOffset;
-                if (1 == m_info.Mode)
-                {
-                    if (total_length != m_input.Read (m_output, 0, (total_length)))
-                        throw new EndOfStreamException ();
-                }
-                else if (24 == m_bpp)
-                    UnpackStream24 (m_input, m_output, total_length);
-                else
-                    UnpackStream32 (m_input, m_output, total_length);
-                break;
-
-            default:
-                throw new NotImplementedException();
+                default:
+                    throw new NotImplementedException();
             }
             if (0 != m_info.FrameOffset)
                 m_output = Unpack();
             PixelFormat format = 24 == m_bpp ? PixelFormats.Bgr24 : PixelFormats.Bgra32;
-            return ImageData.Create (m_info, format, null, m_output);
+            return ImageData.Create(m_info, format, null, m_output);
         }
 
         int frame_x;
@@ -222,21 +223,21 @@ namespace GameRes.Formats.Lilim
         int frame_w;
         int frame_h;
 
-        byte[] Unpack ()
+        byte[] Unpack()
         {
             m_input.Position = m_info.FrameOffset;
             if (1 == m_info.Mode)
-                return UnpackStream24 (m_input, m_output, m_output.Length);
+                return UnpackStream24(m_input, m_output, m_output.Length);
             if (2 == m_info.Mode)
             {
-                var frame = UnpackV2 (m_input);
-                CopyFrame (frame);
+                var frame = UnpackV2(m_input);
+                CopyFrame(frame);
                 return m_output;
             }
             throw new NotImplementedException();
         }
 
-        byte[] UnpackV2 (IBinaryStream input)
+        byte[] UnpackV2(IBinaryStream input)
         {
             frame_x = input.ReadInt32();
             frame_y = input.ReadInt32();
@@ -247,10 +248,10 @@ namespace GameRes.Formats.Lilim
             int total_length = frame_w * frame_h * m_bpp / 8;
             byte[] output = new byte[total_length];
             input.ReadByte(); // position number
-            return UnpackStream32 (input, output, total_length);
+            return UnpackStream32(input, output, total_length);
         }
 
-        byte[] UnpackStream24 (IBinaryStream input, byte[] output, int total_length)
+        byte[] UnpackStream24(IBinaryStream input, byte[] output, int total_length)
         {
             int dst = 0;
             while (dst < total_length)
@@ -268,8 +269,8 @@ namespace GameRes.Formats.Lilim
                     int count = input.ReadUInt8();
                     if (0 == count)
                         continue;
-                    count = Math.Min (count, total_length-dst);
-                    input.Read (output, dst, count);
+                    count = Math.Min(count, total_length - dst);
+                    input.Read(output, dst, count);
                     dst += count;
                 }
                 else
@@ -280,7 +281,7 @@ namespace GameRes.Formats.Lilim
             return output;
         }
 
-        byte[] UnpackStream32 (IBinaryStream input, byte[] output, int total_length)
+        byte[] UnpackStream32(IBinaryStream input, byte[] output, int total_length)
         {
             int dst = 0;
             int component = 0;
@@ -330,25 +331,25 @@ namespace GameRes.Formats.Lilim
             return output;
         }
 
-        void CopyFrame (byte[] frame)
+        void CopyFrame(byte[] frame)
         {
             if (frame_x >= m_info.Width || frame_y >= m_info.Height)
                 return;
             int pixel_size = m_bpp / 8;
-            int line_size = Math.Min (frame_w, (int)m_info.Width-frame_x) * pixel_size;
+            int line_size = Math.Min(frame_w, (int)m_info.Width - frame_x) * pixel_size;
             int left = frame_x * pixel_size;
-            int bottom = Math.Min (frame_y+frame_h, (int)m_info.Height);
+            int bottom = Math.Min(frame_y + frame_h, (int)m_info.Height);
             int stride = (int)m_info.Width * pixel_size;
             int src = 0;
             for (int y = frame_y; y < bottom; ++y)
             {
                 int dst = stride * y + left;
-                Buffer.BlockCopy (frame, src, m_output, dst, line_size);
+                Buffer.BlockCopy(frame, src, m_output, dst, line_size);
                 src += frame_w * pixel_size;
             }
         }
 
-        void UnpackStream8 (IBinaryStream input, byte[] output, byte[] alpha)
+        void UnpackStream8(IBinaryStream input, byte[] output, byte[] alpha)
         {
             int alpha_dst = 0;
             int dst = 0;
@@ -369,7 +370,7 @@ namespace GameRes.Formats.Lilim
                 else
                 {
                     int count = input.ReadUInt8();
-                    input.Read (output, dst, count);
+                    input.Read(output, dst, count);
                     dst += count;
                     for (int i = 0; i < count; ++i)
                         alpha[alpha_dst++] = 0xFF;
@@ -377,7 +378,7 @@ namespace GameRes.Formats.Lilim
             }
         }
 
-        byte[] ApplyAlpha (byte[] input, byte[] alpha, BitmapPalette palette)
+        byte[] ApplyAlpha(byte[] input, byte[] alpha, BitmapPalette palette)
         {
             var colors = palette.Colors;
             var pixels = new byte[input.Length * 4];

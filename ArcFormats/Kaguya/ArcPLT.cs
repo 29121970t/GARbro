@@ -35,30 +35,30 @@ namespace GameRes.Formats.Kaguya
     [Export(typeof(ArchiveFormat))]
     public class Pl00Opener : AnmOpenerBase
     {
-        public override string         Tag { get { return "PLT/KAGUYA"; } }
-        public override uint     Signature { get { return 0x30304C50; } } // 'PL00'
+        public override string Tag { get { return "PLT/KAGUYA"; } }
+        public override uint Signature { get { return 0x30304C50; } } // 'PL00'
 
-        public Pl00Opener ()
+        public Pl00Opener()
         {
             Extensions = new string[] { "plt" };
         }
 
-        public override List<Entry> GetFramesList (IBinaryStream file)
+        public override List<Entry> GetFramesList(IBinaryStream file)
         {
             file.Position = 4;
             int count = file.ReadInt16();
-            if (!IsSaneCount (count))
+            if (!IsSaneCount(count))
                 return null;
             file.Position = 0x16;
             var current_offset = file.Position;
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
                 file.Position = current_offset + 8;
-                uint width  = file.ReadUInt32();
+                uint width = file.ReadUInt32();
                 uint height = file.ReadUInt32();
-                uint depth  = file.ReadUInt32();
-                uint image_size = depth*width*height;
+                uint depth = file.ReadUInt32();
+                uint image_size = depth * width * height;
                 var entry = new AnmEntry
                 {
                     Offset = current_offset,
@@ -66,39 +66,39 @@ namespace GameRes.Formats.Kaguya
                     ImageDataOffset = current_offset + 0x14,
                     ImageDataSize = image_size,
                 };
-                dir.Add (entry);
+                dir.Add(entry);
                 current_offset += entry.Size;
             }
             return dir;
         }
 
-        public override IImageDecoder CreateDecoder (IBinaryStream input, ImageMetaData info)
+        public override IImageDecoder CreateDecoder(IBinaryStream input, ImageMetaData info)
         {
-            return new Pl00Decoder (input, info);
+            return new Pl00Decoder(input, info);
         }
     }
 
     internal class Pl00Decoder : BinaryImageDecoder
     {
-        public Pl00Decoder (IBinaryStream input, ImageMetaData base_info) : base (input)
+        public Pl00Decoder(IBinaryStream input, ImageMetaData base_info) : base(input)
         {
             Info = new ImageMetaData
             {
                 OffsetX = base_info.OffsetX + m_input.ReadInt32(),
                 OffsetY = base_info.OffsetY + m_input.ReadInt32(),
-                Width   = m_input.ReadUInt32(),
-                Height  = m_input.ReadUInt32(),
-                BPP     = m_input.ReadInt32() * 8,
+                Width = m_input.ReadUInt32(),
+                Height = m_input.ReadUInt32(),
+                BPP = m_input.ReadInt32() * 8,
             };
         }
 
-        protected override ImageData GetImageData ()
+        protected override ImageData GetImageData()
         {
             m_input.Position = 0x14;
             int stride = Info.BPP * Info.iWidth / 8;
-            var pixels = m_input.ReadBytes (stride*Info.iHeight);
+            var pixels = m_input.ReadBytes(stride * Info.iHeight);
             PixelFormat format = 24 == Info.BPP ? PixelFormats.Bgr24 : PixelFormats.Bgra32;
-            return ImageData.CreateFlipped (Info, format, null, pixels, stride);
+            return ImageData.CreateFlipped(Info, format, null, pixels, stride);
         }
     }
 
@@ -110,61 +110,62 @@ namespace GameRes.Formats.Kaguya
     [Export(typeof(ArchiveFormat))]
     public class Pl10Opener : An21Opener
     {
-        public override string         Tag { get => "PL10"; }
-        public override uint     Signature { get => 0x30314C50; } // 'PL10'
+        public override string Tag { get => "PL10"; }
+        public override uint Signature { get => 0x30314C50; } // 'PL10'
 
-        public Pl10Opener ()
+        public Pl10Opener()
         {
             Extensions = new string[] { "plt" };
         }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
             using (var input = file.CreateStream())
             {
-                var base_info = GetBaseInfo (input);
-                var dir = GetFramesList (input);
+                var base_info = GetBaseInfo(input);
+                var dir = GetFramesList(input);
                 if (null == dir)
                     return null;
-                string base_name = Path.GetFileNameWithoutExtension (file.Name);
+                string base_name = Path.GetFileNameWithoutExtension(file.Name);
                 foreach (Pl10Entry entry in dir)
                 {
-                    entry.Name = string.Format ("{0}#{1:D2}", base_name, entry.FrameIndex);
+                    entry.Name = string.Format("{0}#{1:D2}", base_name, entry.FrameIndex);
                     entry.Type = "image";
                 }
                 var first = (Pl10Entry)dir[0];
                 base_info.BPP = first.Info.BPP;
-                return new An21Archive (file, this, dir, base_info);
+                return new An21Archive(file, this, dir, base_info);
             }
         }
 
-        internal ImageMetaData GetBaseInfo (IBinaryStream input)
+        internal ImageMetaData GetBaseInfo(IBinaryStream input)
         {
             input.Position = 6;
             return new ImageMetaData
             {
-                OffsetX     = input.ReadInt32(),
-                OffsetY     = input.ReadInt32(),
-                Width       = input.ReadUInt32(),
-                Height      = input.ReadUInt32(),
+                OffsetX = input.ReadInt32(),
+                OffsetY = input.ReadInt32(),
+                Width = input.ReadUInt32(),
+                Height = input.ReadUInt32(),
             };
         }
 
-        internal List<Entry> GetFramesList (IBinaryStream file)
+        internal List<Entry> GetFramesList(IBinaryStream file)
         {
             file.Position = 4;
             int count = file.ReadInt16();
-            if (!IsSaneCount (count))
+            if (!IsSaneCount(count))
                 return null;
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             long current_offset = 0x16;
             file.Position = current_offset;
-            var frame_info = new ImageMetaData {
+            var frame_info = new ImageMetaData
+            {
                 OffsetX = file.ReadInt32(),
                 OffsetY = file.ReadInt32(),
-                Width  = file.ReadUInt32(),
+                Width = file.ReadUInt32(),
                 Height = file.ReadUInt32(),
-                BPP    = file.ReadInt32() * 8,
+                BPP = file.ReadInt32() * 8,
             };
             uint depth = (uint)frame_info.BPP / 8;
             uint image_size = depth * frame_info.Width * frame_info.Height;
@@ -176,7 +177,7 @@ namespace GameRes.Formats.Kaguya
                 RleStep = 0,
                 Info = frame_info,
             };
-            dir.Add (entry);
+            dir.Add(entry);
             for (int i = 1; i < count; ++i)
             {
                 current_offset = entry.Offset + entry.Size;
@@ -193,7 +194,7 @@ namespace GameRes.Formats.Kaguya
                     RleStep = rle_step,
                     Info = frame_info,
                 };
-                dir.Add (entry);
+                dir.Add(entry);
             }
             return dir;
         }

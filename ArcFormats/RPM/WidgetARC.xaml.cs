@@ -7,9 +7,9 @@ namespace GameRes.Formats.Rpm
     /// </summary>
     public partial class WidgetARC : Grid
     {
-        public WidgetARC ()
+        public WidgetARC()
         {
-            InitializeComponent ();
+            InitializeComponent();
         }
     }
 }

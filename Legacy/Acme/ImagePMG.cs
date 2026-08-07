@@ -33,69 +33,70 @@ namespace GameRes.Formats.Image
     [Export(typeof(ImageFormat))]
     public class PmgFormat : ImageFormat
     {
-        public override string         Tag { get { return "PMG"; } }
+        public override string Tag { get { return "PMG"; } }
         public override string Description { get { return "Acme image format"; } }
-        public override uint     Signature { get { return 0xA0; } }
+        public override uint Signature { get { return 0xA0; } }
 
-        public PmgFormat ()
+        public PmgFormat()
         {
             Signatures = new uint[] { 0xA0, 0 };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
             uint width = file.Signature;
             if (width <= 0 || width > 0x800)
                 return null;
-            var header = file.ReadHeader (0x14);
-            int bits = header.ToInt32 (8);
-            int code_size = header.ToInt32 (12);
-            int data_size = header.ToInt32 (16);
+            var header = file.ReadHeader(0x14);
+            int bits = header.ToInt32(8);
+            int code_size = header.ToInt32(12);
+            int data_size = header.ToInt32(16);
             if (bits <= 0 || code_size <= bits || data_size <= 0
                 || code_size + data_size > file.Length)
                 return null;
             file.Position = 0x14 + code_size + data_size;
             if (file.ReadUInt32() != width)
                 return null;
-            return new ImageMetaData {
-                Width   = width * 4,
-                Height  = header.ToUInt32 (4),
-                BPP     = 24,
+            return new ImageMetaData
+            {
+                Width = width * 4,
+                Height = header.ToUInt32(4),
+                BPP = 24,
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new PmgReader (file, info);
+            var reader = new PmgReader(file, info);
             var pixels = reader.Unpack();
-            return ImageData.Create (info, reader.Format, null, pixels);
+            return ImageData.Create(info, reader.Format, null, pixels);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("PmgFormat.Write not implemented");
+            throw new System.NotImplementedException("PmgFormat.Write not implemented");
         }
     }
 
     internal class PmgReader
     {
-        IBinaryStream   m_input;
-        int             m_width;
-        int             m_height;
+        IBinaryStream m_input;
+        int m_width;
+        int m_height;
 
-        public PixelFormat    Format { get { return PixelFormats.Bgr24; } }
+        public PixelFormat Format { get { return PixelFormats.Bgr24; } }
 
-        public PmgReader (IBinaryStream input, ImageMetaData info)
+        public PmgReader(IBinaryStream input, ImageMetaData info)
         {
             m_input = input;
             m_width = (int)info.Width;
             m_height = (int)info.Height;
         }
 
-        byte[]  m_line_buf = new byte[0x800];
-        byte    m_bit_mask;
+        byte[] m_line_buf = new byte[0x800];
+        byte m_bit_mask;
 
-        public Array Unpack ()
+        public Array Unpack()
         {
             int plane_size = m_width * m_height;
             var planes = new ushort[3 * plane_size / 2];
@@ -105,9 +106,9 @@ namespace GameRes.Formats.Image
 
             m_input.Position = 0;
             m_bit_mask = 0x80;
-            ReadPlane (planes, bsrc);
-            ReadPlane (planes, gsrc);
-            ReadPlane (planes, rsrc);
+            ReadPlane(planes, bsrc);
+            ReadPlane(planes, gsrc);
+            ReadPlane(planes, rsrc);
 
             var pixels = new byte[3 * plane_size];
             int dst = 0;
@@ -126,41 +127,41 @@ namespace GameRes.Formats.Image
             return pixels;
         }
 
-        void ReadPlane (ushort[] output, int dst)
+        void ReadPlane(ushort[] output, int dst)
         {
             int blocks = m_input.ReadInt32();
             m_input.ReadInt32(); // height
             int bits_size = m_input.ReadInt32();
             int code_size = m_input.ReadInt32();
             int data_size = m_input.ReadInt32();
-            var code = m_input.ReadBytes (code_size);
+            var code = m_input.ReadBytes(code_size);
             var end_pos = m_input.Position + data_size;
             int bit_src = 0;
             int code_src = bits_size;
             for (int j = 0; j < m_line_buf.Length; ++j)
                 m_line_buf[j] = 0;
             for (int y = 0; y < m_height; ++y)
-            for (int x = 0; x < blocks; ++x)
-            {
-                if ((code[bit_src] & m_bit_mask) != 0)
+                for (int x = 0; x < blocks; ++x)
                 {
-                    m_line_buf[x] ^= code[code_src++];
+                    if ((code[bit_src] & m_bit_mask) != 0)
+                    {
+                        m_line_buf[x] ^= code[code_src++];
+                    }
+                    m_bit_mask >>= 1;
+                    if (0 == m_bit_mask)
+                    {
+                        m_bit_mask = 0x80;
+                        ++bit_src;
+                    }
+                    output[dst] = DecodePixel(m_line_buf[x] >> 4, output, dst);
+                    ++dst;
+                    output[dst] = DecodePixel(m_line_buf[x] & 0xF, output, dst);
+                    ++dst;
                 }
-                m_bit_mask >>= 1;
-                if (0 == m_bit_mask)
-                {
-                    m_bit_mask = 0x80;
-                    ++bit_src;
-                }
-                output[dst] = DecodePixel (m_line_buf[x] >> 4, output, dst);
-                ++dst;
-                output[dst] = DecodePixel (m_line_buf[x] & 0xF, output, dst);
-                ++dst;
-            }
             m_input.Position = end_pos;
         }
 
-        ushort DecodePixel (int cmd, ushort[] output, int dst)
+        ushort DecodePixel(int cmd, ushort[] output, int dst)
         {
             if (cmd != 0)
             {

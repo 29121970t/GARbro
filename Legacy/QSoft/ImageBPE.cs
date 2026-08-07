@@ -32,37 +32,37 @@ namespace GameRes.Formats.QSoft
     [Export(typeof(ImageFormat))]
     public class BpeFormat : ImageFormat
     {
-        public override string         Tag { get { return "BPE"; } }
+        public override string Tag { get { return "BPE"; } }
         public override string Description { get { return "Qsoft image format"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            if (!file.Name.HasExtension (".bpe") || file.Signature < 0x36)
+            if (!file.Name.HasExtension(".bpe") || file.Signature < 0x36)
                 return null;
             file.Position = 4;
-            var unpacked = Decompress (file, 0x36);
-            if (!unpacked.AsciiEqual ("BM"))
+            var unpacked = Decompress(file, 0x36);
+            if (!unpacked.AsciiEqual("BM"))
                 return null;
-            using (var bmp = new BinMemoryStream (unpacked, file.Name))
-                return Bmp.ReadMetaData (bmp);
+            using (var bmp = new BinMemoryStream(unpacked, file.Name))
+                return Bmp.ReadMetaData(bmp);
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
             int unpacked_size = (int)file.Signature;
             file.Position = 4;
-            var unpacked = Decompress (file, unpacked_size);
-            using (var bmp = new BinMemoryStream (unpacked, file.Name))
-                return Bmp.Read (bmp, info);
+            var unpacked = Decompress(file, unpacked_size);
+            using (var bmp = new BinMemoryStream(unpacked, file.Name))
+                return Bmp.Read(bmp, info);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("BpeFormat.Write not implemented");
+            throw new System.NotImplementedException("BpeFormat.Write not implemented");
         }
 
-        byte[] Decompress (IBinaryStream input, int unpacked_size)
+        byte[] Decompress(IBinaryStream input, int unpacked_size)
         {
             var output = new byte[unpacked_size];
             int dst = 0;
@@ -75,7 +75,7 @@ namespace GameRes.Formats.QSoft
                 for (int i = 0; i < 256; ++i)
                     lhs_nodes[i] = (byte)i;
                 int token = 0;
-                for (;;)
+                for (; ; )
                 {
                     if (ctl > 127)
                     {
@@ -96,9 +96,9 @@ namespace GameRes.Formats.QSoft
                         break;
                     ctl = input.ReadByte() & 0xFF;
                 }
-                int chunk_size = Binary.BigEndian (input.ReadUInt16());
+                int chunk_size = Binary.BigEndian(input.ReadUInt16());
                 int x = 0;
-                for (;;)
+                for (; ; )
                 {
                     if (x != 0)
                     {
@@ -114,7 +114,7 @@ namespace GameRes.Formats.QSoft
                     }
                     if (token != lhs_nodes[token])
                     {
-                        if (x+1 >= 1024)
+                        if (x + 1 >= 1024)
                             throw new InvalidFormatException();
                         seq[x++] = rhs_nodes[token];
                         seq[x++] = lhs_nodes[token];

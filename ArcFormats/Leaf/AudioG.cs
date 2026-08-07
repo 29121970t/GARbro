@@ -34,38 +34,38 @@ namespace GameRes.Formats.Leaf
     [Export(typeof(AudioFormat))]
     public class GAudio : AudioFormat
     {
-        public override string         Tag { get { return "G/Leaf"; } }
+        public override string Tag { get { return "G/Leaf"; } }
         public override string Description { get { return "Leaf audio format (Ogg/Vorbis)"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public GAudio ()
+        public GAudio()
         {
             Extensions = new string[] { "g" };
         }
 
-        public override SoundInput TryOpen (IBinaryStream file)
+        public override SoundInput TryOpen(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x1C);
-            if (header.AsciiEqual ("OggS") || header.AsciiEqual ("RIFF"))
+            var header = file.ReadHeader(0x1C);
+            if (header.AsciiEqual("OggS") || header.AsciiEqual("RIFF"))
                 return null;
-            if (header[4] != 0 || header[5] != 2 || header.ToInt64 (6) != 0)
+            if (header[4] != 0 || header[5] != 2 || header.ToInt64(6) != 0)
                 return null;
             file.Position = 0;
-            var input = new GStream (file.AsStream);
-            return new OggInput (new SeekableStream (input));
+            var input = new GStream(file.AsStream);
+            return new OggInput(new SeekableStream(input));
         }
     }
 
     internal class GStream : InputProxyStream
     {
-        IEnumerator<int>    m_pages;
-        bool                m_eof;
+        IEnumerator<int> m_pages;
+        bool m_eof;
 
-        byte[]              m_page = new byte[0x10000];
-        int                 m_page_pos = 0;
-        int                 m_page_length = 0;
+        byte[] m_page = new byte[0x10000];
+        int m_page_pos = 0;
+        int m_page_length = 0;
 
-        public GStream (Stream source) : base (source)
+        public GStream(Stream source) : base(source)
         {
             m_pages = EnumeratePages();
             m_eof = false;
@@ -73,19 +73,19 @@ namespace GameRes.Formats.Leaf
 
         #region IO.Stream methods
         public override bool CanSeek { get { return false; } }
-        public override long  Length { get { throw new NotSupportedException(); } }
+        public override long Length { get { throw new NotSupportedException(); } }
         public override long Position
         {
             get { throw new NotSupportedException(); }
             set { throw new NotSupportedException(); }
         }
-        public override long Seek (long offset, SeekOrigin origin)
+        public override long Seek(long offset, SeekOrigin origin)
         {
             throw new NotSupportedException();
         }
         #endregion
 
-        public override int Read (byte[] buffer, int offset, int count)
+        public override int Read(byte[] buffer, int offset, int count)
         {
             int total_read = 0;
             while (count > 0 && !m_eof)
@@ -96,8 +96,8 @@ namespace GameRes.Formats.Leaf
                 }
                 if (m_eof)
                     break;
-                int available = Math.Min (m_page_length - m_page_pos, count);
-                Buffer.BlockCopy (m_page, m_page_pos, buffer, offset, available);
+                int available = Math.Min(m_page_length - m_page_pos, count);
+                Buffer.BlockCopy(m_page, m_page_pos, buffer, offset, available);
                 m_page_pos += available;
                 offset += available;
                 count -= available;
@@ -106,7 +106,7 @@ namespace GameRes.Formats.Leaf
             return total_read;
         }
 
-        void NextPage ()
+        void NextPage()
         {
             m_eof = !m_pages.MoveNext();
             m_page_pos = 0;
@@ -122,137 +122,137 @@ namespace GameRes.Formats.Leaf
             Broken,
         };
 
-        IEnumerator<int> EnumeratePages ()
+        IEnumerator<int> EnumeratePages()
         {
             var state = State.Header;
-            for (;;)
+            for (; ; )
             {
                 int page_length = 0x1B;
-                int read = BaseStream.Read (m_page, 0, page_length);
+                int read = BaseStream.Read(m_page, 0, page_length);
                 if (read < page_length)
                 {
                     if (read != 0)
                         yield return read;
                     yield break;
                 }
-                PutString (0, "OggS");
+                PutString(0, "OggS");
                 int segment_count = m_page[0x1A];
                 if (0 == segment_count)
                 {
-                    UpdateCrc (page_length);
+                    UpdateCrc(page_length);
                     yield return page_length;
                     continue;
                 }
-                read = BaseStream.Read (m_page, page_length, segment_count);
+                read = BaseStream.Read(m_page, page_length, segment_count);
                 page_length += read;
                 if (read < segment_count)
                 {
-                    UpdateCrc (page_length);
+                    UpdateCrc(page_length);
                     yield return page_length;
                     yield break;
                 }
                 int segments_size = 0;
                 for (int i = 0; i < segment_count; ++i)
                 {
-                    segments_size += m_page[0x1B+i];
+                    segments_size += m_page[0x1B + i];
                 }
                 int id, next;
                 switch (state)
                 {
-                case State.Header:
-                    id = BaseStream.ReadByte();
-                    if (-1 == id)
+                    case State.Header:
+                        id = BaseStream.ReadByte();
+                        if (-1 == id)
+                            break;
+
+                        m_page[page_length++] = (byte)id;
+                        next = BaseStream.ReadByte();
+                        segments_size -= 2;
+                        if (1 == id)
+                        {
+                            PutString(page_length, "vorbis");
+                            page_length += 6;
+                            m_page[0x1B] += 5;
+                            state = State.Comment;
+                        }
+                        else
+                        {
+                            m_page[page_length++] = (byte)next;
+                            state = State.Broken;
+                        }
                         break;
 
-                    m_page[page_length++] = (byte)id;
-                    next = BaseStream.ReadByte();
-                    segments_size -= 2;
-                    if (1 == id)
-                    {
-                        PutString (page_length, "vorbis");
-                        page_length += 6;
-                        m_page[0x1B] += 5;
-                        state = State.Comment;
-                    }
-                    else
-                    {
-                        m_page[page_length++] = (byte)next;
-                        state = State.Broken;
-                    }
-                    break;
+                    case State.Comment:
+                        id = BaseStream.ReadByte();
+                        if (-1 == id)
+                            break;
 
-                case State.Comment:
-                    id = BaseStream.ReadByte();
-                    if (-1 == id)
+                        m_page[page_length++] = (byte)id;
+                        next = BaseStream.ReadByte();
+                        segments_size -= 2;
+                        if (3 == id)
+                        {
+                            PutString(page_length, "vorbis");
+                            page_length += 6;
+                            read = BaseStream.Read(m_page, page_length, m_page[0x1B] - 2);
+                            page_length += read;
+                            segments_size -= read;
+                            m_page[0x1B] += 5;
+                            state = State.Setup;
+                            if (segments_size > 0)
+                                goto case State.Setup;
+                        }
+                        else
+                        {
+                            m_page[page_length++] = (byte)next;
+                            state = State.Broken;
+                        }
                         break;
 
-                    m_page[page_length++] = (byte)id;
-                    next = BaseStream.ReadByte();
-                    segments_size -= 2;
-                    if (3 == id)
-                    {
-                        PutString (page_length, "vorbis");
-                        page_length += 6;
-                        read = BaseStream.Read (m_page, page_length, m_page[0x1B]-2);
-                        page_length += read;
-                        segments_size -= read;
-                        m_page[0x1B] += 5;
-                        state = State.Setup;
-                        if (segments_size > 0)
-                            goto case State.Setup;
-                    }
-                    else
-                    {
-                        m_page[page_length++] = (byte)next;
-                        state = State.Broken;
-                    }
-                    break;
+                    case State.Setup:
+                        id = BaseStream.ReadByte();
+                        if (-1 == id)
+                            break;
 
-                case State.Setup:
-                    id = BaseStream.ReadByte();
-                    if (-1 == id)
+                        m_page[page_length++] = (byte)id;
+                        next = BaseStream.ReadByte();
+                        segments_size -= 2;
+                        if (5 == id)
+                        {
+                            PutString(page_length, "vorbis");
+                            page_length += 6;
+                            m_page[0x1B + segment_count - 1] += 5;
+                            state = State.Payload;
+                        }
+                        else
+                        {
+                            m_page[page_length++] = (byte)next;
+                            state = State.Broken;
+                        }
                         break;
-
-                    m_page[page_length++] = (byte)id;
-                    next = BaseStream.ReadByte();
-                    segments_size -= 2;
-                    if (5 == id)
-                    {
-                        PutString (page_length, "vorbis");
-                        page_length += 6;
-                        m_page[0x1B+segment_count-1] += 5;
-                        state = State.Payload;
-                    }
-                    else
-                    {
-                        m_page[page_length++] = (byte)next;
-                        state = State.Broken;
-                    }
-                    break;
                 }
-                read = BaseStream.Read (m_page, page_length, segments_size);
+                read = BaseStream.Read(m_page, page_length, segments_size);
                 page_length += read;
-                UpdateCrc (page_length);
+                UpdateCrc(page_length);
                 yield return page_length;
             }
         }
 
-        void PutString (int pos, string s)
+        void PutString(int pos, string s)
         {
             for (int i = 0; i < s.Length; ++i)
-                m_page[pos+i] = (byte)s[i];
+                m_page[pos + i] = (byte)s[i];
         }
 
-        void UpdateCrc (int page_length)
+        void UpdateCrc(int page_length)
         {
-            LittleEndian.Pack (0, m_page, 0x16);
-            uint crc = Crc32Normal.UpdateCrc (0, m_page, 0, page_length);
-            LittleEndian.Pack (crc, m_page, 0x16);
+            LittleEndian.Pack(0, m_page, 0x16);
+            uint crc = Crc32Normal.UpdateCrc(0, m_page, 0, page_length);
+            LittleEndian.Pack(crc, m_page, 0x16);
         }
 
         #region IDisposable Members
         bool _g_disposed = false;
-        protected override void Dispose (bool disposing)
+        protected override void Dispose(bool disposing)
         {
             if (_g_disposed)
                 return;
@@ -262,7 +262,7 @@ namespace GameRes.Formats.Leaf
                 m_pages.Dispose();
             }
             _g_disposed = true;
-            base.Dispose (disposing);
+            base.Dispose(disposing);
         }
         #endregion
     }

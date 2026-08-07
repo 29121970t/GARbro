@@ -56,7 +56,7 @@ namespace GARbro.GUI
 
         public App App { get { return m_app; } }
 
-        internal static readonly GuiResourceSetting DownScaleImage = new GuiResourceSetting ("winDownScaleImage");
+        internal static readonly GuiResourceSetting DownScaleImage = new GuiResourceSetting("winDownScaleImage");
 
         const StringComparison StringIgnoreCase = StringComparison.CurrentCultureIgnoreCase;
 
@@ -72,51 +72,52 @@ namespace GARbro.GUI
 
             if (null == Settings.Default.appRecentFiles)
                 Settings.Default.appRecentFiles = new StringCollection();
-            m_recent_files = new LinkedList<string> (Settings.Default.appRecentFiles.Cast<string>().Take (MaxRecentFiles));
+            m_recent_files = new LinkedList<string>(Settings.Default.appRecentFiles.Cast<string>().Take(MaxRecentFiles));
             RecentFilesMenu.ItemsSource = RecentFiles;
 
-            FormatCatalog.Instance.ParametersRequest += (s, e) => Dispatcher.Invoke (() => OnParametersRequest (s, e));
+            FormatCatalog.Instance.ParametersRequest += (s, e) => Dispatcher.Invoke(() => OnParametersRequest(s, e));
 
-            CurrentDirectory.SizeChanged += (s, e) => {
+            CurrentDirectory.SizeChanged += (s, e) =>
+            {
                 if (e.WidthChanged)
                 {
-                    pathLine.MinWidth = e.NewSize.Width-79;
-                    this.MinWidth = e.NewSize.Width+79;
+                    pathLine.MinWidth = e.NewSize.Width - 79;
+                    this.MinWidth = e.NewSize.Width + 79;
                 }
             };
             DownScaleImage.PropertyChanged += (s, e) => ApplyDownScaleSetting();
             pathLine.EnterKeyDown += acb_OnKeyDown;
         }
 
-        void WindowLoaded (object sender, RoutedEventArgs e)
+        void WindowLoaded(object sender, RoutedEventArgs e)
         {
-            lv_SetSortMode (Settings.Default.lvSortColumn, Settings.Default.lvSortDirection);
-            Dispatcher.InvokeAsync (WindowRendered, DispatcherPriority.ContextIdle);
-            ImageData.SetDefaultDpi (Desktop.DpiX, Desktop.DpiY);
+            lv_SetSortMode(Settings.Default.lvSortColumn, Settings.Default.lvSortDirection);
+            Dispatcher.InvokeAsync(WindowRendered, DispatcherPriority.ContextIdle);
+            ImageData.SetDefaultDpi(Desktop.DpiX, Desktop.DpiY);
         }
 
-        void WindowRendered ()
+        void WindowRendered()
         {
             DirectoryViewModel vm = null;
             try
             {
-                vm = GetNewViewModel (m_app.InitPath);
+                vm = GetNewViewModel(m_app.InitPath);
             }
             catch (Exception X)
             {
-                PopupError (X.Message, guiStrings.MsgErrorOpening);
+                PopupError(X.Message, guiStrings.MsgErrorOpening);
             }
             if (null == vm)
             {
-                vm = CreateViewModel (Directory.GetCurrentDirectory(), true);
+                vm = CreateViewModel(Directory.GetCurrentDirectory(), true);
             }
             ViewModel = vm;
-            lv_SelectItem (0);
+            lv_SelectItem(0);
             if (!vm.IsArchive)
-                SetStatusText (guiStrings.MsgReady);
+                SetStatusText(guiStrings.MsgReady);
         }
 
-        void WindowKeyDown (object sender, KeyEventArgs e)
+        void WindowKeyDown(object sender, KeyEventArgs e)
         {
             if (MainMenuBar.Visibility != Visibility.Visible && Key.System == e.Key)
             {
@@ -125,7 +126,7 @@ namespace GARbro.GUI
             }
         }
 
-        void HideMenuBar (object sender, DependencyPropertyChangedEventArgs e)
+        void HideMenuBar(object sender, DependencyPropertyChangedEventArgs e)
         {
             if (!MainMenuBar.IsKeyboardFocusWithin)
             {
@@ -137,7 +138,7 @@ namespace GARbro.GUI
         /// <summary>
         /// Save settings when main window is about to close
         /// </summary>
-        protected override void OnClosing (CancelEventArgs e)
+        protected override void OnClosing(CancelEventArgs e)
         {
             try
             {
@@ -147,10 +148,10 @@ namespace GARbro.GUI
             }
             catch (Exception X)
             {
-                Trace.WriteLine (X.Message, "[OnClosing]");
-                Trace.WriteLine (X.StackTrace, "Stack trace");
+                Trace.WriteLine(X.Message, "[OnClosing]");
+                Trace.WriteLine(X.StackTrace, "Stack trace");
             }
-            base.OnClosing (e);
+            base.OnClosing(e);
         }
 
         /// <summary>
@@ -168,13 +169,13 @@ namespace GARbro.GUI
 
             Settings.Default.appRecentFiles.Clear();
             foreach (var file in m_recent_files)
-                Settings.Default.appRecentFiles.Add (file);
+                Settings.Default.appRecentFiles.Add(file);
 
             string cwd = CurrentPath;
-            if (!string.IsNullOrEmpty (cwd))
+            if (!string.IsNullOrEmpty(cwd))
             {
                 if (ViewModel.IsArchive)
-                    cwd = Path.GetDirectoryName (cwd);
+                    cwd = Path.GetDirectoryName(cwd);
             }
             else
                 cwd = Directory.GetCurrentDirectory();
@@ -184,48 +185,49 @@ namespace GARbro.GUI
         /// <summary>
         /// Set status line text. Could be called from any thread.
         /// </summary>
-        public void SetStatusText (string text)
+        public void SetStatusText(string text)
         {
-            Dispatcher.Invoke (() => { appStatusText.Text = text.Trim(); });
+            Dispatcher.Invoke(() => { appStatusText.Text = text.Trim(); });
         }
 
-        public void SetResourceText (string text)
+        public void SetResourceText(string text)
         {
-            Dispatcher.Invoke (() => { appResourceText.Text = text.Trim(); });
+            Dispatcher.Invoke(() => { appResourceText.Text = text.Trim(); });
         }
 
         /// <summary>
         /// Popup error message box. Could be called from any thread.
         /// </summary>
-        public void PopupError (string message, string title)
+        public void PopupError(string message, string title)
         {
-            Dispatcher.Invoke (() => MessageBox.Show (this, message, title, MessageBoxButton.OK, MessageBoxImage.Error));
+            Dispatcher.Invoke(() => MessageBox.Show(this, message, title, MessageBoxButton.OK, MessageBoxImage.Error));
         }
 
-        internal FileErrorDialogResult ShowErrorDialog (string error_title, string error_text, IntPtr parent_hwnd)
+        internal FileErrorDialogResult ShowErrorDialog(string error_title, string error_text, IntPtr parent_hwnd)
         {
-            var dialog = new FileErrorDialog (error_title, error_text);
-            SetModalWindowParent (dialog, parent_hwnd);
+            var dialog = new FileErrorDialog(error_title, error_text);
+            SetModalWindowParent(dialog, parent_hwnd);
             return dialog.ShowDialog();
         }
 
-        internal FileExistsDialogResult ShowFileExistsDialog (string title, string text, IntPtr parent_hwnd)
+        internal FileExistsDialogResult ShowFileExistsDialog(string title, string text, IntPtr parent_hwnd)
         {
-            var dialog = new FileExistsDialog (title, text);
-            SetModalWindowParent (dialog, parent_hwnd);
+            var dialog = new FileExistsDialog(title, text);
+            SetModalWindowParent(dialog, parent_hwnd);
             return dialog.ShowDialog();
         }
 
-        private void SetModalWindowParent (Window dialog, IntPtr parent_hwnd)
+        private void SetModalWindowParent(Window dialog, IntPtr parent_hwnd)
         {
             if (parent_hwnd != IntPtr.Zero)
             {
-                var native_dialog = new WindowInteropHelper (dialog);
+                var native_dialog = new WindowInteropHelper(dialog);
                 native_dialog.Owner = parent_hwnd;
-                NativeMethods.EnableWindow (parent_hwnd, false);
+                NativeMethods.EnableWindow(parent_hwnd, false);
                 EventHandler on_closed = null;
-                on_closed = (s, e) => {
-                    NativeMethods.EnableWindow (parent_hwnd, true);
+                on_closed = (s, e) =>
+                {
+                    NativeMethods.EnableWindow(parent_hwnd, true);
                     dialog.Closed -= on_closed;
                 };
                 dialog.Closed += on_closed;
@@ -240,30 +242,30 @@ namespace GARbro.GUI
         LinkedList<string> m_recent_files;
 
         // Item1 = file name, Item2 = menu item string
-        public IEnumerable<Tuple<string,string>> RecentFiles
+        public IEnumerable<Tuple<string, string>> RecentFiles
         {
             get
             {
                 int i = 1;
-                return m_recent_files.Select (f => Tuple.Create (f, string.Format ("_{0} {1}", i++, f)));
+                return m_recent_files.Select(f => Tuple.Create(f, string.Format("_{0} {1}", i++, f)));
             }
         }
 
-        void PushRecentFile (string file)
+        void PushRecentFile(string file)
         {
-            var node = m_recent_files.Find (file);
+            var node = m_recent_files.Find(file);
             if (node != null && node == m_recent_files.First)
                 return;
             if (null == node)
             {
                 while (MaxRecentFiles <= m_recent_files.Count)
                     m_recent_files.RemoveLast();
-                m_recent_files.AddFirst (file);
+                m_recent_files.AddFirst(file);
             }
             else
             {
-                m_recent_files.Remove (node);
-                m_recent_files.AddFirst (node);
+                m_recent_files.Remove(node);
+                m_recent_files.AddFirst(node);
             }
             RecentFilesMenu.ItemsSource = RecentFiles;
         }
@@ -289,17 +291,17 @@ namespace GARbro.GUI
 
                 // update path textbox
                 var path_component = value.Path.Last();
-                if (string.IsNullOrEmpty (path_component) && value.Path.Count > 1)
-                    path_component = value.Path[value.Path.Count-2];
+                if (string.IsNullOrEmpty(path_component) && value.Path.Count > 1)
+                    path_component = value.Path[value.Path.Count - 2];
                 pathLine.Text = path_component;
 
                 if (value.IsArchive && value.Path.Count <= 2)
-                    PushRecentFile (value.Path.First());
+                    PushRecentFile(value.Path.First());
 
-                lv_Sort (SortMode, m_lvSortDirection);
-                if (!value.IsArchive && !string.IsNullOrEmpty (value.Path.First()))
+                lv_Sort(SortMode, m_lvSortDirection);
+                if (!value.IsArchive && !string.IsNullOrEmpty(value.Path.First()))
                 {
-                    WatchDirectoryChanges (value.Path.First());
+                    WatchDirectoryChanges(value.Path.First());
                 }
                 CurrentDirectory.UpdateLayout();
             }
@@ -308,24 +310,24 @@ namespace GARbro.GUI
         /// <summary>
         /// Save current position and update view model.
         /// </summary>
-        void PushViewModel (DirectoryViewModel vm)
+        void PushViewModel(DirectoryViewModel vm)
         {
             SaveCurrentPosition();
             ViewModel = vm;
         }
 
-        DirectoryViewModel GetNewViewModel (string path)
+        DirectoryViewModel GetNewViewModel(string path)
         {
-            if (!string.IsNullOrEmpty (path))
+            if (!string.IsNullOrEmpty(path))
             {
                 if (!VFS.IsVirtual)
-                    path = Path.GetFullPath (path);
-                var entry = VFS.FindFile (path);
+                    path = Path.GetFullPath(path);
+                var entry = VFS.FindFile(path);
                 if (!(entry is SubDirEntry))
                     SetBusyState();
-                VFS.ChDir (entry);
+                VFS.ChDir(entry);
             }
-            return new DirectoryViewModel (VFS.FullPath, VFS.GetFiles(), VFS.IsVirtual);
+            return new DirectoryViewModel(VFS.FullPath, VFS.GetFiles(), VFS.IsVirtual);
         }
 
         private bool m_busy_state = false;
@@ -334,7 +336,8 @@ namespace GARbro.GUI
         {
             m_busy_state = true;
             Mouse.OverrideCursor = Cursors.Wait;
-            Dispatcher.InvokeAsync (() => {
+            Dispatcher.InvokeAsync(() =>
+            {
                 m_busy_state = false;
                 Mouse.OverrideCursor = null;
             }, DispatcherPriority.ApplicationIdle);
@@ -343,15 +346,15 @@ namespace GARbro.GUI
         /// <summary>
         /// Create view model corresponding to <paramref name="path">. Returns null on error.
         /// </summary>
-        DirectoryViewModel TryCreateViewModel (string path)
+        DirectoryViewModel TryCreateViewModel(string path)
         {
             try
             {
-                return GetNewViewModel (path);
+                return GetNewViewModel(path);
             }
             catch (Exception X)
             {
-                SetStatusText (string.Format ("{0}: {1}", Path.GetFileName (path), X.Message));
+                SetStatusText(string.Format("{0}: {1}", Path.GetFileName(path), X.Message));
                 return null;
             }
         }
@@ -360,17 +363,17 @@ namespace GARbro.GUI
         /// Create view model corresponding to <paramref name="path"> or empty view model if there was
         /// an error accessing path.
         /// </summary>
-        DirectoryViewModel CreateViewModel (string path, bool suppress_warning = false)
+        DirectoryViewModel CreateViewModel(string path, bool suppress_warning = false)
         {
             try
             {
-                return GetNewViewModel (path);
+                return GetNewViewModel(path);
             }
             catch (Exception X)
             {
                 if (!suppress_warning)
-                    PopupError (X.Message, guiStrings.MsgErrorOpening);
-                return new DirectoryViewModel (new string[] { "" }, new Entry[0], false);
+                    PopupError(X.Message, guiStrings.MsgErrorOpening);
+                return new DirectoryViewModel(new string[] { "" }, new Entry[0], false);
             }
         }
 
@@ -378,7 +381,7 @@ namespace GARbro.GUI
 
         private FileSystemWatcher m_watcher = new FileSystemWatcher();
 
-        void InitDirectoryChangesWatcher ()
+        void InitDirectoryChangesWatcher()
         {
             m_watcher.NotifyFilter = NotifyFilters.Size | NotifyFilters.FileName | NotifyFilters.DirectoryName;
             m_watcher.Changed += InvokeRefreshView;
@@ -387,7 +390,7 @@ namespace GARbro.GUI
             m_watcher.Renamed += InvokeRefreshView;
         }
 
-        void WatchDirectoryChanges (string path)
+        void WatchDirectoryChanges(string path)
         {
             m_watcher.Path = path;
             m_watcher.EnableRaisingEvents = true;
@@ -398,19 +401,19 @@ namespace GARbro.GUI
             m_watcher.EnableRaisingEvents = false;
         }
 
-        public void ResumeWatchDirectoryChanges ()
+        public void ResumeWatchDirectoryChanges()
         {
             m_watcher.EnableRaisingEvents = !ViewModel.IsArchive;
         }
 
-        private void InvokeRefreshView (object source, FileSystemEventArgs e)
+        private void InvokeRefreshView(object source, FileSystemEventArgs e)
         {
             var watcher = source as FileSystemWatcher;
             var vm = ViewModel;
             if (!vm.IsArchive && vm.Path.First() == watcher.Path)
             {
                 watcher.EnableRaisingEvents = false;
-                Dispatcher.Invoke (RefreshView);
+                Dispatcher.Invoke(RefreshView);
             }
         }
         #endregion
@@ -419,39 +422,39 @@ namespace GARbro.GUI
         /// Select specified item within CurrentDirectory and bring it into a view.
         /// </summary>
 
-        void lv_SelectItem (EntryViewModel item)
+        void lv_SelectItem(EntryViewModel item)
         {
             if (item != null)
             {
                 CurrentDirectory.SelectedItem = item;
-                CurrentDirectory.ScrollIntoView (item);
-                var lvi = (ListViewItem)CurrentDirectory.ItemContainerGenerator.ContainerFromItem (item);
+                CurrentDirectory.ScrollIntoView(item);
+                var lvi = (ListViewItem)CurrentDirectory.ItemContainerGenerator.ContainerFromItem(item);
                 if (lvi != null)
                     lvi.Focus();
             }
         }
 
-        void lv_SelectItem (int index)
+        void lv_SelectItem(int index)
         {
             CurrentDirectory.SelectedIndex = index;
-            CurrentDirectory.ScrollIntoView (CurrentDirectory.SelectedItem);
-            var lvi = (ListViewItem)CurrentDirectory.ItemContainerGenerator.ContainerFromIndex (index);
+            CurrentDirectory.ScrollIntoView(CurrentDirectory.SelectedItem);
+            var lvi = (ListViewItem)CurrentDirectory.ItemContainerGenerator.ContainerFromIndex(index);
             if (lvi != null)
                 lvi.Focus();
         }
 
-        void lv_SelectItem (string name)
+        void lv_SelectItem(string name)
         {
-            if (!string.IsNullOrEmpty (name))
-                lv_SelectItem (ViewModel.Find (name));
+            if (!string.IsNullOrEmpty(name))
+                lv_SelectItem(ViewModel.Find(name));
         }
 
-        public void ListViewFocus ()
+        public void ListViewFocus()
         {
             if (CurrentDirectory.SelectedIndex != -1)
             {
                 var item = CurrentDirectory.SelectedItem;
-                var lvi = CurrentDirectory.ItemContainerGenerator.ContainerFromItem (item) as ListViewItem;
+                var lvi = CurrentDirectory.ItemContainerGenerator.ContainerFromItem(item) as ListViewItem;
                 if (lvi != null)
                 {
                     lvi.Focus();
@@ -461,7 +464,7 @@ namespace GARbro.GUI
             CurrentDirectory.Focus();
         }
 
-        void lvi_Selected (object sender, RoutedEventArgs args)
+        void lvi_Selected(object sender, RoutedEventArgs args)
         {
             var lvi = sender as ListViewItem;
             if (lvi == null)
@@ -469,12 +472,12 @@ namespace GARbro.GUI
             var entry = lvi.Content as EntryViewModel;
             if (entry == null)
                 return;
-            PreviewEntry (entry.Source);
+            PreviewEntry(entry.Source);
         }
 
         EntryViewModel m_last_selected = null;
 
-        void lv_SelectionChanged (object sender, SelectionChangedEventArgs args)
+        void lv_SelectionChanged(object sender, SelectionChangedEventArgs args)
         {
             var lv = sender as ListView;
             if (null == lv)
@@ -483,16 +486,16 @@ namespace GARbro.GUI
             if (item != null && m_last_selected != item)
             {
                 m_last_selected = item;
-                PreviewEntry (item.Source);
+                PreviewEntry(item.Source);
             }
         }
 
-        void lvi_DoubleClick (object sender, MouseButtonEventArgs args)
+        void lvi_DoubleClick(object sender, MouseButtonEventArgs args)
         {
             var lvi = sender as ListViewItem;
-            if (Commands.OpenItem.CanExecute (null, lvi))
+            if (Commands.OpenItem.CanExecute(null, lvi))
             {
-                Commands.OpenItem.Execute (null, lvi);
+                Commands.OpenItem.Execute(null, lvi);
                 args.Handled = true;
             }
         }
@@ -500,35 +503,35 @@ namespace GARbro.GUI
         /// <summary>
         /// Get currently selected item from ListView widget.
         /// </summary>
-        private ListViewItem lv_GetCurrentContainer ()
+        private ListViewItem lv_GetCurrentContainer()
         {
             int current = CurrentDirectory.SelectedIndex;
             if (-1 == current)
-                 return null;
+                return null;
 
-            return CurrentDirectory.ItemContainerGenerator.ContainerFromIndex (current) as ListViewItem;
+            return CurrentDirectory.ItemContainerGenerator.ContainerFromIndex(current) as ListViewItem;
         }
 
-        GridViewColumnHeader    m_lvSortByColumn = null;
-        ListSortDirection       m_lvSortDirection = ListSortDirection.Ascending;
+        GridViewColumnHeader m_lvSortByColumn = null;
+        ListSortDirection m_lvSortDirection = ListSortDirection.Ascending;
 
         public string SortMode
         {
-            get { return GetValue (SortModeProperty) as string; }
-            private set { SetValue (SortModeProperty, value); }
+            get { return GetValue(SortModeProperty) as string; }
+            private set { SetValue(SortModeProperty, value); }
         }
 
-        public static readonly DependencyProperty SortModeProperty = 
-            DependencyProperty.RegisterAttached ("SortMode", typeof(string), typeof(MainWindow), new UIPropertyMetadata());
+        public static readonly DependencyProperty SortModeProperty =
+            DependencyProperty.RegisterAttached("SortMode", typeof(string), typeof(MainWindow), new UIPropertyMetadata());
 
-        void lv_SetSortMode (string sortBy, ListSortDirection direction)
+        void lv_SetSortMode(string sortBy, ListSortDirection direction)
         {
             m_lvSortByColumn = null;
             GridView view = CurrentDirectory.View as GridView;
             foreach (var column in view.Columns)
             {
                 var header = column.Header as GridViewColumnHeader;
-                if (null != header && !string.IsNullOrEmpty (sortBy) && sortBy.Equals (header.Tag))
+                if (null != header && !string.IsNullOrEmpty(sortBy) && sortBy.Equals(header.Tag))
                 {
                     if (ListSortDirection.Ascending == direction)
                         column.HeaderTemplate = Resources["SortArrowUp"] as DataTemplate;
@@ -545,16 +548,16 @@ namespace GARbro.GUI
             SortMode = sortBy;
         }
 
-        private void lv_Sort (string sortBy, ListSortDirection direction)
+        private void lv_Sort(string sortBy, ListSortDirection direction)
         {
-            var dataView = CollectionViewSource.GetDefaultView (CurrentDirectory.ItemsSource) as ListCollectionView;
-            dataView.CustomSort = new FileSystemComparer (sortBy, direction);
+            var dataView = CollectionViewSource.GetDefaultView(CurrentDirectory.ItemsSource) as ListCollectionView;
+            dataView.CustomSort = new FileSystemComparer(sortBy, direction);
         }
 
         /// <summary>
         /// Sort Listview by columns
         /// </summary>
-        void lv_ColumnHeaderClicked (object sender, RoutedEventArgs e)
+        void lv_ColumnHeaderClicked(object sender, RoutedEventArgs e)
         {
             var headerClicked = e.OriginalSource as GridViewColumnHeader;
 
@@ -572,7 +575,7 @@ namespace GARbro.GUI
                 direction = ListSortDirection.Ascending;
 
             string sortBy = headerClicked.Tag.ToString();
-            lv_Sort (sortBy, direction);
+            lv_Sort(sortBy, direction);
             SortMode = sortBy;
 
             // Remove arrow from previously sorted header 
@@ -597,19 +600,19 @@ namespace GARbro.GUI
         /// Handle "Sort By" commands.
         /// </summary>
 
-        private void SortByExec (object sender, ExecutedRoutedEventArgs e)
+        private void SortByExec(object sender, ExecutedRoutedEventArgs e)
         {
             string sort_by = e.Parameter as string;
-            lv_Sort (sort_by, ListSortDirection.Ascending);
-            lv_SetSortMode (sort_by, ListSortDirection.Ascending);
+            lv_Sort(sort_by, ListSortDirection.Ascending);
+            lv_SetSortMode(sort_by, ListSortDirection.Ascending);
         }
 
         /// <summary>
         /// Handle "Set file type" commands.
         /// </summary>
-        private void SetFileTypeExec (object sender, ExecutedRoutedEventArgs e)
+        private void SetFileTypeExec(object sender, ExecutedRoutedEventArgs e)
         {
-            var selected = CurrentDirectory.SelectedItems.Cast<EntryViewModel>().Where (x => !x.IsDirectory);
+            var selected = CurrentDirectory.SelectedItems.Cast<EntryViewModel>().Where(x => !x.IsDirectory);
             if (!selected.Any())
                 return;
             string type = e.Parameter as string;
@@ -623,55 +626,55 @@ namespace GARbro.GUI
         /// Event handler for keys pressed in the directory view pane
         /// </summary>
 
-        private void lv_TextInput (object sender, TextCompositionEventArgs e)
+        private void lv_TextInput(object sender, TextCompositionEventArgs e)
         {
-            LookupItem (e.Text, e.Timestamp);
+            LookupItem(e.Text, e.Timestamp);
             e.Handled = true;
         }
 
-        private void lv_KeyDown (object sender, KeyEventArgs e)
+        private void lv_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.IsDown && LookupActive)
             {
                 switch (e.Key)
                 {
-                case Key.Space:
-                    LookupItem (" ", e.Timestamp);
-                    e.Handled = true;
-                    break;
-                case Key.Down:
-                case Key.Up:
-                case Key.Left:
-                case Key.Right:
-                case Key.Next:
-                case Key.Prior:
-                case Key.Home:
-                case Key.End:
-                case Key.Enter:
-                    m_current_input.Reset();
-                    break;
+                    case Key.Space:
+                        LookupItem(" ", e.Timestamp);
+                        e.Handled = true;
+                        break;
+                    case Key.Down:
+                    case Key.Up:
+                    case Key.Left:
+                    case Key.Right:
+                    case Key.Next:
+                    case Key.Prior:
+                    case Key.Home:
+                    case Key.End:
+                    case Key.Enter:
+                        m_current_input.Reset();
+                        break;
                 }
             }
         }
 
         class InputData
         {
-            public int              LastTime = 0;
-            public StringBuilder    Phrase = new StringBuilder();
-            public bool             Mismatch = false;
+            public int LastTime = 0;
+            public StringBuilder Phrase = new StringBuilder();
+            public bool Mismatch = false;
 
             public bool LookupActive
             {
                 get { return Phrase.Length > 0 && Environment.TickCount - LastTime < TextLookupTimeout; }
             }
 
-            public void Reset ()
+            public void Reset()
             {
-                Phrase.Clear ();
+                Phrase.Clear();
                 Mismatch = false;
             }
 
-            public void Update (int timestamp)
+            public void Update(int timestamp)
             {
                 if (timestamp - LastTime >= TextLookupTimeout)
                 {
@@ -691,9 +694,9 @@ namespace GARbro.GUI
         /// Lookup item in listview pane by first letters of name.
         /// </summary>
 
-        private void LookupItem (string key, int timestamp)
+        private void LookupItem(string key, int timestamp)
         {
-            if (string.IsNullOrEmpty (key))
+            if (string.IsNullOrEmpty(key))
                 return;
             if ("\x1B" == key) // escape key
             {
@@ -704,57 +707,57 @@ namespace GARbro.GUI
             if (source == null)
                 return;
 
-            m_current_input.Update (timestamp);
+            m_current_input.Update(timestamp);
             if (m_current_input.Mismatch)
                 return;
 
             if (!(1 == m_current_input.Phrase.Length && m_current_input.Phrase[0] == key[0]))
             {
-                m_current_input.Phrase.Append (key);
+                m_current_input.Phrase.Append(key);
             }
             int start_index = CurrentDirectory.SelectedIndex;
             if (1 == m_current_input.Phrase.Length)
             {
                 // lookup starting from the next item
-                if (start_index != -1 && start_index+1 < source.Count)
+                if (start_index != -1 && start_index + 1 < source.Count)
                     ++start_index;
             }
             var items = source.Cast<EntryViewModel>();
             if (start_index > 0)
             {
-                items = items.Skip (start_index).Concat (items.Take (start_index));
+                items = items.Skip(start_index).Concat(items.Take(start_index));
             }
             string input = m_current_input.Phrase.ToString();
-            var matched = items.FirstOrDefault (e => e.Name.StartsWith (input, StringIgnoreCase));
+            var matched = items.FirstOrDefault(e => e.Name.StartsWith(input, StringIgnoreCase));
             if (null != matched)
-                lv_SelectItem (matched);
+                lv_SelectItem(matched);
             else
                 m_current_input.Mismatch = true;
         }
 
-        static readonly Regex FullpathRe = new Regex (@"^(?:[a-z]:|[\\/])", RegexOptions.IgnoreCase);
+        static readonly Regex FullpathRe = new Regex(@"^(?:[a-z]:|[\\/])", RegexOptions.IgnoreCase);
 
-        private void acb_OnKeyDown (object sender, KeyEventArgs e)
+        private void acb_OnKeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key != Key.Return)
                 return;
             string path = (sender as AutoCompleteBox).Text;
-            path = path.Trim (' ', '"');
-            if (string.IsNullOrEmpty (path))
+            path = path.Trim(' ', '"');
+            if (string.IsNullOrEmpty(path))
                 return;
-            if (FullpathRe.IsMatch (path))
+            if (FullpathRe.IsMatch(path))
             {
-                OpenFile (path);
+                OpenFile(path);
                 return;
             }
             try
             {
-                PushViewModel (GetNewViewModel (path));
+                PushViewModel(GetNewViewModel(path));
                 ListViewFocus();
             }
             catch (Exception X)
             {
-                PopupError (X.Message, guiStrings.MsgErrorOpening);
+                PopupError(X.Message, guiStrings.MsgErrorOpening);
             }
         }
 
@@ -764,129 +767,130 @@ namespace GARbro.GUI
 
         HistoryStack<DirectoryPosition> m_history = new HistoryStack<DirectoryPosition>();
 
-        public DirectoryPosition GetCurrentPosition ()
+        public DirectoryPosition GetCurrentPosition()
         {
             var evm = CurrentDirectory.SelectedItem as EntryViewModel;
-            return new DirectoryPosition (ViewModel, evm);
+            return new DirectoryPosition(ViewModel, evm);
         }
 
-        public bool SetCurrentPosition (DirectoryPosition pos)
+        public bool SetCurrentPosition(DirectoryPosition pos)
         {
             try
             {
                 VFS.FullPath = pos.Path;
-                var vm = TryCreateViewModel (pos.Path.Last());
+                var vm = TryCreateViewModel(pos.Path.Last());
                 if (null == vm)
                     return false;
                 ViewModel = vm;
                 if (null != pos.Item)
-                    lv_SelectItem (pos.Item);
+                    lv_SelectItem(pos.Item);
                 return true;
             }
             catch (Exception X)
             {
                 // if VFS.FullPath throws an exception, ViewModel becomes inconsistent at this point
                 // and should be rebuilt
-                ViewModel = CreateViewModel (VFS.Top.CurrentDirectory, true);
-                SetStatusText (X.Message);
+                ViewModel = CreateViewModel(VFS.Top.CurrentDirectory, true);
+                SetStatusText(X.Message);
                 return false;
             }
         }
 
-        public void SaveCurrentPosition ()
+        public void SaveCurrentPosition()
         {
-            m_history.Push (GetCurrentPosition());
+            m_history.Push(GetCurrentPosition());
         }
 
-        public void ChangePosition (DirectoryPosition new_pos)
+        public void ChangePosition(DirectoryPosition new_pos)
         {
             var current = GetCurrentPosition();
-            if (!current.Path.SequenceEqual (new_pos.Path))
+            if (!current.Path.SequenceEqual(new_pos.Path))
                 SaveCurrentPosition();
-            SetCurrentPosition (new_pos);
+            SetCurrentPosition(new_pos);
         }
 
-        private void GoBackExec (object sender, ExecutedRoutedEventArgs e)
+        private void GoBackExec(object sender, ExecutedRoutedEventArgs e)
         {
-            DirectoryPosition current = m_history.Undo (GetCurrentPosition());
+            DirectoryPosition current = m_history.Undo(GetCurrentPosition());
             if (current != null)
-                SetCurrentPosition (current);
+                SetCurrentPosition(current);
         }
 
-        private void GoForwardExec (object sender, ExecutedRoutedEventArgs e)
+        private void GoForwardExec(object sender, ExecutedRoutedEventArgs e)
         {
-            DirectoryPosition current = m_history.Redo (GetCurrentPosition());
+            DirectoryPosition current = m_history.Redo(GetCurrentPosition());
             if (current != null)
-                SetCurrentPosition (current);
+                SetCurrentPosition(current);
         }
 
-        private void CanExecuteGoBack (object sender, CanExecuteRoutedEventArgs e)
+        private void CanExecuteGoBack(object sender, CanExecuteRoutedEventArgs e)
         {
             e.CanExecute = m_history.CanUndo();
         }
 
-        private void CanExecuteGoForward (object sender, CanExecuteRoutedEventArgs e)
+        private void CanExecuteGoForward(object sender, CanExecuteRoutedEventArgs e)
         {
             e.CanExecute = m_history.CanRedo();
         }
         #endregion
 
-        private void OpenFileExec (object control, ExecutedRoutedEventArgs e)
+        private void OpenFileExec(object control, ExecutedRoutedEventArgs e)
         {
-            var dlg = new OpenFileDialog {
+            var dlg = new OpenFileDialog
+            {
                 CheckFileExists = true,
                 CheckPathExists = true,
                 Multiselect = false,
                 Title = guiStrings.TextChooseArchive,
             };
-            if (!dlg.ShowDialog (this).Value)
+            if (!dlg.ShowDialog(this).Value)
                 return;
-            OpenFile (dlg.FileName);
+            OpenFile(dlg.FileName);
         }
 
-        private void OpenFile (string filename)
+        private void OpenFile(string filename)
         {
             try
             {
-                OpenFileOrDir (filename);
+                OpenFileOrDir(filename);
             }
             catch (OperationCanceledException X)
             {
-                SetStatusText (X.Message);
+                SetStatusText(X.Message);
             }
             catch (Exception X)
             {
-                PopupError (string.Format("{0}\n{1}", filename, X.Message), guiStrings.MsgErrorOpening);
+                PopupError(string.Format("{0}\n{1}", filename, X.Message), guiStrings.MsgErrorOpening);
             }
         }
 
-        private void OpenFileOrDir (string filename)
+        private void OpenFileOrDir(string filename)
         {
-            if (filename == CurrentPath || string.IsNullOrEmpty (filename))
+            if (filename == CurrentPath || string.IsNullOrEmpty(filename))
                 return;
-            if (File.Exists (filename))
+            if (File.Exists(filename))
                 VFS.FullPath = new string[] { filename, "" };
             else
                 VFS.FullPath = new string[] { filename };
-            var vm = new DirectoryViewModel (VFS.FullPath, VFS.GetFiles(), VFS.IsVirtual);
-            PushViewModel (vm);
+            var vm = new DirectoryViewModel(VFS.FullPath, VFS.GetFiles(), VFS.IsVirtual);
+            PushViewModel(vm);
             if (null != VFS.CurrentArchive)
-                SetStatusText (VFS.CurrentArchive.Description);
-            lv_SelectItem (0);
+                SetStatusText(VFS.CurrentArchive.Description);
+            lv_SelectItem(0);
         }
 
-        private void OpenRecentExec (object control, ExecutedRoutedEventArgs e)
+        private void OpenRecentExec(object control, ExecutedRoutedEventArgs e)
         {
             string filename = e.Parameter as string;
-            if (string.IsNullOrEmpty (filename))
+            if (string.IsNullOrEmpty(filename))
                 return;
-            OpenFile (filename);
+            OpenFile(filename);
         }
 
         /// <summary>
         /// Open file/directory.
         /// </summary>
-        private void OpenItemExec (object control, ExecutedRoutedEventArgs e)
+        private void OpenItemExec(object control, ExecutedRoutedEventArgs e)
         {
             EntryViewModel entry = null;
             var lvi = e.OriginalSource as ListViewItem;
@@ -898,65 +902,65 @@ namespace GARbro.GUI
                 return;
             if ("audio" == entry.Type)
             {
-                PlayFile (entry.Source);
+                PlayFile(entry.Source);
                 return;
             }
-            OpenDirectoryEntry (ViewModel, entry);
+            OpenDirectoryEntry(ViewModel, entry);
         }
 
-        private void DescendExec (object control, ExecutedRoutedEventArgs e)
+        private void DescendExec(object control, ExecutedRoutedEventArgs e)
         {
             var entry = CurrentDirectory.SelectedItem as EntryViewModel;
             if (entry != null)
-                OpenDirectoryEntry (ViewModel, entry);
+                OpenDirectoryEntry(ViewModel, entry);
         }
 
-        private void AscendExec (object control, ExecutedRoutedEventArgs e)
+        private void AscendExec(object control, ExecutedRoutedEventArgs e)
         {
             var vm = ViewModel;
-            var parent_dir = vm.FirstOrDefault (entry => entry.Name == "..");
+            var parent_dir = vm.FirstOrDefault(entry => entry.Name == "..");
             if (parent_dir != null)
-                OpenDirectoryEntry (vm, parent_dir);
+                OpenDirectoryEntry(vm, parent_dir);
         }
 
-        private void OpenDirectoryEntry (DirectoryViewModel vm, EntryViewModel entry)
+        private void OpenDirectoryEntry(DirectoryViewModel vm, EntryViewModel entry)
         {
             string old_dir = null == vm ? "" : vm.Path.Last();
             string new_dir = entry.Source.Name;
             if (".." == new_dir)
             {
                 if (null != vm && !vm.IsArchive)
-                    new_dir = Path.Combine (old_dir, entry.Name);
-                if (vm.Path.Count > 1 && string.IsNullOrEmpty (old_dir))
-                    old_dir = vm.Path[vm.Path.Count-2];
+                    new_dir = Path.Combine(old_dir, entry.Name);
+                if (vm.Path.Count > 1 && string.IsNullOrEmpty(old_dir))
+                    old_dir = vm.Path[vm.Path.Count - 2];
             }
-            Trace.WriteLine (new_dir, "OpenDirectoryEntry");
+            Trace.WriteLine(new_dir, "OpenDirectoryEntry");
             int old_fs_count = VFS.Count;
-            vm = TryCreateViewModel (new_dir);
+            vm = TryCreateViewModel(new_dir);
             if (null == vm)
             {
                 if (VFS.Count == old_fs_count)
                     return;
-                vm = new DirectoryViewModel (VFS.FullPath, new Entry[0], VFS.IsVirtual);
-                PushViewModel (vm);
+                vm = new DirectoryViewModel(VFS.FullPath, new Entry[0], VFS.IsVirtual);
+                PushViewModel(vm);
             }
             else
             {
-                PushViewModel (vm);
+                PushViewModel(vm);
                 if (VFS.Count > old_fs_count && null != VFS.CurrentArchive)
-                    SetStatusText (string.Format ("{0}: {1}", VFS.CurrentArchive.Description,
-                        Localization.Format ("MsgFiles", VFS.CurrentArchive.Dir.Count())));
+                    SetStatusText(string.Format("{0}: {1}", VFS.CurrentArchive.Description,
+                        Localization.Format("MsgFiles", VFS.CurrentArchive.Dir.Count())));
                 else
-                    SetStatusText ("");
+                    SetStatusText("");
             }
             if (".." == entry.Name)
-                lv_SelectItem (Path.GetFileName (old_dir));
+                lv_SelectItem(Path.GetFileName(old_dir));
             else
-                lv_SelectItem (0);
+                lv_SelectItem(0);
         }
 
-        WaveOutEvent    m_audio_device;
-        WaveOutEvent    AudioDevice
+        WaveOutEvent m_audio_device;
+        WaveOutEvent AudioDevice
         {
             get { return m_audio_device; }
             set
@@ -968,8 +972,8 @@ namespace GARbro.GUI
             }
         }
 
-        WaveStream      m_audio_input;
-        WaveStream      CurrentAudio
+        WaveStream m_audio_input;
+        WaveStream CurrentAudio
         {
             get { return m_audio_input; }
             set
@@ -981,16 +985,16 @@ namespace GARbro.GUI
             }
         }
 
-        private void PlayFile (Entry entry)
+        private void PlayFile(Entry entry)
         {
             IBinaryStream input = null;
             SoundInput sound = null;
             try
             {
                 SetBusyState();
-                input = VFS.OpenBinaryStream (entry);
+                input = VFS.OpenBinaryStream(entry);
                 FormatCatalog.Instance.LastError = null;
-                sound = AudioFormat.Read (input);
+                sound = AudioFormat.Read(input);
                 if (null == sound)
                 {
                     if (null != FormatCatalog.Instance.LastError)
@@ -1003,25 +1007,25 @@ namespace GARbro.GUI
                     AudioDevice.PlaybackStopped -= OnPlaybackStopped;
                     AudioDevice = null;
                 }
-                CurrentAudio = new WaveStreamImpl (sound);
+                CurrentAudio = new WaveStreamImpl(sound);
                 AudioDevice = new WaveOutEvent();
                 // conversion to sample provider somehow removes crackling at the end of WAV sound clips.
                 if ("wav" == sound.SourceFormat || 8 == sound.Format.BitsPerSample)
-                    AudioDevice.Init (CurrentAudio.ToSampleProvider());
+                    AudioDevice.Init(CurrentAudio.ToSampleProvider());
                 else
-                    AudioDevice.Init (CurrentAudio);
+                    AudioDevice.Init(CurrentAudio);
                 AudioDevice.PlaybackStopped += OnPlaybackStopped;
                 AudioDevice.Play();
                 appPlaybackControl.Visibility = Visibility.Visible;
                 var fmt = CurrentAudio.WaveFormat;
-                SetResourceText (string.Format (guiStrings.MsgPlaying, entry.Name,
+                SetResourceText(string.Format(guiStrings.MsgPlaying, entry.Name,
                                                 fmt.SampleRate, sound.SourceBitrate / 1000,
-                                                CurrentAudio.TotalTime.ToString ("m':'ss")));
+                                                CurrentAudio.TotalTime.ToString("m':'ss")));
                 input = null;
             }
             catch (Exception X)
             {
-                SetStatusText (X.Message);
+                SetStatusText(X.Message);
                 if (null != sound)
                     sound.Dispose();
             }
@@ -1032,74 +1036,74 @@ namespace GARbro.GUI
             }
         }
 
-        private void StopPlaybackExec (object sender, ExecutedRoutedEventArgs e)
+        private void StopPlaybackExec(object sender, ExecutedRoutedEventArgs e)
         {
             if (AudioDevice != null)
                 AudioDevice.Stop();
         }
 
-        private void OnPlaybackStopped (object sender, StoppedEventArgs e)
+        private void OnPlaybackStopped(object sender, StoppedEventArgs e)
         {
             try
             {
-                SetResourceText ("");
+                SetResourceText("");
                 CurrentAudio = null;
                 appPlaybackControl.Visibility = Visibility.Collapsed;
             }
             catch (Exception X)
             {
-                Trace.WriteLine (X.Message, "[OnPlaybackStopped]");
+                Trace.WriteLine(X.Message, "[OnPlaybackStopped]");
             }
         }
 
         /// <summary>
         /// Launch specified file.
         /// </summary>
-        private void SystemOpen (string file)
+        private void SystemOpen(string file)
         {
             try
             {
-                Process.Start (file);
+                Process.Start(file);
             }
             catch (Exception X)
             {
-                SetStatusText (X.Message);
+                SetStatusText(X.Message);
             }
         }
 
         /// <summary>
         /// Refresh current view.
         /// </summary>
-        private void RefreshExec (object sender, ExecutedRoutedEventArgs e)
+        private void RefreshExec(object sender, ExecutedRoutedEventArgs e)
         {
             RefreshView();
         }
 
-        public void RefreshView ()
+        public void RefreshView()
         {
             VFS.Flush();
             var pos = GetCurrentPosition();
-            SetCurrentPosition (pos);
+            SetCurrentPosition(pos);
         }
 
         /// <summary>
         /// Open current file in Explorer.
         /// </summary>
 
-        private void ExploreItemExec (object sender, ExecutedRoutedEventArgs e)
+        private void ExploreItemExec(object sender, ExecutedRoutedEventArgs e)
         {
             var entry = CurrentDirectory.SelectedItem as EntryViewModel;
             if (entry != null && !ViewModel.IsArchive)
             {
                 try
                 {
-                    string name = Path.Combine (CurrentPath, entry.Name);
-                    Process.Start ("explorer.exe", "/select,"+name);
+                    string name = Path.Combine(CurrentPath, entry.Name);
+                    Process.Start("explorer.exe", "/select," + name);
                 }
                 catch (Exception X)
                 {
                     // ignore
-                    Trace.WriteLine (X.Message, "explorer.exe");
+                    Trace.WriteLine(X.Message, "explorer.exe");
                 }
             }
         }
@@ -1107,9 +1111,9 @@ namespace GARbro.GUI
         /// <summary>
         /// Delete item from both media library and disk drive.
         /// </summary>
-        private void DeleteItemExec (object sender, ExecutedRoutedEventArgs e)
+        private void DeleteItemExec(object sender, ExecutedRoutedEventArgs e)
         {
-            var items = CurrentDirectory.SelectedItems.Cast<EntryViewModel>().Where (f => !f.IsDirectory);
+            var items = CurrentDirectory.SelectedItems.Cast<EntryViewModel>().Where(f => !f.IsDirectory);
             if (!items.Any())
                 return;
 
@@ -1118,23 +1122,23 @@ namespace GARbro.GUI
             {
                 VFS.Flush();
                 ResetPreviewPane();
-                if (!items.Skip (1).Any()) // items.Count() == 1
+                if (!items.Skip(1).Any()) // items.Count() == 1
                 {
-                    string item_name = Path.Combine (CurrentPath, items.First().Name);
-                    Trace.WriteLine (item_name, "DeleteItemExec");
-                    FileSystem.DeleteFile (item_name, UIOption.AllDialogs, RecycleOption.SendToRecycleBin);
-                    DeleteItem (lv_GetCurrentContainer());
-                    SetStatusText (string.Format(guiStrings.MsgDeletedItem, item_name));
+                    string item_name = Path.Combine(CurrentPath, items.First().Name);
+                    Trace.WriteLine(item_name, "DeleteItemExec");
+                    FileSystem.DeleteFile(item_name, UIOption.AllDialogs, RecycleOption.SendToRecycleBin);
+                    DeleteItem(lv_GetCurrentContainer());
+                    SetStatusText(string.Format(guiStrings.MsgDeletedItem, item_name));
                 }
                 else
                 {
                     int count = 0;
-                    StopWatchDirectoryChanges ();
+                    StopWatchDirectoryChanges();
                     try
                     {
-                        var file_list = items.Select (entry => Path.Combine (CurrentPath, entry.Name));
-                        if (!GARbro.Shell.File.Delete (file_list, new WindowInteropHelper(this).Handle))
-                            throw new ApplicationException ("Delete operation failed.");
+                        var file_list = items.Select(entry => Path.Combine(CurrentPath, entry.Name));
+                        if (!GARbro.Shell.File.Delete(file_list, new WindowInteropHelper(this).Handle))
+                            throw new ApplicationException("Delete operation failed.");
                         count = file_list.Count();
                     }
                     finally
@@ -1142,7 +1146,7 @@ namespace GARbro.GUI
                         ResumeWatchDirectoryChanges();
                     }
                     RefreshView();
-                    SetStatusText (Localization.Format ("MsgDeletedItems", count));
+                    SetStatusText(Localization.Format("MsgDeletedItems", count));
                 }
             }
             catch (OperationCanceledException)
@@ -1150,7 +1154,7 @@ namespace GARbro.GUI
             }
             catch (Exception X)
             {
-                SetStatusText (X.Message);
+                SetStatusText(X.Message);
             }
             finally
             {
@@ -1162,11 +1166,11 @@ namespace GARbro.GUI
         /// Delete item at the specified position within ListView, correctly adjusting current
         /// position.
         /// </summary>
-        private void DeleteItem (ListViewItem item)
+        private void DeleteItem(ListViewItem item)
         {
             int i = CurrentDirectory.SelectedIndex;
             int next = -1;
-            if (i+1 < CurrentDirectory.Items.Count)
+            if (i + 1 < CurrentDirectory.Items.Count)
                 next = i + 1;
             else if (i > 0)
                 next = i - 1;
@@ -1177,7 +1181,7 @@ namespace GARbro.GUI
             var entry = item.Content as EntryViewModel;
             if (entry != null)
             {
-                ViewModel.Remove (entry);
+                ViewModel.Remove(entry);
             }
         }
 
@@ -1186,48 +1190,48 @@ namespace GARbro.GUI
         /// </summary>
         private void RenameItemExec(object sender, ExecutedRoutedEventArgs e)
         {
-            RenameElement (lv_GetCurrentContainer());
+            RenameElement(lv_GetCurrentContainer());
         }
 
         /// <summary>
         /// Rename item contained within specified framework control.
         /// </summary>
-        void RenameElement (ListViewItem  item)
+        void RenameElement(ListViewItem item)
         {
             if (item == null)
                 return;
-/*
-            TextBlock block = FindByName (item, "item_Text") as TextBlock;
-            TextBox box = FindSibling (block, "item_Input") as TextBox;
+            /*
+                        TextBlock block = FindByName (item, "item_Text") as TextBlock;
+                        TextBox box = FindSibling (block, "item_Input") as TextBox;
 
-            if (block == null || box == null)
-                return;
+                        if (block == null || box == null)
+                            return;
 
-            IsRenameActive = true;
+                        IsRenameActive = true;
 
-            block.Visibility = Visibility.Collapsed;
-            box.Text = block.Text;
-            box.Visibility = Visibility.Visible;
-            box.Select (0, box.Text.Length);
-            box.Focus();
-*/
+                        block.Visibility = Visibility.Collapsed;
+                        box.Text = block.Text;
+                        box.Visibility = Visibility.Visible;
+                        box.Select (0, box.Text.Length);
+                        box.Focus();
+            */
         }
 
         /// <summary>
         /// Select files matching mask.
         /// </summary>
-        void AddSelectionExec (object sender, ExecutedRoutedEventArgs e)
+        void AddSelectionExec(object sender, ExecutedRoutedEventArgs e)
         {
             try
             {
                 var ext_list = new SortedSet<string>();
                 foreach (var entry in ViewModel)
                 {
-                    var ext = Path.GetExtension (entry.Name).ToLowerInvariant();
-                    if (!string.IsNullOrEmpty (ext))
-                        ext_list.Add (ext);
+                    var ext = Path.GetExtension(entry.Name).ToLowerInvariant();
+                    if (!string.IsNullOrEmpty(ext))
+                        ext_list.Add(ext);
                 }
-                var selection = new EnterMaskDialog (ext_list.Select (ext => "*"+ext));
+                var selection = new EnterMaskDialog(ext_list.Select(ext => "*" + ext));
                 selection.Owner = this;
                 var result = selection.ShowDialog();
                 if (!result.Value)
@@ -1238,48 +1242,48 @@ namespace GARbro.GUI
                     return;
                 }
                 SetBusyState();
-                var glob = new FileNameGlob (selection.Mask.Text);
-                var matching = ViewModel.Where (entry => glob.IsMatch (entry.Name));
+                var glob = new FileNameGlob(selection.Mask.Text);
+                var matching = ViewModel.Where(entry => glob.IsMatch(entry.Name));
                 if (!matching.Any())
                 {
-                    SetStatusText (string.Format (guiStrings.MsgNoMatching, selection.Mask.Text));
+                    SetStatusText(string.Format(guiStrings.MsgNoMatching, selection.Mask.Text));
                     return;
                 }
                 var selected = CurrentDirectory.SelectedItems.Cast<EntryViewModel>();
-                matching = matching.Except (selected).ToList();
+                matching = matching.Except(selected).ToList();
                 int count = matching.Count();
-                CurrentDirectory.SetSelectedItems (selected.Concat (matching));
+                CurrentDirectory.SetSelectedItems(selected.Concat(matching));
                 if (count != 0)
-                    SetStatusText (Localization.Format ("MsgSelectedFiles", count));
+                    SetStatusText(Localization.Format("MsgSelectedFiles", count));
             }
             catch (Exception X)
             {
-                SetStatusText (X.Message);
+                SetStatusText(X.Message);
             }
         }
 
-        void SelectAllExec (object sender, ExecutedRoutedEventArgs e)
+        void SelectAllExec(object sender, ExecutedRoutedEventArgs e)
         {
             CurrentDirectory.SelectAll();
         }
 
-        void CopyNamesExec (object sender, ExecutedRoutedEventArgs e)
+        void CopyNamesExec(object sender, ExecutedRoutedEventArgs e)
         {
-            var names = CurrentDirectory.SelectedItems.Cast<EntryViewModel>().Select (f => f.Name);
+            var names = CurrentDirectory.SelectedItems.Cast<EntryViewModel>().Select(f => f.Name);
             if (names.Any())
             {
                 try
                 {
-                    Clipboard.SetText (string.Join ("\r\n", names));
+                    Clipboard.SetText(string.Join("\r\n", names));
                 }
                 catch (Exception X)
                 {
-                    Trace.WriteLine (X.Message, "Clipboard error");
+                    Trace.WriteLine(X.Message, "Clipboard error");
                 }
             }
         }
 
-        void NextItemExec (object sender, ExecutedRoutedEventArgs e)
+        void NextItemExec(object sender, ExecutedRoutedEventArgs e)
         {
             if (LookupActive)
                 return;
@@ -1288,71 +1292,71 @@ namespace GARbro.GUI
             if (index < CurrentDirectory.Items.Count)
             {
                 CurrentDirectory.SelectedIndex = index;
-                CurrentDirectory.ScrollIntoView (CurrentDirectory.SelectedItem);
+                CurrentDirectory.ScrollIntoView(CurrentDirectory.SelectedItem);
             }
         }
 
         /// <summary>
         /// Handle "Exit" command.
         /// </summary>
-        void ExitExec (object sender, ExecutedRoutedEventArgs e)
+        void ExitExec(object sender, ExecutedRoutedEventArgs e)
         {
             Application.Current.Shutdown();
         }
- 
-        private void AboutExec (object sender, ExecutedRoutedEventArgs e)
+
+        private void AboutExec(object sender, ExecutedRoutedEventArgs e)
         {
             var about = new AboutBox();
             about.Owner = this;
             about.ShowDialog();
         }
 
-        private void PreferencesExec (object sender, ExecutedRoutedEventArgs e)
+        private void PreferencesExec(object sender, ExecutedRoutedEventArgs e)
         {
             var settings = new SettingsWindow();
             settings.Owner = this;
             settings.ShowDialog();
         }
 
-        private void TroubleShootingExec (object sender, ExecutedRoutedEventArgs e)
+        private void TroubleShootingExec(object sender, ExecutedRoutedEventArgs e)
         {
             var dialog = new TroubleShootingDialog();
             dialog.Owner = this;
             dialog.ShowDialog();
         }
 
-        private void ScaleImageExec (object sender, ExecutedRoutedEventArgs e)
+        private void ScaleImageExec(object sender, ExecutedRoutedEventArgs e)
         {
             DownScaleImage.Value = !DownScaleImage.Get<bool>();
         }
 
-        private void CanExecuteScaleImage (object sender, CanExecuteRoutedEventArgs e)
+        private void CanExecuteScaleImage(object sender, CanExecuteRoutedEventArgs e)
         {
             e.CanExecute = ImageCanvas.Source != null;
         }
 
-        private void CanExecuteAlways (object sender, CanExecuteRoutedEventArgs e)
+        private void CanExecuteAlways(object sender, CanExecuteRoutedEventArgs e)
         {
             e.CanExecute = true;
         }
 
-        private void CanExecuteControlCommand (object sender, CanExecuteRoutedEventArgs e)
+        private void CanExecuteControlCommand(object sender, CanExecuteRoutedEventArgs e)
         {
             Control target = e.Source as Control;
             e.CanExecute = target != null;
         }
 
-        private void CanExecuteOnSelected (object sender, CanExecuteRoutedEventArgs e)
+        private void CanExecuteOnSelected(object sender, CanExecuteRoutedEventArgs e)
         {
             e.CanExecute = CurrentDirectory.SelectedIndex != -1;
         }
 
-        private void CanExecutePlaybackControl (object sender, CanExecuteRoutedEventArgs e)
+        private void CanExecutePlaybackControl(object sender, CanExecuteRoutedEventArgs e)
         {
             e.CanExecute = CurrentAudio != null;
         }
 
-        private void CanExecuteConvertMedia (object sender, CanExecuteRoutedEventArgs e)
+        private void CanExecuteConvertMedia(object sender, CanExecuteRoutedEventArgs e)
         {
             if (CurrentDirectory.SelectedItems.Count >= 1)
             {
@@ -1360,28 +1364,28 @@ namespace GARbro.GUI
             }
         }
 
-        private void CanExecuteOnImage (object sender, CanExecuteRoutedEventArgs e)
+        private void CanExecuteOnImage(object sender, CanExecuteRoutedEventArgs e)
         {
             var entry = CurrentDirectory.SelectedItem as EntryViewModel;
             e.CanExecute = !ViewModel.IsArchive && entry != null && entry.Type == "image";
         }
 
-        private void CanExecuteInArchive (object sender, CanExecuteRoutedEventArgs e)
+        private void CanExecuteInArchive(object sender, CanExecuteRoutedEventArgs e)
         {
             e.CanExecute = ViewModel.IsArchive && CurrentDirectory.SelectedIndex != -1;
         }
 
-        private void CanExecuteCreateArchive (object sender, CanExecuteRoutedEventArgs e)
+        private void CanExecuteCreateArchive(object sender, CanExecuteRoutedEventArgs e)
         {
             e.CanExecute = !ViewModel.IsArchive && CurrentDirectory.SelectedItems.Count > 0;
         }
 
-        private void CanExecuteInDirectory (object sender, CanExecuteRoutedEventArgs e)
+        private void CanExecuteInDirectory(object sender, CanExecuteRoutedEventArgs e)
         {
             e.CanExecute = !ViewModel.IsArchive;
         }
 
-        private void CanExecuteExtract (object sender, CanExecuteRoutedEventArgs e)
+        private void CanExecuteExtract(object sender, CanExecuteRoutedEventArgs e)
         {
             if (ViewModel.IsArchive)
             {
@@ -1400,7 +1404,7 @@ namespace GARbro.GUI
             e.CanExecute = false;
         }
 
-        private void CanExecuteOnPhysicalFile (object sender, CanExecuteRoutedEventArgs e)
+        private void CanExecuteOnPhysicalFile(object sender, CanExecuteRoutedEventArgs e)
         {
             if (!ViewModel.IsArchive && CurrentDirectory.SelectedIndex != -1)
             {
@@ -1414,7 +1418,7 @@ namespace GARbro.GUI
             e.CanExecute = false;
         }
 
-        private void OnParametersRequest (object sender, ParametersRequestEventArgs e)
+        private void OnParametersRequest(object sender, ParametersRequestEventArgs e)
         {
             var format = sender as IResource;
             if (null != format)
@@ -1423,38 +1427,38 @@ namespace GARbro.GUI
                 if (null != control)
                 {
                     bool busy_state = m_busy_state;
-                    var param_dialog = new ArcParametersDialog (control, e.Notice);
+                    var param_dialog = new ArcParametersDialog(control, e.Notice);
                     param_dialog.Owner = this;
                     e.InputResult = param_dialog.ShowDialog() ?? false;
                     if (e.InputResult)
-                        e.Options = format.GetOptions (control);
+                        e.Options = format.GetOptions(control);
                     if (busy_state)
                         SetBusyState();
                 }
             }
         }
 
-        private void CanExecuteFitWindow (object sender, CanExecuteRoutedEventArgs e)
+        private void CanExecuteFitWindow(object sender, CanExecuteRoutedEventArgs e)
         {
             e.CanExecute = ImageCanvas.Source != null;
         }
 
-        private void HideStatusBarExec (object sender, ExecutedRoutedEventArgs e)
+        private void HideStatusBarExec(object sender, ExecutedRoutedEventArgs e)
         {
-            ToggleVisibility (AppStatusBar);
+            ToggleVisibility(AppStatusBar);
         }
 
-        private void HideMenuBarExec (object sender, ExecutedRoutedEventArgs e)
+        private void HideMenuBarExec(object sender, ExecutedRoutedEventArgs e)
         {
-            ToggleVisibility (MainMenuBar);
+            ToggleVisibility(MainMenuBar);
         }
 
-        private void HideToolBarExec (object sender, ExecutedRoutedEventArgs e)
+        private void HideToolBarExec(object sender, ExecutedRoutedEventArgs e)
         {
-            ToggleVisibility (MainToolBar);
+            ToggleVisibility(MainToolBar);
         }
 
-        static void ToggleVisibility (UIElement item)
+        static void ToggleVisibility(UIElement item)
         {
             var status = item.Visibility;
             if (Visibility.Visible == status)
@@ -1463,49 +1467,49 @@ namespace GARbro.GUI
                 item.Visibility = Visibility.Visible;
         }
 
-        private void OnDropEvent (object sender, DragEventArgs e)
+        private void OnDropEvent(object sender, DragEventArgs e)
         {
             try
             {
-                if (!e.Data.GetDataPresent (DataFormats.FileDrop))
+                if (!e.Data.GetDataPresent(DataFormats.FileDrop))
                     return;
-                var files = (string[])e.Data.GetData (DataFormats.FileDrop);
+                var files = (string[])e.Data.GetData(DataFormats.FileDrop);
                 if (!files.Any())
                     return;
                 var filename = files.First();
                 try
                 {
-                    OpenFileOrDir (filename);
+                    OpenFileOrDir(filename);
                 }
                 catch (Exception X)
                 {
-                    VFS.FullPath = new string[] { Path.GetDirectoryName (filename) };
-                    var vm = new DirectoryViewModel (VFS.FullPath, VFS.GetFiles(), VFS.IsVirtual);
-                    PushViewModel (vm);
-                    filename = Path.GetFileName (filename);
-                    lv_SelectItem (filename);
-                    SetStatusText (string.Format("{0}: {1}", filename, X.Message));
+                    VFS.FullPath = new string[] { Path.GetDirectoryName(filename) };
+                    var vm = new DirectoryViewModel(VFS.FullPath, VFS.GetFiles(), VFS.IsVirtual);
+                    PushViewModel(vm);
+                    filename = Path.GetFileName(filename);
+                    lv_SelectItem(filename);
+                    SetStatusText(string.Format("{0}: {1}", filename, X.Message));
                 }
             }
             catch (Exception X)
             {
-                Trace.WriteLine (X.Message, "Drop event failed");
+                Trace.WriteLine(X.Message, "Drop event failed");
             }
         }
     }
 
     public class SortModeToBooleanConverter : IValueConverter
     {
-        public object Convert (object value, Type targetType, object parameter, CultureInfo culture)
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             string actual_mode = value as string;
             string check_mode = parameter as string;
-            if (string.IsNullOrEmpty (check_mode))
-                return string.IsNullOrEmpty (actual_mode);
-            return check_mode.Equals (actual_mode);
+            if (string.IsNullOrEmpty(check_mode))
+                return string.IsNullOrEmpty(actual_mode);
+            return check_mode.Equals(actual_mode);
         }
 
-        public object ConvertBack (object value, Type targetType, object parameter, CultureInfo culture)
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
             throw new NotImplementedException();
         }

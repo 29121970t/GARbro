@@ -34,110 +34,111 @@ namespace GameRes.Formats.Neko
     [Export(typeof(ArchiveFormat))]
     public class Pak2Opener : ArchiveFormat
     {
-        public override string         Tag { get { return "NEKOPACK/2"; } }
+        public override string Tag { get { return "NEKOPACK/2"; } }
         public override string Description { get { return "NekoPack resource archive"; } }
-        public override uint     Signature { get { return 0x4F4B454E; } } // "NEKO"
-        public override bool  IsHierarchic { get { return true; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x4F4B454E; } } // "NEKO"
+        public override bool IsHierarchic { get { return true; } }
+        public override bool CanWrite { get { return false; } }
 
-        public Pak2Opener ()
+        public Pak2Opener()
         {
             Extensions = new string[] { "dat" };
         }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            if (!file.View.AsciiEqual (4, "PACK"))
+            if (!file.View.AsciiEqual(4, "PACK"))
                 return null;
 
-            uint init_key = file.View.ReadUInt32 (0xC);
-            var xdec = new NekoXCode (init_key);
-            uint seed = file.View.ReadUInt32 (0x10);
-            var buffer = file.View.ReadBytes (0x14, 8);
-            xdec.Decrypt (seed, buffer, 0, 8);
+            uint init_key = file.View.ReadUInt32(0xC);
+            var xdec = new NekoXCode(init_key);
+            uint seed = file.View.ReadUInt32(0x10);
+            var buffer = file.View.ReadBytes(0x14, 8);
+            xdec.Decrypt(seed, buffer, 0, 8);
 
-            uint index_size = LittleEndian.ToUInt32 (buffer, 0);
-            if (index_size < 0x14 || index_size != LittleEndian.ToUInt32 (buffer, 4))
+            uint index_size = LittleEndian.ToUInt32(buffer, 0);
+            if (index_size < 0x14 || index_size != LittleEndian.ToUInt32(buffer, 4))
                 return null;
             var index = new byte[(index_size + 7u) & ~7u];
-            if (file.View.Read (0x1C, index, 0, index_size) < index_size)
+            if (file.View.Read(0x1C, index, 0, index_size) < index_size)
                 return null;
-            xdec.Decrypt (seed, index, 0, index.Length);
+            xdec.Decrypt(seed, index, 0, index.Length);
 
-            using (var reader = new IndexReader (file, xdec, index, (int)index_size))
+            using (var reader = new IndexReader(file, xdec, index, (int)index_size))
             {
-                var dir = reader.Parse (0x1C+index.Length);
+                var dir = reader.Parse(0x1C + index.Length);
                 if (null == dir)
                     return null;
-                reader.DetectTypes (dir, entry => {
-                    uint key = file.View.ReadUInt32 (entry.Offset);
-                    file.View.Read (entry.Offset+12, buffer, 0, 8);
-                    xdec.Decrypt (key, buffer, 0, 8);
-                    return LittleEndian.ToUInt32 (buffer, 0);
+                reader.DetectTypes(dir, entry =>
+                {
+                    uint key = file.View.ReadUInt32(entry.Offset);
+                    file.View.Read(entry.Offset + 12, buffer, 0, 8);
+                    xdec.Decrypt(key, buffer, 0, 8);
+                    return LittleEndian.ToUInt32(buffer, 0);
                 });
-                return new NekoArchive (file, this, dir, xdec);
+                return new NekoArchive(file, this, dir, xdec);
             }
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var narc = arc as NekoArchive;
             if (null == narc || entry.Size <= 12)
-                return base.OpenEntry (arc, entry);
-            uint key = arc.File.View.ReadUInt32 (entry.Offset);
+                return base.OpenEntry(arc, entry);
+            uint key = arc.File.View.ReadUInt32(entry.Offset);
             var data = new byte[entry.Size];
-            arc.File.View.Read (entry.Offset+4, data, 0, 8);
-            narc.Decoder.Decrypt (key, data, 0, 8);
-            int size = LittleEndian.ToInt32 (data, 0);
-            if (size != LittleEndian.ToInt32 (data, 4))
+            arc.File.View.Read(entry.Offset + 4, data, 0, 8);
+            narc.Decoder.Decrypt(key, data, 0, 8);
+            int size = LittleEndian.ToInt32(data, 0);
+            if (size != LittleEndian.ToInt32(data, 4))
             {
-                Trace.WriteLine ("entry decryption failed", "[NEKOPACK]");
-                return base.OpenEntry (arc, entry);
+                Trace.WriteLine("entry decryption failed", "[NEKOPACK]");
+                return base.OpenEntry(arc, entry);
             }
             int aligned_size = (size + 7) & ~7;
             if (aligned_size > data.Length)
                 data = new byte[aligned_size];
-            arc.File.View.Read (entry.Offset+12, data, 0, (uint)size);
-            narc.Decoder.Decrypt (key, data, 0, aligned_size);
-            return new BinMemoryStream (data, 0, size, entry.Name);
+            arc.File.View.Read(entry.Offset + 12, data, 0, (uint)size);
+            narc.Decoder.Decrypt(key, data, 0, aligned_size);
+            return new BinMemoryStream(data, 0, size, entry.Name);
         }
     }
 
     internal class NekoXCode : INekoFormat
     {
-        uint            m_seed;
-        uint[]          m_random;
-        SimdProgram     m_program;
+        uint m_seed;
+        uint[] m_random;
+        SimdProgram m_program;
 
-        public NekoXCode (uint init_key)
+        public NekoXCode(uint init_key)
         {
             m_seed = init_key;
-            m_random = InitTable (init_key);
-            m_program = new SimdProgram (init_key);
+            m_random = InitTable(init_key);
+            m_program = new SimdProgram(init_key);
         }
 
-        public void Decrypt (uint key, byte[] input, int offset, int length)
+        public void Decrypt(uint key, byte[] input, int offset, int length)
         {
             for (int i = 1; i < 7; ++i)
             {
                 uint src = key % 0x28 * 2;
-                m_program.mm[i] = m_random[src] | (ulong)m_random[src+1] << 32;
+                m_program.mm[i] = m_random[src] | (ulong)m_random[src + 1] << 32;
                 key /= 0x28;
             }
-            m_program.Execute (input, offset, length);
+            m_program.Execute(input, offset, length);
         }
 
-        public uint HashFromName (byte[] str, int offset, int length)
+        public uint HashFromName(byte[] str, int offset, int length)
         {
             uint hash = m_seed;
             for (int i = 0; i < length; ++i)
             {
-                hash = 0x100002A * (ShiftMap[str[offset+i] & 0xFF] ^ hash);
+                hash = 0x100002A * (ShiftMap[str[offset + i] & 0xFF] ^ hash);
             }
             return hash;
         }
 
-        public DirRecord ReadDir (IBinaryStream input)
+        public DirRecord ReadDir(IBinaryStream input)
         {
             uint hash = input.ReadUInt32();
             int count = input.ReadInt32();
@@ -146,7 +147,7 @@ namespace GameRes.Formats.Neko
             return new DirRecord { Hash = hash, FileCount = count };
         }
 
-        public long NextOffset (Entry entry)
+        public long NextOffset(Entry entry)
         {
             return entry.Offset + entry.Size;
         }
@@ -174,13 +175,13 @@ namespace GameRes.Formats.Neko
         {
             public ulong[] mm = new ulong[7];
 
-            Action[]    m_transform = new Action[4];
-            Action[]    m_shuffle = new Action[6];
+            Action[] m_transform = new Action[4];
+            Action[] m_shuffle = new Action[6];
 
-            Action<int>[]   TransformList;
-            Action[]        ShuffleList;
+            Action<int>[] TransformList;
+            Action[] ShuffleList;
 
-            public SimdProgram (uint key)
+            public SimdProgram(uint key)
             {
                 TransformList = new Action<int>[] {
                     pxor, paddb, paddw, paddd, psubb, psubw, psubd,
@@ -190,25 +191,25 @@ namespace GameRes.Formats.Neko
                     paddq_1_2, paddq_2_3, paddq_3_4, paddq_4_5, paddq_5_6, paddq_6_1,
                 };
 
-                GenerateProgram (key);
+                GenerateProgram(key);
             }
 
-            void pxor (int i) { mm[0] ^= mm[i]; }
-            void paddb (int i) { mm[0] = MMX.PAddB (mm[0], mm[i]); }
-            void paddw (int i) { mm[0] = MMX.PAddW (mm[0], mm[i]); }
-            void paddd (int i) { mm[0] = MMX.PAddD (mm[0], mm[i]); }
-            void psubb (int i) { mm[0] = MMX.PSubB (mm[0], mm[i]); }
-            void psubw (int i) { mm[0] = MMX.PSubW (mm[0], mm[i]); }
-            void psubd (int i) { mm[0] = MMX.PSubD (mm[0], mm[i]); }
+            void pxor(int i) { mm[0] ^= mm[i]; }
+            void paddb(int i) { mm[0] = MMX.PAddB(mm[0], mm[i]); }
+            void paddw(int i) { mm[0] = MMX.PAddW(mm[0], mm[i]); }
+            void paddd(int i) { mm[0] = MMX.PAddD(mm[0], mm[i]); }
+            void psubb(int i) { mm[0] = MMX.PSubB(mm[0], mm[i]); }
+            void psubw(int i) { mm[0] = MMX.PSubW(mm[0], mm[i]); }
+            void psubd(int i) { mm[0] = MMX.PSubD(mm[0], mm[i]); }
 
-            void paddq_1_2 () { mm[1] += mm[2]; }
-            void paddq_2_3 () { mm[2] += mm[3]; }
-            void paddq_3_4 () { mm[3] += mm[4]; }
-            void paddq_4_5 () { mm[4] += mm[5]; }
-            void paddq_5_6 () { mm[5] += mm[6]; }
-            void paddq_6_1 () { mm[6] += mm[1]; }
+            void paddq_1_2() { mm[1] += mm[2]; }
+            void paddq_2_3() { mm[2] += mm[3]; }
+            void paddq_3_4() { mm[3] += mm[4]; }
+            void paddq_4_5() { mm[4] += mm[5]; }
+            void paddq_5_6() { mm[5] += mm[6]; }
+            void paddq_6_1() { mm[6] += mm[1]; }
 
-            void GenerateProgram (uint key)
+            void GenerateProgram(uint key)
             {
                 int t1 = 7 + (int)(key >> 28);
                 int cmd_base = (int)key & 0xffff;
@@ -217,7 +218,7 @@ namespace GameRes.Formats.Neko
                 {
                     int cmd = ((cmd_base >> (4 * i)) + t1) % TransformList.Length;
                     int arg = (arg_base >> (3 * i)) % 6 + 1;
-                    m_transform[3-i] = () => TransformList[cmd] (arg);
+                    m_transform[3 - i] = () => TransformList[cmd](arg);
                 }
                 for (uint i = 0; i < 6; ++i)
                 {
@@ -225,17 +226,17 @@ namespace GameRes.Formats.Neko
                 }
             }
 
-            public unsafe void Execute (byte[] input, int offset, int length)
+            public unsafe void Execute(byte[] input, int offset, int length)
             {
                 if (offset < 0 || offset > input.Length)
-                    throw new ArgumentException ("offset");
-                int count = Math.Min (length, input.Length-offset) / 8;
+                    throw new ArgumentException("offset");
+                int count = Math.Min(length, input.Length - offset) / 8;
                 if (0 == count)
                     return;
                 fixed (byte* data = &input[offset])
                 {
                     ulong* data64 = (ulong*)data;
-                    for (;;)
+                    for (; ; )
                     {
                         mm[0] = *data64;
                         foreach (var cmd in m_transform)
@@ -250,7 +251,7 @@ namespace GameRes.Formats.Neko
             }
         }
 
-        static uint[] InitTable (uint key)
+        static uint[] InitTable(uint key)
         {
             uint a = 0;
             uint b = 0;
@@ -263,7 +264,7 @@ namespace GameRes.Formats.Neko
             }
             while (0 == (a & 0x80000000));
             key = a << 1;
-            a = key + Binary.BigEndian (key);
+            a = key + Binary.BigEndian(key);
             byte count = (byte)key;
             do
             {

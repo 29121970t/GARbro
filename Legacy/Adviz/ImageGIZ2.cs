@@ -36,17 +36,18 @@ namespace GameRes.Formats.Adviz
     [Export(typeof(ImageFormat))]
     public class GizFormat : ImageFormat
     {
-        public override string         Tag => "GIZ/2";
+        public override string Tag => "GIZ/2";
         public override string Description => "ADVIZ engine image format";
-        public override uint     Signature => 0x325A4947; // 'GIZ2'
+        public override uint Signature => 0x325A4947; // 'GIZ2'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x10);
-            int xy = header.ToUInt16 (4);
-            return new GizMetaData {
-                Width  = (uint)header.ToUInt16 (6) << 3,
-                Height = header.ToUInt16 (8),
+            var header = file.ReadHeader(0x10);
+            int xy = header.ToUInt16(4);
+            return new GizMetaData
+            {
+                Width = (uint)header.ToUInt16(6) << 3,
+                Height = header.ToUInt16(8),
                 OffsetX = (xy % 0x50) << 3,
                 OffsetY = xy / 0x50,
                 RleCode = header[0xC],
@@ -55,27 +56,27 @@ namespace GameRes.Formats.Adviz
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new Giz2Reader (file, (GizMetaData)info);
+            var reader = new Giz2Reader(file, (GizMetaData)info);
             return reader.Unpack();
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("GizFormat.Write not implemented");
+            throw new System.NotImplementedException("GizFormat.Write not implemented");
         }
     }
 
     internal class Giz2Reader
     {
-        IBinaryStream   m_input;
-        GizMetaData     m_info;
-        BitmapPalette   m_palette;
+        IBinaryStream m_input;
+        GizMetaData m_info;
+        BitmapPalette m_palette;
 
         public BitmapPalette Palette => m_palette;
 
-        public Giz2Reader (IBinaryStream input, GizMetaData info)
+        public Giz2Reader(IBinaryStream input, GizMetaData info)
         {
             m_input = input;
             m_info = info;
@@ -86,13 +87,13 @@ namespace GameRes.Formats.Adviz
         int m_output_stride;
         byte[] m_output;
 
-        public ImageData Unpack ()
+        public ImageData Unpack()
         {
-            m_palette = BizFormat.ReadPalette (m_input.Name, 0x30, (pal, off) => ReadPalette (pal, off));
+            m_palette = BizFormat.ReadPalette(m_input.Name, 0x30, (pal, off) => ReadPalette(pal, off));
             if (null == m_palette)
             {
-//                m_palette = BitmapPalettes.Gray16;
-                throw new FileNotFoundException ("Unable to retrieve palette.");
+                //                m_palette = BitmapPalettes.Gray16;
+                throw new FileNotFoundException("Unable to retrieve palette.");
             }
             m_input.Position = 0x10;
             m_stride = m_info.iWidth >> 3;
@@ -109,18 +110,18 @@ namespace GameRes.Formats.Adviz
                 for (int i = 0; i < 4; ++i)
                 {
                     if ((m_info.PlaneMap & plane_mask) == 0)
-                        UnpackPlane (m_planes[i], 0);
+                        UnpackPlane(m_planes[i], 0);
                     plane_mask <<= 1;
                 }
-                CopyPlanes (dst);
+                CopyPlanes(dst);
                 dst += 4;
             }
-            return ImageData.Create (m_info, PixelFormats.Indexed4, Palette, m_output, m_output_stride);
+            return ImageData.Create(m_info, PixelFormats.Indexed4, Palette, m_output, m_output_stride);
         }
 
-        bool UnpackPlane (byte[] output, int dst)
+        bool UnpackPlane(byte[] output, int dst)
         {
-            for (int y = 0; y < m_info.iHeight; )
+            for (int y = 0; y < m_info.iHeight;)
             {
                 byte b = m_input.ReadUInt8();
                 int ctl = (b - m_info.RleCode) & 0xFF;
@@ -138,7 +139,7 @@ namespace GameRes.Formats.Adviz
                         b = m_input.ReadUInt8();
                     int count = ((m_input.ReadUInt8() - 1) & 0xFF) + 1;
                     y += count;
-                    while (count --> 0)
+                    while (count-- > 0)
                     {
                         output[dst++] = b;
                     }
@@ -153,17 +154,17 @@ namespace GameRes.Formats.Adviz
                     {
                         count = ((b1 - 1) & 0x7F) + 1;
                         if (b1 < 0x80)
-                            b1 = Binary.RotByteL (b0, 1);
+                            b1 = Binary.RotByteL(b0, 1);
                         else
-                            b1 = Binary.RotByteR (b0, 1);
+                            b1 = Binary.RotByteR(b0, 1);
                     }
                     else if (5 == ctl)
                     {
                         count = ((b1 - 1) & 0x7F) + 1;
                         if (b1 < 0x80)
-                            b1 = Binary.RotByteL (b0, 2);
+                            b1 = Binary.RotByteL(b0, 2);
                         else
-                            b1 = Binary.RotByteR (b0, 2);
+                            b1 = Binary.RotByteR(b0, 2);
                     }
                     else
                     {
@@ -190,7 +191,7 @@ namespace GameRes.Formats.Adviz
             return true;
         }
 
-        void CopyPlanes (int dst)
+        void CopyPlanes(int dst)
         {
             for (int y = 0; y < m_info.iHeight; ++y)
             {
@@ -203,29 +204,29 @@ namespace GameRes.Formats.Adviz
                     byte px = (byte)((((b0 << j) & 0x80) >> 3)
                                    | (((b1 << j) & 0x80) >> 2)
                                    | (((b2 << j) & 0x80) >> 1)
-                                   | (((b3 << j) & 0x80)     ));
+                                   | (((b3 << j) & 0x80)));
                     px |= (byte)((((b0 << j) & 0x40) >> 6)
                                | (((b1 << j) & 0x40) >> 5)
                                | (((b2 << j) & 0x40) >> 4)
                                | (((b3 << j) & 0x40) >> 3));
-                    m_output[dst+j/2] = px;
+                    m_output[dst + j / 2] = px;
                 }
                 dst += m_output_stride;
             }
         }
 
-        BitmapPalette ReadPalette (ArcView file, int offset)
+        BitmapPalette ReadPalette(ArcView file, int offset)
         {
             const int count = 16;
             var colors = new Color[count];
             for (int i = 0; i < count; ++i)
             {
-                byte b = file.View.ReadByte (offset++);
-                byte r = file.View.ReadByte (offset++);
-                byte g = file.View.ReadByte (offset++);
-                colors[i] = Color.FromRgb ((byte)(r * 0x11), (byte)(g * 0x11), (byte)(b * 0x11));
+                byte b = file.View.ReadByte(offset++);
+                byte r = file.View.ReadByte(offset++);
+                byte g = file.View.ReadByte(offset++);
+                colors[i] = Color.FromRgb((byte)(r * 0x11), (byte)(g * 0x11), (byte)(b * 0x11));
             }
-            return new BitmapPalette (colors);
+            return new BitmapPalette(colors);
         }
     }
 }

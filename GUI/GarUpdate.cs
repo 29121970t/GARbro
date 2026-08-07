@@ -42,71 +42,72 @@ namespace GARbro.GUI
     {
         GarUpdate m_updater;
 
-        private void InitUpdatesChecker ()
+        private void InitUpdatesChecker()
         {
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls;
             var update_url = App.Resources["UpdateUrl"] as Uri;
-            m_updater = new GarUpdate (this, update_url);
+            m_updater = new GarUpdate(this, update_url);
             m_updater.CanExecuteChanged += (s, e) => CommandManager.InvalidateRequerySuggested();
         }
 
-        public void CanExecuteUpdate (object sender, CanExecuteRoutedEventArgs e)
+        public void CanExecuteUpdate(object sender, CanExecuteRoutedEventArgs e)
         {
-            e.CanExecute = m_updater.CanExecute (e.Parameter);
+            e.CanExecute = m_updater.CanExecute(e.Parameter);
         }
 
         /// <summary>
         /// Handle "Check for updates" command.
         /// </summary>
-        private void CheckUpdatesExec (object sender, ExecutedRoutedEventArgs e)
+        private void CheckUpdatesExec(object sender, ExecutedRoutedEventArgs e)
         {
-            m_updater.Execute (e.Parameter);
+            m_updater.Execute(e.Parameter);
         }
     }
 
     public class GarUpdateInfo
     {
-        public Version  ReleaseVersion { get; set; }
-        public Uri          ReleaseUrl { get; set; }
-        public string     ReleaseNotes { get; set; }
+        public Version ReleaseVersion { get; set; }
+        public Uri ReleaseUrl { get; set; }
+        public string ReleaseNotes { get; set; }
         public IEnumerable<FormatsDbInfo> FormatsData { get; set; }
 
-        public static GarUpdateInfo Parse (XmlDocument xml)
+        public static GarUpdateInfo Parse(XmlDocument xml)
         {
-            var root = xml.DocumentElement.SelectSingleNode ("/GARbro");
+            var root = xml.DocumentElement.SelectSingleNode("/GARbro");
             if (null == root)
                 return null;
             var info = new GarUpdateInfo
             {
-                ReleaseVersion = Version.Parse (GetInnerText (root.SelectSingleNode ("Release/Version"))),
-                ReleaseUrl = new Uri (GetInnerText (root.SelectSingleNode ("Release/Url"))),
-                ReleaseNotes = GetInnerText (root.SelectSingleNode ("Release/Notes")),
-                FormatsData = root.SelectNodes ("FormatsData").Cast<XmlNode>()
-                    .Select (node => new FormatsDbInfo {
-                        Version = Int32.Parse (GetInnerText (node.SelectSingleNode ("FileVersion"))),
-                        Url = new Uri (GetInnerText (node.SelectSingleNode ("Url"))),
-                        Assemblies = ParseAssemblies (node.SelectNodes ("Requires/Assembly")),
+                ReleaseVersion = Version.Parse(GetInnerText(root.SelectSingleNode("Release/Version"))),
+                ReleaseUrl = new Uri(GetInnerText(root.SelectSingleNode("Release/Url"))),
+                ReleaseNotes = GetInnerText(root.SelectSingleNode("Release/Notes")),
+                FormatsData = root.SelectNodes("FormatsData").Cast<XmlNode>()
+                    .Select(node => new FormatsDbInfo
+                    {
+                        Version = Int32.Parse(GetInnerText(node.SelectSingleNode("FileVersion"))),
+                        Url = new Uri(GetInnerText(node.SelectSingleNode("Url"))),
+                        Assemblies = ParseAssemblies(node.SelectNodes("Requires/Assembly")),
                     }),
             };
             return info;
         }
 
-        public FormatsDbInfo FindMatchingFormatsData (int current_version, IEnumerable<Assembly> assemblies)
+        public FormatsDbInfo FindMatchingFormatsData(int current_version, IEnumerable<Assembly> assemblies)
         {
-            var loaded = assemblies.Select (a => a.GetName()).ToDictionary (a => a.Name, a => a.Version);
+            var loaded = assemblies.Select(a => a.GetName()).ToDictionary(a => a.Name, a => a.Version);
             // select first formats db that has greater version number and no new assemblies
-            return FormatsData.Where (f => f.Version > current_version)
-                              .OrderByDescending (f => f.Version)
-                              .FirstOrDefault (f => f.Assemblies.All (a => loaded.ContainsKey (a.Key) && loaded[a.Key] >= a.Value));
+            return FormatsData.Where(f => f.Version > current_version)
+                              .OrderByDescending(f => f.Version)
+                              .FirstOrDefault(f => f.Assemblies.All(a => loaded.ContainsKey(a.Key) && loaded[a.Key] >= a.Value));
         }
 
-        static string GetInnerText (XmlNode node)
+        static string GetInnerText(XmlNode node)
         {
             // XXX node?.InnerText ?? ""
             return node != null ? node.InnerText : "";
         }
 
-        static IDictionary<string, Version> ParseAssemblies (XmlNodeList nodes)
+        static IDictionary<string, Version> ParseAssemblies(XmlNodeList nodes)
         {
             var dict = new Dictionary<string, Version>();
             foreach (XmlNode node in nodes)
@@ -115,7 +116,7 @@ namespace GARbro.GUI
                 var name = attr["Name"];
                 var version = attr["Version"];
                 if (name != null && version != null)
-                    dict[name.Value] = Version.Parse (version.Value);
+                    dict[name.Value] = Version.Parse(version.Value);
             }
             return dict;
         }
@@ -124,19 +125,19 @@ namespace GARbro.GUI
     public class FormatsDbInfo
     {
         public int Version { get; set; }
-        public Uri     Url { get; set; }
+        public Uri Url { get; set; }
         public IDictionary<string, Version> Assemblies { get; set; }
     }
 
     internal sealed class GarUpdate : ICommand, IDisposable
     {
-        private readonly MainWindow     m_main;
+        private readonly MainWindow m_main;
         private readonly BackgroundWorker m_update_checker = new BackgroundWorker();
-        private readonly Uri            m_url;
+        private readonly Uri m_url;
 
         const int RequestTimeout = 20000; // milliseconds
 
-        public GarUpdate (MainWindow main, Uri url)
+        public GarUpdate(MainWindow main, Uri url)
         {
             m_main = main;
             m_url = url;
@@ -144,40 +145,40 @@ namespace GARbro.GUI
             m_update_checker.RunWorkerCompleted += UpdatesCheckComplete;
         }
 
-        public void Execute (object parameter)
+        public void Execute(object parameter)
         {
             if (!m_update_checker.IsBusy)
                 m_update_checker.RunWorkerAsync();
         }
 
-        public bool CanExecute (object parameter)
+        public bool CanExecute(object parameter)
         {
             return !m_update_checker.IsBusy;
         }
 
         public event EventHandler CanExecuteChanged;
 
-        void OnCanExecuteChanged ()
+        void OnCanExecuteChanged()
         {
             var handler = CanExecuteChanged;
             if (handler != null)
-                handler (this, EventArgs.Empty);
+                handler(this, EventArgs.Empty);
         }
 
-        private void StartUpdatesCheck (object sender, DoWorkEventArgs e)
+        private void StartUpdatesCheck(object sender, DoWorkEventArgs e)
         {
             OnCanExecuteChanged();
             if (m_url != null)
-                e.Result = Check (m_url);
+                e.Result = Check(m_url);
         }
 
-        private void UpdatesCheckComplete (object sender, RunWorkerCompletedEventArgs e)
+        private void UpdatesCheckComplete(object sender, RunWorkerCompletedEventArgs e)
         {
             try
             {
                 if (e.Error != null)
                 {
-                    m_main.SetStatusText (string.Format ("{0} {1}", guiStrings.MsgUpdateFailed, e.Error.Message));
+                    m_main.SetStatusText(string.Format("{0} {1}", guiStrings.MsgUpdateFailed, e.Error.Message));
                     return;
                 }
                 else if (e.Cancelled)
@@ -185,10 +186,10 @@ namespace GARbro.GUI
                 var result = e.Result as GarUpdateInfo;
                 if (null == result)
                 {
-                    m_main.SetStatusText (guiStrings.MsgNoUpdates);
+                    m_main.SetStatusText(guiStrings.MsgNoUpdates);
                     return;
                 }
-                ShowUpdateResult (result);
+                ShowUpdateResult(result);
             }
             finally
             {
@@ -196,30 +197,30 @@ namespace GARbro.GUI
             }
         }
 
-        UpdateDialog    m_dialog;
-        FormatsDbInfo   m_formats_db;
+        UpdateDialog m_dialog;
+        FormatsDbInfo m_formats_db;
 
-        private void ShowUpdateResult (GarUpdateInfo result)
+        private void ShowUpdateResult(GarUpdateInfo result)
         {
             var app_version = Assembly.GetExecutingAssembly().GetName().Version;
             bool has_app_update = app_version < result.ReleaseVersion;
 
             var loaded_assemblies = AppDomain.CurrentDomain.GetAssemblies();
-            m_formats_db = result.FindMatchingFormatsData (FormatCatalog.Instance.CurrentSchemeVersion, loaded_assemblies);
+            m_formats_db = result.FindMatchingFormatsData(FormatCatalog.Instance.CurrentSchemeVersion, loaded_assemblies);
             bool has_db_update = m_formats_db != null;
 
             if (!has_app_update && !has_db_update)
             {
-                m_main.SetStatusText (guiStrings.MsgUpToDate);
+                m_main.SetStatusText(guiStrings.MsgUpToDate);
                 return;
             }
-            m_dialog = new UpdateDialog (result, has_app_update, has_db_update);
+            m_dialog = new UpdateDialog(result, has_app_update, has_db_update);
             m_dialog.Owner = m_main;
             m_dialog.FormatsDownload.Click += StartFormatsDownload;
             m_dialog.ShowDialog();
         }
 
-        private async void StartFormatsDownload (object control, RoutedEventArgs e)
+        private async void StartFormatsDownload(object control, RoutedEventArgs e)
         {
             if (null == m_formats_db || null == m_formats_db.Url)
                 return;
@@ -228,23 +229,23 @@ namespace GARbro.GUI
             {
                 dialog.FormatsDownload.IsEnabled = false;
                 var app_data_folder = m_main.App.GetLocalAppDataFolder();
-                Directory.CreateDirectory (app_data_folder);
+                Directory.CreateDirectory(app_data_folder);
                 using (var client = new WebClientEx())
-                using (var tmp_file = new GARbro.Shell.TemporaryFile (app_data_folder, Path.GetRandomFileName()))
+                using (var tmp_file = new GARbro.Shell.TemporaryFile(app_data_folder, Path.GetRandomFileName()))
                 {
                     client.Timeout = RequestTimeout;
-                    await client.DownloadFileTaskAsync (m_formats_db.Url, tmp_file.Name);
+                    await client.DownloadFileTaskAsync(m_formats_db.Url, tmp_file.Name);
 
-                    m_main.App.DeserializeScheme (tmp_file.Name);
-                    var local_formats_dat = Path.Combine (app_data_folder, App.FormatsDat);
-                    if (!GARbro.Shell.File.Rename (tmp_file.Name, local_formats_dat))
-                        throw new Win32Exception (GARbro.Shell.File.GetLastError());
+                    m_main.App.DeserializeScheme(tmp_file.Name);
+                    var local_formats_dat = Path.Combine(app_data_folder, App.FormatsDat);
+                    if (!GARbro.Shell.File.Rename(tmp_file.Name, local_formats_dat))
+                        throw new Win32Exception(GARbro.Shell.File.GetLastError());
                 }
-                SetFormatsUpdateStatus (dialog, guiStrings.MsgUpdateComplete);
+                SetFormatsUpdateStatus(dialog, guiStrings.MsgUpdateComplete);
             }
             catch (Exception X)
             {
-                SetFormatsUpdateStatus (dialog, guiStrings.MsgDownloadFailed, X.Message);
+                SetFormatsUpdateStatus(dialog, guiStrings.MsgDownloadFailed, X.Message);
             }
             finally
             {
@@ -252,48 +253,48 @@ namespace GARbro.GUI
             }
         }
 
-        void SetFormatsUpdateStatus (UpdateDialog dialog, string text1, string text2 = null)
+        void SetFormatsUpdateStatus(UpdateDialog dialog, string text1, string text2 = null)
         {
             if (dialog.IsClosed)
-                m_main.SetStatusText (text1);
+                m_main.SetStatusText(text1);
             else if (null == text2)
                 dialog.FormatsUpdateText.Text = text1;
             else
-                dialog.FormatsUpdateText.Text = string.Format ("{0}\n{1}", text1, text2);
+                dialog.FormatsUpdateText.Text = string.Format("{0}\n{1}", text1, text2);
         }
 
         /// <summary>
         /// Check if loaded assemblies match required versions.
         /// </summary>
-        bool CheckAssemblies (IDictionary<string, Version> assemblies)
+        bool CheckAssemblies(IDictionary<string, Version> assemblies)
         {
-            var loaded = AppDomain.CurrentDomain.GetAssemblies().Select (a => a.GetName())
-                         .ToDictionary (a => a.Name, a => a.Version);
-            return assemblies.All (a => loaded.ContainsKey (a.Key) && loaded[a.Key] >= a.Value);
+            var loaded = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetName())
+                         .ToDictionary(a => a.Name, a => a.Version);
+            return assemblies.All(a => loaded.ContainsKey(a.Key) && loaded[a.Key] >= a.Value);
         }
 
-        GarUpdateInfo Check (Uri version_url)
+        GarUpdateInfo Check(Uri version_url)
         {
-            var request = WebRequest.Create (version_url);
+            var request = WebRequest.Create(version_url);
             request.Timeout = RequestTimeout;
             var response = (HttpWebResponse)request.GetResponse();
             using (var input = response.GetResponseStream())
             {
                 var xml = new XmlDocument();
-                xml.Load (input);
-                return GarUpdateInfo.Parse (xml);
+                xml.Load(input);
+                return GarUpdateInfo.Parse(xml);
             }
         }
 
         bool m_disposed = false;
-        public void Dispose ()
+        public void Dispose()
         {
             if (!m_disposed)
             {
                 m_update_checker.Dispose();
                 m_disposed = true;
             }
-            GC.SuppressFinalize (this);
+            GC.SuppressFinalize(this);
         }
     }
 
@@ -307,14 +308,14 @@ namespace GARbro.GUI
         /// </summary>
         public int Timeout { get; set; }
 
-        public WebClientEx ()
+        public WebClientEx()
         {
             Timeout = 60000;
         }
 
-        protected override WebRequest GetWebRequest (Uri uri)
+        protected override WebRequest GetWebRequest(Uri uri)
         {
-            var request = base.GetWebRequest (uri);
+            var request = base.GetWebRequest(uri);
             request.Timeout = Timeout;
             return request;
         }

@@ -33,18 +33,18 @@ namespace GameRes.Formats.Purple
     [Export(typeof(AudioFormat))]
     public class Mv2Audio : AudioFormat
     {
-        public override string         Tag { get { return "MV2"; } }
+        public override string Tag { get { return "MV2"; } }
         public override string Description { get { return "CVNS engine compressed audio format"; } }
-        public override uint     Signature { get { return 0x5832564D; } } // 'MV2X'
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x5832564D; } } // 'MV2X'
+        public override bool CanWrite { get { return false; } }
 
-        public override SoundInput TryOpen (IBinaryStream file)
+        public override SoundInput TryOpen(IBinaryStream file)
         {
-            using (var decoder = new Mv2Decoder (file))
+            using (var decoder = new Mv2Decoder(file))
             {
                 decoder.Unpack();
-                var pcm = new MemoryStream (decoder.Data);
-                var sound = new RawPcmInput (pcm, decoder.Format);
+                var pcm = new MemoryStream(decoder.Data);
+                var sound = new RawPcmInput(pcm, decoder.Format);
                 file.Dispose();
                 return sound;
             }
@@ -56,19 +56,19 @@ namespace GameRes.Formats.Purple
         int m_shift;
         int m_samples;
 
-        public Mv2Decoder (IBinaryStream input) : base (input)
+        public Mv2Decoder(IBinaryStream input) : base(input)
         {
-            var header = input.ReadHeader (0x12);
-            m_channel_size = header.ToInt32 (4);
-            m_format.FormatTag          = 1;
-            m_format.BitsPerSample      = 16;
-            m_format.Channels           = header[0xC];
-            m_format.SamplesPerSecond   = header.ToUInt16 (0xA);
-            m_format.BlockAlign         = (ushort)(m_format.Channels*m_format.BitsPerSample/8);
+            var header = input.ReadHeader(0x12);
+            m_channel_size = header.ToInt32(4);
+            m_format.FormatTag = 1;
+            m_format.BitsPerSample = 16;
+            m_format.Channels = header[0xC];
+            m_format.SamplesPerSecond = header.ToUInt16(0xA);
+            m_format.BlockAlign = (ushort)(m_format.Channels * m_format.BitsPerSample / 8);
             m_format.AverageBytesPerSecond = m_format.BlockAlign * m_format.SamplesPerSecond;
             m_output = new byte[m_format.BlockAlign * m_channel_size];
             m_shift = header[0xD];
-            m_samples = header.ToInt32 (0xE);
+            m_samples = header.ToInt32(0xE);
         }
 
         int pre2_idx;
@@ -76,9 +76,9 @@ namespace GameRes.Formats.Purple
         int[] pre_sample2;
         int[] pre_sample3;
 
-        public void Unpack ()
+        public void Unpack()
         {
-            SetPosition (0x12);
+            SetPosition(0x12);
             pre_sample1 = new int[0x400];
             pre_sample2 = new int[0x400 * m_format.Channels];
             pre_sample3 = new int[0x140 * m_format.Channels];
@@ -88,25 +88,25 @@ namespace GameRes.Formats.Purple
             {
                 for (int c = 0; c < m_format.Channels; ++c)
                 {
-                    int n1 = GetBits (10);
+                    int n1 = GetBits(10);
                     if (-1 == n1)
                         return;
-                    int n2 = GetBits (9);
+                    int n2 = GetBits(9);
                     if (-1 == n2)
                         return;
-                    FillSample1 (n1, n2);
+                    FillSample1(n1, n2);
                     int t = 0; // within pre_sample1
                     for (int j = 0; j < 10; ++j)
                     {
-                        FilterSamples (t, t, c);
+                        FilterSamples(t, t, c);
                         t += 0x20;
                     }
                     int shift = 6 - m_shift;
                     int dst = dst_pos + 2 * c;
                     for (int j = 0; j < 0x140 && dst < m_output.Length; ++j)
                     {
-                        short sample = Clamp (pre_sample3[j] >> shift);
-                        LittleEndian.Pack (sample, m_output, dst);
+                        short sample = Clamp(pre_sample3[j] >> shift);
+                        LittleEndian.Pack(sample, m_output, dst);
                         dst += m_format.BlockAlign;
                     }
                 }
@@ -114,7 +114,7 @@ namespace GameRes.Formats.Purple
             }
         }
 
-        void FillSample1 (int n1, int n2)
+        void FillSample1(int n1, int n2)
         {
             for (int i = 0; i < 0x140; ++i)
                 pre_sample1[i] = 0;
@@ -124,19 +124,19 @@ namespace GameRes.Formats.Purple
                 int count = GetCount();
                 if (count > 0)
                 {
-                    int coef = GetBits (count);
-                    if (coef < 1 << (count-1))
+                    int coef = GetBits(count);
+                    if (coef < 1 << (count - 1))
                         coef += 1 - (1 << count);
                     pre_sample1[i] = n2 * coef;
                 }
                 else
                 {
-                    i += GetBits (3);
+                    i += GetBits(3);
                 }
             }
         }
 
-        void FilterSamples (int dst, int src, int channel)
+        void FilterSamples(int dst, int src, int channel)
         {
             int idx2 = pre2_idx + (channel << 10);
             int coef1_idx = 0;

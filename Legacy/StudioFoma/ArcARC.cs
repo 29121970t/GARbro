@@ -42,57 +42,57 @@ namespace GameRes.Formats.Foma
     [Export(typeof(ArchiveFormat))]
     public class ArcOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "ARC/FOMA"; } }
+        public override string Tag { get { return "ARC/FOMA"; } }
         public override string Description { get { return "I's9/Studio FOMA resource archive"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            var arc_name = Path.GetFileName (file.Name).ToUpperInvariant();
-            if (!KnownArcNames.Contains (arc_name))
+            var arc_name = Path.GetFileName(file.Name).ToUpperInvariant();
+            if (!KnownArcNames.Contains(arc_name))
                 return null;
-            var dir_name = VFS.GetDirectoryName (file.Name);
+            var dir_name = VFS.GetDirectoryName(file.Name);
             foreach (var scheme in KnownSchemes)
             {
-                var exe_name = VFS.CombinePath (dir_name, scheme.Key);
-                if (VFS.FileExists (exe_name))
+                var exe_name = VFS.CombinePath(dir_name, scheme.Key);
+                if (VFS.FileExists(exe_name))
                 {
                     uint table_offset;
-                    if (scheme.Value.TryGetValue (arc_name, out table_offset))
+                    if (scheme.Value.TryGetValue(arc_name, out table_offset))
                     {
-                        var dir = GetEntryList (exe_name, table_offset, file.MaxOffset);
+                        var dir = GetEntryList(exe_name, table_offset, file.MaxOffset);
                         if (dir != null)
-                            return new ArcFile (file, this, dir);
+                            return new ArcFile(file, this, dir);
                     }
                 }
             }
             return null;
         }
 
-        internal List<Entry> GetEntryList (string exe_name, long table_offset, long max_offset)
+        internal List<Entry> GetEntryList(string exe_name, long table_offset, long max_offset)
         {
-            using (var exe_file = VFS.OpenView (exe_name))
+            using (var exe_file = VFS.OpenView(exe_name))
             {
                 if (table_offset >= exe_file.MaxOffset)
                     return null;
-                var exe = new ExeFile (exe_file);
+                var exe = new ExeFile(exe_file);
                 var dir = new List<Entry>();
-                while (table_offset+12 <= exe_file.MaxOffset)
+                while (table_offset + 12 <= exe_file.MaxOffset)
                 {
-                    uint name_addr = exe.View.ReadUInt32 (table_offset);
+                    uint name_addr = exe.View.ReadUInt32(table_offset);
                     if (0 == name_addr)
                         break;
-                    var name = exe.GetCString (name_addr);
-                    if (string.IsNullOrEmpty (name))
+                    var name = exe.GetCString(name_addr);
+                    if (string.IsNullOrEmpty(name))
                         return null;
-                    var entry = Create<Entry> (name);
-                    entry.Offset = exe.View.ReadUInt32 (table_offset + 4);
-                    entry.Size   = exe.View.ReadUInt32 (table_offset + 8);
-                    if (!entry.CheckPlacement (max_offset))
+                    var entry = Create<Entry>(name);
+                    entry.Offset = exe.View.ReadUInt32(table_offset + 4);
+                    entry.Size = exe.View.ReadUInt32(table_offset + 8);
+                    if (!entry.CheckPlacement(max_offset))
                         return null;
-                    dir.Add (entry);
+                    dir.Add(entry);
                     table_offset += 12;
                 }
                 return dir;
@@ -119,7 +119,7 @@ namespace GameRes.Formats.Foma
 
         internal HashSet<string> KnownArcNames
         {
-            get { return m_known_arc_names ?? (m_known_arc_names = new HashSet<string> (KnownSchemes.Values.SelectMany (v => v.Keys))); }
+            get { return m_known_arc_names ?? (m_known_arc_names = new HashSet<string>(KnownSchemes.Values.SelectMany(v => v.Keys))); }
         }
     }
 }

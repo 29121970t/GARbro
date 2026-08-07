@@ -33,21 +33,22 @@ namespace GameRes.Formats.Mutation
     [Export(typeof(ImageFormat))]
     public class RbmFormat : ImageFormat
     {
-        public override string         Tag { get { return "RBM"; } }
+        public override string Tag { get { return "RBM"; } }
         public override string Description { get { return "Mutation compressed image"; } }
-        public override uint     Signature { get { return 0x004D4252; } } // 'RBM'
+        public override uint Signature { get { return 0x004D4252; } } // 'RBM'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (10);
-            return new ImageMetaData {
-                Width = header.ToUInt16 (6),
-                Height = header.ToUInt16 (8),
+            var header = file.ReadHeader(10);
+            return new ImageMetaData
+            {
+                Width = header.ToUInt16(6),
+                Height = header.ToUInt16(8),
                 BPP = 24,
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
             file.Position = 10;
             int stride = (int)info.Width * 3;
@@ -68,21 +69,21 @@ namespace GameRes.Formats.Mutation
                     int offset = file.ReadUInt16();
                     int count = ((offset & 0xF) + 1) * 3;
                     offset = ((offset >> 4) + 1) * 3;
-                    Binary.CopyOverlapped (pixels, dst-offset, dst, count);
+                    Binary.CopyOverlapped(pixels, dst - offset, dst, count);
                     dst += count;
                 }
                 else
                 {
-                    file.Read (pixels, dst, 3);
+                    file.Read(pixels, dst, 3);
                     dst += 3;
                 }
             }
-            return ImageData.CreateFlipped (info, PixelFormats.Bgr24, null, pixels, stride);
+            return ImageData.CreateFlipped(info, PixelFormats.Bgr24, null, pixels, stride);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("RbmFormat.Write not implemented");
+            throw new System.NotImplementedException("RbmFormat.Write not implemented");
         }
     }
 }

@@ -38,45 +38,46 @@ namespace GameRes.Formats.BRoom
 {
     internal class ErpMetaData : ImageMetaData
     {
-        public int  Id;
-        public int  Method;
+        public int Id;
+        public int Method;
         public byte KeyIndex;
     }
 
     [Export(typeof(ImageFormat))]
     public class ErpFormat : ImageFormat
     {
-        public override string         Tag { get { return "ERP"; } }
+        public override string Tag { get { return "ERP"; } }
         public override string Description { get { return "Studio B-Room image format"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        static readonly byte[] HeaderKey = { 
+        static readonly byte[] HeaderKey = {
             0x7D, 0x45, 0x59, 0x26, 0x8D, 0x45, 0x98, 0x26, 0x69, 0x68, 0x57, 0x52,
             0x76, 0x85, 0x12, 0x18, 0x62, 0x47, 0x7F, 0x84,
         };
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
             if ((file.Signature & 0xFFFFFF00) != 0x26594500)
                 return null;
-            var header = file.ReadHeader (0x14).ToArray();
+            var header = file.ReadHeader(0x14).ToArray();
             int idx = header[0] ^ HeaderKey[0];
             if (idx >= 31)
                 return null;
             for (int i = 4; i < 0x14; ++i)
                 header[i] ^= HeaderKey[i];
-            int method = header.ToInt32 (16) ^ idx;
+            int method = header.ToInt32(16) ^ idx;
             if (method < 0 || method > 12)
                 return null;
-            int key_index = GuessKeyIndex (header, idx);
+            int key_index = GuessKeyIndex(header, idx);
             if (key_index < 0)
                 return null;
-            int bpp = header.ToInt32 (4) ^ DefaultKey[0, key_index, idx];
+            int bpp = header.ToInt32(4) ^ DefaultKey[0, key_index, idx];
             if (bpp != 8 && bpp != 24)
                 return null;
-            return new ErpMetaData {
-                Width  = (header.ToUInt32 (8)  ^ DefaultKey[1, key_index, idx]) * 4,
-                Height = (header.ToUInt32 (12) ^ DefaultKey[2, key_index, idx]) * 4,
+            return new ErpMetaData
+            {
+                Width = (header.ToUInt32(8) ^ DefaultKey[1, key_index, idx]) * 4,
+                Height = (header.ToUInt32(12) ^ DefaultKey[2, key_index, idx]) * 4,
                 BPP = bpp,
                 Id = idx,
                 Method = method,
@@ -86,7 +87,7 @@ namespace GameRes.Formats.BRoom
 
         int? LastKeyIndex = null;
 
-        int GuessKeyIndex (byte[] header, int idx)
+        int GuessKeyIndex(byte[] header, int idx)
         {
             if (LastKeyIndex != null)
                 return LastKeyIndex.Value;
@@ -104,18 +105,18 @@ namespace GameRes.Formats.BRoom
             return -1;
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new ErpReader (file, (ErpMetaData)info);
+            var reader = new ErpReader(file, (ErpMetaData)info);
             return reader.Unpack();
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("ErpFormat.Write not implemented");
+            throw new System.NotImplementedException("ErpFormat.Write not implemented");
         }
 
-        static readonly byte[,,] DefaultKey = new byte[3,3,31] {
+        static readonly byte[,,] DefaultKey = new byte[3, 3, 31] {
             {
                 { 0x86, 0xBD, 0xAD, 0x4B, 0xBC, 0x1D, 0xAA, 0x4C, 0x23, 0xAB, 0x16, 0x8C, 0xE2, 0x29, 0x7F, 0xE1,
                   0xF3, 0xAC, 0x9A, 0x09, 0x30, 0xD4, 0x7D, 0x7B, 0x32, 0x70, 0x73, 0x81, 0x5B, 0x3C, 0x47 },
@@ -143,14 +144,14 @@ namespace GameRes.Formats.BRoom
 
     internal class ErpReader
     {
-        IBinaryStream   m_input;
-        ErpMetaData     m_info;
-        byte[]          m_output;
+        IBinaryStream m_input;
+        ErpMetaData m_info;
+        byte[] m_output;
 
-        public PixelFormat    Format { get; private set; }
+        public PixelFormat Format { get; private set; }
         public BitmapPalette Palette { get; private set; }
 
-        public ErpReader (IBinaryStream input, ErpMetaData info)
+        public ErpReader(IBinaryStream input, ErpMetaData info)
         {
             m_input = input;
             m_info = info;
@@ -164,12 +165,12 @@ namespace GameRes.Formats.BRoom
                 throw new InvalidFormatException();
         }
 
-        public ImageData Unpack ()
+        public ImageData Unpack()
         {
             m_input.Position = 0x14;
             if (8 == m_info.BPP)
             {
-                Palette = ImageFormat.ReadPalette (m_input.AsStream);
+                Palette = ImageFormat.ReadPalette(m_input.AsStream);
                 Unpack8bpp();
             }
             else if (0 == m_info.Method)
@@ -178,10 +179,10 @@ namespace GameRes.Formats.BRoom
                 UnpackV1();
             else
                 UnpackV7();
-            return ImageData.Create (m_info, Format, Palette, m_output);
+            return ImageData.Create(m_info, Format, Palette, m_output);
         }
 
-        void Unpack8bpp ()
+        void Unpack8bpp()
         {
             int dst = 0;
             while (dst < m_output.Length)
@@ -194,26 +195,26 @@ namespace GameRes.Formats.BRoom
                 if (count > 0)
                 {
                     byte v = (byte)(px ^ 13);
-                    while (count --> 0)
+                    while (count-- > 0)
                         m_output[dst++] = v;
                 }
             }
         }
 
-        void UnpackV0 ()
+        void UnpackV0()
         {
-            var count_key = new ErpKey (m_info.Id ^ 0x68, DefaultKey[6, m_info.KeyIndex, m_info.Id]);
-            var r_key = new ErpKey (DefaultKey[0, m_info.KeyIndex, m_info.Id],
+            var count_key = new ErpKey(m_info.Id ^ 0x68, DefaultKey[6, m_info.KeyIndex, m_info.Id]);
+            var r_key = new ErpKey(DefaultKey[0, m_info.KeyIndex, m_info.Id],
                                     DefaultKey[3, m_info.KeyIndex, m_info.Id]);
-            var g_key = new ErpKey (DefaultKey[1, m_info.KeyIndex, m_info.Id],
+            var g_key = new ErpKey(DefaultKey[1, m_info.KeyIndex, m_info.Id],
                                     DefaultKey[4, m_info.KeyIndex, m_info.Id]);
-            var b_key = new ErpKey (DefaultKey[2, m_info.KeyIndex, m_info.Id],
+            var b_key = new ErpKey(DefaultKey[2, m_info.KeyIndex, m_info.Id],
                                     DefaultKey[5, m_info.KeyIndex, m_info.Id]);
             var rgb = new byte[3];
             int dst = 0;
             while (dst < m_output.Length)
             {
-                m_input.Read (rgb, 0, 3);
+                m_input.Read(rgb, 0, 3);
                 int count = m_input.ReadByte();
                 if (count < 0)
                     break;
@@ -223,10 +224,10 @@ namespace GameRes.Formats.BRoom
                     m_output[dst++] = (byte)(rgb[0] ^ b_key.Value);
                     m_output[dst++] = (byte)(rgb[1] ^ g_key.Value);
                     m_output[dst++] = (byte)(rgb[2] ^ r_key.Value);
-                    count = Math.Min ((count - 1) * 3, m_output.Length - dst);
+                    count = Math.Min((count - 1) * 3, m_output.Length - dst);
                     if (count > 0)
                     {
-                        Binary.CopyOverlapped (m_output, dst-3, dst, count);
+                        Binary.CopyOverlapped(m_output, dst - 3, dst, count);
                         dst += count;
                     }
                 }
@@ -237,36 +238,36 @@ namespace GameRes.Formats.BRoom
             }
         }
 
-        static readonly byte[,] ChannelOrder = new byte[6,3] {
+        static readonly byte[,] ChannelOrder = new byte[6, 3] {
             { 0, 1, 2 }, { 0, 2, 1 }, { 1, 0, 2 }, { 1, 2, 0 }, { 2, 0, 1 }, { 2, 1, 0 }
         };
 
-        void UnpackV1 ()
+        void UnpackV1()
         {
             var count_list = new List<int>();
-            var count_key = new ErpKey (m_info.Id ^ 0x68, DefaultKey[6, m_info.KeyIndex, m_info.Id]);
+            var count_key = new ErpKey(m_info.Id ^ 0x68, DefaultKey[6, m_info.KeyIndex, m_info.Id]);
             int count;
             while ((count = m_input.ReadByte()) >= 0)
             {
                 count ^= count_key.Value ^ 0xE9;
                 if (0 == count)
                     break;
-                count_list.Add (count);
+                count_list.Add(count);
                 count_key.Increment();
             }
             int order = m_info.Method - 1;
             for (int i = 0; i < 3; ++i)
             {
                 int channel = ChannelOrder[order, i];
-                var pixel_key = new ErpKey (DefaultKey[channel, m_info.KeyIndex, m_info.Id],
-                                            DefaultKey[channel+3, m_info.KeyIndex, m_info.Id]);
-                int dst = 2-channel;
+                var pixel_key = new ErpKey(DefaultKey[channel, m_info.KeyIndex, m_info.Id],
+                                            DefaultKey[channel + 3, m_info.KeyIndex, m_info.Id]);
+                int dst = 2 - channel;
                 for (int j = 0; j < count_list.Count; ++j)
                 {
                     count = count_list[j];
                     int px = m_input.ReadByte();
                     byte v = (byte)(px ^ pixel_key.Value);
-                    while (count --> 0)
+                    while (count-- > 0)
                     {
                         m_output[dst] = v;
                         dst += 3;
@@ -276,14 +277,14 @@ namespace GameRes.Formats.BRoom
             }
         }
 
-        void UnpackV7 ()
+        void UnpackV7()
         {
             int order = m_info.Method - 7;
             var channels = new byte[3][];
             for (int i = 0; i < 3; ++i)
             {
                 int channel = ChannelOrder[order, i];
-                channels[channel] = UnpackChannel (channel);
+                channels[channel] = UnpackChannel(channel);
             }
             int src = 0;
             int dst = 0;
@@ -296,14 +297,14 @@ namespace GameRes.Formats.BRoom
             }
         }
 
-        byte[] UnpackChannel (int channel)
+        byte[] UnpackChannel(int channel)
         {
             var output = new byte[m_output.Length / 3];
-            var count_key = new ErpKey (m_info.Id ^ 0x68, DefaultKey[6, m_info.KeyIndex, m_info.Id]);
-            var pixel_key = new ErpKey (DefaultKey[channel, m_info.KeyIndex, m_info.Id],
-                                        DefaultKey[channel+3, m_info.KeyIndex, m_info.Id]);
+            var count_key = new ErpKey(m_info.Id ^ 0x68, DefaultKey[6, m_info.KeyIndex, m_info.Id]);
+            var pixel_key = new ErpKey(DefaultKey[channel, m_info.KeyIndex, m_info.Id],
+                                        DefaultKey[channel + 3, m_info.KeyIndex, m_info.Id]);
             int dst = 0;
-            for (;;)
+            for (; ; )
             {
                 int px = m_input.ReadByte();
                 int count = m_input.ReadByte();
@@ -312,9 +313,9 @@ namespace GameRes.Formats.BRoom
                 count ^= count_key.Value ^ 0xE9;
                 if (0 == count)
                     break;
-                count = Math.Min (count, output.Length - dst);
+                count = Math.Min(count, output.Length - dst);
                 byte v = (byte)(px ^ pixel_key.Value);
-                while (count --> 0)
+                while (count-- > 0)
                     output[dst++] = v;
 
                 count_key.Increment();
@@ -323,7 +324,7 @@ namespace GameRes.Formats.BRoom
             return output;
         }
 
-        static readonly byte[,,] DefaultKey = new byte[7,3,31] {
+        static readonly byte[,,] DefaultKey = new byte[7, 3, 31] {
             {
                 { 0x5C, 0xEC, 0xC5, 0xCB, 0x76, 0xEF, 0x08, 0x66, 0xBE, 0x0E, 0x05, 0x9E, 0x1F, 0x8D, 0x11, 0xCD,
                   0xE5, 0x5F, 0x1A, 0x56, 0xD6, 0x01, 0xA9, 0xA4, 0x44, 0x03, 0x77, 0xB8, 0x0C, 0xF7, 0xF0 },
@@ -379,18 +380,18 @@ namespace GameRes.Formats.BRoom
 
     struct ErpKey
     {
-        int     m_value;
-        byte    m_increment;
+        int m_value;
+        byte m_increment;
 
         public byte Value { get { return (byte)m_value; } }
 
-        public ErpKey (int init_value, byte increment)
+        public ErpKey(int init_value, byte increment)
         {
             m_value = init_value;
             m_increment = increment;
         }
 
-        public void Increment ()
+        public void Increment()
         {
             m_value += m_increment;
             if (m_value > 0xFF)

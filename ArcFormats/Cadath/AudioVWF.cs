@@ -35,36 +35,36 @@ namespace GameRes.Formats.Cadath
     [Export(typeof(AudioFormat))]
     public class VwfAudio : AudioFormat
     {
-        public override string         Tag { get { return "VWF"; } }
+        public override string Tag { get { return "VWF"; } }
         public override string Description { get { return "AZSYSTEM/1.0 audio format"; } }
-        public override uint     Signature { get { return 0x1A465756; } } // 'VWF'
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x1A465756; } } // 'VWF'
+        public override bool CanWrite { get { return false; } }
 
-        public override SoundInput TryOpen (IBinaryStream file)
+        public override SoundInput TryOpen(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x23);
-            int bits1_length = header.ToInt32 (0x13);
-            int bits2_length = header.ToInt32 (0x17);
-            var data = file.ReadBytes (bits1_length + bits2_length);
-            CgfDecoder.Decrypt (data, bits1_length);
+            var header = file.ReadHeader(0x23);
+            int bits1_length = header.ToInt32(0x13);
+            int bits2_length = header.ToInt32(0x17);
+            var data = file.ReadBytes(bits1_length + bits2_length);
+            CgfDecoder.Decrypt(data, bits1_length);
 
-            int unpacked_length = header.ToInt32 (5);
-            uint sample_rate = header.ToUInt32 (0xD);
+            int unpacked_length = header.ToInt32(5);
+            uint sample_rate = header.ToUInt32(0xD);
             int sample_count = unpacked_length >> 1;
             var bits1 = new byte[(sample_count + 7) >> 3];
             var bits2 = new byte[sample_count >> 1];
 
-            using (var mem = new MemoryStream (data, 4, bits1_length-4))
-            using (var input = new ZLibStream (mem, CompressionMode.Decompress))
-                input.Read (bits1, 0, bits1.Length);
+            using (var mem = new MemoryStream(data, 4, bits1_length - 4))
+            using (var input = new ZLibStream(mem, CompressionMode.Decompress))
+                input.ReadExactly(bits1);
 
-            using (var mem = new MemoryStream (data, bits1_length+4, bits2_length-4))
-            using (var input = new ZLibStream (mem, CompressionMode.Decompress))
-                input.Read (bits2, 0, bits2.Length);
+            using (var mem = new MemoryStream(data, bits1_length + 4, bits2_length - 4))
+            using (var input = new ZLibStream(mem, CompressionMode.Decompress))
+                input.ReadExactly(bits2);
 
-            short init = header.ToInt16 (0x11);
+            short init = header.ToInt16(0x11);
             var decoded = new short[sample_count];
-            DecodeAdp (bits2, decoded, sample_count, init);
+            DecodeAdp(bits2, decoded, sample_count, init);
 
             var output = new byte[unpacked_length];
             byte bit = 0x80;
@@ -72,10 +72,10 @@ namespace GameRes.Formats.Cadath
             int dst = 0;
             for (int i = 0; i < decoded.Length; ++i)
             {
-                short sample = Math.Max (decoded[i], (short)0);
+                short sample = Math.Max(decoded[i], (short)0);
                 if ((bit & bits1[src]) != 0)
                     sample = (short)-sample;
-                LittleEndian.Pack (sample, output, dst);
+                LittleEndian.Pack(sample, output, dst);
                 dst += 2;
                 bit >>= 1;
                 if (0 == bit)
@@ -84,7 +84,8 @@ namespace GameRes.Formats.Cadath
                     bit = 0x80;
                 }
             }
-            var format = new WaveFormat {
+            var format = new WaveFormat
+            {
                 FormatTag = 1,
                 Channels = 1,
                 SamplesPerSecond = sample_rate,
@@ -92,11 +93,11 @@ namespace GameRes.Formats.Cadath
                 BitsPerSample = 16,
             };
             format.SetBPS();
-            var pcm = new MemoryStream (output);
-            return new RawPcmInput (pcm, format);
+            var pcm = new MemoryStream(output);
+            return new RawPcmInput(pcm, format);
         }
 
-        void DecodeAdp (byte[] input, short[] output, int count, short init)
+        void DecodeAdp(byte[] input, short[] output, int count, short init)
         {
             int src = 0;
             int sample = init;
@@ -104,7 +105,7 @@ namespace GameRes.Formats.Cadath
             byte s = 0;
             bool odd = false;
             ushort quant = AdpDecoder.QuantizeTable[0];
-            for (int i = 0; i < count; )
+            for (int i = 0; i < count;)
             {
                 int v;
                 if (odd)
@@ -131,9 +132,9 @@ namespace GameRes.Formats.Cadath
                 if ((v & 1) != 0)
                     step += quant >> 2;
                 if (v < 8)
-                    sample = Math.Min (0x7FFF, sample + step);
+                    sample = Math.Min(0x7FFF, sample + step);
                 else
-                    sample = Math.Max (-32768, sample - step);
+                    sample = Math.Max(-32768, sample - step);
                 quant = AdpDecoder.QuantizeTable[quant_idx];
                 output[i++] = (short)sample;
                 odd = !odd;

@@ -32,56 +32,57 @@ namespace GameRes.Formats.Yaneurao
 {
     internal class YgaMetaData : ImageMetaData
     {
-        public int  UnpackedSize;
+        public int UnpackedSize;
         public bool IsCompressed;
     }
 
     [Export(typeof(ImageFormat))]
     public class YgaFormat : ImageFormat
     {
-        public override string         Tag { get { return "YGA"; } }
+        public override string Tag { get { return "YGA"; } }
         public override string Description { get { return "Yaneurao image format"; } }
-        public override uint     Signature { get { return 0x616779; } } // 'yga'
+        public override uint Signature { get { return 0x616779; } } // 'yga'
 
-        public YgaFormat ()
+        public YgaFormat()
         {
             Extensions = new string[] { "yga", "epf" };
             Signatures = new uint[] { 0x616779, 0x667065 }; // 'epf'
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x18);
-            int compression = header.ToInt32 (0xC);
+            var header = file.ReadHeader(0x18);
+            int compression = header.ToInt32(0xC);
             if (compression > 1)
                 return null;
-            return new YgaMetaData {
-                Width  = header.ToUInt32 (4),
-                Height = header.ToUInt32 (8),
-                BPP    = 32,
-                UnpackedSize = header.ToInt32 (0x10),
+            return new YgaMetaData
+            {
+                Width = header.ToUInt32(4),
+                Height = header.ToUInt32(8),
+                BPP = 32,
+                UnpackedSize = header.ToInt32(0x10),
                 IsCompressed = compression != 0,
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
             var meta = (YgaMetaData)info;
             file.Position = 0x18;
             var pixels = new byte[meta.UnpackedSize];
             if (meta.IsCompressed)
             {
-                using (var input = new LzssStream (file.AsStream, LzssMode.Decompress, true))
-                    input.Read (pixels, 0, meta.UnpackedSize);
+                using (var input = new LzssStream(file.AsStream, LzssMode.Decompress, true))
+                    input.ReadExactly(pixels, 0, meta.UnpackedSize);
             }
             else
-                file.Read (pixels, 0, meta.UnpackedSize);
-            return ImageData.Create (info, PixelFormats.Bgra32, null, pixels);
+                file.Read(pixels, 0, meta.UnpackedSize);
+            return ImageData.Create(info, PixelFormats.Bgra32, null, pixels);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("YgaFormat.Write not implemented");
+            throw new System.NotImplementedException("YgaFormat.Write not implemented");
         }
     }
 }

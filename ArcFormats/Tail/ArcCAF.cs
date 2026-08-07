@@ -34,88 +34,88 @@ namespace GameRes.Formats.Tail
     [Export(typeof(ArchiveFormat))]
     public class CafOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "CAF"; } }
+        public override string Tag { get { return "CAF"; } }
         public override string Description { get { return "Tail resource archive"; } }
-        public override uint     Signature { get { return 0x30464143; } } // 'CAF0'
-        public override bool  IsHierarchic { get { return true; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x30464143; } } // 'CAF0'
+        public override bool IsHierarchic { get { return true; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            int count = file.View.ReadInt32 (8);
-            if (!IsSaneCount (count))
+            int count = file.View.ReadInt32(8);
+            if (!IsSaneCount(count))
                 return null;
-            uint index_offset = file.View.ReadUInt32 (0xC);
-            uint index_size = file.View.ReadUInt32 (0x10);
-            uint names_offset = file.View.ReadUInt32 (0x14);
-            uint names_size = file.View.ReadUInt32 (0x18);
-            var names = file.View.ReadBytes (names_offset, names_size);
+            uint index_offset = file.View.ReadUInt32(0xC);
+            uint index_size = file.View.ReadUInt32(0x10);
+            uint names_offset = file.View.ReadUInt32(0x14);
+            uint names_size = file.View.ReadUInt32(0x18);
+            var names = file.View.ReadBytes(names_offset, names_size);
             if (names.Length != names_size)
                 return null;
-            if (index_size > file.View.Reserve (index_offset, index_size))
+            if (index_size > file.View.Reserve(index_offset, index_size))
                 return null;
             var dir_map = new Dictionary<int, string>();
             long data_offset = names_offset + names_size;
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
-                int dir_name_offset = file.View.ReadInt32 (index_offset+4);
-                int name_offset = file.View.ReadInt32 (index_offset+8);
-                var name = Binary.GetCString (names, name_offset);
+                int dir_name_offset = file.View.ReadInt32(index_offset + 4);
+                int name_offset = file.View.ReadInt32(index_offset + 8);
+                var name = Binary.GetCString(names, name_offset);
                 if (dir_name_offset >= 0)
                 {
                     string dir_name;
-                    if (!dir_map.TryGetValue (dir_name_offset, out dir_name))
+                    if (!dir_map.TryGetValue(dir_name_offset, out dir_name))
                     {
-                        dir_name = Binary.GetCString (names, dir_name_offset).Replace ('/', '\\');
+                        dir_name = Binary.GetCString(names, dir_name_offset).Replace('/', '\\');
                         dir_map[dir_name_offset] = dir_name;
                     }
-                    name = Path.Combine (dir_name, name);
+                    name = Path.Combine(dir_name, name);
                 }
-                var entry = FormatCatalog.Instance.Create<Entry> (name);
-                entry.Offset = file.View.ReadUInt32 (index_offset+0xC) + data_offset;
-                entry.Size   = file.View.ReadUInt32 (index_offset+0x10);
-                if (!entry.CheckPlacement (file.MaxOffset))
+                var entry = FormatCatalog.Instance.Create<Entry>(name);
+                entry.Offset = file.View.ReadUInt32(index_offset + 0xC) + data_offset;
+                entry.Size = file.View.ReadUInt32(index_offset + 0x10);
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
-                dir.Add (entry);
+                dir.Add(entry);
                 index_offset += 0x14;
             }
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
 
         const uint PrenSignature = 0x4E455250; // "PREN"
         const uint Cfp0Signature = 0x30504643; // "CFP0"
-        const uint HpSignature   = 0x00005048; // "HP"
-        const uint RpSignature   = 0x00005052; // "RP"
+        const uint HpSignature = 0x00005048; // "HP"
+        const uint RpSignature = 0x00005052; // "RP"
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
-            IBinaryStream input = arc.File.CreateStream (entry.Offset, entry.Size, entry.Name);
+            IBinaryStream input = arc.File.CreateStream(entry.Offset, entry.Size, entry.Name);
             Func<IBinaryStream, byte[]> unpacker = null;
-            for (;;)
+            for (; ; )
             {
                 switch (input.Signature)
                 {
-                case RpSignature:
-                case PrenSignature: unpacker = UnpackPren; break;
-                case Cfp0Signature: unpacker = UnpackCfp0; break;
-                case HpSignature:   unpacker = UnpackHp; break;
+                    case RpSignature:
+                    case PrenSignature: unpacker = UnpackPren; break;
+                    case Cfp0Signature: unpacker = UnpackCfp0; break;
+                    case HpSignature: unpacker = UnpackHp; break;
 
-                default: return input.AsStream;
+                    default: return input.AsStream;
                 }
                 byte[] data;
                 using (input)
-                    data = unpacker (input);
-                input = new BinMemoryStream (data, entry.Name);
+                    data = unpacker(input);
+                input = new BinMemoryStream(data, entry.Name);
             }
         }
 
-        byte[] UnpackPren (IBinaryStream input)
+        byte[] UnpackPren(IBinaryStream input)
         {
             input.Position = 8;
             int unpacked_size = input.ReadInt32();
             byte rle_code = input.ReadUInt8();
-            input.Seek (3, SeekOrigin.Current);
+            input.Seek(3, SeekOrigin.Current);
             var output = new byte[unpacked_size];
             int dst = 0;
             while (dst < output.Length)
@@ -130,7 +130,7 @@ namespace GameRes.Formats.Tail
                     if (count > 2)
                         x = input.ReadUInt8();
 
-                    while (count --> 0)
+                    while (count-- > 0)
                         output[dst++] = x;
                 }
                 else
@@ -141,7 +141,7 @@ namespace GameRes.Formats.Tail
             return output;
         }
 
-        byte[] UnpackCfp0 (IBinaryStream input)
+        byte[] UnpackCfp0(IBinaryStream input)
         {
             input.Position = 8;
             int unpacked_size = input.ReadInt32();
@@ -153,46 +153,46 @@ namespace GameRes.Formats.Tail
                 int count = 0;
                 switch (cmd)
                 {
-                case 0:
-                    count = input.ReadUInt8();
-                    input.Read (output, dst, count);
-                    break;
-                case 1:
-                    count = input.ReadInt32();
-                    input.Read (output, dst, count);
-                    break;
-                case 2:
-                    {
+                    case 0:
                         count = input.ReadUInt8();
-                        byte v = input.ReadUInt8();
-                        for (int i = 0; i < count; ++i)
-                            output[dst+i] = v;
+                        input.Read(output, dst, count);
                         break;
-                    }
-                case 3:
-                    {
+                    case 1:
                         count = input.ReadInt32();
-                        byte v = input.ReadUInt8();
-                        for (int i = 0; i < count; ++i)
-                            output[dst+i] = v;
+                        input.Read(output, dst, count);
                         break;
-                    }
-                case 6:
-                    int offset = input.ReadUInt16();
-                    count = input.ReadUInt16();
-                    Binary.CopyOverlapped (output, dst-offset, dst, count);
-                    break;
+                    case 2:
+                        {
+                            count = input.ReadUInt8();
+                            byte v = input.ReadUInt8();
+                            for (int i = 0; i < count; ++i)
+                                output[dst + i] = v;
+                            break;
+                        }
+                    case 3:
+                        {
+                            count = input.ReadInt32();
+                            byte v = input.ReadUInt8();
+                            for (int i = 0; i < count; ++i)
+                                output[dst + i] = v;
+                            break;
+                        }
+                    case 6:
+                        int offset = input.ReadUInt16();
+                        count = input.ReadUInt16();
+                        Binary.CopyOverlapped(output, dst - offset, dst, count);
+                        break;
 
-                case 15:
-                case -1:
-                    return output;
+                    case 15:
+                    case -1:
+                        return output;
                 }
                 dst += count;
             }
             return output;
         }
 
-        byte[] UnpackHp (IBinaryStream input)
+        byte[] UnpackHp(IBinaryStream input)
         {
             input.Position = 8;
             int unpacked_size = input.ReadInt32();
@@ -201,10 +201,10 @@ namespace GameRes.Formats.Tail
             int packed_count = input.ReadInt32();
             var tree_nodes = new int[0x400];
             node_count += root_token - 0xFF;
-            while (node_count --> 0)
+            while (node_count-- > 0)
             {
                 int node = 2 * input.ReadInt32();
-                tree_nodes[node    ] = input.ReadInt32();
+                tree_nodes[node] = input.ReadInt32();
                 tree_nodes[node + 1] = input.ReadInt32();
             }
             var output = new byte[unpacked_size];

@@ -33,14 +33,14 @@ namespace GameRes.Formats.ShiinaRio
     [Export(typeof(ImageFormat))]
     public class Mi4Format : ImageFormat
     {
-        public override string         Tag { get { return "MI4"; } }
+        public override string Tag { get { return "MI4"; } }
         public override string Description { get { return "ShiinaRio image format"; } }
-        public override uint     Signature { get { return 0x3449414D; } } // 'MAI4'
+        public override uint Signature { get { return 0x3449414D; } } // 'MAI4'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
             file.Position = 8;
-            uint width  = file.ReadUInt32();
+            uint width = file.ReadUInt32();
             uint height = file.ReadUInt32();
             return new ImageMetaData
             {
@@ -50,23 +50,23 @@ namespace GameRes.Formats.ShiinaRio
             };
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
-            var reader = new Reader (stream, (int)info.Width, (int)info.Height);
+            var reader = new Reader(stream, (int)info.Width, (int)info.Height);
             try
             {
-                reader.Unpack (MaiVersion.Second);
+                reader.Unpack(MaiVersion.Second);
             }
             catch
             {
-                reader.Unpack (MaiVersion.First);
+                reader.Unpack(MaiVersion.First);
             }
-            return ImageData.Create (info, PixelFormats.Bgr24, null, reader.Data, reader.Stride);
+            return ImageData.Create(info, PixelFormats.Bgr24, null, reader.Data, reader.Stride);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("Mi4Format.Write not implemented");
+            throw new System.NotImplementedException("Mi4Format.Write not implemented");
         }
 
         internal enum MaiVersion
@@ -76,21 +76,21 @@ namespace GameRes.Formats.ShiinaRio
 
         internal sealed class Reader
         {
-            IBinaryStream   m_input;
-            byte[]          m_output;
-            int             m_stride;
+            IBinaryStream m_input;
+            byte[] m_output;
+            int m_stride;
 
             public byte[] Data { get { return m_output; } }
-            public int  Stride { get { return m_stride; } }
+            public int Stride { get { return m_stride; } }
 
-            public Reader (IBinaryStream file, int width, int height)
+            public Reader(IBinaryStream file, int width, int height)
             {
                 m_input = file;
                 m_stride = width * 3;
-                m_output = new byte[m_stride*height];
+                m_output = new byte[m_stride * height];
             }
 
-            public void Unpack (MaiVersion version = MaiVersion.First)
+            public void Unpack(MaiVersion version = MaiVersion.First)
             {
                 m_input.Position = 0x10;
                 m_bit_count = 0;
@@ -101,10 +101,10 @@ namespace GameRes.Formats.ShiinaRio
                     UnpackV2();
             }
 
-            int  m_bit_count;
+            int m_bit_count;
             uint m_bits;
 
-            void LoadBits ()
+            void LoadBits()
             {
                 for (int i = 0; i < 4; ++i)
                 {
@@ -116,7 +116,7 @@ namespace GameRes.Formats.ShiinaRio
                 }
             }
 
-            uint GetBit ()
+            uint GetBit()
             {
                 uint bit = m_bits >> 31;
                 m_bits <<= 1;
@@ -127,9 +127,9 @@ namespace GameRes.Formats.ShiinaRio
                 return bit;
             }
 
-            uint GetBits (int count)
+            uint GetBits(int count)
             {
-                int avail_bits = Math.Min (count, m_bit_count);
+                int avail_bits = Math.Min(count, m_bit_count);
                 uint bits = m_bits >> (32 - avail_bits);
                 m_bits <<= avail_bits;
                 m_bit_count -= avail_bits;
@@ -147,7 +147,7 @@ namespace GameRes.Formats.ShiinaRio
                 return bits;
             }
 
-            void UnpackV1 ()
+            void UnpackV1()
             {
                 int dst = 0;
                 byte b = 0, g = 0, r = 0;
@@ -163,7 +163,7 @@ namespace GameRes.Formats.ShiinaRio
                         }
                         else if (GetBit() != 0)
                         {
-                            byte v = (byte)GetBits (2);
+                            byte v = (byte)GetBits(2);
                             if (3 == v)
                             {
                                 b = m_output[dst - m_stride];
@@ -195,7 +195,7 @@ namespace GameRes.Formats.ShiinaRio
                         }
                         else if (GetBit() != 0)
                         {
-                            byte v = (byte)GetBits (4);
+                            byte v = (byte)GetBits(4);
                             if (0xF == v)
                             {
                                 b = m_output[dst - m_stride - 3];
@@ -222,7 +222,7 @@ namespace GameRes.Formats.ShiinaRio
                 }
             }
 
-            void UnpackV2 ()
+            void UnpackV2()
             {
                 int dst = 0;
                 byte b = 0, g = 0, r = 0;
@@ -251,7 +251,7 @@ namespace GameRes.Formats.ShiinaRio
                             else
                             {
                                 b += (byte)(v - 1);
-                                v = (byte)GetBits (2);
+                                v = (byte)GetBits(2);
                                 if (3 == v)
                                 {
                                     if (GetBit() != 0)

@@ -39,59 +39,61 @@ namespace GARbro.GUI
         {
             get
             {
-                return Environment.OSVersion.Platform == PlatformID.Win32NT && Environment.OSVersion.Version >= new Version (6, 0, 6000);
+                return Environment.OSVersion.Platform == PlatformID.Win32NT && Environment.OSVersion.Version >= new Version(6, 0, 6000);
             }
         }
 
-        [DllImport ("shlwapi.dll", CharSet = CharSet.Unicode)]
-        internal static extern int StrCmpLogicalW (string psz1, string psz2);
+        [DllImport("shlwapi.dll", CharSet = CharSet.Unicode)]
+        internal static extern int StrCmpLogicalW(string psz1, string psz2);
 
-        [DllImport ("gdi32.dll")]
-        internal static extern int GetDeviceCaps (IntPtr hDc, int nIndex);
+        [DllImport("gdi32.dll")]
+        internal static extern int GetDeviceCaps(IntPtr hDc, int nIndex);
 
-        [DllImport ("user32.dll")]
-        internal static extern IntPtr GetDC (IntPtr hWnd);
+        [DllImport("user32.dll")]
+        internal static extern IntPtr GetDC(IntPtr hWnd);
 
-        [DllImport ("user32.dll")]
-        internal static extern int ReleaseDC (IntPtr hWnd, IntPtr hDc);
+        [DllImport("user32.dll")]
+        internal static extern int ReleaseDC(IntPtr hWnd, IntPtr hDc);
 
-        [DllImport ("user32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
+        [DllImport("user32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
         internal static extern IntPtr GetActiveWindow();
 
-        [DllImport ("user32.dll")][return: MarshalAs(UnmanagedType.Bool)]
-        internal static extern bool ShowWindow (IntPtr hWnd, int nCmdShow);
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
-        [DllImport ("user32.dll")][return: MarshalAs(UnmanagedType.Bool)]
-        internal static extern bool EnableWindow (IntPtr hWnd, bool bEnable);
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool EnableWindow(IntPtr hWnd, bool bEnable);
     }
 
     public static class Desktop
     {
         public static int DpiX { get { return dpi_x; } }
         public static int DpiY { get { return dpi_y; } }
-        
+
         public const int LOGPIXELSX = 88;
         public const int LOGPIXELSY = 90;
 
-        private static int dpi_x = GetCaps (LOGPIXELSX);
-        private static int dpi_y = GetCaps (LOGPIXELSY);
+        private static int dpi_x = GetCaps(LOGPIXELSX);
+        private static int dpi_y = GetCaps(LOGPIXELSY);
 
-        public static int GetCaps (int cap)
+        public static int GetCaps(int cap)
         {
-            IntPtr hdc = NativeMethods.GetDC (IntPtr.Zero);
+            IntPtr hdc = NativeMethods.GetDC(IntPtr.Zero);
             if (hdc == IntPtr.Zero)
                 return 96;
-            int dpi = NativeMethods.GetDeviceCaps (hdc, cap);
-            NativeMethods.ReleaseDC (IntPtr.Zero, hdc);
+            int dpi = NativeMethods.GetDeviceCaps(hdc, cap);
+            NativeMethods.ReleaseDC(IntPtr.Zero, hdc);
             return dpi;
         }
     }
 
     public sealed class NumericStringComparer : IComparer<string>
     {
-        public int Compare (string a, string b)
+        public int Compare(string a, string b)
         {
-            return NativeMethods.StrCmpLogicalW (a, b);
+            return NativeMethods.StrCmpLogicalW(a, b);
         }
     }
 
@@ -109,11 +111,11 @@ namespace GARbro.GUI
         bool disposed = false;
         public void Dispose()
         {
-            Dispose (true);
-            GC.SuppressFinalize (this);
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
-        protected virtual void Dispose (bool disposing)
+        protected virtual void Dispose(bool disposing)
         {
             if (!disposed)
             {
@@ -126,12 +128,12 @@ namespace GARbro.GUI
 
     public static class Localization
     {
-        public static string Plural (int n, string msg_id)
+        public static string Plural(int n, string msg_id)
         {
             string suffix;
             if (CultureInfo.CurrentUICulture.Name == "ru-RU")
             {
-                suffix = (n%10==1 && n%100!=11 ? "1" : n%10>=2 && n% 10<=4 && (n%100<10 || n%100>=20) ? "2" : "3");
+                suffix = (n % 10 == 1 && n % 100 != 11 ? "1" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? "2" : "3");
             }
             else // assume en-EN
             {
@@ -139,30 +141,30 @@ namespace GARbro.GUI
             }
             try
             {
-                var res = guiStrings.ResourceManager.GetString (msg_id+suffix);
+                var res = guiStrings.ResourceManager.GetString(msg_id + suffix);
                 if (null == res)
                 {
-                    Trace.WriteLine (string.Format ("Missing string resource for '{0}' token", msg_id+suffix));
+                    Trace.WriteLine(string.Format("Missing string resource for '{0}' token", msg_id + suffix));
                     if (suffix != "1")
-                        res = guiStrings.ResourceManager.GetString (msg_id+"1");
+                        res = guiStrings.ResourceManager.GetString(msg_id + "1");
                     if (null == res)
-                        res = guiStrings.ResourceManager.GetString (msg_id);
+                        res = guiStrings.ResourceManager.GetString(msg_id);
                 }
                 return res ?? msg_id;
             }
             catch (Exception X)
             {
-                Trace.WriteLine (X.Message, "Localization.Plural");
+                Trace.WriteLine(X.Message, "Localization.Plural");
                 return msg_id;
             }
         }
 
-        public static string Format (string msg_id, int n)
+        public static string Format(string msg_id, int n)
         {
-            return string.Format (Plural (n, msg_id), n);
+            return string.Format(Plural(n, msg_id), n);
         }
 
         // Localization.Format ("{0:file:files} copied", count);
-//        public static string Format (string format, params object[] args);
+        //        public static string Format (string format, params object[] args);
     }
 }

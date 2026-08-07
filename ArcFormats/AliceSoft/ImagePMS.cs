@@ -41,54 +41,55 @@ namespace GameRes.Formats.AliceSoft
     [Export(typeof(ImageFormat))]
     public class PmsFormat : ImageFormat
     {
-        public override string         Tag { get { return "PMS"; } }
+        public override string Tag { get { return "PMS"; } }
         public override string Description { get { return "AliceSoft image format"; } }
-        public override uint     Signature { get { return 0x014D50; } } // 'PM'
+        public override uint Signature { get { return 0x014D50; } } // 'PM'
 
-        public PmsFormat ()
+        public PmsFormat()
         {
             Signatures = new uint[] { 0x014D50, 0x024D50 };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x30);
-            var info = new PmsMetaData {
+            var header = file.ReadHeader(0x30);
+            var info = new PmsMetaData
+            {
                 BPP = header[6],
-                OffsetX = header.ToInt32 (0x10),
-                OffsetY = header.ToInt32 (0x14),
-                Width = header.ToUInt32 (0x18),
-                Height = header.ToUInt32 (0x1C),
-                DataOffset = header.ToUInt32 (0x20),
-                AlphaOffset = header.ToUInt32 (0x24),
+                OffsetX = header.ToInt32(0x10),
+                OffsetY = header.ToInt32(0x14),
+                Width = header.ToUInt32(0x18),
+                Height = header.ToUInt32(0x1C),
+                DataOffset = header.ToUInt32(0x20),
+                AlphaOffset = header.ToUInt32(0x24),
             };
             if ((info.BPP != 16 && info.BPP != 8) || info.DataOffset < 0x30 || info.DataOffset >= file.Length)
                 return null;
             return info;
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var pms = new PmsReader (file, (PmsMetaData)info);
+            var pms = new PmsReader(file, (PmsMetaData)info);
             var bitmap = pms.Unpack();
             bitmap.Freeze();
-            return new ImageData (bitmap, info);
+            return new ImageData(bitmap, info);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("PmsFormat.Write not implemented");
+            throw new System.NotImplementedException("PmsFormat.Write not implemented");
         }
     }
 
     internal class PmsReader
     {
-        IBinaryStream   m_input;
-        PmsMetaData     m_info;
-        int             m_width;
-        int             m_height;
+        IBinaryStream m_input;
+        PmsMetaData m_info;
+        int m_width;
+        int m_height;
 
-        public PmsReader (IBinaryStream input, PmsMetaData info)
+        public PmsReader(IBinaryStream input, PmsMetaData info)
         {
             m_input = input;
             m_info = info;
@@ -96,39 +97,39 @@ namespace GameRes.Formats.AliceSoft
             m_height = (int)m_info.Height;
         }
 
-        public BitmapSource Unpack ()
+        public BitmapSource Unpack()
         {
             switch (m_info.BPP)
             {
-            case 16:    return UnpackRgb();
-            case 8:     return UnpackIndexed();
-            default:    throw new InvalidFormatException();
+                case 16: return UnpackRgb();
+                case 8: return UnpackIndexed();
+                default: throw new InvalidFormatException();
             }
         }
 
-        BitmapSource UnpackIndexed ()
+        BitmapSource UnpackIndexed()
         {
             m_input.Position = m_info.AlphaOffset;
-            var palette = ImageFormat.ReadPalette (m_input.AsStream, 0x100, PaletteFormat.Rgb);
+            var palette = ImageFormat.ReadPalette(m_input.AsStream, 0x100, PaletteFormat.Rgb);
             m_input.Position = m_info.DataOffset;
             var pixels = Unpack8bpp();
-            return BitmapSource.Create (m_width, m_height, ImageData.DefaultDpiX, ImageData.DefaultDpiY,
+            return BitmapSource.Create(m_width, m_height, ImageData.DefaultDpiX, ImageData.DefaultDpiY,
                                         PixelFormats.Indexed8, palette, pixels, m_width);
         }
 
-        BitmapSource UnpackRgb ()
+        BitmapSource UnpackRgb()
         {
             m_input.Position = m_info.DataOffset;
             var pixels = Unpack16bpp();
-            var source = BitmapSource.Create (m_width, m_height, ImageData.DefaultDpiX, ImageData.DefaultDpiY,
-                                              PixelFormats.Bgr565, null, pixels, m_width*2);
+            var source = BitmapSource.Create(m_width, m_height, ImageData.DefaultDpiX, ImageData.DefaultDpiY,
+                                              PixelFormats.Bgr565, null, pixels, m_width * 2);
             if (0 == m_info.AlphaOffset)
                 return source;
 
             m_input.Position = m_info.AlphaOffset;
             var alpha = Unpack8bpp();
-            source = new FormatConvertedBitmap (source, PixelFormats.Bgra32, null, 0);
-            var output = new WriteableBitmap (source);
+            source = new FormatConvertedBitmap(source, PixelFormats.Bgra32, null, 0);
+            var output = new WriteableBitmap(source);
             output.Lock();
             unsafe
             {
@@ -144,148 +145,148 @@ namespace GameRes.Formats.AliceSoft
                     buffer += stride;
                 }
             }
-            output.AddDirtyRect (new Int32Rect (0, 0, m_width, m_height));
+            output.AddDirtyRect(new Int32Rect(0, 0, m_width, m_height));
             output.Unlock();
             return output;
         }
 
-        ushort[] Unpack16bpp ()
+        ushort[] Unpack16bpp()
         {
             var output = new ushort[m_width * m_height];
             int stride = m_width;
 
             for (int y = 0; y < m_height; ++y)
-            for (int x = 0; x < m_width; )
-            {
-                int dst = y * stride + x;
-                int count = 1;
-                byte ctl = m_input.ReadUInt8();
-                if (ctl < 0xF8)
+                for (int x = 0; x < m_width;)
                 {
-                    byte px = m_input.ReadUInt8();
-                    output[dst] = (ushort)(ctl | (px << 8));
-                }
-                else if (ctl == 0xF8)
-                {
-                    output[dst] = m_input.ReadUInt16();
-                }
-                else if (ctl == 0xF9)
-                {
-                    count = m_input.ReadUInt8() + 1;
-                    int p0 = m_input.ReadUInt8();
-                    int p1 = m_input.ReadUInt8();
-                    p0 = ((p0 & 0xE0) << 8) | ((p0 & 0x18) << 6) | ((p0 & 7) << 2);
-                    p1 = ((p1 & 0xC0) << 5) | ((p1 & 0x3C) << 3) | (p1 & 3);
-                    output[dst] = (ushort)(p0 | p1);
-                    for (int i = 1; i < count; i++)
+                    int dst = y * stride + x;
+                    int count = 1;
+                    byte ctl = m_input.ReadUInt8();
+                    if (ctl < 0xF8)
                     {
-                        p1 = m_input.ReadUInt8();
+                        byte px = m_input.ReadUInt8();
+                        output[dst] = (ushort)(ctl | (px << 8));
+                    }
+                    else if (ctl == 0xF8)
+                    {
+                        output[dst] = m_input.ReadUInt16();
+                    }
+                    else if (ctl == 0xF9)
+                    {
+                        count = m_input.ReadUInt8() + 1;
+                        int p0 = m_input.ReadUInt8();
+                        int p1 = m_input.ReadUInt8();
+                        p0 = ((p0 & 0xE0) << 8) | ((p0 & 0x18) << 6) | ((p0 & 7) << 2);
                         p1 = ((p1 & 0xC0) << 5) | ((p1 & 0x3C) << 3) | (p1 & 3);
-                        output[dst + i] = (ushort)(p0 | p1);
+                        output[dst] = (ushort)(p0 | p1);
+                        for (int i = 1; i < count; i++)
+                        {
+                            p1 = m_input.ReadUInt8();
+                            p1 = ((p1 & 0xC0) << 5) | ((p1 & 0x3C) << 3) | (p1 & 3);
+                            output[dst + i] = (ushort)(p0 | p1);
+                        }
                     }
-                }
-                else if (ctl == 0xFA)
-                {
-                    output[dst] = output[dst - stride + 1];
-                }
-                else if (ctl == 0xFB)
-                {
-                    output[dst] = output[dst - stride - 1];
-                }
-                else if (ctl == 0xFC)
-                {
-                    count = (m_input.ReadUInt8() + 2) * 2;
-                    ushort px0 = m_input.ReadUInt16();
-                    ushort px1 = m_input.ReadUInt16();
-                    for (int i = 0; i < count; i += 2)
+                    else if (ctl == 0xFA)
                     {
-                        output[dst + i    ] = px0;
-                        output[dst + i + 1] = px1;
+                        output[dst] = output[dst - stride + 1];
                     }
-                }
-                else if (ctl == 0xFD)
-                {
-                    count = m_input.ReadUInt8() + 3;
-                    ushort px = m_input.ReadUInt16();
-                    for (int i = 0; i < count; i++)
+                    else if (ctl == 0xFB)
                     {
-                        output[dst + i] = px;
+                        output[dst] = output[dst - stride - 1];
                     }
-                }
-                else if (ctl == 0xFE)
-                {
-                    count = m_input.ReadUInt8() + 2;
-                    int src = dst - stride * 2;
-                    for (int i = 0; i < count; ++i)
+                    else if (ctl == 0xFC)
                     {
-                        output[dst+i] = output[src+i];
+                        count = (m_input.ReadUInt8() + 2) * 2;
+                        ushort px0 = m_input.ReadUInt16();
+                        ushort px1 = m_input.ReadUInt16();
+                        for (int i = 0; i < count; i += 2)
+                        {
+                            output[dst + i] = px0;
+                            output[dst + i + 1] = px1;
+                        }
                     }
-                }
-                else // ctl == 0xFF
-                {
-                    count = m_input.ReadUInt8() + 2;
-                    int src = dst - stride;
-                    for (int i = 0; i < count; ++i)
+                    else if (ctl == 0xFD)
                     {
-                        output[dst+i] = output[src+i];
+                        count = m_input.ReadUInt8() + 3;
+                        ushort px = m_input.ReadUInt16();
+                        for (int i = 0; i < count; i++)
+                        {
+                            output[dst + i] = px;
+                        }
                     }
+                    else if (ctl == 0xFE)
+                    {
+                        count = m_input.ReadUInt8() + 2;
+                        int src = dst - stride * 2;
+                        for (int i = 0; i < count; ++i)
+                        {
+                            output[dst + i] = output[src + i];
+                        }
+                    }
+                    else // ctl == 0xFF
+                    {
+                        count = m_input.ReadUInt8() + 2;
+                        int src = dst - stride;
+                        for (int i = 0; i < count; ++i)
+                        {
+                            output[dst + i] = output[src + i];
+                        }
+                    }
+                    x += count;
                 }
-                x += count;
-            }
             return output;
         }
 
-        byte[] Unpack8bpp ()
+        byte[] Unpack8bpp()
         {
             var output = new byte[m_width * m_height];
             int stride = m_width;
 
             for (int y = 0; y < m_height; y++)
-            for (int x = 0; x < m_width; )
-            {
-                int dst = y * stride + x;
-                int count = 1;
-                byte ctl = m_input.ReadUInt8();
-                if (ctl < 0xF8)
+                for (int x = 0; x < m_width;)
                 {
-                    output[dst] = ctl;
-                }
-                else if (ctl == 0xFF)
-                {
-                    count = m_input.ReadUInt8() + 3;
-                    Binary.CopyOverlapped (output, dst - stride, dst, count);
-                }
-                else if (ctl == 0xFE)
-                {
-                    count = m_input.ReadUInt8() + 3;
-                    Binary.CopyOverlapped (output, dst - stride * 2, dst, count);
-                }
-                else if (ctl == 0xFD)
-                {
-                    count = m_input.ReadUInt8() + 4;
-                    byte px = m_input.ReadUInt8();
-                    for (int i = 0; i < count; ++i)
+                    int dst = y * stride + x;
+                    int count = 1;
+                    byte ctl = m_input.ReadUInt8();
+                    if (ctl < 0xF8)
                     {
-                        output[dst + i] = px;
+                        output[dst] = ctl;
                     }
-                }
-                else if (ctl == 0xFC)
-                {
-                    count = (m_input.ReadUInt8() + 3) * 2;
-                    byte px0 = m_input.ReadUInt8();
-                    byte px1 = m_input.ReadUInt8();
-                    for (int i = 0; i < count; i += 2)
+                    else if (ctl == 0xFF)
                     {
-                        output[dst + i    ] = px0;
-                        output[dst + i + 1] = px1;
+                        count = m_input.ReadUInt8() + 3;
+                        Binary.CopyOverlapped(output, dst - stride, dst, count);
                     }
+                    else if (ctl == 0xFE)
+                    {
+                        count = m_input.ReadUInt8() + 3;
+                        Binary.CopyOverlapped(output, dst - stride * 2, dst, count);
+                    }
+                    else if (ctl == 0xFD)
+                    {
+                        count = m_input.ReadUInt8() + 4;
+                        byte px = m_input.ReadUInt8();
+                        for (int i = 0; i < count; ++i)
+                        {
+                            output[dst + i] = px;
+                        }
+                    }
+                    else if (ctl == 0xFC)
+                    {
+                        count = (m_input.ReadUInt8() + 3) * 2;
+                        byte px0 = m_input.ReadUInt8();
+                        byte px1 = m_input.ReadUInt8();
+                        for (int i = 0; i < count; i += 2)
+                        {
+                            output[dst + i] = px0;
+                            output[dst + i + 1] = px1;
+                        }
+                    }
+                    else // >= 0xF8 < 0xFC
+                    {
+                        output[dst] = m_input.ReadUInt8();
+                    }
+                    x += count;
                 }
-                else // >= 0xF8 < 0xFC
-                {
-                    output[dst] = m_input.ReadUInt8();
-                }
-                x += count;
-            }
             return output;
         }
     }

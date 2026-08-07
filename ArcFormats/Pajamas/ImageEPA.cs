@@ -42,37 +42,38 @@ namespace GameRes.Formats.Pajamas
     [Export(typeof(ImageFormat))]
     public class EpaFormat : ImageFormat
     {
-        public override string         Tag { get { return "EPA"; } }
+        public override string Tag { get { return "EPA"; } }
         public override string Description { get { return "Pajamas Adventure System image"; } }
-        public override uint     Signature { get { return 0x01015045u; } } // 'EP'
+        public override uint Signature { get { return 0x01015045u; } } // 'EP'
 
-        public EpaFormat ()
+        public EpaFormat()
         {
             Signatures = new uint[] { 0x01015045u, 0x02015045u };
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new NotImplementedException ("EpaFormat.Write not implemented");
+            throw new NotImplementedException("EpaFormat.Write not implemented");
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (16);
-            var info = new EpaMetaData {
-                Width  = header.ToUInt32 (8),
-                Height = header.ToUInt32 (12),
-                Mode   = header[3],
+            var header = file.ReadHeader(16);
+            var info = new EpaMetaData
+            {
+                Width = header.ToUInt32(8),
+                Height = header.ToUInt32(12),
+                Mode = header[3],
                 ColorType = header[4],
             };
             switch (info.ColorType)
             {
-            case 0: info.BPP = 8; break;
-            case 1: info.BPP = 24; break;
-            case 2: info.BPP = 32; break;
-            case 3: info.BPP = 16; break;
-            case 4: info.BPP = 8; break;
-            default: return null;
+                case 0: info.BPP = 8; break;
+                case 1: info.BPP = 24; break;
+                case 2: info.BPP = 32; break;
+                case 3: info.BPP = 16; break;
+                case 4: info.BPP = 8; break;
+                default: return null;
             }
             if (2 == info.Mode)
             {
@@ -82,74 +83,74 @@ namespace GameRes.Formats.Pajamas
             return info;
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new Reader (file, (EpaMetaData)info);
+            var reader = new Reader(file, (EpaMetaData)info);
             reader.Unpack();
-            return ImageData.Create (info, reader.Format, reader.Palette, reader.Data);
+            return ImageData.Create(info, reader.Format, reader.Palette, reader.Data);
         }
 
         internal class Reader
         {
-            private IBinaryStream   m_input;
-            private int     m_start_pos;
-            private int     m_width;
-            private int     m_height;
-            private int     m_pixel_size;
-            private byte[]  m_output;
-            private bool    m_has_alpha;
-            
-            public PixelFormat    Format { get; private set; }
-            public BitmapPalette Palette { get; private set; }
-            public byte[]           Data { get { return m_output; } }
+            private IBinaryStream m_input;
+            private int m_start_pos;
+            private int m_width;
+            private int m_height;
+            private int m_pixel_size;
+            private byte[] m_output;
+            private bool m_has_alpha;
 
-            public Reader (IBinaryStream stream, EpaMetaData info)
+            public PixelFormat Format { get; private set; }
+            public BitmapPalette Palette { get; private set; }
+            public byte[] Data { get { return m_output; } }
+
+            public Reader(IBinaryStream stream, EpaMetaData info)
             {
                 m_input = stream;
                 switch (info.ColorType)
                 {
-                case 0: m_pixel_size = 1; Format = PixelFormats.Indexed8; break;
-                case 1: m_pixel_size = 3; Format = PixelFormats.Bgr24; break;
-                case 2: m_pixel_size = 4; Format = PixelFormats.Bgra32; break;
-                case 3: m_pixel_size = 2; Format = PixelFormats.Bgr565; break;
-                case 4: m_pixel_size = 1; Format = PixelFormats.Bgra32; m_has_alpha = true; break;
-                default: throw new NotSupportedException ("Not supported EPA color depth");
+                    case 0: m_pixel_size = 1; Format = PixelFormats.Indexed8; break;
+                    case 1: m_pixel_size = 3; Format = PixelFormats.Bgr24; break;
+                    case 2: m_pixel_size = 4; Format = PixelFormats.Bgra32; break;
+                    case 3: m_pixel_size = 2; Format = PixelFormats.Bgr565; break;
+                    case 4: m_pixel_size = 1; Format = PixelFormats.Bgra32; m_has_alpha = true; break;
+                    default: throw new NotSupportedException("Not supported EPA color depth");
                 }
                 m_width = (int)info.Width;
                 m_height = (int)info.Height;
-                m_output = new byte[info.Width*info.Height*m_pixel_size];
+                m_output = new byte[info.Width * info.Height * m_pixel_size];
                 m_start_pos = 2 == info.Mode ? 0x18 : 0x10;
             }
 
             int[] m_offset_table = new int[16];
 
-            public void Unpack ()
+            public void Unpack()
             {
                 m_input.Position = m_start_pos;
                 if (1 == m_pixel_size)
-                    Palette = ImageFormat.ReadPalette (m_input.AsStream, 0x100, PaletteFormat.Bgr);
+                    Palette = ImageFormat.ReadPalette(m_input.AsStream, 0x100, PaletteFormat.Bgr);
                 m_offset_table[0] = 0;
                 m_offset_table[1] = 1;
                 m_offset_table[2] = m_width;
-                m_offset_table[3] = m_width + 1;	
+                m_offset_table[3] = m_width + 1;
                 m_offset_table[4] = 2;
                 m_offset_table[5] = m_width - 1;
                 m_offset_table[6] = m_width * 2;
-                m_offset_table[7] = 3;	
+                m_offset_table[7] = 3;
                 m_offset_table[8] = (m_width + 1) * 2;
                 m_offset_table[9] = m_width + 2;
                 m_offset_table[10] = m_width * 2 + 1;
-                m_offset_table[11] = m_width * 2 - 1;	
+                m_offset_table[11] = m_width * 2 - 1;
                 m_offset_table[12] = (m_width - 1) * 2;
                 m_offset_table[13] = m_width - 2;
                 m_offset_table[14] = m_width * 3;
-                m_offset_table[15] = 4;	
+                m_offset_table[15] = 4;
 
-                UnpackChannel (m_output);
+                UnpackChannel(m_output);
                 if (m_has_alpha)
                 {
                     var alpha = new byte[m_output.Length];
-                    UnpackChannel (alpha);
+                    UnpackChannel(alpha);
                     var bitmap = new byte[m_width * m_height * 4];
                     int dst = 0;
                     for (int src = 0; src < m_output.Length; ++src)
@@ -202,7 +203,7 @@ namespace GameRes.Formats.Pajamas
                 }
             }
 
-            void UnpackChannel (byte[] output)
+            void UnpackChannel(byte[] output)
             {
                 int dst = 0;
                 while (dst < output.Length)
@@ -214,8 +215,8 @@ namespace GameRes.Formats.Pajamas
                         count = flag;
                         if (dst + count > output.Length)
                             count = output.Length - dst;
-                        if (count != m_input.Read (output, dst, count))
-                            throw new InvalidFormatException ("Unexpected end of file");
+                        if (count != m_input.Read(output, dst, count))
+                            throw new InvalidFormatException("Unexpected end of file");
                     }
                     else
                     {
@@ -228,7 +229,7 @@ namespace GameRes.Formats.Pajamas
                             count = flag & 7;
                         if (dst + count > output.Length)
                             break;
-                        Binary.CopyOverlapped (output, dst-m_offset_table[flag >> 4], dst, count);
+                        Binary.CopyOverlapped(output, dst - m_offset_table[flag >> 4], dst, count);
                     }
                     dst += count;
                 }

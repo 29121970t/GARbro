@@ -33,11 +33,11 @@ namespace GameRes.Formats.Megu
     [Export(typeof(ImageFormat))]
     public class AgFormat : ImageFormat
     {
-        public override string         Tag { get { return "ACG"; } }
+        public override string Tag { get { return "ACG"; } }
         public override string Description { get { return "Masys image format"; } }
-        public override uint     Signature { get { return 0x00644741u; } } // 'AGd'
+        public override uint Signature { get { return 0x00644741u; } } // 'AGd'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
             file.Position = 4;
             var info = new ImageMetaData();
@@ -49,16 +49,16 @@ namespace GameRes.Formats.Megu
             return info;
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
-            var reader = new AgReader (stream, info);
+            var reader = new AgReader(stream, info);
             reader.Unpack();
-            return ImageData.Create (info, reader.Format, null, reader.Data);
+            return ImageData.Create(info, reader.Format, null, reader.Data);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new NotImplementedException ("AgFormat.Write not implemented");
+            throw new NotImplementedException("AgFormat.Write not implemented");
         }
     }
 
@@ -79,39 +79,39 @@ namespace GameRes.Formats.Megu
         public byte[] Data { get { return m_output; } }
         public PixelFormat Format { get; private set; }
 
-        public AgReader (IBinaryStream input, ImageMetaData info)
+        public AgReader(IBinaryStream input, ImageMetaData info)
         {
             m_width = (int)info.Width;
             m_height = (int)info.Height;
             input.Position = 0x0c;
             uint offset1 = input.ReadUInt32();
-            int  size1   = input.ReadInt32();
+            int size1 = input.ReadInt32();
             uint offset2 = input.ReadUInt32();
-            int  size2   = input.ReadInt32();
+            int size2 = input.ReadInt32();
             uint offset3 = input.ReadUInt32();
-            int  size3   = input.ReadInt32();
+            int size3 = input.ReadInt32();
             uint offset4 = input.ReadUInt32();
-            int  size4   = input.ReadInt32();
+            int size4 = input.ReadInt32();
             uint offset5 = input.ReadUInt32();
-            int  size5   = input.ReadInt32();
+            int size5 = input.ReadInt32();
             uint offset6 = input.ReadUInt32();
-            int  size6   = input.ReadInt32();
-            input.Read (m_first, 0, 3);
+            int size6 = input.ReadInt32();
+            input.Read(m_first, 0, 3);
             if (size1 != 0)
-                in1 = new AgBitStream (input, offset1, size1);
+                in1 = new AgBitStream(input, offset1, size1);
             if (size2 != 0)
-                in2 = new AgBitStream (input, offset2, size2);
+                in2 = new AgBitStream(input, offset2, size2);
             if (size3 != 0)
-                in3 = new AgBitStream (input, offset3, size3);
+                in3 = new AgBitStream(input, offset3, size3);
             if (size4 != 0)
-                in4 = new AgBitStream (input, offset4, size4);
+                in4 = new AgBitStream(input, offset4, size4);
             if (size5 != 0)
-                in5 = new AgBitStream (input, offset5, size5);
+                in5 = new AgBitStream(input, offset5, size5);
             if (size6 != 0)
             {
                 input.Position = offset6;
-                m_alpha = new byte[m_height*m_width];
-                RleDecode (input, m_alpha);
+                m_alpha = new byte[m_height * m_width];
+                RleDecode(input, m_alpha);
                 Format = PixelFormats.Bgra32;
                 m_pixel_size = 4;
             }
@@ -120,19 +120,19 @@ namespace GameRes.Formats.Megu
                 Format = PixelFormats.Bgr24;
                 m_pixel_size = 3;
             }
-            m_output = new byte[m_width*m_height*m_pixel_size];
+            m_output = new byte[m_width * m_height * m_pixel_size];
         }
 
-        static internal byte[] ReadSection (IBinaryStream input, long offset, int size)
+        static internal byte[] ReadSection(IBinaryStream input, long offset, int size)
         {
             input.Position = offset;
             var buf = new byte[size + 4];
-            if (size != input.Read (buf, 0, size))
-                throw new InvalidFormatException ("Unexpected end of file");
+            if (size != input.Read(buf, 0, size))
+                throw new InvalidFormatException("Unexpected end of file");
             return buf;
         }
 
-        public void Unpack ()
+        public void Unpack()
         {
             int dst = 0;
             int stride = m_width * m_pixel_size;
@@ -140,26 +140,26 @@ namespace GameRes.Formats.Megu
             {
                 for (int x = 0; x < stride; x += m_pixel_size)
                 {
-                    byte B = ReadColor (0);
-                    byte G = ReadColor (1);
-                    byte R = ReadColor (2);
-                    m_output[dst+x  ] = B;
-                    m_output[dst+x+1] = G;
-                    m_output[dst+x+2] = R;
+                    byte B = ReadColor(0);
+                    byte G = ReadColor(1);
+                    byte R = ReadColor(2);
+                    m_output[dst + x] = B;
+                    m_output[dst + x + 1] = G;
+                    m_output[dst + x + 2] = R;
                     m_first[0] = B;
                     m_first[1] = G;
                     m_first[2] = R;
                 }
                 m_first[0] = m_output[dst];
-                m_first[1] = m_output[dst+1];
-                m_first[2] = m_output[dst+2];
+                m_first[1] = m_output[dst + 1];
+                m_first[2] = m_output[dst + 2];
                 dst += stride;
             }
             if (m_alpha != null)
                 ApplyAlpha();
         }
 
-        private byte ReadColor (int channel)
+        private byte ReadColor(int channel)
         {
             byte c;
             if (0 != in1.GetBit())
@@ -181,17 +181,17 @@ namespace GameRes.Formats.Megu
             return c;
         }
 
-        private void ApplyAlpha ()
+        private void ApplyAlpha()
         {
             int src = 0;
             for (int i = 3; i < m_output.Length; i += 4)
             {
-                int alpha = Math.Min (m_alpha[src++]*0xff/0x40, 0xff);
+                int alpha = Math.Min(m_alpha[src++] * 0xff / 0x40, 0xff);
                 m_output[i] = (byte)alpha;
             }
         }
 
-        private static void RleDecode (IBinaryStream src, byte[] dst_buf)
+        private static void RleDecode(IBinaryStream src, byte[] dst_buf)
         {
             int remaining = dst_buf.Length;
             int dst = 0;
@@ -220,16 +220,16 @@ namespace GameRes.Formats.Megu
 
     internal class AgBitStream
     {
-        byte[]      m_input;
-        int         m_src = 0;
-        int         m_bits = 1;
+        byte[] m_input;
+        int m_src = 0;
+        int m_bits = 1;
 
-        public AgBitStream (IBinaryStream input, long offset, int size)
+        public AgBitStream(IBinaryStream input, long offset, int size)
         {
-            m_input = AgReader.ReadSection (input, offset, size);
+            m_input = AgReader.ReadSection(input, offset, size);
         }
 
-        public int GetBit ()
+        public int GetBit()
         {
             if (1 == m_bits)
             {
@@ -240,7 +240,7 @@ namespace GameRes.Formats.Megu
             return bit;
         }
 
-        public int GetNibble ()
+        public int GetNibble()
         {
             if (1 == m_bits)
             {
@@ -251,7 +251,7 @@ namespace GameRes.Formats.Megu
             return bits;
         }
 
-        public byte GetByte ()
+        public byte GetByte()
         {
             return m_input[m_src++];
         }

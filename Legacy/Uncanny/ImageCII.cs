@@ -41,14 +41,14 @@ namespace GameRes.Formats.Uncanny
     [Export(typeof(ImageFormat))]
     public class CiiFormat : ImageFormat
     {
-        public override string         Tag { get { return "CII"; } }
+        public override string Tag { get { return "CII"; } }
         public override string Description { get { return "Uncanny image format"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (8);
-            int type = header.ToUInt16 (0);
+            var header = file.ReadHeader(8);
+            int type = header.ToUInt16(0);
             int bpp;
             if (5 == type)
                 bpp = 24;
@@ -58,17 +58,18 @@ namespace GameRes.Formats.Uncanny
                 bpp = 4;
             else
                 return null;
-            int w = header.ToInt16 (2);
-            int h = header.ToInt16 (4);
+            int w = header.ToInt16(2);
+            int h = header.ToInt16(4);
             if (w <= 0 || h <= 0)
                 return null;
             if (bpp <= 8)
             {
                 int colors = 1 << bpp;
-                if (colors < header.ToUInt16 (6))
+                if (colors < header.ToUInt16(6))
                     return null;
             }
-            return new CiiMetaData { 
+            return new CiiMetaData
+            {
                 Width = (uint)w,
                 Height = (uint)h,
                 BPP = bpp,
@@ -76,32 +77,32 @@ namespace GameRes.Formats.Uncanny
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new CiiReader (file, (CiiMetaData)info);
+            var reader = new CiiReader(file, (CiiMetaData)info);
             reader.Unpack();
-            return ImageData.Create (info, reader.Format, reader.Palette, reader.Data, reader.Stride);
+            return ImageData.Create(info, reader.Format, reader.Palette, reader.Data, reader.Stride);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("CiiFormat.Write not implemented");
+            throw new System.NotImplementedException("CiiFormat.Write not implemented");
         }
     }
 
     internal class CiiReader
     {
-        IBinaryStream   m_input;
-        CiiMetaData     m_info;
-        int             m_stride;
-        byte[]          m_output;
+        IBinaryStream m_input;
+        CiiMetaData m_info;
+        int m_stride;
+        byte[] m_output;
 
         public BitmapPalette Palette { get; private set; }
-        public PixelFormat    Format { get; private set; }
-        public int            Stride { get { return m_stride; } }
-        public byte[]           Data { get { return m_output; } }
+        public PixelFormat Format { get; private set; }
+        public int Stride { get { return m_stride; } }
+        public byte[] Data { get { return m_output; } }
 
-        public CiiReader (IBinaryStream input, CiiMetaData info)
+        public CiiReader(IBinaryStream input, CiiMetaData info)
         {
             m_input = input;
             m_info = info;
@@ -115,23 +116,23 @@ namespace GameRes.Formats.Uncanny
                 Format = PixelFormats.Indexed4;
         }
 
-        public void Unpack ()
+        public void Unpack()
         {
             m_input.Position = 6;
             if (m_info.BPP <= 8)
             {
                 int colors = m_input.ReadUInt16();
-                Palette = ImageFormat.ReadPalette (m_input.AsStream, colors);
+                Palette = ImageFormat.ReadPalette(m_input.AsStream, colors);
                 if (m_info.IsCompressed)
                     UnpackRle();
                 else
-                    m_input.Read (m_output, 0, m_output.Length);
+                    m_input.Read(m_output, 0, m_output.Length);
             }
             else
                 Unpack24bpp();
         }
 
-        void UnpackRle ()
+        void UnpackRle()
         {
             int dst = 0;
             while (dst < m_output.Length)
@@ -143,19 +144,19 @@ namespace GameRes.Formats.Uncanny
                 {
                     byte v = m_input.ReadUInt8();
                     count = (count & 0x7F) + 1;
-                    while (count --> 0)
+                    while (count-- > 0)
                         m_output[dst++] = v;
                 }
                 else
                 {
                     count++;
-                    m_input.Read (m_output, dst, count);
+                    m_input.Read(m_output, dst, count);
                     dst += count;
                 }
             }
         }
 
-        void Unpack24bpp ()
+        void Unpack24bpp()
         {
             int blocks_w = (int)m_info.Width / 2;
             int blocks_h = (int)m_info.Height / 2;
@@ -171,28 +172,28 @@ namespace GameRes.Formats.Uncanny
                     int g = (-5312 * v1 - 11083 * v2) >> 14;
                     int r = (3 * (v1 + 24 * (v1 + 2 * (v1 + (v1 << 7)))) + 10638 * v2) >> 14;
                     byte x00 = m_input.ReadUInt8();
-                    m_output[dst1++] = Clamp (x00 + b);
-                    m_output[dst1++] = Clamp (x00 + g);
-                    m_output[dst1++] = Clamp (x00 + r);
+                    m_output[dst1++] = Clamp(x00 + b);
+                    m_output[dst1++] = Clamp(x00 + g);
+                    m_output[dst1++] = Clamp(x00 + r);
                     byte x01 = m_input.ReadUInt8();
-                    m_output[dst1++] = Clamp (x01 + b);
-                    m_output[dst1++] = Clamp (x01 + g);
-                    m_output[dst1++] = Clamp (x01 + r);
+                    m_output[dst1++] = Clamp(x01 + b);
+                    m_output[dst1++] = Clamp(x01 + g);
+                    m_output[dst1++] = Clamp(x01 + r);
                     byte x10 = m_input.ReadUInt8();
-                    m_output[dst2++] = Clamp (x10 + b);
-                    m_output[dst2++] = Clamp (x10 + g);
-                    m_output[dst2++] = Clamp (x10 + r);
+                    m_output[dst2++] = Clamp(x10 + b);
+                    m_output[dst2++] = Clamp(x10 + g);
+                    m_output[dst2++] = Clamp(x10 + r);
                     byte x11 = m_input.ReadUInt8();
-                    m_output[dst2++] = Clamp (x11 + b);
-                    m_output[dst2++] = Clamp (x11 + g);
-                    m_output[dst2++] = Clamp (x11 + r);
+                    m_output[dst2++] = Clamp(x11 + b);
+                    m_output[dst2++] = Clamp(x11 + g);
+                    m_output[dst2++] = Clamp(x11 + r);
                 }
                 dst1 += m_stride;
                 dst2 += m_stride;
             }
         }
 
-        static byte Clamp (int v)
+        static byte Clamp(int v)
         {
             if (v < 0)
                 return 0;

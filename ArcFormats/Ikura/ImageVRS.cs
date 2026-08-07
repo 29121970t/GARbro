@@ -34,50 +34,51 @@ namespace GameRes.Formats.Ikura
     [Export(typeof(ImageFormat))]
     public class DoFormat : ImageFormat
     {
-        public override string         Tag { get { return "VRS/DO"; } }
+        public override string Tag { get { return "VRS/DO"; } }
         public override string Description { get { return "D.O. image format"; } }
-        public override uint     Signature { get { return 0x4F44; } } // 'DO'
+        public override uint Signature { get { return 0x4F44; } } // 'DO'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (8);
-            return new ImageMetaData {
-                Width = header.ToUInt16 (4),
-                Height = header.ToUInt16 (6),
+            var header = file.ReadHeader(8);
+            return new ImageMetaData
+            {
+                Width = header.ToUInt16(4),
+                Height = header.ToUInt16(6),
                 BPP = 8,
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new DoReader (file, info);
+            var reader = new DoReader(file, info);
             reader.Unpack();
-            return ImageData.Create (info, reader.Format, reader.Palette, reader.Data);
+            return ImageData.Create(info, reader.Format, reader.Palette, reader.Data);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("DoFormat.Write not implemented");
+            throw new System.NotImplementedException("DoFormat.Write not implemented");
         }
     }
 
     internal class DoReader
     {
-        IBinaryStream       m_input;
-        byte[]              m_output;
+        IBinaryStream m_input;
+        byte[] m_output;
 
-        public PixelFormat    Format { get; private set; }
+        public PixelFormat Format { get; private set; }
         public BitmapPalette Palette { get; private set; }
-        public byte[]           Data { get { return m_output; } }
+        public byte[] Data { get { return m_output; } }
 
-        public DoReader (IBinaryStream input, ImageMetaData info)
+        public DoReader(IBinaryStream input, ImageMetaData info)
         {
             m_input = input;
             m_output = new byte[info.Width * info.Height];
             Format = PixelFormats.Indexed8;
         }
 
-        public void Unpack ()
+        public void Unpack()
         {
             m_input.Position = 12;
             Palette = ReadPalette();
@@ -91,7 +92,7 @@ namespace GameRes.Formats.Ikura
                     count = ctl & 0x3F;
                     if (0 == count)
                         count = m_input.ReadUInt8() + 0x40;
-                    m_input.Read (m_output, dst, count);
+                    m_input.Read(m_output, dst, count);
                 }
                 else if (0 == (ctl & 0x80))
                 {
@@ -99,7 +100,7 @@ namespace GameRes.Formats.Ikura
                     if (0 == count)
                         count = m_input.ReadUInt8() + 0x40;
                     ++count;
-                    Binary.CopyOverlapped (m_output, dst-1, dst, count);
+                    Binary.CopyOverlapped(m_output, dst - 1, dst, count);
                 }
                 else
                 {
@@ -108,25 +109,25 @@ namespace GameRes.Formats.Ikura
                     if (0 == count)
                         count = m_input.ReadUInt8() + 8;
                     count += 2;
-                    Binary.CopyOverlapped (m_output, dst-offset, dst, count);
+                    Binary.CopyOverlapped(m_output, dst - offset, dst, count);
                 }
                 dst += count;
             }
         }
 
-        BitmapPalette ReadPalette ()
+        BitmapPalette ReadPalette()
         {
-            var palette_data = m_input.ReadBytes (0x300);
+            var palette_data = m_input.ReadBytes(0x300);
             if (palette_data.Length != 0x300)
                 throw new EndOfStreamException();
             int src = 0;
             var color_map = new Color[0x100];
             for (int i = 0; i < 0x100; ++i)
             {
-                color_map[i] = Color.FromRgb (palette_data[src+1], palette_data[src+2], palette_data[src]);
+                color_map[i] = Color.FromRgb(palette_data[src + 1], palette_data[src + 2], palette_data[src]);
                 src += 3;
             }
-            return new BitmapPalette (color_map);
+            return new BitmapPalette(color_map);
         }
     }
 }

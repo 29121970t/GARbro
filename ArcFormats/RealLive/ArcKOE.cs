@@ -40,8 +40,8 @@ namespace GameRes.Formats.RealLive
     {
         public readonly WaveFormat Format;
 
-        public KoeArchive (ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, WaveFormat format)
-            : base (arc, impl, dir)
+        public KoeArchive(ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, WaveFormat format)
+            : base(arc, impl, dir)
         {
             Format = format;
         }
@@ -50,41 +50,41 @@ namespace GameRes.Formats.RealLive
     [Export(typeof(ArchiveFormat))]
     public class KoeOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "KOE"; } }
+        public override string Tag { get { return "KOE"; } }
         public override string Description { get { return "RealLive engine audio archive"; } }
-        public override uint     Signature { get { return 0x50454F4B; } } // 'KOEPAC'
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x50454F4B; } } // 'KOEPAC'
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            if (!file.View.AsciiEqual (4, "AC\0"))
+            if (!file.View.AsciiEqual(4, "AC\0"))
                 return null;
-            int count = file.View.ReadInt32 (0x10);
-            if (!IsSaneCount (count))
+            int count = file.View.ReadInt32(0x10);
+            if (!IsSaneCount(count))
                 return null;
-            uint data_offset = file.View.ReadUInt32 (0x14);
-            uint sample_rate = file.View.ReadUInt32 (0x18);
+            uint data_offset = file.View.ReadUInt32(0x14);
+            uint sample_rate = file.View.ReadUInt32(0x18);
             if (0 == sample_rate)
                 sample_rate = 22050;
 
-            var base_name = Path.GetFileNameWithoutExtension (file.Name);
+            var base_name = Path.GetFileNameWithoutExtension(file.Name);
             uint index_offset = 0x20;
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
-                int id = file.View.ReadUInt16 (index_offset);
+                int id = file.View.ReadUInt16(index_offset);
                 var entry = new KoeEntry
                 {
-                    Name = string.Format ("{0}#{1:D4}.wav", base_name, id),
+                    Name = string.Format("{0}#{1:D4}.wav", base_name, id),
                     Type = "audio",
-                    SampleCount = file.View.ReadUInt16 (index_offset+2),
-                    Offset = file.View.ReadUInt32 (index_offset+4),
+                    SampleCount = file.View.ReadUInt16(index_offset + 2),
+                    Offset = file.View.ReadUInt32(index_offset + 4),
                     IsPacked = true,
                 };
                 entry.Size = entry.SampleCount * 2u;
                 index_offset += 8;
-                dir.Add (entry);
+                dir.Add(entry);
             }
             var format = new WaveFormat
             {
@@ -95,10 +95,10 @@ namespace GameRes.Formats.RealLive
                 BlockAlign = 4,
                 BitsPerSample = 16,
             };
-            return new KoeArchive (file, this, dir, format);
+            return new KoeArchive(file, this, dir, format);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var kent = (KoeEntry)entry;
             var karc = (KoeArchive)arc;
@@ -107,29 +107,29 @@ namespace GameRes.Formats.RealLive
             var offset = kent.Offset;
             for (int i = 0; i < table.Length; ++i)
             {
-                table[i] = arc.File.View.ReadUInt16 (offset);
+                table[i] = arc.File.View.ReadUInt16(offset);
                 offset += 2;
                 packed_size += table[i];
             }
             int total_size = kent.SampleCount * 0x1000;
-            var wav = new MemoryStream (total_size);
-            WaveAudio.WriteRiffHeader (wav, karc.Format, (uint)total_size);
-            using (var output = new BinaryWriter (wav, Encoding.ASCII, true))
-            using (var input = arc.File.CreateStream (offset, packed_size))
+            var wav = new MemoryStream(total_size);
+            WaveAudio.WriteRiffHeader(wav, karc.Format, (uint)total_size);
+            using (var output = new BinaryWriter(wav, Encoding.ASCII, true))
+            using (var input = arc.File.CreateStream(offset, packed_size))
             {
                 foreach (ushort chunk_length in table)
                 {
                     if (0 == chunk_length)
                     {
-                        output.Seek (0x1000, SeekOrigin.Current);
+                        output.Seek(0x1000, SeekOrigin.Current);
                     }
                     else if (0x400 == chunk_length)
                     {
                         for (int i = 0; i < 0x400; ++i)
                         {
                             ushort sample = SampleTable[input.ReadUInt8()];
-                            output.Write (sample);
-                            output.Write (sample);
+                            output.Write(sample);
+                            output.Write(sample);
                         }
                     }
                     else
@@ -150,8 +150,8 @@ namespace GameRes.Formats.RealLive
                                 src -= AdjustTable[idx];
                             }
                             ushort sample = SampleTable[src];
-                            output.Write (sample);
-                            output.Write (sample);
+                            output.Write(sample);
+                            output.Write(sample);
                             bits >>= 4;
                             if (0 != ((bits + 1) & 0xF))
                                 src -= AdjustTable[bits & 0xF];
@@ -159,8 +159,8 @@ namespace GameRes.Formats.RealLive
                                 src -= AdjustTable[input.ReadUInt8()];
 
                             sample = SampleTable[src];
-                            output.Write (sample);
-                            output.Write (sample);
+                            output.Write(sample);
+                            output.Write(sample);
                         }
                     }
                 }

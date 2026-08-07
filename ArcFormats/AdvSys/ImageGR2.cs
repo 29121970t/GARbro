@@ -34,131 +34,131 @@ namespace GameRes.Formats.AdvSys
     [Export(typeof(ImageFormat))]
     public class Gr2Format : ImageFormat
     {
-        public override string         Tag { get { return "GR2"; } }
+        public override string Tag { get { return "GR2"; } }
         public override string Description { get { return "AdvSys engine image format"; } }
-        public override uint     Signature { get { return 0x5F325247; } } // 'GR2_'
+        public override uint Signature { get { return 0x5F325247; } } // 'GR2_'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
-            var header = stream.ReadHeader (0x10);
+            var header = stream.ReadHeader(0x10);
             return new ImageMetaData
             {
-                Width  = header.ToUInt16 (4),
-                Height = header.ToUInt16 (6),
-                BPP    = header.ToInt16 (12) * 8
+                Width = header.ToUInt16(4),
+                Height = header.ToUInt16(6),
+                BPP = header.ToInt16(12) * 8
             };
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
             stream.Position = 0x10;
-            int stride = GetStride (info);
+            int stride = GetStride(info);
             var pixels = new byte[stride * info.Height];
-            if (pixels.Length != stream.Read (pixels, 0, pixels.Length))
-                throw new InvalidFormatException ("Unexpected end of file");
+            if (pixels.Length != stream.Read(pixels, 0, pixels.Length))
+                throw new InvalidFormatException("Unexpected end of file");
             PixelFormat format;
             switch (info.BPP)
             {
-            case 32: format = PixelFormats.Bgra32; break;
-            case 24: format = PixelFormats.Bgr24; break;
-            case 16: format = PixelFormats.Bgr555; break;
-            default: throw new NotSupportedException ("Not supported image bitdepth");
+                case 32: format = PixelFormats.Bgra32; break;
+                case 24: format = PixelFormats.Bgr24; break;
+                case 16: format = PixelFormats.Bgr555; break;
+                default: throw new NotSupportedException("Not supported image bitdepth");
             }
-            return ImageData.Create (info, format, null, pixels, stride);
+            return ImageData.Create(info, format, null, pixels, stride);
         }
 
-        internal int GetStride (ImageMetaData info)
+        internal int GetStride(ImageMetaData info)
         {
-            return ((int)info.Width * info.BPP/8 + 3) & ~3;
+            return ((int)info.Width * info.BPP / 8 + 3) & ~3;
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("Gr2Format.Write not implemented");
+            throw new System.NotImplementedException("Gr2Format.Write not implemented");
         }
     }
 
     internal class PolaMetaData : ImageMetaData
     {
         public uint DataOffset;
-        public int  UnpackedSize;
+        public int UnpackedSize;
     }
 
     [Export(typeof(ImageFormat))]
     public class PolaFormat : Gr2Format
     {
-        public override string         Tag { get { return "GR2/Pola"; } }
+        public override string Tag { get { return "GR2/Pola"; } }
         public override string Description { get { return "AdvSys engine compressed image format"; } }
-        public override uint     Signature { get { return 0x6C6F502A; } } // '*Pola*'
+        public override uint Signature { get { return 0x6C6F502A; } } // '*Pola*'
 
-        public PolaFormat ()
+        public PolaFormat()
         {
             Extensions = new string[] { "gr2" };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
-            var header = stream.ReadHeader (20);
-            if (!header.AsciiEqual ("*Pola"))
+            var header = stream.ReadHeader(20);
+            if (!header.AsciiEqual("*Pola"))
                 return null;
-            bool new_version = header.AsciiEqual (5, "*  ");
+            bool new_version = header.AsciiEqual(5, "*  ");
             uint data_offset = new_version ? 20u : 13u;
-            int unpacked_size = header.ToInt32 (8);
+            int unpacked_size = header.ToInt32(8);
             stream.Position = data_offset;
-            var reader = new PolaReader (stream, 64);
+            var reader = new PolaReader(stream, 64);
             reader.Unpack();
-            using (var temp = BinaryStream.FromArray (reader.Data, stream.Name))
+            using (var temp = BinaryStream.FromArray(reader.Data, stream.Name))
             {
-                var info = base.ReadMetaData (temp);
+                var info = base.ReadMetaData(temp);
                 if (null == info)
                     return null;
                 if (!new_version)
-                    unpacked_size = 0x10 + GetStride (info) * (int)info.Height;
+                    unpacked_size = 0x10 + GetStride(info) * (int)info.Height;
                 return new PolaMetaData
                 {
-                    Width   = info.Width,
-                    Height  = info.Height,
-                    BPP     = info.BPP,
+                    Width = info.Width,
+                    Height = info.Height,
+                    BPP = info.BPP,
                     DataOffset = data_offset,
                     UnpackedSize = unpacked_size,
                 };
             }
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
             var meta = (PolaMetaData)info;
             stream.Position = meta.DataOffset;
-            var reader = new PolaReader (stream, meta.UnpackedSize);
+            var reader = new PolaReader(stream, meta.UnpackedSize);
             reader.Unpack();
-            using (var temp = BinaryStream.FromArray (reader.Data, stream.Name))
-                return base.Read (temp, info);
+            using (var temp = BinaryStream.FromArray(reader.Data, stream.Name))
+                return base.Read(temp, info);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("PolaFormat.Write not implemented");
+            throw new System.NotImplementedException("PolaFormat.Write not implemented");
         }
     }
 
     internal sealed class PolaReader
     {
-        IBinaryStream   m_input;
-        byte[]          m_output;
+        IBinaryStream m_input;
+        byte[] m_output;
 
         public byte[] Data { get { return m_output; } }
 
-        public PolaReader (IBinaryStream input, int unpacked_size)
+        public PolaReader(IBinaryStream input, int unpacked_size)
         {
             m_input = input;
-            m_output = new byte[unpacked_size+2];
+            m_output = new byte[unpacked_size + 2];
         }
 
-        public void Unpack ()
+        public void Unpack()
         {
             NextBit();
             int dst = 0;
-            while (dst < m_output.Length-2)
+            while (dst < m_output.Length - 2)
             {
                 if (0 != NextBit())
                 {
@@ -233,7 +233,7 @@ namespace GameRes.Formats.AdvSys
                     }
                     if (dst + count > m_output.Length)
                         count = m_output.Length - dst;
-                    Binary.CopyOverlapped (m_output, dst + offset, dst, count);
+                    Binary.CopyOverlapped(m_output, dst + offset, dst, count);
                     dst += count;
                 }
                 else
@@ -269,13 +269,13 @@ namespace GameRes.Formats.AdvSys
 
         int m_bits = 2;
 
-        int NextBit ()
+        int NextBit()
         {
             int bit = m_bits & 1;
             m_bits >>= 1;
             if (1 == m_bits)
             {
-                m_bits  = m_input.ReadUInt16() | 0x10000;
+                m_bits = m_input.ReadUInt16() | 0x10000;
             }
             return bit;
         }

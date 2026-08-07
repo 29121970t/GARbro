@@ -41,13 +41,13 @@ namespace GameRes.Formats.NitroPlus
     [Export(typeof(ArchiveFormat))]
     public class NpaSteinsGateOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "NPA-SG"; } }
+        public override string Tag { get { return "NPA-SG"; } }
         public override string Description { get { return arcStrings.NPASteinsGateDescription; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool  IsHierarchic { get { return true; } }
-        public override bool      CanWrite { get { return true; } }
+        public override uint Signature { get { return 0; } }
+        public override bool IsHierarchic { get { return true; } }
+        public override bool CanWrite { get { return true; } }
 
-        public NpaSteinsGateOpener ()
+        public NpaSteinsGateOpener()
         {
             Extensions = new string[] { "npa" };
         }
@@ -57,60 +57,60 @@ namespace GameRes.Formats.NitroPlus
             'T'^0xff, 'I'^0xff, 'C'^0xff, 'K'^0xff
         };
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            int index_size = file.View.ReadInt32 (0);
+            int index_size = file.View.ReadInt32(0);
             if (index_size < 0x14 || index_size >= file.MaxOffset || index_size > 0xffffff)
                 return null;
 
-            var stream = new SteinsGateEncryptedStream (file, 4, (uint)index_size);
-            using (var header = new BinaryReader (stream))
+            var stream = new SteinsGateEncryptedStream(file, 4, (uint)index_size);
+            using (var header = new BinaryReader(stream))
             {
                 int entry_count = header.ReadInt32();
-                if (!IsSaneCount (entry_count))
+                if (!IsSaneCount(entry_count))
                     return null;
                 index_size -= 4;
                 int average_entry_size = index_size / entry_count;
                 if (average_entry_size < 0x11)
                     return null;
 
-                var dir = new List<Entry> (entry_count);
+                var dir = new List<Entry>(entry_count);
                 for (int i = 0; i < entry_count; ++i)
                 {
                     int name_length = header.ReadInt32();
-                    if (name_length+0x10 > index_size)
+                    if (name_length + 0x10 > index_size)
                         return null;
-                    byte[] name_raw = header.ReadBytes (name_length);
-                    Encoding enc = GuessEncoding (name_raw);
-                    string filename = enc.GetString (name_raw);
+                    byte[] name_raw = header.ReadBytes(name_length);
+                    Encoding enc = GuessEncoding(name_raw);
+                    string filename = enc.GetString(name_raw);
 
-                    var entry = FormatCatalog.Instance.Create<Entry> (filename);
+                    var entry = FormatCatalog.Instance.Create<Entry>(filename);
                     entry.Size = header.ReadUInt32();
                     entry.Offset = header.ReadInt64();
-                    if (!entry.CheckPlacement (file.MaxOffset))
+                    if (!entry.CheckPlacement(file.MaxOffset))
                         return null;
-                    dir.Add (entry);
+                    dir.Add(entry);
 
-                    index_size -= name_length+0x10;
+                    index_size -= name_length + 0x10;
                 }
-                return new ArcFile (file, this, dir);
+                return new ArcFile(file, this, dir);
             }
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
-            return new SteinsGateEncryptedStream (arc.File, entry.Offset, entry.Size);
+            return new SteinsGateEncryptedStream(arc.File, entry.Offset, entry.Size);
         }
 
-        internal void Encrypt (byte[] buffer, int offset, int count)
+        internal void Encrypt(byte[] buffer, int offset, int count)
         {
             for (int i = 0; i < count; ++i)
             {
-                buffer[offset+i] ^= KeyString[i & 7];
+                buffer[offset + i] ^= KeyString[i & 7];
             }
         }
 
-        Encoding GuessEncoding (byte[] text)
+        Encoding GuessEncoding(byte[] text)
         {
             bool has_zero = false;
             bool has_non_ascii = false;
@@ -134,19 +134,20 @@ namespace GameRes.Formats.NitroPlus
                 return Encoding.ASCII;
         }
 
-        public override ResourceOptions GetDefaultOptions ()
+        public override ResourceOptions GetDefaultOptions()
         {
-            return new SteinsGateOptions {
-                FileNameEncoding = GetEncoding (Properties.Settings.Default.SGFileNameEncoding),
+            return new SteinsGateOptions
+            {
+                FileNameEncoding = GetEncoding(Properties.Settings.Default.SGFileNameEncoding),
             };
         }
 
-        public override object GetCreationWidget ()
+        public override object GetCreationWidget()
         {
             return new GUI.CreateSGWidget();
         }
 
-        Encoding GetEncoding (string name)
+        Encoding GetEncoding(string name)
         {
             if ("shift-jis" == name)
                 return Encodings.cp932;
@@ -157,70 +158,70 @@ namespace GameRes.Formats.NitroPlus
 
         internal class RawEntry : Entry
         {
-            public byte[]   IndexName;
+            public byte[] IndexName;
         }
 
-        public override void Create (Stream output, IEnumerable<Entry> list, ResourceOptions options,
+        public override void Create(Stream output, IEnumerable<Entry> list, ResourceOptions options,
                                      EntryCallback callback)
         {
-            var sg_options = GetOptions<SteinsGateOptions> (options);
+            var sg_options = GetOptions<SteinsGateOptions>(options);
             Encoding encoding = sg_options.FileNameEncoding.WithFatalFallback();
             long start_pos = output.Position;
             int callback_count = 0;
 
             uint index_size = 4;
-            var real_entry_list = new List<RawEntry> (list.Count());
+            var real_entry_list = new List<RawEntry>(list.Count());
             var used_names = new HashSet<string>();
             foreach (var entry in list)
             {
-                string name = entry.Name.Replace (@"\", "/");
-                if (!used_names.Add (name)) // duplicate name
+                string name = entry.Name.Replace(@"\", "/");
+                if (!used_names.Add(name)) // duplicate name
                     continue;
                 var header_entry = new RawEntry { Name = entry.Name };
                 try
                 {
-                    header_entry.IndexName = encoding.GetBytes (name);
+                    header_entry.IndexName = encoding.GetBytes(name);
                 }
                 catch (EncoderFallbackException X)
                 {
-                    throw new InvalidFileName (entry.Name, arcStrings.MsgIllegalCharacters, X);
+                    throw new InvalidFileName(entry.Name, arcStrings.MsgIllegalCharacters, X);
                 }
                 index_size += (uint)header_entry.IndexName.Length + 16;
-                real_entry_list.Add (header_entry);
+                real_entry_list.Add(header_entry);
             }
-            output.Seek (4+index_size, SeekOrigin.Current);
+            output.Seek(4 + index_size, SeekOrigin.Current);
             foreach (var entry in real_entry_list)
             {
-                using (var input = File.Open (entry.Name, FileMode.Open, FileAccess.Read))
+                using (var input = File.Open(entry.Name, FileMode.Open, FileAccess.Read))
                 {
                     var file_size = input.Length;
                     if (file_size > uint.MaxValue)
                         throw new FileSizeException();
                     entry.Offset = output.Position;
-                    entry.Size  = (uint)file_size;
+                    entry.Size = (uint)file_size;
                     if (null != callback)
-                        callback (callback_count++, entry, arcStrings.MsgAddingFile);
-                    using (var stream = new SteinsGateEncryptedStream (output))
-                        input.CopyTo (stream);
+                        callback(callback_count++, entry, arcStrings.MsgAddingFile);
+                    using (var stream = new SteinsGateEncryptedStream(output))
+                        input.CopyTo(stream);
                 }
             }
             if (null != callback)
-                callback (callback_count++, null, arcStrings.MsgWritingIndex);
+                callback(callback_count++, null, arcStrings.MsgWritingIndex);
             output.Position = start_pos;
-            output.WriteByte ((byte)(index_size & 0xff));
-            output.WriteByte ((byte)((index_size >> 8) & 0xff));
-            output.WriteByte ((byte)((index_size >> 16) & 0xff));
-            output.WriteByte ((byte)((index_size >> 24) & 0xff));
-            var encrypted_stream = new SteinsGateEncryptedStream (output);
-            using (var header = new BinaryWriter (encrypted_stream))
+            output.WriteByte((byte)(index_size & 0xff));
+            output.WriteByte((byte)((index_size >> 8) & 0xff));
+            output.WriteByte((byte)((index_size >> 16) & 0xff));
+            output.WriteByte((byte)((index_size >> 24) & 0xff));
+            var encrypted_stream = new SteinsGateEncryptedStream(output);
+            using (var header = new BinaryWriter(encrypted_stream))
             {
-                header.Write (real_entry_list.Count);
+                header.Write(real_entry_list.Count);
                 foreach (var entry in real_entry_list)
                 {
-                    header.Write (entry.IndexName.Length);
-                    header.Write (entry.IndexName);
-                    header.Write ((uint)entry.Size);
-                    header.Write ((long)entry.Offset);
+                    header.Write(entry.IndexName.Length);
+                    header.Write(entry.IndexName);
+                    header.Write((uint)entry.Size);
+                    header.Write((long)entry.Offset);
                 }
             }
         }
@@ -228,30 +229,30 @@ namespace GameRes.Formats.NitroPlus
 
     public class SteinsGateEncryptedStream : Stream
     {
-        private Stream      m_stream;
-        private long        m_base_pos;
-        private bool        m_should_dispose;
+        private Stream m_stream;
+        private long m_base_pos;
+        private bool m_should_dispose;
 
         public Stream BaseStream { get { return m_stream; } }
 
-        public override bool  CanRead { get { return m_stream.CanRead; } }
-        public override bool  CanSeek { get { return m_stream.CanSeek; } }
+        public override bool CanRead { get { return m_stream.CanRead; } }
+        public override bool CanSeek { get { return m_stream.CanSeek; } }
         public override bool CanWrite { get { return m_stream.CanWrite; } }
-        public override long   Length { get { return m_stream.Length - m_base_pos; } }
+        public override long Length { get { return m_stream.Length - m_base_pos; } }
         public override long Position
         {
             get { return m_stream.Position - m_base_pos; }
             set { m_stream.Position = m_base_pos + value; }
         }
 
-        public SteinsGateEncryptedStream (ArcView file, long offset, uint size)
+        public SteinsGateEncryptedStream(ArcView file, long offset, uint size)
         {
-            m_stream = file.CreateStream (offset, size);
+            m_stream = file.CreateStream(offset, size);
             m_should_dispose = true;
             m_base_pos = 0;
         }
 
-        public SteinsGateEncryptedStream (Stream output)
+        public SteinsGateEncryptedStream(Stream output)
         {
             m_stream = output;
             m_should_dispose = false;
@@ -264,34 +265,34 @@ namespace GameRes.Formats.NitroPlus
             m_stream.Flush();
         }
 
-        public override long Seek (long offset, SeekOrigin origin)
+        public override long Seek(long offset, SeekOrigin origin)
         {
             if (SeekOrigin.Begin == origin)
                 offset += m_base_pos;
-            offset = m_stream.Seek (offset, origin);
+            offset = m_stream.Seek(offset, origin);
             return offset - m_base_pos;
         }
 
-        public override void SetLength (long length)
+        public override void SetLength(long length)
         {
-            throw new System.NotSupportedException ("SteinsGateEncryptedStream.SetLength method is not supported");
+            throw new System.NotSupportedException("SteinsGateEncryptedStream.SetLength method is not supported");
         }
 
-        public override int Read (byte[] buffer, int offset, int count)
+        public override int Read(byte[] buffer, int offset, int count)
         {
             int position = (int)Position & 7;
-            int read = m_stream.Read (buffer, offset, count);
+            int read = m_stream.Read(buffer, offset, count);
             if (read > 0)
             {
                 for (int i = 0; i < read; ++i)
                 {
-                    buffer[offset+i] ^= NpaSteinsGateOpener.KeyString[(position+i)&7];
+                    buffer[offset + i] ^= NpaSteinsGateOpener.KeyString[(position + i) & 7];
                 }
             }
             return read;
         }
 
-        public override int ReadByte ()
+        public override int ReadByte()
         {
             int position = (int)Position & 7;
             int b = m_stream.ReadByte();
@@ -302,27 +303,27 @@ namespace GameRes.Formats.NitroPlus
             return b;
         }
 
-        public override void Write (byte[] buffer, int offset, int count)
+        public override void Write(byte[] buffer, int offset, int count)
         {
             int position = (int)Position & 7;
             byte[] write_buf = new byte[count];
             for (int i = 0; i < count; ++i)
             {
-                write_buf[i] = (byte)(buffer[offset+i] ^ NpaSteinsGateOpener.KeyString[(position+i)&7]);
+                write_buf[i] = (byte)(buffer[offset + i] ^ NpaSteinsGateOpener.KeyString[(position + i) & 7]);
             }
-            m_stream.Write (write_buf, 0, count);
+            m_stream.Write(write_buf, 0, count);
         }
 
-        public override void WriteByte (byte value)
+        public override void WriteByte(byte value)
         {
             int position = (int)Position & 7;
-            m_stream.WriteByte ((byte)(value ^ NpaSteinsGateOpener.KeyString[position]));
+            m_stream.WriteByte((byte)(value ^ NpaSteinsGateOpener.KeyString[position]));
         }
         #endregion
 
         #region IDisposable Members
         bool disposed = false;
-        protected override void Dispose (bool disposing)
+        protected override void Dispose(bool disposing)
         {
             if (!disposed)
             {
@@ -331,7 +332,7 @@ namespace GameRes.Formats.NitroPlus
                     m_stream.Dispose();
                 }
                 disposed = true;
-                base.Dispose (disposing);
+                base.Dispose(disposing);
             }
         }
         #endregion

@@ -42,58 +42,59 @@ namespace GameRes.Formats.Nekotaro
     [Export(typeof(ImageFormat))]
     public class GCmpFormat : ImageFormat
     {
-        public override string         Tag { get { return "GCMP"; } }
+        public override string Tag { get { return "GCMP"; } }
         public override string Description { get { return "Nekotaro Game System image format"; } }
-        public override uint     Signature { get { return 0x706D4347; } } // 'GCmp'
+        public override uint Signature { get { return 0x706D4347; } } // 'GCmp'
 
-        public GCmpFormat ()
+        public GCmpFormat()
         {
             Extensions = new[] { "GCMP", "AIG" };
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x10);
+            var header = file.ReadHeader(0x10);
             int format = (sbyte)header[12];
-            int bpp = Math.Abs (format);
+            int bpp = Math.Abs(format);
             if (bpp != 24 && bpp != 8 && bpp != 1)
                 return null;
-            return new GCmpMetaData {
-                Width = header.ToUInt16 (8),
-                Height = header.ToUInt16 (10),
+            return new GCmpMetaData
+            {
+                Width = header.ToUInt16(8),
+                Height = header.ToUInt16(10),
                 BPP = bpp,
                 IsCompressed = format > 0,
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            using (var reader = new GCmpDecoder (file, (GCmpMetaData)info, this, true))
+            using (var reader = new GCmpDecoder(file, (GCmpMetaData)info, this, true))
                 return reader.Image;
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("GCmpFormat.Write not implemented");
+            throw new System.NotImplementedException("GCmpFormat.Write not implemented");
         }
     }
 
     internal sealed class GCmpDecoder : IImageDecoder
     {
-        IBinaryStream   m_input;
-        ImageData       m_image;
-        GCmpMetaData    m_info;
-        bool            m_should_dispose;
+        IBinaryStream m_input;
+        ImageData m_image;
+        GCmpMetaData m_info;
+        bool m_should_dispose;
 
-        public Stream            Source { get { return m_input.AsStream; } }
+        public Stream Source { get { return m_input.AsStream; } }
         public ImageFormat SourceFormat { get; private set; }
-        public ImageMetaData       Info { get { return m_info; } }
-        public PixelFormat       Format { get; private set; }
-        public BitmapPalette    Palette { get; private set; }
-        public int               Stride { get; private set; }
-        public ImageData          Image { get { return m_image ?? (m_image = Unpack()); } }
+        public ImageMetaData Info { get { return m_info; } }
+        public PixelFormat Format { get; private set; }
+        public BitmapPalette Palette { get; private set; }
+        public int Stride { get; private set; }
+        public ImageData Image { get { return m_image ?? (m_image = Unpack()); } }
 
-        public GCmpDecoder (IBinaryStream input, GCmpMetaData info, ImageFormat source, bool leave_open = false)
+        public GCmpDecoder(IBinaryStream input, GCmpMetaData info, ImageFormat source, bool leave_open = false)
         {
             m_input = input;
             m_info = info;
@@ -107,7 +108,7 @@ namespace GameRes.Formats.Nekotaro
 
         static BitmapPalette LastUsedPalette = null;
 
-        public ImageData Unpack ()
+        public ImageData Unpack()
         {
             m_input.Position = 0x10;
             byte[] pixels;
@@ -117,10 +118,10 @@ namespace GameRes.Formats.Nekotaro
                 pixels = Unpack8bpp();
             if (8 == Info.BPP)
                 Palette = LastUsedPalette ?? (LastUsedPalette = RetrievePalette() ?? DefaultPalette);
-            return ImageData.CreateFlipped (Info, Format, Palette, pixels, Stride);
+            return ImageData.CreateFlipped(Info, Format, Palette, pixels, Stride);
         }
 
-        byte[] Unpack24bpp ()
+        byte[] Unpack24bpp()
         {
             Format = PixelFormats.Bgr24;
             int pixel_count = Info.iWidth * Info.iHeight;
@@ -162,7 +163,7 @@ namespace GameRes.Formats.Nekotaro
                             count = m_input.ReadInt32();
                         }
                         int fpos = 3 * frame_pos;
-                        pixel = frame[fpos] | frame[fpos+1] << 8 | frame[fpos+2] << 16;
+                        pixel = frame[fpos] | frame[fpos + 1] << 8 | frame[fpos + 2] << 16;
                     }
                     else
                     {
@@ -181,16 +182,16 @@ namespace GameRes.Formats.Nekotaro
                 if (count > pixel_count)
                     count = pixel_count;
                 pixel_count -= count;
-                LittleEndian.Pack (pixel, output, dst);
+                LittleEndian.Pack(pixel, output, dst);
                 dst += 3;
                 if (--count > 0)
                 {
                     count *= 3;
-                    Binary.CopyOverlapped (output, dst - 3, dst, count);
+                    Binary.CopyOverlapped(output, dst - 3, dst, count);
                     dst += count;
                 }
                 if (frame_pos != 0)
-                    Buffer.BlockCopy (frame, 0, frame, 3, 3 * frame_pos);
+                    Buffer.BlockCopy(frame, 0, frame, 3, 3 * frame_pos);
                 frame[0] = (byte)pixel;
                 frame[1] = (byte)(pixel >> 8);
                 frame[2] = (byte)(pixel >> 16);
@@ -198,7 +199,7 @@ namespace GameRes.Formats.Nekotaro
             return output;
         }
 
-        byte[] Unpack8bpp ()
+        byte[] Unpack8bpp()
         {
             if (8 == Info.BPP)
                 Format = PixelFormats.Indexed8;
@@ -206,7 +207,7 @@ namespace GameRes.Formats.Nekotaro
                 Format = PixelFormats.BlackWhite;
             int pixel_count = Info.iHeight * Stride;
             if (!m_info.IsCompressed)
-                return m_input.ReadBytes (pixel_count);
+                return m_input.ReadBytes(pixel_count);
 
             var output = new byte[pixel_count];
             int dst = 0;
@@ -231,30 +232,30 @@ namespace GameRes.Formats.Nekotaro
                 {
                     switch (lo)
                     {
-                    default:
-                        count = lo + 1;
-                        break;
-                    case 10:
-                        count = m_input.ReadUInt8() + 11;
-                        break;
-                    case 11:
-                        count = m_input.ReadUInt16() + 267;
-                        break;
-                    case 12:
-                        count = m_input.ReadInt32() + 65803;
-                        break;
-                    case 13:
-                        extra_count = 0x10;
-                        count = m_input.ReadUInt8();
-                        break;
-                    case 14:
-                        extra_count = 0x120;
-                        count = m_input.ReadUInt16();
-                        break;
-                    case 15:
-                        extra_count = 0x10130;
-                        count = m_input.ReadInt32();
-                        break;
+                        default:
+                            count = lo + 1;
+                            break;
+                        case 10:
+                            count = m_input.ReadUInt8() + 11;
+                            break;
+                        case 11:
+                            count = m_input.ReadUInt16() + 267;
+                            break;
+                        case 12:
+                            count = m_input.ReadInt32() + 65803;
+                            break;
+                        case 13:
+                            extra_count = 0x10;
+                            count = m_input.ReadUInt8();
+                            break;
+                        case 14:
+                            extra_count = 0x120;
+                            count = m_input.ReadUInt16();
+                            break;
+                        case 15:
+                            extra_count = 0x10130;
+                            count = m_input.ReadInt32();
+                            break;
                     }
                     pixel = m_input.ReadUInt8();
                     if (lo < 13)
@@ -274,13 +275,13 @@ namespace GameRes.Formats.Nekotaro
                 pixel_count -= count;
                 for (int i = 0; i < count; ++i)
                     output[dst++] = pixel;
-                Buffer.BlockCopy (frame, 0, frame, 1, frame_pos);
+                Buffer.BlockCopy(frame, 0, frame, 1, frame_pos);
                 frame[0] = pixel;
             }
             return output;
         }
 
-        static void LzssUnpack (IBinaryStream input, byte[] output)
+        static void LzssUnpack(IBinaryStream input, byte[] output)
         {
             int dst = 0;
             int mask = 0;
@@ -299,7 +300,7 @@ namespace GameRes.Formats.Nekotaro
                     int count = (off & 0xF) + 3;
                     off >>= 4;
                     int src = dst - off - 1;
-                    Binary.CopyOverlapped (output, src, dst, count);
+                    Binary.CopyOverlapped(output, src, dst, count);
                     dst += count;
                 }
                 else
@@ -309,7 +310,7 @@ namespace GameRes.Formats.Nekotaro
             }
         }
 
-        BitmapPalette RetrievePalette ()
+        BitmapPalette RetrievePalette()
         {
             // find SYSTEM.LZS file, decompress and read it as text file
             // find 'P' line that denotes archive name and entry number
@@ -318,42 +319,42 @@ namespace GameRes.Formats.Nekotaro
             try
             {
                 string system_name = "SYSTEM.LZS";
-                if (!File.Exists (system_name))
+                if (!File.Exists(system_name))
                 {
                     system_name = @"..\SYSTEM.LZS";
-                    if (!File.Exists (system_name))
+                    if (!File.Exists(system_name))
                         return null;
                 }
                 byte[] system_bin;
-                using (var input = BinaryStream.FromFile (system_name))
+                using (var input = BinaryStream.FromFile(system_name))
                 {
                     int unpacked_size = input.ReadUInt16();
                     input.ReadUInt16();
                     system_bin = new byte[unpacked_size];
-                    LzssUnpack (input, system_bin);
+                    LzssUnpack(input, system_bin);
                 }
                 string line;
-                using (var mem = new MemoryStream (system_bin))
-                using (var text = new StreamReader (mem, Encodings.cp932))
+                using (var mem = new MemoryStream(system_bin))
+                using (var text = new StreamReader(mem, Encodings.cp932))
                 {
                     while ((line = text.ReadLine()) != null)
                     {
-                        if (line.Length > 3 && line.StartsWith ("P:"))
+                        if (line.Length > 3 && line.StartsWith("P:"))
                             break;
                     }
                     if (null == line)
                         return null;
                 }
-                var match = PLineRe.Match (line);
+                var match = PLineRe.Match(line);
                 if (!match.Success)
                     return null;
                 int id;
-                if (!Int32.TryParse (match.Groups[2].Value, out id))
+                if (!Int32.TryParse(match.Groups[2].Value, out id))
                     return null;
-                var arc_name = Path.Combine (Path.GetDirectoryName (system_name), match.Groups[1].Value);
+                var arc_name = Path.Combine(Path.GetDirectoryName(system_name), match.Groups[1].Value);
                 if (0 == id)
                 {
-                    using (var file = BinaryStream.FromFile (arc_name))
+                    using (var file = BinaryStream.FromFile(arc_name))
                     {
                         Stream pal_stream;
                         int unpacked_size = file.ReadUInt16();
@@ -361,8 +362,8 @@ namespace GameRes.Formats.Nekotaro
                         if (packed_size + 4 == file.Length)
                         {
                             var pal_data = new byte[unpacked_size];
-                            LzssUnpack (file, pal_data);
-                            pal_stream = new MemoryStream (pal_data);
+                            LzssUnpack(file, pal_data);
+                            pal_stream = new MemoryStream(pal_data);
                         }
                         else
                         {
@@ -371,19 +372,19 @@ namespace GameRes.Formats.Nekotaro
                         }
                         int colors = (int)pal_stream.Length / 3;
                         using (pal_stream)
-                            return ImageFormat.ReadPalette (pal_stream, colors, PaletteFormat.Rgb);
+                            return ImageFormat.ReadPalette(pal_stream, colors, PaletteFormat.Rgb);
                     }
                 }
                 else
                 {
-                    using (var file = new ArcView (arc_name))
+                    using (var file = new ArcView(arc_name))
                     {
-                        var arc = Nsc.Value.TryOpen (file);
+                        var arc = Nsc.Value.TryOpen(file);
                         if (null == arc)
                             return null;
-                        var entry = ((List<Entry>)arc.Dir)[id-1];
-                        using (var input = arc.OpenEntry (entry))
-                            return ImageFormat.ReadPalette (input, 0x100, PaletteFormat.Rgb);
+                        var entry = ((List<Entry>)arc.Dir)[id - 1];
+                        using (var input = arc.OpenEntry(entry))
+                            return ImageFormat.ReadPalette(input, 0x100, PaletteFormat.Rgb);
                     }
                 }
             }
@@ -393,12 +394,12 @@ namespace GameRes.Formats.Nekotaro
             }
         }
 
-        static readonly Regex PLineRe = new Regex (@"^P:([^,]+),(\d+),(\d+)", RegexOptions.Compiled);
-        static readonly ResourceInstance<ArchiveFormat> Nsc = new ResourceInstance<ArchiveFormat> ("NSC");
+        static readonly Regex PLineRe = new Regex(@"^P:([^,]+),(\d+),(\d+)", RegexOptions.Compiled);
+        static readonly ResourceInstance<ArchiveFormat> Nsc = new ResourceInstance<ArchiveFormat>("NSC");
 
-        static readonly BitmapPalette DefaultPalette = new BitmapPalette (
+        static readonly BitmapPalette DefaultPalette = new BitmapPalette(
             // [000317][PIL] Seek -remasters-
-#region colors
+        #region colors
             new Color[] {
                 Color.FromRgb (0x00, 0x00, 0x00),
                 Color.FromRgb (0xFF, 0xFF, 0xFF),
@@ -657,11 +658,11 @@ namespace GameRes.Formats.Nekotaro
                 Color.FromRgb (0x00, 0x00, 0x00),
                 Color.FromRgb (0x00, 0x00, 0x00),
             }
-#endregion
+        #endregion
         );
 
         bool m_disposed = false;
-        public void Dispose ()
+        public void Dispose()
         {
             if (!m_disposed && m_should_dispose)
             {

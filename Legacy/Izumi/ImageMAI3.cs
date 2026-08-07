@@ -33,49 +33,50 @@ namespace GameRes.Formats.Izumi
 {
     internal class Mai3MetaData : ImageMetaData
     {
-        public int  DataOffset;
+        public int DataOffset;
         public bool HasPalette;
     }
 
     [Export(typeof(ImageFormat))]
     public class Mai3Format : ImageFormat
     {
-        public override string         Tag => "MI3";
+        public override string Tag => "MI3";
         public override string Description => "Izumi engine image format";
-        public override uint     Signature => 0x3049414D; // 'MAI03'
+        public override uint Signature => 0x3049414D; // 'MAI03'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (14);
-            if (!header.AsciiEqual ("MAI03\x1A"))
+            var header = file.ReadHeader(14);
+            if (!header.AsciiEqual("MAI03\x1A"))
                 return null;
-            return new Mai3MetaData {
-                Width  = (uint)(header.ToUInt16 (8) << 3),
-                Height = header.ToUInt16 (0xA),
+            return new Mai3MetaData
+            {
+                Width = (uint)(header.ToUInt16(8) << 3),
+                Height = header.ToUInt16(0xA),
                 BPP = 4,
-                DataOffset = header.ToUInt16 (0xC) & 0x7FFF,
+                DataOffset = header.ToUInt16(0xC) & 0x7FFF,
                 HasPalette = (header[0xD] & 0x80) != 0,
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
-            var reader = new Mai3Reader (file, (Mai3MetaData)info);
+            var reader = new Mai3Reader(file, (Mai3MetaData)info);
             return reader.Unpack();
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("Mai3Format.Write not implemented");
+            throw new System.NotImplementedException("Mai3Format.Write not implemented");
         }
     }
 
     internal class Mai3Reader
     {
-        IBinaryStream   m_input;
-        Mai3MetaData    m_info;
+        IBinaryStream m_input;
+        Mai3MetaData m_info;
 
-        public Mai3Reader (IBinaryStream input, Mai3MetaData info)
+        public Mai3Reader(IBinaryStream input, Mai3MetaData info)
         {
             m_input = input;
             m_info = info;
@@ -85,7 +86,7 @@ namespace GameRes.Formats.Izumi
         int m_output_stride;
         byte[] m_output;
 
-        public ImageData Unpack ()
+        public ImageData Unpack()
         {
             m_input.Position = m_info.DataOffset;
             BitmapPalette palette = null;
@@ -101,28 +102,28 @@ namespace GameRes.Formats.Izumi
             int output_dst = 0;
             int stride = m_info.iWidth >> 3;
             int x = stride >> 1;
-            while (x --> 0)
+            while (x-- > 0)
             {
                 MoveBuffer();
-                UnpackLine (0x1C0);
-                UnpackLine (0x10);
+                UnpackLine(0x1C0);
+                UnpackLine(0x10);
                 MoveBuffer();
-                UnpackLine (0x1C0);
-                UnpackLine (0x10);
-                CopyOutput (output_dst);
+                UnpackLine(0x1C0);
+                UnpackLine(0x10);
+                CopyOutput(output_dst);
                 output_dst += 8;
             }
             if ((stride & 1) != 0)
             {
                 MoveBuffer();
-                UnpackLine (0x1C0);
-                UnpackLine (0x10);
-                CopyOutput (output_dst, 1);
+                UnpackLine(0x1C0);
+                UnpackLine(0x10);
+                CopyOutput(output_dst, 1);
             }
-            return ImageData.Create (m_info, PixelFormats.Indexed4, palette, m_output, m_output_stride);
+            return ImageData.Create(m_info, PixelFormats.Indexed4, palette, m_output, m_output_stride);
         }
 
-        void UnpackLine (int dst)
+        void UnpackLine(int dst)
         {
             int height = m_info.iHeight;
             while (height > 0)
@@ -160,14 +161,14 @@ namespace GameRes.Formats.Izumi
                         else
                             offset += 0x10;
                     }
-                    int length = GetCount (8);
+                    int length = GetCount(8);
                     int count = 1;
                     for (int j = 0; j < length; ++j)
                         count = count << 1 | GetNextBit();
                     count += 1;
                     int src = dst + offset;
                     height -= count;
-                    while (count --> 0)
+                    while (count-- > 0)
                         m_buffer[dst++] = m_buffer[src++];
                 }
                 else
@@ -181,15 +182,15 @@ namespace GameRes.Formats.Izumi
                     prev <<= 1;
                     prev |= (px >> 4) & 1;
 
-                    byte n0 = GetPixel ((byte)prev);
-                    byte n1 = GetPixel (n0);
-                    byte n2 = GetPixel (n1);
-                    byte n3 = GetPixel (n2);
+                    byte n0 = GetPixel((byte)prev);
+                    byte n1 = GetPixel(n0);
+                    byte n2 = GetPixel(n1);
+                    byte n3 = GetPixel(n2);
 
-                    px  = m_patterns[0,n3];
-                    px |= m_patterns[1,n2];
-                    px |= m_patterns[2,n1];
-                    px |= m_patterns[3,n0];
+                    px = m_patterns[0, n3];
+                    px |= m_patterns[1, n2];
+                    px |= m_patterns[2, n1];
+                    px |= m_patterns[3, n0];
 
                     m_buffer[dst++] = px;
                     --height;
@@ -204,9 +205,9 @@ namespace GameRes.Formats.Izumi
             { 0, 0x80, 8, 0x88, 0x8000, 0x8080, 0x8008, 0x8088, 0x800, 0x880, 0x808, 0x888, 0x8800, 0x8880, 0x8808, 0x8888 },
         };
 
-        byte GetPixel (byte prev)
+        byte GetPixel(byte prev)
         {
-            int count = GetCount (15);
+            int count = GetCount(15);
             prev <<= 4;
             prev += 0xF;
             int src = prev - count;
@@ -214,14 +215,14 @@ namespace GameRes.Formats.Izumi
             byte al = m_pixels[src++];
             if (count > 0)
             {
-                while (count --> 0)
+                while (count-- > 0)
                     m_pixels[dst++] = m_pixels[src++];
                 m_pixels[dst] = al;
             }
             return al;
         }
 
-        int GetCount (int limit)
+        int GetCount(int limit)
         {
             int count = 0;
             while (count < limit && GetNextBit() == 0)
@@ -229,12 +230,12 @@ namespace GameRes.Formats.Izumi
             return count;
         }
 
-        void MoveBuffer ()
+        void MoveBuffer()
         {
-            Buffer.BlockCopy (m_buffer, 0x20, m_buffer, 0x6E0, 0x360 << 1);
+            Buffer.BlockCopy(m_buffer, 0x20, m_buffer, 0x6E0, 0x360 << 1);
         }
 
-        void CopyOutput (int dst_line, int rows = 2)
+        void CopyOutput(int dst_line, int rows = 2)
         {
             int src = 0x10;
             int height = m_info.iHeight;
@@ -245,10 +246,10 @@ namespace GameRes.Formats.Izumi
                 ushort bx = m_buffer[src + 0x1B0];
                 ushort ax = m_buffer[src++];
 
-                int b0 = bx <<  8 & 0xF000 | ax << 4 & 0x0F00 | cx      & 0x00F0 | dx >>  4 & 0xF;
-                int b1 = bx << 12 & 0xF000 | ax << 8 & 0x0F00 | cx << 4 & 0x00F0 | dx       & 0xF;
-                int b2 = bx       & 0xF000 | ax >> 4 & 0x0F00 | cx >> 8 & 0x00F0 | dx >> 12;
-                int b3 = bx <<  4 & 0xF000 | ax      & 0x0F00 | cx >> 4 & 0x00F0 | dx >>  8 & 0xF;
+                int b0 = bx << 8 & 0xF000 | ax << 4 & 0x0F00 | cx & 0x00F0 | dx >> 4 & 0xF;
+                int b1 = bx << 12 & 0xF000 | ax << 8 & 0x0F00 | cx << 4 & 0x00F0 | dx & 0xF;
+                int b2 = bx & 0xF000 | ax >> 4 & 0x0F00 | cx >> 8 & 0x00F0 | dx >> 12;
+                int b3 = bx << 4 & 0xF000 | ax & 0x0F00 | cx >> 4 & 0x00F0 | dx >> 8 & 0xF;
 
                 int dst = dst_line;
                 for (int i = 0; i < rows; ++i)
@@ -258,7 +259,7 @@ namespace GameRes.Formats.Izumi
                         byte px = (byte)((((b0 << j) & 0x80) >> 3)
                                        | (((b1 << j) & 0x80) >> 2)
                                        | (((b2 << j) & 0x80) >> 1)
-                                       | (((b3 << j) & 0x80)     ));
+                                       | (((b3 << j) & 0x80)));
                         px |= (byte)((((b0 << j) & 0x40) >> 6)
                                    | (((b1 << j) & 0x40) >> 5)
                                    | (((b2 << j) & 0x40) >> 4)
@@ -276,7 +277,7 @@ namespace GameRes.Formats.Izumi
 
         byte[] m_pixels = new byte[0x100];
 
-        void InitPixels ()
+        void InitPixels()
         {
             int dst = m_pixels.Length - 1;
             for (int i = 0x0F; i >= 0; --i)
@@ -292,13 +293,13 @@ namespace GameRes.Formats.Izumi
         int m_bits;
         int m_bit_count;
 
-        void InitBitReader ()
+        void InitBitReader()
         {
             m_bits = m_input.ReadUInt16();
             m_bit_count = 16;
         }
 
-        byte GetNextBit ()
+        byte GetNextBit()
         {
             int bit = m_bits & 1;
             m_bits >>= 1;
@@ -313,19 +314,19 @@ namespace GameRes.Formats.Izumi
             return (byte)bit;
         }
 
-        BitmapPalette ReadPalette ()
+        BitmapPalette ReadPalette()
         {
-            using (var bits = new MsbBitStream (m_input.AsStream, true))
+            using (var bits = new MsbBitStream(m_input.AsStream, true))
             {
                 var colors = new Color[16];
                 for (int i = 0; i < 16; ++i)
                 {
-                    int r = bits.GetBits (4) * 0x11;
-                    int g = bits.GetBits (4) * 0x11;
-                    int b = bits.GetBits (4) * 0x11;
-                    colors[i] = Color.FromRgb ((byte)r, (byte)g, (byte)b);
+                    int r = bits.GetBits(4) * 0x11;
+                    int g = bits.GetBits(4) * 0x11;
+                    int b = bits.GetBits(4) * 0x11;
+                    colors[i] = Color.FromRgb((byte)r, (byte)g, (byte)b);
                 }
-                return new BitmapPalette (colors);
+                return new BitmapPalette(colors);
             }
         }
     }

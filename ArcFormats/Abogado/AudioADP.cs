@@ -33,27 +33,27 @@ namespace GameRes.Formats.Abogado
     [Export(typeof(AudioFormat))]
     public class AdpAudio : AudioFormat
     {
-        public override string         Tag { get { return "ADP"; } }
+        public override string Tag { get { return "ADP"; } }
         public override string Description { get { return "AbogadoPowers audio format"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool CanWrite { get { return false; } }
 
-        public AdpAudio ()
+        public AdpAudio()
         {
             Signatures = new uint[] { 0x5622, 0xAC44, 0 };
         }
 
-        public override SoundInput TryOpen (IBinaryStream file)
+        public override SoundInput TryOpen(IBinaryStream file)
         {
-            var header = file.ReadHeader (0xC4);
-            uint sample_rate = header.ToUInt32 (0);
+            var header = file.ReadHeader(0xC4);
+            uint sample_rate = header.ToUInt32(0);
             if (sample_rate < 8000 || sample_rate > 96000)
                 return null;
-            ushort channels = header.ToUInt16 (4);
+            ushort channels = header.ToUInt16(4);
             if (channels != 1 && channels != 2)
                 return null;
-            int samples = header.ToInt32 (0xBC) * channels;
-            int start_pos = header.ToInt32 (0xC0);
+            int samples = header.ToInt32(0xBC) * channels;
+            int start_pos = header.ToInt32(0xC0);
             if (samples <= 0 || start_pos >= file.Length)
                 return null;
 
@@ -67,23 +67,23 @@ namespace GameRes.Formats.Abogado
             while (samples > 0)
             {
                 byte v = file.ReadUInt8();
-                LittleEndian.Pack (first.DecodeSample (v >> 4), output, dst);
+                LittleEndian.Pack(first.DecodeSample(v >> 4), output, dst);
                 if (0 == --samples)
                     break;
                 dst += 2;
-                LittleEndian.Pack (second.DecodeSample (v), output, dst);
+                LittleEndian.Pack(second.DecodeSample(v), output, dst);
                 dst += 2;
                 --samples;
             }
             var format = new WaveFormat();
-            format.FormatTag        = 1;
-            format.Channels         = channels;
+            format.FormatTag = 1;
+            format.Channels = channels;
             format.SamplesPerSecond = sample_rate;
             format.AverageBytesPerSecond = 2u * channels * sample_rate;
-            format.BlockAlign       = (ushort)(2 * channels);
-            format.BitsPerSample    = 0x10;
-            var pcm = new MemoryStream (output);
-            var sound = new RawPcmInput (pcm, format);
+            format.BlockAlign = (ushort)(2 * channels);
+            format.BitsPerSample = 0x10;
+            var pcm = new MemoryStream(output);
+            var sound = new RawPcmInput(pcm, format);
             file.Dispose();
             return sound;
         }
@@ -94,18 +94,18 @@ namespace GameRes.Formats.Abogado
         int prev_sample;
         int quant_idx = 0;
 
-        public AdpDecoder (int init_sample = 0)
+        public AdpDecoder(int init_sample = 0)
         {
             prev_sample = init_sample;
         }
 
-        public void Reset (short s, int q)
+        public void Reset(short s, int q)
         {
             prev_sample = s;
             quant_idx = q;
         }
 
-        public short DecodeSample (int sample)
+        public short DecodeSample(int sample)
         {
             sample &= 0xF;
             var quant = QuantizeTable[quant_idx];
@@ -117,11 +117,11 @@ namespace GameRes.Formats.Abogado
             int step = (2 * (sample & 7) + 1) * quant >> 3;
             if (sample < 8)
             {
-                sample = Math.Min (0x7FFF, prev_sample + step);
+                sample = Math.Min(0x7FFF, prev_sample + step);
             }
             else
             {
-                sample = Math.Max (-32768, prev_sample - step);
+                sample = Math.Max(-32768, prev_sample - step);
             }
             prev_sample = sample;
             return (short)sample;

@@ -32,15 +32,15 @@ namespace GameRes.Formats.FrontWing
 {
     internal class VavEntry : PackedEntry
     {
-        public int  Compression;
+        public int Compression;
     }
 
     internal class VavArchive : ArcFile
     {
-        public int  Version;
+        public int Version;
 
-        public VavArchive (ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, int version)
-            : base (arc, impl, dir)
+        public VavArchive(ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, int version)
+            : base(arc, impl, dir)
         {
             Version = version;
         }
@@ -49,75 +49,75 @@ namespace GameRes.Formats.FrontWing
     [Export(typeof(ArchiveFormat))]
     public class PakOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "PAK/vav"; } }
+        public override string Tag { get { return "PAK/vav"; } }
         public override string Description { get { return "FrontWing ADV System resource archive"; } }
-        public override uint     Signature { get { return 0x766176; } } // 'vav'
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x766176; } } // 'vav'
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            int version = file.View.ReadInt32 (4);
+            int version = file.View.ReadInt32(4);
             if (version != 100 && version != 200 && version != 201)
                 return null;
-            int count = file.View.ReadInt32 (8);
-            if (!IsSaneCount (count))
+            int count = file.View.ReadInt32(8);
+            if (!IsSaneCount(count))
                 return null;
-            bool is_voice = Path.GetFileNameWithoutExtension (file.Name).Equals ("voice", StringComparison.OrdinalIgnoreCase);
-            uint index_offset = file.View.ReadUInt32 (0xC);
+            bool is_voice = Path.GetFileNameWithoutExtension(file.Name).Equals("voice", StringComparison.OrdinalIgnoreCase);
+            uint index_offset = file.View.ReadUInt32(0xC);
             uint name_size = version < 200 ? 0x10u : 0x20u;
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
-                var name = file.View.ReadString (index_offset, name_size);
-                var entry = Create<VavEntry> (name);
+                var name = file.View.ReadString(index_offset, name_size);
+                var entry = Create<VavEntry>(name);
                 index_offset += name_size;
-                entry.Size         = file.View.ReadUInt32 (index_offset);
-                entry.UnpackedSize = file.View.ReadUInt32 (index_offset+4);
-                entry.Offset       = file.View.ReadUInt32 (index_offset+8);
-                if (!entry.CheckPlacement (file.MaxOffset))
+                entry.Size = file.View.ReadUInt32(index_offset);
+                entry.UnpackedSize = file.View.ReadUInt32(index_offset + 4);
+                entry.Offset = file.View.ReadUInt32(index_offset + 8);
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
-                entry.Compression  = file.View.ReadInt32 (index_offset+0xC);
-                entry.IsPacked     = (entry.Compression & 0x90) != 0;
+                entry.Compression = file.View.ReadInt32(index_offset + 0xC);
+                entry.IsPacked = (entry.Compression & 0x90) != 0;
                 if (is_voice)
                     entry.Type = "audio";
-                dir.Add (entry);
+                dir.Add(entry);
                 index_offset += 0x18;
             }
-            return new VavArchive (file, this, dir, version);
+            return new VavArchive(file, this, dir, version);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var vent = entry as VavEntry;
             if (null == vent)
-                return base.OpenEntry (arc, entry);
+                return base.OpenEntry(arc, entry);
             var varc = arc as VavArchive;
             bool old_version = varc != null && varc.Version < 200;
-            var data = arc.File.View.ReadBytes (entry.Offset, entry.Size);
+            var data = arc.File.View.ReadBytes(entry.Offset, entry.Size);
             int data_length = data.Length;
             if ((vent.Compression & 0x80) != 0)
             {
                 var output = new byte[vent.UnpackedSize];
-                data_length = UnpackHuffman (data, data_length, output);
+                data_length = UnpackHuffman(data, data_length, output);
                 data = output;
             }
             if ((vent.Compression & 0x10) != 0)
             {
                 var output = new byte[vent.UnpackedSize];
-                UnpackRle (data, data_length, output);
+                UnpackRle(data, data_length, output);
                 data = output;
             }
-            DecryptEntry (data, vent.Compression & 0xF, old_version);
-            return new BinMemoryStream (data);
+            DecryptEntry(data, vent.Compression & 0xF, old_version);
+            return new BinMemoryStream(data);
         }
 
-        void DecryptEntry (byte[] data, int start, bool old_version = false)
+        void DecryptEntry(byte[] data, int start, bool old_version = false)
         {
             if (start > 0)
             {
                 for (int i = start; i < data.Length; ++i)
-                    data[i] ^= data[i-start];
+                    data[i] ^= data[i - start];
             }
             else
             {
@@ -127,23 +127,23 @@ namespace GameRes.Formats.FrontWing
             }
         }
 
-        int UnpackRle (byte[] input, int input_length, byte[] output)
+        int UnpackRle(byte[] input, int input_length, byte[] output)
         {
             int src = 0;
             int dst = 0;
             while (dst < output.Length)
             {
                 byte rle = input[src++];
-                int count = Math.Min (rle & 0x7F, output.Length - dst);
+                int count = Math.Min(rle & 0x7F, output.Length - dst);
                 if (0 != (rle & 0x80))
                 {
                     byte v = input[src++];
-                    while (count --> 0)
+                    while (count-- > 0)
                         output[dst++] = v;
                 }
                 else
                 {
-                    Buffer.BlockCopy (input, src, output, dst, count);
+                    Buffer.BlockCopy(input, src, output, dst, count);
                     src += count;
                     dst += count;
                 }
@@ -151,21 +151,21 @@ namespace GameRes.Formats.FrontWing
             return dst;
         }
 
-        int UnpackHuffman (byte[] input, int input_length, byte[] output)
+        int UnpackHuffman(byte[] input, int input_length, byte[] output)
         {
-            using (var mem = new MemoryStream (input, 0, input_length))
+            using (var mem = new MemoryStream(input, 0, input_length))
             {
                 var tree = new HuffmanNode[0x201];
-                ushort root = BuildHuffmanTree (tree, mem);
-                using (var bits = new MsbBitStream (mem))
+                ushort root = BuildHuffmanTree(tree, mem);
+                using (var bits = new MsbBitStream(mem))
                 {
                     int dst = 0;
-                    for (;;)
+                    for (; ; )
                     {
                         ushort symbol = root;
                         while (symbol > 0x100)
                         {
-                            int bit = bits.GetBits (1);
+                            int bit = bits.GetBits(1);
                             if (-1 == bit)
                                 return dst;
                             if (bit != 0)
@@ -183,12 +183,12 @@ namespace GameRes.Formats.FrontWing
 
         internal struct HuffmanNode
         {
-            public int      Weight;
-            public ushort   LChild;
-            public ushort   RChild;
+            public int Weight;
+            public ushort LChild;
+            public ushort RChild;
         }
 
-        ushort BuildHuffmanTree (HuffmanNode[] tree, Stream input)
+        ushort BuildHuffmanTree(HuffmanNode[] tree, Stream input)
         {
             for (int i = 0; i < 0x100; ++i)
             {
@@ -198,7 +198,7 @@ namespace GameRes.Formats.FrontWing
             tree[root].Weight = 1;
             ushort lhs = 0x200;
             ushort rhs = 0x200;
-            for (;;)
+            for (; ; )
             {
                 int lmin = 0x10000;
                 int rmin = 0x10000;

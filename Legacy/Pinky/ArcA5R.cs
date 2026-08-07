@@ -34,83 +34,85 @@ namespace GameRes.Formats.Pinky
 {
     internal class A5Segment
     {
-        public uint     Offset;
-        public uint     Size;
-        public uint     UnpackedSize;
-        public byte     Type;
-        public byte     Compression;
+        public uint Offset;
+        public uint Size;
+        public uint UnpackedSize;
+        public byte Type;
+        public byte Compression;
 
         public bool IsCompressed { get { return 3 == Compression; } }
     }
 
     internal class A5rEntry : PackedEntry
     {
-        public IEnumerable<A5Segment>   Segments;
+        public IEnumerable<A5Segment> Segments;
     }
 
     [Export(typeof(ArchiveFormat))]
     public class A5rOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "A5R"; } }
+        public override string Tag { get { return "A5R"; } }
         public override string Description { get { return "Pinky Soft resource archive"; } }
-        public override uint     Signature { get { return 0x53524350; } } // 'PCRS'
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x53524350; } } // 'PCRS'
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public A5rOpener ()
+        public A5rOpener()
         {
             Signatures = new uint[] { 0x53524350, 0x42494C50 }; // 'PLIB'
             Extensions = new string[] { "a5r", "a5e" };
         }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            uint id = file.View.ReadUInt32 (0);
-            if (file.View.ReadUInt32 (4) != ~id)
+            uint id = file.View.ReadUInt32(0);
+            if (file.View.ReadUInt32(4) != ~id)
                 return null;
-            int count = file.View.ReadInt32 (0x30);
-            if (!IsSaneCount (count))
+            int count = file.View.ReadInt32(0x30);
+            if (!IsSaneCount(count))
                 return null;
-            uint index_offset = file.View.ReadUInt32 (0x34);
+            uint index_offset = file.View.ReadUInt32(0x34);
             if (index_offset >= file.MaxOffset)
                 return null;
 
-            var base_name = Path.GetFileNameWithoutExtension (file.Name);
-            uint next_offset = file.View.ReadUInt32 (index_offset);
+            var base_name = Path.GetFileNameWithoutExtension(file.Name);
+            uint next_offset = file.View.ReadUInt32(index_offset);
             var segments = new A5Segment[count];
             for (int i = 0; i < count; ++i)
             {
-                var segment = new A5Segment {
+                var segment = new A5Segment
+                {
                     Offset = next_offset,
-                    UnpackedSize = file.View.ReadUInt32 (index_offset+4),
-                    Type = file.View.ReadByte (index_offset+8),
-                    Compression = file.View.ReadByte (index_offset+9),
+                    UnpackedSize = file.View.ReadUInt32(index_offset + 4),
+                    Type = file.View.ReadByte(index_offset + 8),
+                    Compression = file.View.ReadByte(index_offset + 9),
                 };
-                next_offset = file.View.ReadUInt32 (index_offset+0xA);
+                next_offset = file.View.ReadUInt32(index_offset + 0xA);
                 if (next_offset > file.MaxOffset || next_offset < segment.Offset)
                     return null;
                 segment.Size = (uint)(next_offset - segment.Offset);
                 segments[i] = segment;
                 index_offset += 0xA;
             }
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             var riff_buffer = new byte[8];
-            for (int i = 0; i < count; )
+            for (int i = 0; i < count;)
             {
                 A5rEntry entry;
                 var segment = segments[i];
-                var name = string.Format ("{0}#{1:D5}", base_name, i);
+                var name = string.Format("{0}#{1:D5}", base_name, i);
                 if (0x3C == segment.Type)
                 {
-                    Stream input = file.CreateStream (segment.Offset, segment.Size);
+                    Stream input = file.CreateStream(segment.Offset, segment.Size);
                     if (3 == segment.Compression)
-                        input = new ZLibStream (input, CompressionMode.Decompress);
+                        input = new ZLibStream(input, CompressionMode.Decompress);
                     using (input)
                     {
-                        if (8 == input.Read (riff_buffer, 0, 8) && riff_buffer.AsciiEqual ("RIFF"))
+                        if (8 == input.Read(riff_buffer, 0, 8) && riff_buffer.AsciiEqual("RIFF"))
                         {
-                            uint riff_size = riff_buffer.ToUInt32 (4);
-                            entry = new A5rEntry {
+                            uint riff_size = riff_buffer.ToUInt32(4);
+                            entry = new A5rEntry
+                            {
                                 Name = name + ".wav",
                                 Type = "audio",
                                 Offset = segment.Offset,
@@ -118,12 +120,12 @@ namespace GameRes.Formats.Pinky
                                 UnpackedSize = 0,
                             };
                             var segment_list = new List<A5Segment>();
-                            for (;;)
+                            for (; ; )
                             {
                                 entry.Size += segment.Size;
                                 entry.UnpackedSize += segment.UnpackedSize;
                                 entry.IsPacked |= segment.Compression == 3;
-                                segment_list.Add (segment);
+                                segment_list.Add(segment);
                                 ++i;
                                 if (i >= count || entry.UnpackedSize >= riff_size)
                                     break;
@@ -132,14 +134,15 @@ namespace GameRes.Formats.Pinky
                                     break;
                             }
                             entry.Segments = segment_list;
-                            dir.Add (entry);
+                            dir.Add(entry);
                             continue;
                         }
                     }
                 }
                 if (0x3E == segment.Type)
                     name += ".bmp";
-                entry = new A5rEntry {
+                entry = new A5rEntry
+                {
                     Name = name,
                     Type = 0x3E == segment.Type ? "image" : "",
                     Offset = segment.Offset,
@@ -148,25 +151,25 @@ namespace GameRes.Formats.Pinky
                     IsPacked = segment.Compression == 3,
                     Segments = new A5Segment[1] { segment },
                 };
-                dir.Add (entry);
+                dir.Add(entry);
                 ++i;
             }
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var a5ent = (A5rEntry)entry;
             Stream input;
             if (a5ent.Segments.Count() == 1)
             {
-                input = arc.File.CreateStream (entry.Offset, entry.Size);
+                input = arc.File.CreateStream(entry.Offset, entry.Size);
                 if (a5ent.IsPacked)
-                    input = new ZLibStream (input, CompressionMode.Decompress);
+                    input = new ZLibStream(input, CompressionMode.Decompress);
             }
             else
             {
-                input = new A5rStream (arc.File, a5ent);
+                input = new A5rStream(arc.File, a5ent);
             }
             return input;
         }
@@ -174,24 +177,24 @@ namespace GameRes.Formats.Pinky
 
     internal class A5rStream : Stream
     {
-        ArcView     m_file;
-        A5rEntry    m_entry;
+        ArcView m_file;
+        A5rEntry m_entry;
         IEnumerator<A5Segment> m_segment;
-        Stream      m_stream;
-        long        m_offset = 0;
-        bool        m_eof = false;
+        Stream m_stream;
+        long m_offset = 0;
+        bool m_eof = false;
 
-        public override bool CanRead  { get { return !disposed; } }
-        public override bool CanSeek  { get { return false; } }
+        public override bool CanRead { get { return !disposed; } }
+        public override bool CanSeek { get { return false; } }
         public override bool CanWrite { get { return false; } }
-        public override long Length   { get { return m_entry.UnpackedSize; } }
+        public override long Length { get { return m_entry.UnpackedSize; } }
         public override long Position
         {
             get { return m_offset; }
-            set { throw new NotSupportedException ("A5rStream.Position not supported."); }
+            set { throw new NotSupportedException("A5rStream.Position not supported."); }
         }
 
-        public A5rStream (ArcView file, A5rEntry entry)
+        public A5rStream(ArcView file, A5rEntry entry)
         {
             m_file = file;
             m_entry = entry;
@@ -199,7 +202,7 @@ namespace GameRes.Formats.Pinky
             NextSegment();
         }
 
-        private void NextSegment ()
+        private void NextSegment()
         {
             if (!m_segment.MoveNext())
             {
@@ -209,17 +212,17 @@ namespace GameRes.Formats.Pinky
             if (null != m_stream)
                 m_stream.Dispose();
             var segment = m_segment.Current;
-            m_stream = m_file.CreateStream (segment.Offset, segment.Size);
+            m_stream = m_file.CreateStream(segment.Offset, segment.Size);
             if (segment.IsCompressed)
-                m_stream = new ZLibStream (m_stream, CompressionMode.Decompress);
+                m_stream = new ZLibStream(m_stream, CompressionMode.Decompress);
         }
 
-        public override int Read (byte[] buffer, int offset, int count)
+        public override int Read(byte[] buffer, int offset, int count)
         {
             int total = 0;
             while (!m_eof && count > 0)
             {
-                int read = m_stream.Read (buffer, offset, count);
+                int read = m_stream.Read(buffer, offset, count);
                 if (0 != read)
                 {
                     m_offset += read;
@@ -233,7 +236,7 @@ namespace GameRes.Formats.Pinky
             return total;
         }
 
-        public override int ReadByte ()
+        public override int ReadByte()
         {
             int b = -1;
             while (!m_eof)
@@ -246,33 +249,33 @@ namespace GameRes.Formats.Pinky
             return b;
         }
 
-        public override void Flush ()
+        public override void Flush()
         {
         }
 
-        public override long Seek (long offset, SeekOrigin origin)
+        public override long Seek(long offset, SeekOrigin origin)
         {
-            throw new NotSupportedException ("A5rStream.Seek method is not supported");
+            throw new NotSupportedException("A5rStream.Seek method is not supported");
         }
 
-        public override void SetLength (long length)
+        public override void SetLength(long length)
         {
-            throw new NotSupportedException ("A5rStream.SetLength method is not supported");
+            throw new NotSupportedException("A5rStream.SetLength method is not supported");
         }
 
-        public override void Write (byte[] buffer, int offset, int count)
+        public override void Write(byte[] buffer, int offset, int count)
         {
-            throw new NotSupportedException ("A5rStream.Write method is not supported");
+            throw new NotSupportedException("A5rStream.Write method is not supported");
         }
 
-        public override void WriteByte (byte value)
+        public override void WriteByte(byte value)
         {
             throw new NotSupportedException("A5rStream.WriteByte method is not supported");
         }
 
         #region IDisposable Members
         bool disposed = false;
-        protected override void Dispose (bool disposing)
+        protected override void Dispose(bool disposing)
         {
             if (!disposed)
             {
@@ -283,7 +286,7 @@ namespace GameRes.Formats.Pinky
                     m_segment.Dispose();
                 }
                 disposed = true;
-                base.Dispose (disposing);
+                base.Dispose(disposing);
             }
         }
         #endregion

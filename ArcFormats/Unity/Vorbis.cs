@@ -67,12 +67,12 @@ namespace GameRes.Formats.Vorbis
     // https://xiph.org/vorbis/doc/libvorbis/vorbis_info.html
     class VorbisInfo
     {
-        public int  Version;
-        public int  Channels;
-        public int  Rate;
-        public int  BitrateUpper;
-        public int  BitrateNominal;
-        public int  BitrateLower;
+        public int Version;
+        public int Channels;
+        public int Rate;
+        public int BitrateUpper;
+        public int BitrateNominal;
+        public int BitrateLower;
 
         public CodecSetupInfo CodecSetup = new CodecSetupInfo();
 
@@ -85,7 +85,7 @@ namespace GameRes.Formats.Vorbis
 
         Func<OggBitStream, VorbisInfoFloor>[] FloorMethods;
 
-        public VorbisInfo ()
+        public VorbisInfo()
         {
             FloorMethods = new Func<OggBitStream, VorbisInfoFloor>[] {
                 UnpackFloor0,
@@ -94,43 +94,43 @@ namespace GameRes.Formats.Vorbis
         }
 
         // https://xiph.org/vorbis/doc/libvorbis/vorbis_synthesis_headerin.html
-        public void SynthesisHeaderin (VorbisComment vc, OggPacket op)
+        public void SynthesisHeaderin(VorbisComment vc, OggPacket op)
         {
-            using (var input = new OggBitStream (op))
+            using (var input = new OggBitStream(op))
             {
                 int packtype = input.ReadUInt8();
-                var buf = input.ReadBytes (6);
-                if (!buf.AsciiEqual ("vorbis"))
-                    throw new InvalidDataException ("Not an Ogg/Vorbis stream.");
+                var buf = input.ReadBytes(6);
+                if (!buf.AsciiEqual("vorbis"))
+                    throw new InvalidDataException("Not an Ogg/Vorbis stream.");
                 switch (packtype)
                 {
-                case 1:
-                    if (!op.BoS)
-                        throw InvalidHeader();
-                    if (Rate != 0)
-                        throw InvalidHeader();
-                    UnpackInfo (input);
-                    break;
+                    case 1:
+                        if (!op.BoS)
+                            throw InvalidHeader();
+                        if (Rate != 0)
+                            throw InvalidHeader();
+                        UnpackInfo(input);
+                        break;
 
-                case 3:
-                    if (0 == Rate)
-                        throw InvalidHeader();
-                    vc.UnpackComment (input);
-                    break;
+                    case 3:
+                        if (0 == Rate)
+                            throw InvalidHeader();
+                        vc.UnpackComment(input);
+                        break;
 
-                case 5:
-                    if (0 == Rate || null == vc.Vendor)
-                        throw InvalidHeader();
-                    UnpackBooks (input);
-                    break;
+                    case 5:
+                        if (0 == Rate || null == vc.Vendor)
+                            throw InvalidHeader();
+                        UnpackBooks(input);
+                        break;
 
-                default:
-                    throw InvalidHeader();
+                    default:
+                        throw InvalidHeader();
                 }
             }
         }
 
-        internal static int iLog (uint num)
+        internal static int iLog(uint num)
         {
             int bits = 0;
             while (num != 0)
@@ -141,7 +141,7 @@ namespace GameRes.Formats.Vorbis
             return bits;
         }
 
-        internal static int CountBits (uint num)
+        internal static int CountBits(uint num)
         {
             int bits = 0;
             if (num != 0)
@@ -157,7 +157,7 @@ namespace GameRes.Formats.Vorbis
         /// <summary>
         /// Count number of bits set in <paramref name="num"/>.
         /// </summary>
-        internal static int CountSetBits (uint num)
+        internal static int CountSetBits(uint num)
         {
             int bits = 0;
             while (num != 0)
@@ -169,13 +169,13 @@ namespace GameRes.Formats.Vorbis
         }
 
         // https://www.xiph.org/vorbis/doc/libvorbis/vorbis_packet_blocksize.html
-        public int PacketBlockSize (OggPacket op)
+        public int PacketBlockSize(OggPacket op)
         {
-            using (var input = new OggBitStream (op))
+            using (var input = new OggBitStream(op))
             {
                 // Check the packet type
-                if (input.ReadBits (1) != 0)
-                    throw new InvalidDataException ("Not an audio data packet.");
+                if (input.ReadBits(1) != 0)
+                    throw new InvalidDataException("Not an audio data packet.");
 
                 int modebits = 0;
                 for (int v = CodecSetup.Modes; v > 1; v >>= 1)
@@ -184,20 +184,20 @@ namespace GameRes.Formats.Vorbis
                 }
 
                 // read our mode and pre/post windowsize
-                int mode = input.ReadBits (modebits);
+                int mode = input.ReadBits(modebits);
 
                 if (-1 == mode)
-                    throw new InvalidDataException ("Invalid Ogg/Vorbis packet.");
+                    throw new InvalidDataException("Invalid Ogg/Vorbis packet.");
 
                 return CodecSetup.BlockSizes[CodecSetup.ModeParam[mode].BlockFlag];
             }
         }
 
-        void UnpackInfo (OggBitStream input)
+        void UnpackInfo(OggBitStream input)
         {
             Version = input.ReadInt32();
             if (Version != 0)
-                throw new InvalidDataException ("Invalid Vorbis encoder version.");
+                throw new InvalidDataException("Invalid Vorbis encoder version.");
             Channels = input.ReadUInt8();
             Rate = input.ReadInt32();
 
@@ -205,14 +205,14 @@ namespace GameRes.Formats.Vorbis
             BitrateNominal = input.ReadInt32();
             BitrateLower = input.ReadInt32();
 
-            CodecSetup.BlockSizes[0] = 1 << input.ReadBits (4);
-            CodecSetup.BlockSizes[1] = 1 << input.ReadBits (4);
+            CodecSetup.BlockSizes[0] = 1 << input.ReadBits(4);
+            CodecSetup.BlockSizes[1] = 1 << input.ReadBits(4);
 
-            if (input.ReadBits (1) != 1)
+            if (input.ReadBits(1) != 1)
                 throw InvalidHeader();
         }
 
-        void UnpackBooks (OggBitStream input)
+        void UnpackBooks(OggBitStream input)
         {
             // codebooks
             CodecSetup.Books = input.ReadUInt8() + 1;
@@ -221,81 +221,81 @@ namespace GameRes.Formats.Vorbis
 
             for (int i = 0; i < CodecSetup.Books; ++i)
             {
-                var param = StaticBookUnpack (input);
+                var param = StaticBookUnpack(input);
                 if (null == param)
                     throw InvalidHeader();
                 CodecSetup.BookParam[i] = param;
             }
 
             // time backend settings; hooks are unused
-            int times = input.ReadBits (6) + 1;
+            int times = input.ReadBits(6) + 1;
             if (times <= 0)
                 throw InvalidHeader();
             for (int i = 0; i < times; ++i)
             {
-                int test = input.ReadBits (16);
+                int test = input.ReadBits(16);
                 if (test < 0 || test >= TimeB)
                     throw InvalidHeader();
             }
 
             // floor backend settings
-            CodecSetup.Floors = input.ReadBits (6) + 1;
+            CodecSetup.Floors = input.ReadBits(6) + 1;
             if (CodecSetup.Floors <= 0)
                 throw InvalidHeader();
             for (int i = 0; i < CodecSetup.Floors; i++)
             {
-                int floor_type = input.ReadBits (16);
+                int floor_type = input.ReadBits(16);
                 if (floor_type < 0 || floor_type >= FloorB)
                     throw InvalidHeader();
                 CodecSetup.FloorType[i] = floor_type;
-                var param = FloorMethods[floor_type] (input);
+                var param = FloorMethods[floor_type](input);
                 if (null == param)
                     throw InvalidHeader();
                 CodecSetup.FloorParam[i] = param;
             }
 
             // residue backend settings
-            CodecSetup.Residues = input.ReadBits (6) + 1;
+            CodecSetup.Residues = input.ReadBits(6) + 1;
             if (CodecSetup.Residues <= 0)
                 throw InvalidHeader();
             for (int i = 0; i < CodecSetup.Residues; ++i)
             {
-                int residue_type = input.ReadBits (16);
+                int residue_type = input.ReadBits(16);
                 if (residue_type < 0 || residue_type >= ResB)
                     throw InvalidHeader();
                 CodecSetup.ResidueType[i] = residue_type;
-                var param = UnpackResidue (input);
+                var param = UnpackResidue(input);
                 if (null == param)
                     throw InvalidHeader();
                 CodecSetup.ResidueParam[i] = param;
             }
 
             // map backend settings
-            CodecSetup.Maps = input.ReadBits (6) + 1;
+            CodecSetup.Maps = input.ReadBits(6) + 1;
             if (CodecSetup.Maps <= 0)
                 throw InvalidHeader();
             for (int i = 0; i < CodecSetup.Maps; ++i)
             {
-                int map_type = input.ReadBits (16);
+                int map_type = input.ReadBits(16);
                 if (map_type < 0 || map_type >= MapB)
                     throw InvalidHeader();
                 CodecSetup.MapType[i] = map_type;
-                var param = UnpackMapping (input);
+                var param = UnpackMapping(input);
                 if (null == param)
                     throw InvalidHeader();
                 CodecSetup.MapParam[i] = param;
             }
 
             // mode settings
-            CodecSetup.Modes = input.ReadBits (6) + 1;
+            CodecSetup.Modes = input.ReadBits(6) + 1;
             if (CodecSetup.Modes <= 0)
                 throw InvalidHeader();
             for (int i = 0; i < CodecSetup.Modes; ++i)
             {
-                CodecSetup.ModeParam[i].BlockFlag = input.ReadBits (1);
-                CodecSetup.ModeParam[i].WindowType = input.ReadBits (16);
-                CodecSetup.ModeParam[i].TransformType = input.ReadBits (16);
-                CodecSetup.ModeParam[i].Mapping = input.ReadBits (8);
+                CodecSetup.ModeParam[i].BlockFlag = input.ReadBits(1);
+                CodecSetup.ModeParam[i].WindowType = input.ReadBits(16);
+                CodecSetup.ModeParam[i].TransformType = input.ReadBits(16);
+                CodecSetup.ModeParam[i].Mapping = input.ReadBits(8);
 
                 if (CodecSetup.ModeParam[i].WindowType >= WindowB ||
                     CodecSetup.ModeParam[i].TransformType >= WindowB ||
@@ -303,141 +303,142 @@ namespace GameRes.Formats.Vorbis
                     CodecSetup.ModeParam[i].Mapping < 0)
                     throw InvalidHeader();
             }
-            if (input.ReadBits (1) != 1)
+            if (input.ReadBits(1) != 1)
                 throw InvalidHeader();
         }
 
-        StaticCodebook StaticBookUnpack (OggBitStream input)
+        StaticCodebook StaticBookUnpack(OggBitStream input)
         {
             // make sure alignment is correct
-            if (input.ReadBits (24) != 0x564342)
+            if (input.ReadBits(24) != 0x564342)
                 return null;
 
             var s = new StaticCodebook();
 
             // first the basic parameters
-            s.dim = input.ReadBits (16);
-            s.entries = input.ReadBits (24);
+            s.dim = input.ReadBits(16);
+            s.entries = input.ReadBits(24);
             if (-1 == s.entries)
                 return null;
 
-            if (iLog ((uint)s.dim) + iLog ((uint)s.entries) > 24)
+            if (iLog((uint)s.dim) + iLog((uint)s.entries) > 24)
                 return null;
 
             // codeword ordering.... length ordered or unordered?
-            switch (input.ReadBits (1))
+            switch (input.ReadBits(1))
             {
-            case 0:
-                // allocated but unused entries?
-                int unused = input.ReadBits (1);
-                // unordered
-                s.lengthlist = new byte[s.entries];
+                case 0:
+                    // allocated but unused entries?
+                    int unused = input.ReadBits(1);
+                    // unordered
+                    s.lengthlist = new byte[s.entries];
 
-                // allocated but unused entries?
-                if (unused > 0)
-                {
-                    // yes, unused entries
-                    for(int i = 0; i < s.entries; ++i)
+                    // allocated but unused entries?
+                    if (unused > 0)
                     {
-                        if (input.ReadBits (1) > 0)
+                        // yes, unused entries
+                        for (int i = 0; i < s.entries; ++i)
                         {
-                            int num = input.ReadBits (5);
+                            if (input.ReadBits(1) > 0)
+                            {
+                                int num = input.ReadBits(5);
+                                if (-1 == num)
+                                    return null;
+                                s.lengthlist[i] = (byte)(num + 1);
+                            }
+                            else
+                                s.lengthlist[i] = 0;
+                        }
+                    }
+                    else
+                    {
+                        // all entries used; no tagging
+                        for (int i = 0; i < s.entries; ++i)
+                        {
+                            int num = input.ReadBits(5);
                             if (-1 == num)
                                 return null;
-                            s.lengthlist[i] = (byte)(num+1);
+                            s.lengthlist[i] = (byte)(num + 1);
                         }
-                        else
-                            s.lengthlist[i] = 0;
                     }
-                }
-                else
-                {
-                    // all entries used; no tagging
-                    for (int i = 0; i < s.entries; ++i)
-                    {
-                        int num = input.ReadBits (5);
-                        if (-1 == num)
-                            return null;
-                        s.lengthlist[i] = (byte)(num+1);
-                    }
-                }
-                break;
+                    break;
 
-            case 1: // ordered
-                int length = input.ReadBits (5) + 1;
-                if (0 == length)
-                    return null;
-                s.lengthlist = new byte[s.entries];
-
-                for (int i = 0; i < s.entries; )
-                {
-                    int num = input.ReadBits (iLog ((uint)(s.entries-i)));
-                    if (-1 == num || length > 32 || num > s.entries-i
-                        || (num > 0 && ((num-1) >> (length-1)) > 1))
+                case 1: // ordered
+                    int length = input.ReadBits(5) + 1;
+                    if (0 == length)
                         return null;
-                    for (int j = 0; j < num; ++j, ++i)
-                        s.lengthlist[i] = (byte)length;
-                    length++;
-                }
-                break;
+                    s.lengthlist = new byte[s.entries];
 
-            default:
-                return null;
+                    for (int i = 0; i < s.entries;)
+                    {
+                        int num = input.ReadBits(iLog((uint)(s.entries - i)));
+                        if (-1 == num || length > 32 || num > s.entries - i
+                            || (num > 0 && ((num - 1) >> (length - 1)) > 1))
+                            return null;
+                        for (int j = 0; j < num; ++j, ++i)
+                            s.lengthlist[i] = (byte)length;
+                        length++;
+                    }
+                    break;
+
+                default:
+                    return null;
             }
 
             // Do we have a mapping to unpack?
-            switch((s.maptype = input.ReadBits (4)))
+            switch ((s.maptype = input.ReadBits(4)))
             {
-            case 0: // no mapping
-                break;
+                case 0: // no mapping
+                    break;
 
-            case 1: case 2:
-                // implicitly populated value mapping
-                // explicitly populated value mapping
-
-                s.q_min = input.ReadInt32();
-                s.q_delta = input.ReadInt32();
-                s.q_quant = input.ReadBits (4) + 1;
-                s.q_sequencep = input.ReadBits (1);
-                if (-1 == s.q_sequencep)
-                    return null;
-                int quantvals = 0;
-                switch (s.maptype)
-                {
                 case 1:
-                    quantvals = s.dim == 0 ? 0 : s.Maptype1Quantvals();
-                    break;
                 case 2:
-                    quantvals = s.entries * s.dim;
+                    // implicitly populated value mapping
+                    // explicitly populated value mapping
+
+                    s.q_min = input.ReadInt32();
+                    s.q_delta = input.ReadInt32();
+                    s.q_quant = input.ReadBits(4) + 1;
+                    s.q_sequencep = input.ReadBits(1);
+                    if (-1 == s.q_sequencep)
+                        return null;
+                    int quantvals = 0;
+                    switch (s.maptype)
+                    {
+                        case 1:
+                            quantvals = s.dim == 0 ? 0 : s.Maptype1Quantvals();
+                            break;
+                        case 2:
+                            quantvals = s.entries * s.dim;
+                            break;
+                    }
+
+                    // quantized values
+                    s.quantlist = new int[quantvals];
+                    for (int i = 0; i < quantvals; ++i)
+                        s.quantlist[i] = input.ReadBits(s.q_quant);
+
+                    if (quantvals > 0 && s.quantlist[quantvals - 1] == -1)
+                        return null;
                     break;
-                }
 
-                // quantized values
-                s.quantlist = new int[quantvals];
-                for (int i = 0; i < quantvals; ++i)
-                    s.quantlist[i] = input.ReadBits (s.q_quant);
-
-                if (quantvals > 0 && s.quantlist[quantvals-1] == -1)
+                default: // EOF
                     return null;
-                break;
-
-            default: // EOF
-                return null;
             }
 
             // all set
             return s;
         }
 
-        VorbisInfoFloor UnpackFloor0 (OggBitStream input)
+        VorbisInfoFloor UnpackFloor0(OggBitStream input)
         {
             var info = new VorbisInfoFloor();
-            int order = input.ReadBits (8);
-            int rate = input.ReadBits (16);
-            int barkmap = input.ReadBits (16);
-            int ampbits = input.ReadBits (6);
-            int ampdB = input.ReadBits (8);
-            int numbooks = input.ReadBits (4) + 1;
+            int order = input.ReadBits(8);
+            int rate = input.ReadBits(16);
+            int barkmap = input.ReadBits(16);
+            int ampbits = input.ReadBits(6);
+            int ampdB = input.ReadBits(8);
+            int numbooks = input.ReadBits(4) + 1;
 
             if (order < 1 || rate < 1 || barkmap < 1 || numbooks < 1)
                 return null;
@@ -451,17 +452,17 @@ namespace GameRes.Formats.Vorbis
             return info;
         }
 
-        VorbisInfoFloor UnpackFloor1 (OggBitStream input)
+        VorbisInfoFloor UnpackFloor1(OggBitStream input)
         {
             int max_class = -1;
 
             var info = new VorbisInfoFloor();
             // read partitions
-            int partitions = input.ReadBits (5); // only 0 to 31 legal
+            int partitions = input.ReadBits(5); // only 0 to 31 legal
             var partition_class = new int[partitions];
             for (int j = 0; j < partitions; ++j)
             {
-                partition_class[j] = input.ReadBits (4); // only 0 to 15 legal
+                partition_class[j] = input.ReadBits(4); // only 0 to 15 legal
                 if (partition_class[j] < 0)
                     return null;
                 if (max_class < partition_class[j])
@@ -469,29 +470,29 @@ namespace GameRes.Formats.Vorbis
             }
 
             // read partition classes
-            var class_dim = new int[max_class+1];
-            for (int j = 0; j < max_class+1; ++j)
+            var class_dim = new int[max_class + 1];
+            for (int j = 0; j < max_class + 1; ++j)
             {
-                class_dim[j] = input.ReadBits (3) + 1; // 1 to 8
-                int class_subs = input.ReadBits (2); // 0,1,2,3 bits
+                class_dim[j] = input.ReadBits(3) + 1; // 1 to 8
+                int class_subs = input.ReadBits(2); // 0,1,2,3 bits
                 if (class_subs < 0)
                     return null;
                 if (class_subs > 0)
-                    input.ReadBits (8); // class_book
+                    input.ReadBits(8); // class_book
                 for (int k = 0; k < (1 << class_subs); ++k)
                 {
-                    int class_subbook = input.ReadBits (8) - 1; // info.class_subbook[j][k]
+                    int class_subbook = input.ReadBits(8) - 1; // info.class_subbook[j][k]
                 }
             }
 
             // read the post list
-            int mult = input.ReadBits (2) + 1;     // only 1,2,3,4 legal now
-            int rangebits = input.ReadBits (4);
+            int mult = input.ReadBits(2) + 1;     // only 1,2,3,4 legal now
+            int rangebits = input.ReadBits(4);
             if (rangebits < 0)
                 return null;
 
             int count = 0;
-//            var postlist = new int[VorbisInfoFloor.Posit + 2];
+            //            var postlist = new int[VorbisInfoFloor.Posit + 2];
             for (int j = 0, k = 0; j < partitions; ++j)
             {
                 count += class_dim[partition_class[j]];
@@ -499,14 +500,14 @@ namespace GameRes.Formats.Vorbis
                     return null;
                 for (; k < count; ++k)
                 {
-                    int t = input.ReadBits (rangebits);
+                    int t = input.ReadBits(rangebits);
                     if (t < 0 || t >= (1 << rangebits))
                         return null;
-//                    postlist[k+2] = t;
+                    //                    postlist[k+2] = t;
                 }
             }
-//            postlist[0] = 0;
-//            postlist[1] = 1<<rangebits;
+            //            postlist[0] = 0;
+            //            postlist[1] = 1<<rangebits;
 
             // don't allow repeated values in post list as they'd result in
             // zero-length segments
@@ -519,15 +520,15 @@ namespace GameRes.Formats.Vorbis
             return info;
         }
 
-        object UnpackResidue (OggBitStream input)
+        object UnpackResidue(OggBitStream input)
         {
             var info = new VorbisInfoResidue();
 
-            info.begin = input.ReadBits (24);
-            info.end = input.ReadBits (24);
-            info.grouping = input.ReadBits (24) + 1;
-            info.partitions = input.ReadBits (6) + 1;
-            info.groupbook = input.ReadBits (8);
+            info.begin = input.ReadBits(24);
+            info.end = input.ReadBits(24);
+            info.grouping = input.ReadBits(24) + 1;
+            info.partitions = input.ReadBits(6) + 1;
+            info.groupbook = input.ReadBits(8);
 
             // check for premature EOP
             if (info.groupbook < 0)
@@ -536,30 +537,30 @@ namespace GameRes.Formats.Vorbis
             int acc = 0;
             for (int j = 0; j < info.partitions; ++j)
             {
-                int cascade = input.ReadBits (3);
-                int cflag = input.ReadBits (1);
+                int cascade = input.ReadBits(3);
+                int cflag = input.ReadBits(1);
                 if (cflag < 0)
                     return null;
                 if (cflag > 0)
                 {
-                    int c = input.ReadBits (5);
+                    int c = input.ReadBits(5);
                     if (c < 0)
                         return null;
                     cascade |= c << 3;
                 }
                 // info.secondstages[j] = cascade;
 
-                acc += CountSetBits ((uint)cascade);
+                acc += CountSetBits((uint)cascade);
             }
             for (int j = 0; j < acc; ++j)
             {
-                int book = input.ReadBits (8);
+                int book = input.ReadBits(8);
                 if (book < 0)
                     return null;
                 if (book >= CodecSetup.Books)
                     return null;
-//                if (CodecSetup.book_param[book].maptype == 0) return null;
-//                info.booklist[j] = book;
+                //                if (CodecSetup.book_param[book].maptype == 0) return null;
+                //                info.booklist[j] = book;
             }
             if (info.groupbook >= CodecSetup.Books)
                 return null;
@@ -582,49 +583,49 @@ namespace GameRes.Formats.Vorbis
             return info;
         }
 
-        VorbisInfoMapping UnpackMapping (OggBitStream input)
+        VorbisInfoMapping UnpackMapping(OggBitStream input)
         {
             var info = new VorbisInfoMapping();
 
-            int b = input.ReadBits (1);
+            int b = input.ReadBits(1);
             if (b < 0)
                 return null;
             if (b > 0)
             {
-                info.submaps = input.ReadBits (4) + 1;
+                info.submaps = input.ReadBits(4) + 1;
                 if (info.submaps <= 0)
                     return null;
             }
             else
                 info.submaps = 1;
 
-            b = input.ReadBits (1);
+            b = input.ReadBits(1);
             if (b < 0)
                 return null;
             if (b > 0)
             {
-                info.coupling_steps = input.ReadBits (8) + 1;
+                info.coupling_steps = input.ReadBits(8) + 1;
                 if (info.coupling_steps <= 0)
                     return null;
                 for (int i = 0; i < info.coupling_steps; ++i)
                 {
-                    int bits = CountBits ((uint)Channels);
-                    int testM = input.ReadBits (bits);
-                    int testA = input.ReadBits (bits);
+                    int bits = CountBits((uint)Channels);
+                    int testM = input.ReadBits(bits);
+                    int testA = input.ReadBits(bits);
                     if (testM < 0 || testA < 0 || testM == testA
                         || testM >= Channels || testA >= Channels)
                         return null;
                 }
             }
 
-            if (input.ReadBits (2) != 0)
+            if (input.ReadBits(2) != 0)
                 return null;
 
             if (info.submaps > 1)
             {
                 for (int i = 0; i < Channels; ++i)
                 {
-                    int chmuxlist = input.ReadBits (4);
+                    int chmuxlist = input.ReadBits(4);
                     if (chmuxlist >= info.submaps || chmuxlist < 0)
                         return null;
                 }
@@ -642,9 +643,9 @@ namespace GameRes.Formats.Vorbis
             return info;
         }
 
-        internal static InvalidDataException InvalidHeader ()
+        internal static InvalidDataException InvalidHeader()
         {
-            return new InvalidDataException ("Invalid header in Ogg/Vorbis stream.");
+            return new InvalidDataException("Invalid header in Ogg/Vorbis stream.");
         }
     }
 
@@ -653,74 +654,74 @@ namespace GameRes.Formats.Vorbis
     class VorbisComment
     {
         public List<byte[]> Comments;
-        public byte[]       Vendor;
+        public byte[] Vendor;
 
-        internal static readonly byte[] EncodeVendorString = Encoding.UTF8.GetBytes ("mørkt GARbro 20170407");
+        internal static readonly byte[] EncodeVendorString = Encoding.UTF8.GetBytes("mørkt GARbro 20170407");
 
-        public VorbisComment ()
+        public VorbisComment()
         {
             Comments = new List<byte[]>();
         }
 
         // https://xiph.org/vorbis/doc/libvorbis/vorbis_commentheader_out.html
-        public void HeaderOut (OggPacket packet)
+        public void HeaderOut(OggPacket packet)
         {
             using (var buf = new MemoryStream())
-            using (var output = new BinaryWriter (buf))
+            using (var output = new BinaryWriter(buf))
             {
                 // preamble
-                output.Write ((byte)3);
-                output.Write ("vorbis".ToCharArray());
+                output.Write((byte)3);
+                output.Write("vorbis".ToCharArray());
 
                 // vendor
-                output.Write (EncodeVendorString.Length);
-                output.Write (EncodeVendorString);
+                output.Write(EncodeVendorString.Length);
+                output.Write(EncodeVendorString);
 
                 // comments
-                output.Write (Comments.Count);
+                output.Write(Comments.Count);
                 foreach (var comment in Comments)
                 {
                     if (comment != null && comment.Length > 0)
                     {
-                        output.Write (comment.Length);
-                        output.Write (comment);
+                        output.Write(comment.Length);
+                        output.Write(comment);
                     }
                     else
                     {
-                        output.Write (0);
+                        output.Write(0);
                     }
                 }
-                output.Write ((byte)1);
+                output.Write((byte)1);
                 output.Flush();
 
-                packet.SetPacket (1, buf.ToArray());
+                packet.SetPacket(1, buf.ToArray());
                 packet.BoS = false;
                 packet.EoS = false;
                 packet.GranulePos = 0;
             }
         }
 
-        internal void UnpackComment (OggBitStream input)
+        internal void UnpackComment(OggBitStream input)
         {
             int vendor_len = input.ReadInt32();
             if (vendor_len < 0)
                 throw VorbisInfo.InvalidHeader();
-            var vendor = input.ReadBytes (vendor_len);
+            var vendor = input.ReadBytes(vendor_len);
 
             int count = input.ReadInt32();
             if (count < 0)
                 throw VorbisInfo.InvalidHeader();
 
-            var comments = new List<byte[]> (count);
+            var comments = new List<byte[]>(count);
             for (int i = 0; i < count; ++i)
             {
                 int len = input.ReadInt32();
                 if (len < 0)
                     throw VorbisInfo.InvalidHeader();
-                var bytes = input.ReadBytes (len);
-                comments.Add (bytes);
+                var bytes = input.ReadBytes(len);
+                comments.Add(bytes);
             }
-            if (input.ReadBits (1) != 1)
+            if (input.ReadBits(1) != 1)
                 throw VorbisInfo.InvalidHeader();
 
             this.Vendor = vendor;
@@ -731,71 +732,71 @@ namespace GameRes.Formats.Vorbis
     // codec_setup_info
     class CodecSetupInfo
     {
-        public int[]    BlockSizes = new int[2];
+        public int[] BlockSizes = new int[2];
 
-        public int      Modes;
-        public int      Maps;
-        public int      Floors;
-        public int      Residues;
-        public int      Books;
+        public int Modes;
+        public int Maps;
+        public int Floors;
+        public int Residues;
+        public int Books;
 
-        internal VorbisInfoMode[]   ModeParam = new VorbisInfoMode[64];
-        internal int[]              ResidueType = new int[64];
-        internal object[]           ResidueParam = new object[64];
-        internal int[]              FloorType = new int[64];
-        internal object[]           FloorParam = new object[64];
-        internal int[]              MapType = new int[64];
+        internal VorbisInfoMode[] ModeParam = new VorbisInfoMode[64];
+        internal int[] ResidueType = new int[64];
+        internal object[] ResidueParam = new object[64];
+        internal int[] FloorType = new int[64];
+        internal object[] FloorParam = new object[64];
+        internal int[] MapType = new int[64];
         internal VorbisInfoMapping[] MapParam = new VorbisInfoMapping[64];
-        internal StaticCodebook[]   BookParam = new StaticCodebook[256];
+        internal StaticCodebook[] BookParam = new StaticCodebook[256];
     }
 
     // struct vorbis_info_mode
     struct VorbisInfoMode
     {
-        public int  BlockFlag;
-        public int  WindowType;
-        public int  TransformType;
-        public int  Mapping;
+        public int BlockFlag;
+        public int WindowType;
+        public int TransformType;
+        public int Mapping;
     }
 
     // struct static_codebook
     class StaticCodebook
     {
-        public int      dim;        // codebook dimensions (elements per vector)
-        public int      entries;    // codebook entries
-        public byte[]   lengthlist; // codeword lengths in bits
+        public int dim;        // codebook dimensions (elements per vector)
+        public int entries;    // codebook entries
+        public byte[] lengthlist; // codeword lengths in bits
 
         // mapping ***************************************************************
-        public int      maptype;    // 0=none
-                                    // 1=implicitly populated values from map column
-                                    // 2=listed arbitrary values
+        public int maptype;    // 0=none
+                               // 1=implicitly populated values from map column
+                               // 2=listed arbitrary values
 
         // The below does a linear, single monotonic sequence mapping.
-        public int      q_min;      // packed 32 bit float; quant value 0 maps to minval
-        public int      q_delta;    // packed 32 bit float; val 1 - val 0 == delta
-        public int      q_quant;    // bits: 0 < quant <= 16
-        public int      q_sequencep; // bitflag
+        public int q_min;      // packed 32 bit float; quant value 0 maps to minval
+        public int q_delta;    // packed 32 bit float; val 1 - val 0 == delta
+        public int q_quant;    // bits: 0 < quant <= 16
+        public int q_sequencep; // bitflag
 
-        public int[]    quantlist;  // map == 1: (int)(entries^(1/dim)) element column map
-                                    // map == 2: list of dim*entries quantized entry vals
+        public int[] quantlist;  // map == 1: (int)(entries^(1/dim)) element column map
+                                 // map == 2: list of dim*entries quantized entry vals
 
-        internal int Maptype1Quantvals ()
+        internal int Maptype1Quantvals()
         {
-            int vals = (int)Math.Floor (Math.Pow ((float)entries, 1.0f / dim));
+            int vals = (int)Math.Floor(Math.Pow((float)entries, 1.0f / dim));
 
             // the above *should* be reliable, but we'll not assume that FP is
             // ever reliable when bitstream sync is at stake; verify via integer
             // means that vals really is the greatest value of dim for which
             // vals^b->bim <= b->entries.
             // treat the above as an initial guess
-            for (;;)
+            for (; ; )
             {
                 int acc = 1;
                 int acc1 = 1;
                 for (int i = 0; i < dim; ++i)
                 {
                     acc *= vals;
-                    acc1 *= vals+1;
+                    acc1 *= vals + 1;
                 }
                 if (acc <= entries && acc1 > entries)
                     break;
@@ -810,8 +811,8 @@ namespace GameRes.Formats.Vorbis
 
     class VorbisInfoMapping
     {
-        public int  submaps;
-        public int  coupling_steps;
+        public int submaps;
+        public int coupling_steps;
     }
 
     class VorbisInfoFloor
@@ -821,10 +822,10 @@ namespace GameRes.Formats.Vorbis
 
     class VorbisInfoResidue
     {
-        public int  begin;
-        public int  end;
-        public int  grouping;
-        public int  partitions;
-        public int  groupbook;
+        public int begin;
+        public int end;
+        public int grouping;
+        public int partitions;
+        public int groupbook;
     }
 }

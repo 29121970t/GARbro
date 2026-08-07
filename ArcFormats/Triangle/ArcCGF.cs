@@ -40,26 +40,26 @@ namespace GameRes.Formats.Triangle
     [Export(typeof(ArchiveFormat))]
     public class CgfOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "CGF"; } }
+        public override string Tag { get { return "CGF"; } }
         public override string Description { get { return "route2 engine CG archive"; } }
-        public override uint     Signature { get { return 0; } }
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0; } }
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            int count = file.View.ReadInt32 (0);
-            if (!IsSaneCount (count) || file.MaxOffset >= ~0xC0000000)
+            int count = file.View.ReadInt32(0);
+            if (!IsSaneCount(count) || file.MaxOffset >= ~0xC0000000)
                 return null;
-            uint offset1 = file.View.ReadUInt32 (0x14);
-            uint offset2 = file.View.ReadUInt32 (0x20);
+            uint offset1 = file.View.ReadUInt32(0x14);
+            uint offset2 = file.View.ReadUInt32(0x20);
             uint entry_size, next_offset;
-            if (4+(uint)count*0x14 == (offset1 & ~0xC0000000))
+            if (4 + (uint)count * 0x14 == (offset1 & ~0xC0000000))
             {
                 entry_size = 0x14;
                 next_offset = offset1;
             }
-            else if (4+(uint)count*0x20 == (offset2 & ~0xC0000000))
+            else if (4 + (uint)count * 0x20 == (offset2 & ~0xC0000000))
             {
                 entry_size = 0x20;
                 next_offset = offset2;
@@ -68,24 +68,24 @@ namespace GameRes.Formats.Triangle
                 return null;
 
             uint index_size = entry_size * (uint)count;
-            if (index_size > file.View.Reserve (4, index_size))
+            if (index_size > file.View.Reserve(4, index_size))
                 return null;
 
             uint index_offset = 4;
-            uint size = file.View.ReadUInt32 (index_offset + entry_size - 8);
-            offset2 = file.View.ReadUInt32 (index_offset + (entry_size * 2) - 4);
+            uint size = file.View.ReadUInt32(index_offset + entry_size - 8);
+            offset2 = file.View.ReadUInt32(index_offset + (entry_size * 2) - 4);
             if (size == (offset2 - next_offset)) // route2 archives shouldn't have entry size
                 return null;
 
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
-                var name = file.View.ReadString (index_offset, entry_size-4);
-                if (!IsValidEntryName (name))
+                var name = file.View.ReadString(index_offset, entry_size - 4);
+                if (!IsValidEntryName(name))
                     return null;
                 uint flags = next_offset >> 30;
                 Entry entry;
-                if (1 == flags || name.HasExtension (".iaf"))
+                if (1 == flags || name.HasExtension(".iaf"))
                     entry = new Entry();
                 else
                     entry = new CgfEntry { Flags = flags };
@@ -94,33 +94,33 @@ namespace GameRes.Formats.Triangle
                 entry.Offset = next_offset & ~0xC0000000;
 
                 index_offset += entry_size;
-                next_offset = i+1 == count ? (uint)file.MaxOffset : file.View.ReadUInt32 (index_offset+entry_size-4);
+                next_offset = i + 1 == count ? (uint)file.MaxOffset : file.View.ReadUInt32(index_offset + entry_size - 4);
                 if (next_offset < entry.Offset)
                     return null;
                 entry.Size = (next_offset & ~0xC0000000) - (uint)entry.Offset;
-                if (!entry.CheckPlacement (file.MaxOffset))
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
-                dir.Add (entry);
+                dir.Add(entry);
             }
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var cent = entry as CgfEntry;
             if (null == cent)
-                return base.OpenEntry (arc, entry);
+                return base.OpenEntry(arc, entry);
             var offset = entry.Offset;
             var header = new byte[12];
             if (2 == cent.Flags)
             {
-                arc.File.View.Read (offset, header, 0, 8);
+                arc.File.View.Read(offset, header, 0, 8);
                 offset += 0x10;
             }
-            uint packed_size = arc.File.View.ReadUInt32 (offset);
-            arc.File.View.Read (offset+4, header, 8, 4);
-            var input = arc.File.CreateStream (offset+8, packed_size);
-            return new PrefixStream (header, input);
+            uint packed_size = arc.File.View.ReadUInt32(offset);
+            arc.File.View.Read(offset + 4, header, 8, 4);
+            var input = arc.File.CreateStream(offset + 8, packed_size);
+            return new PrefixStream(header, input);
         }
     }
 }

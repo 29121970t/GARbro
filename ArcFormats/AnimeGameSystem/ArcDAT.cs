@@ -34,83 +34,84 @@ namespace GameRes.Formats.Ags
     [Export(typeof(ArchiveFormat))]
     public class DatOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "DAT/AGS"; } }
+        public override string Tag { get { return "DAT/AGS"; } }
         public override string Description { get { return "AnimeGameSystem resource archive"; } }
-        public override uint     Signature { get { return 0x6B636170; } } // 'pack'
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x6B636170; } } // 'pack'
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public DatOpener ()
+        public DatOpener()
         {
             Extensions = new string[] { "dat" };
         }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            int count = file.View.ReadInt16 (4);
-            if (!IsSaneCount (count))
+            int count = file.View.ReadInt16(4);
+            if (!IsSaneCount(count))
                 return null;
             uint index_offset = 6;
-            uint index_size = (uint)count*0x18;
-            if (index_size > file.View.Reserve (index_offset, index_size))
+            uint index_size = (uint)count * 0x18;
+            if (index_size > file.View.Reserve(index_offset, index_size))
                 return null;
 
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
-                var name = file.View.ReadString (index_offset, 0x10);
-                var entry = FormatCatalog.Instance.Create<Entry> (name);
-                entry.Offset = file.View.ReadUInt32 (index_offset+0x10);
-                entry.Size   = file.View.ReadUInt32 (index_offset+0x14);
-                if (!entry.CheckPlacement (file.MaxOffset))
+                var name = file.View.ReadString(index_offset, 0x10);
+                var entry = FormatCatalog.Instance.Create<Entry>(name);
+                entry.Offset = file.View.ReadUInt32(index_offset + 0x10);
+                entry.Size = file.View.ReadUInt32(index_offset + 0x14);
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
-                dir.Add (entry);
+                dir.Add(entry);
                 index_offset += 0x18;
             }
-            var arc_name = Path.GetFileName (file.Name);
-            if (EncryptedArchives.Contains (arc_name))
+            var arc_name = Path.GetFileName(file.Name);
+            if (EncryptedArchives.Contains(arc_name))
             {
-                var options = Query<AgsOptions> (arcStrings.AGSMightBeEncrypted);
+                var options = Query<AgsOptions>(arcStrings.AGSMightBeEncrypted);
                 EncryptionKey key;
-                if (options.Scheme.FileMap.TryGetValue (arc_name, out key))
-                    return new DatArchive (file, this, dir, key);
+                if (options.Scheme.FileMap.TryGetValue(arc_name, out key))
+                    return new DatArchive(file, this, dir, key);
             }
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var earc = arc as DatArchive;
             if (null == earc)
-                return base.OpenEntry (arc, entry);
-            var data = arc.File.View.ReadBytes (entry.Offset, entry.Size);
+                return base.OpenEntry(arc, entry);
+            var data = arc.File.View.ReadBytes(entry.Offset, entry.Size);
             byte key = earc.Key.Initial;
             for (int i = 0; i < data.Length; ++i)
             {
                 data[i] ^= key;
                 key += earc.Key.Increment;
             }
-            return new BinMemoryStream (data, entry.Name);
+            return new BinMemoryStream(data, entry.Name);
         }
 
-        public static readonly EncryptionScheme DefaultScheme = new EncryptionScheme {
+        public static readonly EncryptionScheme DefaultScheme = new EncryptionScheme
+        {
             FileMap = new Dictionary<string, EncryptionKey>()
         };
 
-        public override ResourceOptions GetDefaultOptions ()
+        public override ResourceOptions GetDefaultOptions()
         {
-            return new AgsOptions { Scheme = GetScheme (Properties.Settings.Default.AGSTitle) };
+            return new AgsOptions { Scheme = GetScheme(Properties.Settings.Default.AGSTitle) };
         }
 
-        public override object GetAccessWidget ()
+        public override object GetAccessWidget()
         {
-            return new GUI.WidgetAGS (KnownSchemes.Keys);
+            return new GUI.WidgetAGS(KnownSchemes.Keys);
         }
 
-        public EncryptionScheme GetScheme (string title)
+        public EncryptionScheme GetScheme(string title)
         {
             EncryptionScheme scheme;
-            if (string.IsNullOrEmpty (title) || !KnownSchemes.TryGetValue (title, out scheme))
+            if (string.IsNullOrEmpty(title) || !KnownSchemes.TryGetValue(title, out scheme))
                 scheme = DefaultScheme;
             return scheme;
         }
@@ -122,7 +123,7 @@ namespace GameRes.Formats.Ags
         };
 
         Dictionary<string, EncryptionScheme> KnownSchemes { get { return m_scheme.KnownSchemes; } }
-        HashSet<string>                 EncryptedArchives { get { return m_scheme.EncryptedArchives; } }
+        HashSet<string> EncryptedArchives { get { return m_scheme.EncryptedArchives; } }
 
         public override ResourceScheme Scheme
         {
@@ -135,8 +136,8 @@ namespace GameRes.Formats.Ags
     {
         public EncryptionKey Key;
 
-        public DatArchive (ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, EncryptionKey key)
-            : base (arc, impl, dir)
+        public DatArchive(ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, EncryptionKey key)
+            : base(arc, impl, dir)
         {
             Key = key;
         }
@@ -164,6 +165,6 @@ namespace GameRes.Formats.Ags
     public class AgsScheme : ResourceScheme
     {
         public Dictionary<string, EncryptionScheme> KnownSchemes;
-        public HashSet<string>                      EncryptedArchives;
+        public HashSet<string> EncryptedArchives;
     }
 }

@@ -33,66 +33,66 @@ namespace GameRes.Formats.Pvns
 {
     internal class PsbMetaData : ImageMetaData
     {
-        public int  Method;
-        public int  TableOffset;
-        public int  DataOffset;
+        public int Method;
+        public int TableOffset;
+        public int DataOffset;
     }
 
     [Export(typeof(ImageFormat))]
     public class PsbFormat : ImageFormat
     {
-        public override string         Tag { get { return "PSB"; } }
+        public override string Tag { get { return "PSB"; } }
         public override string Description { get { return "PVNS engine image format"; } }
-        public override uint     Signature { get { return 0x50425350; } } // 'PSBP'
+        public override uint Signature { get { return 0x50425350; } } // 'PSBP'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
-            var header = stream.ReadHeader (0x14);
-            stream.Seek (-0x13, SeekOrigin.End);
-            var tail = stream.ReadBytes (0x13);
+            var header = stream.ReadHeader(0x14);
+            stream.Seek(-0x13, SeekOrigin.End);
+            var tail = stream.ReadBytes(0x13);
             for (int i = 4; i < 0x14; ++i)
             {
                 header[i] ^= tail[tail.Length - 3 + (i & 1)];
-                header[i] -= tail[i-4];
+                header[i] -= tail[i - 4];
             }
             return new PsbMetaData
             {
-                Width   = header.ToUInt16 (0x0E),
-                Height  = header.ToUInt16 (0x10),
-                BPP     = header.ToUInt16 (0x12),
-                Method  = header.ToUInt16 (0x0C),
-                TableOffset = header.ToInt32 (4),
-                DataOffset  = header.ToInt32 (8),
+                Width = header.ToUInt16(0x0E),
+                Height = header.ToUInt16(0x10),
+                BPP = header.ToUInt16(0x12),
+                Method = header.ToUInt16(0x0C),
+                TableOffset = header.ToInt32(4),
+                DataOffset = header.ToInt32(8),
             };
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
-            var reader = new PsbReader (stream.AsStream, (PsbMetaData)info);
+            var reader = new PsbReader(stream.AsStream, (PsbMetaData)info);
             reader.Unpack();
-            return ImageData.Create (info, reader.Format, null, reader.Data);
+            return ImageData.Create(info, reader.Format, null, reader.Data);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("PsbFormat.Write not implemented");
+            throw new System.NotImplementedException("PsbFormat.Write not implemented");
         }
     }
 
     internal sealed class PsbReader
     {
-        byte[]              m_input;
-        byte[]              m_output;
-        PsbMetaData         m_info;
-        int                 m_width;
-        int                 m_height;
-        int                 m_channels;
-        byte[]              m_lzss_frame;
+        byte[] m_input;
+        byte[] m_output;
+        PsbMetaData m_info;
+        int m_width;
+        int m_height;
+        int m_channels;
+        byte[] m_lzss_frame;
 
-        public byte[]        Data { get { return m_output; } }
+        public byte[] Data { get { return m_output; } }
         public PixelFormat Format { get; private set; }
 
-        public PsbReader (Stream input, PsbMetaData info)
+        public PsbReader(Stream input, PsbMetaData info)
         {
             m_info = info;
             m_width = (int)m_info.Width;
@@ -105,23 +105,23 @@ namespace GameRes.Formats.Pvns
             else
                 throw new InvalidFormatException();
             m_input = new byte[input.Length];
-            input.Read (m_input, 0, m_input.Length);
+            input.ReadExactly(m_input);
             m_output = new byte[info.Width * info.Height * m_channels];
             m_lzss_frame = new byte[0x1000];
         }
 
-        public void Unpack ()
+        public void Unpack()
         {
             switch (m_info.Method)
             {
-            case 2: UnpackV2(); break;
-            case 3: UnpackV3(); break;
-            default:
-                throw new NotImplementedException (string.Format ("PSB images type {0} not implemented", m_info.Method));
+                case 2: UnpackV2(); break;
+                case 3: UnpackV3(); break;
+                default:
+                    throw new NotImplementedException(string.Format("PSB images type {0} not implemented", m_info.Method));
             }
         }
 
-        void UnpackV2 ()
+        void UnpackV2()
         {
             int plane_size = m_width * m_height;
             var plane = new byte[plane_size];
@@ -132,7 +132,7 @@ namespace GameRes.Formats.Pvns
             for (int i = 0; i < m_channels; ++i)
             {
                 bits_table[i] = offset;
-                offset += LittleEndian.ToInt32 (m_input, src);
+                offset += LittleEndian.ToInt32(m_input, src);
                 src += 4;
             }
             src = offset;
@@ -141,12 +141,12 @@ namespace GameRes.Formats.Pvns
             for (int i = 0; i < m_channels; ++i)
             {
                 data_table[i] = offset;
-                offset += LittleEndian.ToInt32 (m_input, src);
+                offset += LittleEndian.ToInt32(m_input, src);
                 src += 4;
             }
             for (int channel = 0; channel < m_channels; ++channel)
             {
-                LzssUnpack (bits_table[channel], data_table[channel], plane, plane.Length);
+                LzssUnpack(bits_table[channel], data_table[channel], plane, plane.Length);
                 int dst = channel;
                 byte pixel = 0;
                 for (int i = 0; i < plane_size; ++i)
@@ -158,7 +158,7 @@ namespace GameRes.Formats.Pvns
             }
         }
 
-        void UnpackV3 ()
+        void UnpackV3()
         {
             int stride = m_width * m_channels;
             var plane = new byte[m_width * m_height];
@@ -175,7 +175,7 @@ namespace GameRes.Formats.Pvns
             for (int i = 0; i < m_channels; ++i)
             {
                 bits_table[i] = offset;
-                offset += LittleEndian.ToInt32 (m_input, src);
+                offset += LittleEndian.ToInt32(m_input, src);
                 src += 4;
             }
             src = m_info.DataOffset;
@@ -184,7 +184,7 @@ namespace GameRes.Formats.Pvns
             for (int i = 0; i < m_channels; ++i)
             {
                 data_offsets[i] = offset;
-                offset += LittleEndian.ToInt32 (m_input, src);
+                offset += LittleEndian.ToInt32(m_input, src);
                 src += 4;
             }
 
@@ -193,11 +193,11 @@ namespace GameRes.Formats.Pvns
                 int dst = channel;
 
                 src = bits_table[channel];
-                int bit_length = LittleEndian.ToInt32 (m_input, src);
-                int bit_src = src + 12 + bit_length + LittleEndian.ToInt32 (m_input, src+4);
-                int plane_size = LittleEndian.ToInt32 (m_input, src+8);
+                int bit_length = LittleEndian.ToInt32(m_input, src);
+                int bit_src = src + 12 + bit_length + LittleEndian.ToInt32(m_input, src + 4);
+                int plane_size = LittleEndian.ToInt32(m_input, src + 8);
 
-                LzssUnpack (bit_src, data_offsets[channel], plane, plane_size);
+                LzssUnpack(bit_src, data_offsets[channel], plane, plane_size);
 
                 int plane_src = 0;
                 bit_src = src + 12;
@@ -206,13 +206,13 @@ namespace GameRes.Formats.Pvns
                 int y_pos = 0;
                 for (int y = 0; y < y_blocks; ++y)
                 {
-                    int block_height = Math.Min (8, m_height - y_pos);
+                    int block_height = Math.Min(8, m_height - y_pos);
                     y_pos += 8;
                     int x_pos = 0;
                     int dst_origin = dst;
                     for (int x = 0; x < x_blocks; ++x)
                     {
-                        int block_width = Math.Min (8, m_width - x_pos);
+                        int block_width = Math.Min(8, m_width - x_pos);
                         x_pos += 8;
                         if (0 == bit_mask)
                         {
@@ -252,7 +252,7 @@ namespace GameRes.Formats.Pvns
             }
         }
 
-        void LzssUnpack (int bit_src, int data_src, byte[] output, int output_size)
+        void LzssUnpack(int bit_src, int data_src, byte[] output, int output_size)
         {
             for (int i = 0; i < m_lzss_frame.Length; ++i)
                 m_lzss_frame[i] = 0;
@@ -268,7 +268,7 @@ namespace GameRes.Formats.Pvns
                 }
                 if (0 != (bit_mask & m_input[bit_src]))
                 {
-                    int v = LittleEndian.ToUInt16 (m_input, data_src);
+                    int v = LittleEndian.ToUInt16(m_input, data_src);
                     data_src += 2;
                     int count = (v & 0xF) + 3;
                     int offset = v >> 4;

@@ -40,36 +40,37 @@ namespace GameRes.Formats.ExHibit
 {
     internal class GyuMetaData : ImageMetaData
     {
-        public int  Flags;
-        public int  CompressionMode;
+        public int Flags;
+        public int CompressionMode;
         public uint Key;
-        public int  DataSize;
-        public int  AlphaSize;
-        public int  PaletteSize;
+        public int DataSize;
+        public int AlphaSize;
+        public int PaletteSize;
     }
 
     [Serializable]
     public class GyuMap : ResourceScheme
     {
-        public Dictionary<string, Dictionary<int, uint>>    NumericKeys;
+        public Dictionary<string, Dictionary<int, uint>> NumericKeys;
         public Dictionary<string, Dictionary<string, uint>> StringKeys;
     }
 
     [Export(typeof(ImageFormat))]
     public class GyuFormat : ImageFormat
     {
-        public override string         Tag { get { return "GYU"; } }
+        public override string Tag { get { return "GYU"; } }
         public override string Description { get { return "ExHIBIT engine image format"; } }
-        public override uint     Signature { get { return 0x1A555947; } } // 'GYU'
+        public override uint Signature { get { return 0x1A555947; } } // 'GYU'
 
-        public GyuFormat ()
+        public GyuFormat()
         {
             Extensions = new[] { "gyu", "lvg" };
         }
 
-        GyuMap DefaultScheme = new GyuMap {
+        GyuMap DefaultScheme = new GyuMap
+        {
             NumericKeys = new Dictionary<string, Dictionary<int, uint>>(),
-            StringKeys  = new Dictionary<string, Dictionary<string, uint>>(),
+            StringKeys = new Dictionary<string, Dictionary<string, uint>>(),
         };
 
         public override ResourceScheme Scheme
@@ -78,26 +79,26 @@ namespace GameRes.Formats.ExHibit
             set { DefaultScheme = (GyuMap)value; }
         }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
             stream.Position = 4;
             return new GyuMetaData
             {
-                Flags   = stream.ReadUInt16(),
+                Flags = stream.ReadUInt16(),
                 CompressionMode = stream.ReadUInt16(),
-                Key     = stream.ReadUInt32(),
-                BPP     = stream.ReadInt32(),
-                Width   = stream.ReadUInt32(),
-                Height  = stream.ReadUInt32(),
-                DataSize    = stream.ReadInt32(),
-                AlphaSize   = stream.ReadInt32(),
+                Key = stream.ReadUInt32(),
+                BPP = stream.ReadInt32(),
+                Width = stream.ReadUInt32(),
+                Height = stream.ReadUInt32(),
+                DataSize = stream.ReadInt32(),
+                AlphaSize = stream.ReadInt32(),
                 PaletteSize = stream.ReadInt32(),
             };
         }
 
         IDictionary CurrentMap = null;
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
             var meta = (GyuMetaData)info;
             if (0 == meta.Key)
@@ -107,72 +108,72 @@ namespace GameRes.Formats.ExHibit
                     CurrentMap = QueryScheme();
                 if (CurrentMap != null)
                 {
-                    var name = Path.GetFileNameWithoutExtension (meta.FileName);
+                    var name = Path.GetFileNameWithoutExtension(meta.FileName);
                     int num;
-                    if (int.TryParse (name, out num) && CurrentMap.Contains (num))
+                    if (int.TryParse(name, out num) && CurrentMap.Contains(num))
                         token = num;
-                    else if (CurrentMap.Contains (name))
+                    else if (CurrentMap.Contains(name))
                         token = name;
                 }
                 if (null == token)
                 {
                     CurrentMap = null;
-                    throw new UnknownEncryptionScheme ("Unknown image encryption key");
+                    throw new UnknownEncryptionScheme("Unknown image encryption key");
                 }
                 meta.Key = (uint)CurrentMap[token];
             }
-            var reader = new GyuReader (stream.AsStream, meta);
+            var reader = new GyuReader(stream.AsStream, meta);
             reader.Unpack();
-            return ImageData.CreateFlipped (meta, reader.Format, reader.Palette, reader.Data, reader.Stride);
+            return ImageData.CreateFlipped(meta, reader.Format, reader.Palette, reader.Data, reader.Stride);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("GyuFormat.Write not implemented");
+            throw new System.NotImplementedException("GyuFormat.Write not implemented");
         }
 
-        private IDictionary QueryScheme ()
+        private IDictionary QueryScheme()
         {
-            var options = Query<GyuOptions> (arcStrings.GYUImageEncrypted);
+            var options = Query<GyuOptions>(arcStrings.GYUImageEncrypted);
             return options.Scheme;
         }
 
-        public override ResourceOptions GetDefaultOptions ()
+        public override ResourceOptions GetDefaultOptions()
         {
-            return new GyuOptions { Scheme = GetScheme (Properties.Settings.Default.GYUTitle) };
+            return new GyuOptions { Scheme = GetScheme(Properties.Settings.Default.GYUTitle) };
         }
 
-        public override object GetAccessWidget ()
+        public override object GetAccessWidget()
         {
-            var titles = DefaultScheme.NumericKeys.Keys.Concat (DefaultScheme.StringKeys.Keys).OrderBy (x => x);
-            return new GUI.WidgetGYU (titles);
+            var titles = DefaultScheme.NumericKeys.Keys.Concat(DefaultScheme.StringKeys.Keys).OrderBy(x => x);
+            return new GUI.WidgetGYU(titles);
         }
 
-        IDictionary GetScheme (string title)
+        IDictionary GetScheme(string title)
         {
             Dictionary<int, uint> num_scheme = null;
-            if (DefaultScheme.NumericKeys.TryGetValue (title, out num_scheme))
+            if (DefaultScheme.NumericKeys.TryGetValue(title, out num_scheme))
                 return num_scheme;
             Dictionary<string, uint> str_scheme = null;
-            DefaultScheme.StringKeys.TryGetValue (title, out str_scheme);
+            DefaultScheme.StringKeys.TryGetValue(title, out str_scheme);
             return str_scheme;
         }
     }
 
     internal sealed class GyuReader
     {
-        GyuMetaData     m_info;
-        Stream          m_input;
-        byte[]          m_output;
-        int             m_width;
-        int             m_height;
+        GyuMetaData m_info;
+        Stream m_input;
+        byte[] m_output;
+        int m_width;
+        int m_height;
 
-        public PixelFormat    Format { get; private set; }
+        public PixelFormat Format { get; private set; }
         public BitmapPalette Palette { get; private set; }
-        public int            Stride { get; private set; }
-        public byte[]           Data { get { return m_output; } }
+        public int Stride { get; private set; }
+        public byte[] Data { get { return m_output; } }
 
-        public GyuReader (Stream input, GyuMetaData info)
+        public GyuReader(Stream input, GyuMetaData info)
         {
             m_info = info;
             m_width = (int)info.Width;
@@ -188,24 +189,24 @@ namespace GameRes.Formats.ExHibit
             else if (8 == m_info.BPP)
                 Format = PixelFormats.Indexed8;
             else
-                throw new NotSupportedException ("Not supported GYU color depth");
+                throw new NotSupportedException("Not supported GYU color depth");
 
             if (8 == m_info.BPP && 0 == m_info.PaletteSize)
                 throw new InvalidFormatException();
         }
 
-        public void Unpack ()
+        public void Unpack()
         {
             m_input.Position = 0x24;
             if (0 != m_info.PaletteSize)
-                Palette = ImageFormat.ReadPalette (m_input, m_info.PaletteSize);
+                Palette = ImageFormat.ReadPalette(m_input, m_info.PaletteSize);
 
             var packed = new byte[m_info.DataSize];
-            if (packed.Length != m_input.Read (packed, 0, packed.Length))
+            if (packed.Length != m_input.Read(packed, 0, packed.Length))
                 throw new EndOfStreamException();
 
             if (m_info.Key != 0xFFFFFFFF)
-                Deobfuscate (packed, m_info.Key);
+                Deobfuscate(packed, m_info.Key);
 
             if (0x0100 == m_info.CompressionMode)
             {
@@ -215,26 +216,26 @@ namespace GameRes.Formats.ExHibit
             {
                 m_output = new byte[Stride * m_height];
                 if (0x0800 == m_info.CompressionMode)
-                    UnpackGyu (packed);
+                    UnpackGyu(packed);
                 else
-                    UnpackLzss (packed);
+                    UnpackLzss(packed);
             }
             if (0 != m_info.AlphaSize)
                 ReadAlpha();
         }
 
-        void UnpackLzss (byte[] packed)
+        void UnpackLzss(byte[] packed)
         {
-            using (var mem = new MemoryStream (packed))
-            using (var lz = new LzssStream (mem))
-                if (m_output.Length != lz.Read (m_output, 0, m_output.Length))
-                    throw new EndOfStreamException ();
+            using (var mem = new MemoryStream(packed))
+            using (var lz = new LzssStream(mem))
+                if (m_output.Length != lz.Read(m_output, 0, m_output.Length))
+                    throw new EndOfStreamException();
         }
 
-        void UnpackGyu (byte[] packed)
+        void UnpackGyu(byte[] packed)
         {
-            using (var mem = new MemoryStream (packed, 4, packed.Length-4))
-            using (var bits = new MsbBitStream (mem))
+            using (var mem = new MemoryStream(packed, 4, packed.Length - 4))
+            using (var bits = new MsbBitStream(mem))
             {
                 int dst = 0;
                 m_output[dst++] = (byte)mem.ReadByte();
@@ -270,24 +271,24 @@ namespace GameRes.Formats.ExHibit
                     }
                     else
                     {
-                        count = 1 + bits.GetBits (2);
+                        count = 1 + bits.GetBits(2);
                         offset = -1 << 8 | mem.ReadByte();
                     }
 
-                    Binary.CopyOverlapped (m_output, dst+offset, dst, ++count);
+                    Binary.CopyOverlapped(m_output, dst + offset, dst, ++count);
                     dst += count;
                 }
             }
         }
 
-        void ReadAlpha ()
+        void ReadAlpha()
         {
             int alpha_stride = (m_width + 3) & ~3;
             Stream alpha_stream;
             if (m_info.AlphaSize == alpha_stride * m_height)
-                alpha_stream = new StreamRegion (m_input, m_input.Position, true);
+                alpha_stream = new StreamRegion(m_input, m_input.Position, true);
             else
-                alpha_stream = new LzssStream (m_input, LzssMode.Decompress, true);
+                alpha_stream = new LzssStream(m_input, LzssMode.Decompress, true);
             using (alpha_stream)
             {
                 int src_stride = Stride;
@@ -299,7 +300,7 @@ namespace GameRes.Formats.ExHibit
                 {
                     int src = y * src_stride;
                     int dst = y * new_stride;
-                    if (alpha_line.Length != alpha_stream.Read (alpha_line, 0, alpha_line.Length))
+                    if (alpha_line.Length != alpha_stream.Read(alpha_line, 0, alpha_line.Length))
                         throw new EndOfStreamException();
                     for (int x = 0; x < m_width; ++x)
                     {
@@ -328,9 +329,9 @@ namespace GameRes.Formats.ExHibit
             }
         }
 
-        static void Deobfuscate (byte[] data, uint key)
+        static void Deobfuscate(byte[] data, uint key)
         {
-            var mt = new MersenneTwister (key);
+            var mt = new MersenneTwister(key);
             for (int n = 0; n < 10; ++n)
             {
                 uint i1 = mt.Rand() % (uint)data.Length;

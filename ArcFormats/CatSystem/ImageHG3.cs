@@ -45,64 +45,64 @@ namespace GameRes.Formats.CatSystem
     [Export(typeof(ImageFormat))]
     public class Hg3Format : ImageFormat
     {
-        public override string         Tag { get { return "HG3"; } }
+        public override string Tag { get { return "HG3"; } }
         public override string Description { get { return "CatSystem engine image format"; } }
-        public override uint     Signature { get { return 0x332d4748; } } // 'HG-3'
+        public override uint Signature { get { return 0x332d4748; } } // 'HG-3'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
-            var header = stream.ReadHeader (0x4c);
-            if (header.ToUInt32 (4) != 0x0c)
+            var header = stream.ReadHeader(0x4c);
+            if (header.ToUInt32(4) != 0x0c)
                 return null;
-            if (!header.AsciiEqual (0x14, "stdinfo\0"))
+            if (!header.AsciiEqual(0x14, "stdinfo\0"))
                 return null;
             return new HgMetaData
             {
-                HeaderSize = header.ToUInt32 (0x1C),
-                Width = header.ToUInt32 (0x24),
-                Height = header.ToUInt32 (0x28),
-                OffsetX = header.ToInt32 (0x30),
-                OffsetY = header.ToInt32 (0x34),
-                BPP = header.ToInt32 (0x2C),
-                CanvasWidth = header.ToUInt32 (0x44),
-                CanvasHeight = header.ToUInt32 (0x48),
+                HeaderSize = header.ToUInt32(0x1C),
+                Width = header.ToUInt32(0x24),
+                Height = header.ToUInt32(0x28),
+                OffsetX = header.ToInt32(0x30),
+                OffsetY = header.ToInt32(0x34),
+                BPP = header.ToInt32(0x2C),
+                CanvasWidth = header.ToUInt32(0x44),
+                CanvasHeight = header.ToUInt32(0x48),
             };
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
             var meta = (HgMetaData)info;
             if (32 != meta.BPP && 24 != meta.BPP)
-                throw new NotSupportedException ("Not supported HG-3 color depth");
+                throw new NotSupportedException("Not supported HG-3 color depth");
 
-            using (var reg = new StreamRegion (stream.AsStream, 0x14, true))
-            using (var input = new BinaryStream (reg, stream.Name))
-            using (var reader = new Hg3Reader (input, meta))
+            using (var reg = new StreamRegion(stream.AsStream, 0x14, true))
+            using (var input = new BinaryStream(reg, stream.Name))
+            using (var reader = new Hg3Reader(input, meta))
             {
                 return reader.Image;
             }
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new NotImplementedException ("Hg3Format.Write not implemented");
+            throw new NotImplementedException("Hg3Format.Write not implemented");
         }
     }
 
     internal class HgReader : IImageDecoder
     {
-        protected   IBinaryStream   m_input;
-        protected   HgMetaData      m_info;
-        protected   int             m_pixel_size;
-        protected   ImageData       m_image;
+        protected IBinaryStream m_input;
+        protected HgMetaData m_info;
+        protected int m_pixel_size;
+        protected ImageData m_image;
 
-        public Stream            Source { get { return m_input.AsStream; } }
+        public Stream Source { get { return m_input.AsStream; } }
         public ImageFormat SourceFormat { get { return null; } }
-        public ImageMetaData       Info { get { return m_info; } }
-        public virtual ImageData  Image { get { throw new NotImplementedException(); } }
-        public int               Stride { get; protected set; }
+        public ImageMetaData Info { get { return m_info; } }
+        public virtual ImageData Image { get { throw new NotImplementedException(); } }
+        public int Stride { get; protected set; }
 
-        protected HgReader (IBinaryStream input, HgMetaData info)
+        protected HgReader(IBinaryStream input, HgMetaData info)
         {
             m_input = input;
             m_info = info;
@@ -110,57 +110,57 @@ namespace GameRes.Formats.CatSystem
             Stride = (int)m_info.Width * m_pixel_size;
         }
 
-        public byte[] UnpackStream (long data_offset, int data_packed, int data_unpacked, int ctl_packed, int ctl_unpacked)
+        public byte[] UnpackStream(long data_offset, int data_packed, int data_unpacked, int ctl_packed, int ctl_unpacked)
         {
             var ctl_offset = data_offset + data_packed;
             var data = new byte[data_unpacked];
-            using (var z = new StreamRegion (Source, data_offset, data_packed, true))
-            using (var data_in = new ZLibStream (z, CompressionMode.Decompress))
-                if (data.Length != data_in.Read (data, 0, data.Length))
+            using (var z = new StreamRegion(Source, data_offset, data_packed, true))
+            using (var data_in = new ZLibStream(z, CompressionMode.Decompress))
+                if (data.Length != data_in.Read(data, 0, data.Length))
                     throw new EndOfStreamException();
 
-            using (var z = new StreamRegion (Source, ctl_offset, ctl_packed, true))
-            using (var ctl_in = new ZLibStream (z, CompressionMode.Decompress))
-            using (var bits = new LsbBitStream (ctl_in))
+            using (var z = new StreamRegion(Source, ctl_offset, ctl_packed, true))
+            using (var ctl_in = new ZLibStream(z, CompressionMode.Decompress))
+            using (var bits = new LsbBitStream(ctl_in))
             {
                 bool copy = bits.GetNextBit() != 0;
-                int output_size = GetBitCount (bits);
+                int output_size = GetBitCount(bits);
                 var output = new byte[output_size];
                 int src = 0;
                 int dst = 0;
                 while (dst < output_size)
                 {
-                    int count = GetBitCount (bits);
+                    int count = GetBitCount(bits);
                     if (copy)
                     {
-                        Buffer.BlockCopy (data, src, output, dst, count);
+                        Buffer.BlockCopy(data, src, output, dst, count);
                         src += count;
                     }
                     dst += count;
                     copy = !copy;
                 }
-                return ApplyDelta (output);
+                return ApplyDelta(output);
             }
         }
 
-        static int GetBitCount (LsbBitStream bits)
+        static int GetBitCount(LsbBitStream bits)
         {
             int n = 0;
             while (0 == bits.GetNextBit())
             {
                 ++n;
                 if (n >= 0x20)
-                    throw new InvalidFormatException ("Overflow at HgReader.GetBitCount");
+                    throw new InvalidFormatException("Overflow at HgReader.GetBitCount");
             }
             int value = 1;
-            while (n --> 0)
+            while (n-- > 0)
             {
                 value = (value << 1) | bits.GetNextBit();
             }
             return value;
         }
 
-        byte[] ApplyDelta (byte[] pixels)
+        byte[] ApplyDelta(byte[] pixels)
         {
             var table = new uint[4, 0x100];
             for (uint i = 0; i < 0x100; ++i)
@@ -176,10 +176,10 @@ namespace GameRes.Formats.CatSystem
                 val <<= 6;
                 val |= i & 0x03;
 
-                table[0,i] = val << 6;
-                table[1,i] = val << 4;
-                table[2,i] = val << 2;
-                table[3,i] = val;
+                table[0, i] = val << 6;
+                table[1, i] = val << 4;
+                table[2, i] = val << 2;
+                table[3, i] = val;
             }
 
             int plane_size = pixels.Length / 4;
@@ -192,13 +192,13 @@ namespace GameRes.Formats.CatSystem
             int dst = 0;
             while (dst < output.Length)
             {
-                uint val = table[0,pixels[plane0++]] | table[1,pixels[plane1++]]
-                         | table[2,pixels[plane2++]] | table[3,pixels[plane3++]];
+                uint val = table[0, pixels[plane0++]] | table[1, pixels[plane1++]]
+                         | table[2, pixels[plane2++]] | table[3, pixels[plane3++]];
 
-                output[dst++] = ConvertValue ((byte)val);
-                output[dst++] = ConvertValue ((byte)(val >> 8));
-                output[dst++] = ConvertValue ((byte)(val >> 16));
-                output[dst++] = ConvertValue ((byte)(val >> 24));
+                output[dst++] = ConvertValue((byte)val);
+                output[dst++] = ConvertValue((byte)(val >> 8));
+                output[dst++] = ConvertValue((byte)(val >> 16));
+                output[dst++] = ConvertValue((byte)(val >> 24));
             }
 
             for (int x = m_pixel_size; x < Stride; x++)
@@ -212,14 +212,14 @@ namespace GameRes.Formats.CatSystem
                 int line = prev + Stride;
                 for (int x = 0; x < Stride; x++)
                 {
-                    output[line+x] += output[prev+x];
+                    output[line + x] += output[prev + x];
                 }
                 prev = line;
             }
             return output;
         }
 
-        static byte ConvertValue (byte val)
+        static byte ConvertValue(byte val)
         {
             bool carry = 0 != (val & 1);
             val >>= 1;
@@ -227,9 +227,9 @@ namespace GameRes.Formats.CatSystem
         }
 
         #region IDisposable Members
-        public void Dispose ()
+        public void Dispose()
         {
-            GC.SuppressFinalize (this);
+            GC.SuppressFinalize(this);
         }
         #endregion
     }
@@ -247,44 +247,44 @@ namespace GameRes.Formats.CatSystem
                     var pixels = Unpack();
                     PixelFormat format = 24 == m_info.BPP ? PixelFormats.Bgr24 : PixelFormats.Bgra32;
                     if (Flipped)
-                        m_image = ImageData.CreateFlipped (Info, format, null, pixels, Stride);
+                        m_image = ImageData.CreateFlipped(Info, format, null, pixels, Stride);
                     else
-                        m_image = ImageData.Create (Info, format, null, pixels, Stride);
+                        m_image = ImageData.Create(Info, format, null, pixels, Stride);
                 }
                 return m_image;
             }
         }
 
-        public Hg3Reader (IBinaryStream input, HgMetaData info) : base (input, info)
+        public Hg3Reader(IBinaryStream input, HgMetaData info) : base(input, info)
         {
         }
 
-        public byte[] Unpack ()
+        public byte[] Unpack()
         {
             Source.Position = m_info.HeaderSize;
-            var img_type = m_input.ReadBytes (8);
-            if (Binary.AsciiEqual (img_type, "img0000\0"))
+            var img_type = m_input.ReadBytes(8);
+            if (Binary.AsciiEqual(img_type, "img0000\0"))
                 return UnpackImg0000();
-            else if (Binary.AsciiEqual (img_type, "img_jpg\0"))
+            else if (Binary.AsciiEqual(img_type, "img_jpg\0"))
                 return UnpackJpeg();
-            else if (Binary.AsciiEqual (img_type, "img_wbp\0"))
+            else if (Binary.AsciiEqual(img_type, "img_wbp\0"))
                 return UnpackWebp();
             else
-                throw new NotSupportedException ("Not supported HG-3 image");
+                throw new NotSupportedException("Not supported HG-3 image");
         }
 
-        byte[] UnpackImg0000 ()
+        byte[] UnpackImg0000()
         {
             Flipped = true;
-            Source.Position = m_info.HeaderSize+0x18;
+            Source.Position = m_info.HeaderSize + 0x18;
             int packed_data_size = m_input.ReadInt32();
             int data_size = m_input.ReadInt32();
             int packed_ctl_size = m_input.ReadInt32();
             int ctl_size = m_input.ReadInt32();
-            return UnpackStream (m_info.HeaderSize+0x28, packed_data_size, data_size, packed_ctl_size, ctl_size);
+            return UnpackStream(m_info.HeaderSize + 0x28, packed_data_size, data_size, packed_ctl_size, ctl_size);
         }
 
-        byte[] UnpackJpeg ()
+        byte[] UnpackJpeg()
         {
             Flipped = false;
             var toc = ReadSections();
@@ -292,26 +292,26 @@ namespace GameRes.Formats.CatSystem
             m_input.Position = toc["img_jpg"] + 12;
             var jpeg_size = m_input.ReadInt32();
             BitmapSource frame;
-            using (var jpeg = new StreamRegion (Source, Source.Position, jpeg_size, true))
+            using (var jpeg = new StreamRegion(Source, Source.Position, jpeg_size, true))
             {
-                var decoder = new JpegBitmapDecoder (jpeg, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+                var decoder = new JpegBitmapDecoder(jpeg, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
                 frame = decoder.Frames[0];
             }
             if (frame.Format.BitsPerPixel < 24)
-                throw new NotSupportedException ("Not supported HG-3 JPEG color depth");
-            int src_pixel_size = frame.Format.BitsPerPixel/8;
+                throw new NotSupportedException("Not supported HG-3 JPEG color depth");
+            int src_pixel_size = frame.Format.BitsPerPixel / 8;
             int stride = m_info.iWidth * src_pixel_size;
             var pixels = new byte[stride * m_info.iHeight];
-            frame.CopyPixels (pixels, stride, 0);
+            frame.CopyPixels(pixels, stride, 0);
 
             int total = m_info.iWidth * m_info.iHeight;
             byte[] alpha = null;
-            if (toc.ContainsKey ("img_al"))
-                alpha = ReadAlpha (toc["img_al"]);
+            if (toc.ContainsKey("img_al"))
+                alpha = ReadAlpha(toc["img_al"]);
             else
-                alpha = Enumerable.Repeat<byte> (0xFF, total).ToArray();
+                alpha = Enumerable.Repeat<byte>(0xFF, total).ToArray();
 
-            bool swap_rgb = toc.ContainsKey ("imgmode"); // XXX ???
+            bool swap_rgb = toc.ContainsKey("imgmode"); // XXX ???
 
             var output = new byte[total * 4];
             int src = 0;
@@ -325,30 +325,30 @@ namespace GameRes.Formats.CatSystem
             }
             for (uint i = 0; i < total; ++i)
             {
-                output[dst++] = pixels[src+src_B];
-                output[dst++] = pixels[src+src_G];
-                output[dst++] = pixels[src+src_R];
+                output[dst++] = pixels[src + src_B];
+                output[dst++] = pixels[src + src_G];
+                output[dst++] = pixels[src + src_R];
                 output[dst++] = alpha[src_A++];
                 src += src_pixel_size;
             }
             return output;
         }
 
-        byte[] ReadAlpha (long start_pos)
+        byte[] ReadAlpha(long start_pos)
         {
             m_input.Position = start_pos + 0x10;
             int packed_size = m_input.ReadInt32();
             int alpha_size = m_input.ReadInt32();
-            using (var alpha_in = new StreamRegion (Source, Source.Position, packed_size, true))
-            using (var alpha = new ZLibStream (alpha_in, CompressionMode.Decompress))
+            using (var alpha_in = new StreamRegion(Source, Source.Position, packed_size, true))
+            using (var alpha = new ZLibStream(alpha_in, CompressionMode.Decompress))
             {
                 var alpha_data = new byte[alpha_size];
-                alpha.Read (alpha_data, 0, alpha_size);
+                alpha.ReadExactly(alpha_data, 0, alpha_size);
                 return alpha_data;
             }
         }
 
-        Dictionary<string, long> ReadSections ()
+        Dictionary<string, long> ReadSections()
         {
             long next_offset = m_info.HeaderSize;
             var toc = new Dictionary<string, long>();
@@ -356,7 +356,7 @@ namespace GameRes.Formats.CatSystem
             do
             {
                 m_input.Position = next_offset;
-                var section_name = m_input.ReadCString (8);
+                var section_name = m_input.ReadCString(8);
                 section_size = m_input.ReadUInt32();
                 toc[section_name] = next_offset;
                 next_offset += section_size;
@@ -365,9 +365,9 @@ namespace GameRes.Formats.CatSystem
             return toc;
         }
 
-        byte[] UnpackWebp ()
+        byte[] UnpackWebp()
         {
-            throw new NotImplementedException ("HG-3 WebP decoder not implemented.");
+            throw new NotImplementedException("HG-3 WebP decoder not implemented.");
         }
     }
 }

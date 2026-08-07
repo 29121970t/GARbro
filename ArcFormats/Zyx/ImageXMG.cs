@@ -34,35 +34,36 @@ namespace GameRes.Formats.Ikura
     [Export(typeof(ImageFormat))]
     public class XmgFormat : ImageFormat
     {
-        public override string         Tag { get { return "XMG"; } }
+        public override string Tag { get { return "XMG"; } }
         public override string Description { get { return "ZyX image format"; } }
-        public override uint     Signature { get { return 0; } }
+        public override uint Signature { get { return 0; } }
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            if (!file.Name.HasExtension (".xmg"))
+            if (!file.Name.HasExtension(".xmg"))
                 return null;
-            var header = file.ReadBytes (12);
-            Decrypt (header);
+            var header = file.ReadBytes(12);
+            Decrypt(header);
             if (header[2] != 0 || header[3] != 0)
                 return null;
-            int width  = LittleEndian.ToInt16 (header, 4);
-            int height = LittleEndian.ToInt16 (header, 6);
+            int width = LittleEndian.ToInt16(header, 4);
+            int height = LittleEndian.ToInt16(header, 6);
             if (width <= 0 || height <= 0)
                 return null;
-            return new ImageMetaData {
-                Width  = (uint)width,
+            return new ImageMetaData
+            {
+                Width = (uint)width,
                 Height = (uint)height,
-                BPP    = 8,
+                BPP = 8,
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
             file.Position = 12;
-            var palette_data = file.ReadBytes (0x300);
-            Decrypt (palette_data, (byte)(12 * 7));
-            var palette = ConvertPalette (palette_data);
+            var palette_data = file.ReadBytes(0x300);
+            Decrypt(palette_data, (byte)(12 * 7));
+            var palette = ConvertPalette(palette_data);
             var pixels = new byte[info.iWidth * info.iHeight];
             int dst = 0;
             for (int y = 0; y < info.iHeight; ++y)
@@ -83,7 +84,7 @@ namespace GameRes.Formats.Ikura
                                 count += 2;
                             else
                                 count = file.ReadUInt8() + 10;
-                            Binary.CopyOverlapped (pixels, dst + offset, dst, count);
+                            Binary.CopyOverlapped(pixels, dst + offset, dst, count);
                         }
                         else
                         {
@@ -91,9 +92,9 @@ namespace GameRes.Formats.Ikura
                             if (0 == count)
                                 count = 64 + file.ReadUInt8();
                             count += 1;
-                            byte p = pixels[dst-1];
+                            byte p = pixels[dst - 1];
                             for (int i = 0; i < count; ++i)
-                                pixels[dst+i] = p;
+                                pixels[dst + i] = p;
                         }
                     }
                     else
@@ -101,34 +102,34 @@ namespace GameRes.Formats.Ikura
                         count = ctl & 0x3F;
                         if (0 == count)
                             count = 64 + file.ReadUInt8();
-                        file.Read (pixels, dst, count);
+                        file.Read(pixels, dst, count);
                     }
                     x += count;
                     dst += count;
                 }
             }
-            return ImageData.Create (info, PixelFormats.Indexed8, palette, pixels);
+            return ImageData.Create(info, PixelFormats.Indexed8, palette, pixels);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("xxxFormat.Write not implemented");
+            throw new System.NotImplementedException("xxxFormat.Write not implemented");
         }
 
-        internal static BitmapPalette ConvertPalette (byte[] palette_data)
+        internal static BitmapPalette ConvertPalette(byte[] palette_data)
         {
             const int colors = 0x100;
             var color_map = new Color[colors];
             int src = 0;
             for (int i = 0; i < colors; ++i)
             {
-                color_map[i] = Color.FromRgb (palette_data[src+1], palette_data[src+2], palette_data[src]);
+                color_map[i] = Color.FromRgb(palette_data[src + 1], palette_data[src + 2], palette_data[src]);
                 src += 3;
             }
-            return new BitmapPalette (color_map);
+            return new BitmapPalette(color_map);
         }
 
-        internal static byte Decrypt (byte[] data, byte key = 0)
+        internal static byte Decrypt(byte[] data, byte key = 0)
         {
             for (int i = 0; i < data.Length; ++i)
             {

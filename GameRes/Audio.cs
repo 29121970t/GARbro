@@ -33,13 +33,13 @@ namespace GameRes
     {
         public ushort FormatTag;
         public ushort Channels;
-        public   uint SamplesPerSecond;
-        public   uint AverageBytesPerSecond;
+        public uint SamplesPerSecond;
+        public uint AverageBytesPerSecond;
         public ushort BlockAlign;
         public ushort BitsPerSample;
         public ushort ExtraSize;
 
-        public void SetBPS ()
+        public void SetBPS()
         {
             AverageBytesPerSecond = (uint)(SamplesPerSecond * Channels * BitsPerSample / 8);
         }
@@ -47,28 +47,28 @@ namespace GameRes
 
     public abstract class SoundInput : Stream
     {
-        public abstract int   SourceBitrate { get; }
+        public abstract int SourceBitrate { get; }
         public abstract string SourceFormat { get; }
 
         public WaveFormat Format { get; protected set; }
-        public Stream     Source { get; protected set; }
-        public long      PcmSize { get; protected set; }
+        public Stream Source { get; protected set; }
+        public long PcmSize { get; protected set; }
 
 
-        protected SoundInput (Stream input)
+        protected SoundInput(Stream input)
         {
             Source = input;
         }
 
-        public virtual void Reset ()
+        public virtual void Reset()
         {
             Position = 0;
         }
 
         #region System.IO.Stream methods
-        public override bool  CanRead { get { return Source.CanRead; } }
+        public override bool CanRead { get { return Source.CanRead; } }
         public override bool CanWrite { get { return false; } }
-        public override long   Length { get { return PcmSize; } }
+        public override long Length { get { return PcmSize; } }
 
         public override void Flush()
         {
@@ -86,25 +86,25 @@ namespace GameRes
             return Position;
         }
 
-        public override void SetLength (long length)
+        public override void SetLength(long length)
         {
-            throw new System.NotSupportedException ("SoundInput.SetLength method is not supported");
+            throw new System.NotSupportedException("SoundInput.SetLength method is not supported");
         }
 
-        public override void Write (byte[] buffer, int offset, int count)
+        public override void Write(byte[] buffer, int offset, int count)
         {
-            throw new System.NotSupportedException ("SoundInput.Write method is not supported");
+            throw new System.NotSupportedException("SoundInput.Write method is not supported");
         }
 
-        public override void WriteByte (byte value)
+        public override void WriteByte(byte value)
         {
-            throw new System.NotSupportedException ("SoundInput.WriteByte method is not supported");
+            throw new System.NotSupportedException("SoundInput.WriteByte method is not supported");
         }
         #endregion
 
         #region IDisposable Members
         bool disposed = false;
-        protected override void Dispose (bool disposing)
+        protected override void Dispose(bool disposing)
         {
             if (!disposed)
             {
@@ -113,7 +113,7 @@ namespace GameRes
                     Source.Dispose();
                 }
                 disposed = true;
-                base.Dispose (disposing);
+                base.Dispose(disposing);
             }
         }
         #endregion
@@ -131,7 +131,7 @@ namespace GameRes
             get { return (int)Format.AverageBytesPerSecond * 8; }
         }
 
-        public RawPcmInput (Stream file, WaveFormat format) : base (file)
+        public RawPcmInput(Stream file, WaveFormat format) : base(file)
         {
             this.Format = format;
             this.PcmSize = file.Length;
@@ -146,17 +146,17 @@ namespace GameRes
 
         public override bool CanSeek { get { return Source.CanSeek; } }
 
-        public override long Seek (long offset, SeekOrigin origin)
+        public override long Seek(long offset, SeekOrigin origin)
         {
-            return Source.Seek (offset, origin);
+            return Source.Seek(offset, origin);
         }
 
-        public override int Read (byte[] buffer, int offset, int count)
+        public override int Read(byte[] buffer, int offset, int count)
         {
-            return Source.Read (buffer, offset, count);
+            return Source.Read(buffer, offset, count);
         }
 
-        public override int ReadByte ()
+        public override int ReadByte()
         {
             return Source.ReadByte();
         }
@@ -167,21 +167,21 @@ namespace GameRes
     {
         public override string Type { get { return "audio"; } }
 
-        public abstract SoundInput TryOpen (IBinaryStream file);
+        public abstract SoundInput TryOpen(IBinaryStream file);
 
-        public virtual void Write (SoundInput source, Stream output)
+        public virtual void Write(SoundInput source, Stream output)
         {
-            throw new System.NotImplementedException ("AudioFormat.Write not implemenented");
+            throw new System.NotImplementedException("AudioFormat.Write not implemenented");
         }
 
-        public static SoundInput Read (IBinaryStream file)
+        public static SoundInput Read(IBinaryStream file)
         {
-            foreach (var impl in FormatCatalog.Instance.FindFormats<AudioFormat> (file.Name, file.Signature))
+            foreach (var impl in FormatCatalog.Instance.FindFormats<AudioFormat>(file.Name, file.Signature))
             {
                 try
                 {
                     file.Position = 0;
-                    SoundInput sound = impl.TryOpen (file);
+                    SoundInput sound = impl.TryOpen(file);
                     if (null != sound)
                         return sound;
                 }
@@ -199,6 +199,6 @@ namespace GameRes
 
         public static AudioFormat Wav => s_WavFormat.Value;
 
-        static readonly ResourceInstance<AudioFormat> s_WavFormat = new ResourceInstance<AudioFormat> ("WAV");
+        static readonly ResourceInstance<AudioFormat> s_WavFormat = new ResourceInstance<AudioFormat>("WAV");
     }
 }

@@ -35,23 +35,23 @@ namespace GameRes.Formats.Adobe
     [Export(typeof(ArchiveFormat))]
     public class DatOpener : ArchiveFormat
     {
-        public override string         Tag { get => "DAT/AIR"; }
+        public override string Tag { get => "DAT/AIR"; }
         public override string Description { get => "Adobe AIR resource archive"; }
-        public override uint     Signature { get => 0; }
-        public override bool  IsHierarchic { get => false; }
-        public override bool      CanWrite { get => false; }
+        public override uint Signature { get => 0; }
+        public override bool IsHierarchic { get => false; }
+        public override bool CanWrite { get => false; }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            uint index_pos = Binary.BigEndian (file.View.ReadUInt32 (0));
+            uint index_pos = Binary.BigEndian(file.View.ReadUInt32(0));
             if (index_pos >= file.MaxOffset || 0 == index_pos || file.MaxOffset > 0x40000000)
                 return null;
             uint index_size = (uint)(file.MaxOffset - index_pos);
             if (index_size > 0x100000) // arbitrary max size for compressed index
                 return null;
-            using (var input = file.CreateStream (index_pos, index_size))
-            using (var unpacked = new DeflateStream (input, CompressionMode.Decompress))
-            using (var index = new BinaryStream (unpacked, file.Name))
+            using (var input = file.CreateStream(index_pos, index_size))
+            using (var unpacked = new DeflateStream(input, CompressionMode.Decompress))
+            using (var index = new BinaryStream(unpacked, file.Name))
             {
                 if (0x0A != index.ReadUInt8() ||
                     0x0B != index.ReadUInt8() ||
@@ -67,38 +67,38 @@ namespace GameRes.Formats.Adobe
                     length >>= 1;
                     if (0 == length)
                         break;
-                    index.Read (name_buffer, 0, length);
-                    var name = Encoding.UTF8.GetString (name_buffer, 0, length);
+                    index.ReadExactly(name_buffer, 0, length);
+                    var name = Encoding.UTF8.GetString(name_buffer, 0, length);
                     if (0x09 != index.ReadUInt8() ||
                         0x05 != index.ReadUInt8() ||
                         0x01 != index.ReadUInt8())
                         return null;
                     if (0x04 != index.ReadUInt8()) // invalid number signature
                         return null;
-                    uint offset = ReadInteger (index);
+                    uint offset = ReadInteger(index);
                     if (0x04 != index.ReadUInt8())
                         return null;
-                    uint size = ReadInteger (index);
-                    var entry = Create<PackedEntry> (name);
+                    uint size = ReadInteger(index);
+                    var entry = Create<PackedEntry>(name);
                     entry.Offset = offset;
-                    entry.Size   = size;
-                    if (!entry.CheckPlacement (file.MaxOffset))
+                    entry.Size = size;
+                    if (!entry.CheckPlacement(file.MaxOffset))
                         return null;
-                    dir.Add (entry);
+                    dir.Add(entry);
                 }
-                return new ArcFile (file, this, dir);
+                return new ArcFile(file, this, dir);
             }
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             if (0 == entry.Size)
                 return Stream.Null;
-            var input = arc.File.CreateStream (entry.Offset, entry.Size);
-            return new DeflateStream (input, CompressionMode.Decompress);
+            var input = arc.File.CreateStream(entry.Offset, entry.Size);
+            return new DeflateStream(input, CompressionMode.Decompress);
         }
 
-        internal static uint ReadInteger (IBinaryStream input)
+        internal static uint ReadInteger(IBinaryStream input)
         {
             uint u = input.ReadUInt8();
             if (u < 0x80)

@@ -34,7 +34,7 @@ namespace GameRes.Formats.Hyperspace
     [Export(typeof(IBmpExtension))]
     public class BmpDepthFixer : IBmpExtension
     {
-        public ImageData Read (IBinaryStream file, BmpMetaData info)
+        public ImageData Read(IBinaryStream file, BmpMetaData info)
         {
             if (info.BPP != 0x10 || !file.CanSeek)
                 return null;
@@ -43,8 +43,8 @@ namespace GameRes.Formats.Hyperspace
             if (total_24bpp + info.ImageOffset != file.Length)
                 return null;
             file.Position = info.ImageOffset;
-            var pixels = file.ReadBytes ((int)total_24bpp);
-            return ImageData.CreateFlipped (info, PixelFormats.Bgr24, null, pixels, stride);
+            var pixels = file.ReadBytes((int)total_24bpp);
+            return ImageData.CreateFlipped(info, PixelFormats.Bgr24, null, pixels, stride);
         }
     }
 }

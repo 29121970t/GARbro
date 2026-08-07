@@ -33,14 +33,14 @@ namespace GameRes.Formats.WildBug
     [Export(typeof(AudioFormat))]
     public class WwaAudio : AudioFormat
     {
-        public override string         Tag { get { return "WWA"; } }
+        public override string Tag { get { return "WWA"; } }
         public override string Description { get { return "Wild Bug's compressed audio format"; } }
-        public override uint     Signature { get { return 0x1A585057; } } // 'WPX'
-        
-        public override SoundInput TryOpen (IBinaryStream file)
+        public override uint Signature { get { return 0x1A585057; } } // 'WPX'
+
+        public override SoundInput TryOpen(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x10);
-            if (!header.AsciiEqual (4, "WAV"))
+            var header = file.ReadHeader(0x10);
+            if (!header.AsciiEqual(4, "WAV"))
                 return null;
             int count = header[0xE];
             int dir_size = header[0xF];
@@ -48,79 +48,79 @@ namespace GameRes.Formats.WildBug
                 return null;
 
             file.Position = 0x10;
-            var index = file.ReadBytes (count * dir_size);
+            var index = file.ReadBytes(count * dir_size);
 
-            var section = WpxSection.Find (index, 0x20, count, dir_size);
+            var section = WpxSection.Find(index, 0x20, count, dir_size);
             if (null == section || section.UnpackedSize < 0x10 || section.DataFormat != 0x80)
                 throw new InvalidFormatException();
             file.Position = section.Offset;
-            var fmt = file.ReadBytes (section.UnpackedSize);
+            var fmt = file.ReadBytes(section.UnpackedSize);
 
-            section = WpxSection.Find (index, 0x21, count, dir_size);
+            section = WpxSection.Find(index, 0x21, count, dir_size);
             if (null == section)
                 throw new InvalidFormatException();
 
-            var reader = new WwaReader (file.AsStream, section);
-            var data = reader.Unpack (section.DataFormat);
+            var reader = new WwaReader(file.AsStream, section);
+            var data = reader.Unpack(section.DataFormat);
             if (null == data)
                 throw new InvalidFormatException();
 
             int total_size = 20 + fmt.Length + data.Length;
-            using (var wav_file = new MemoryStream (20 + fmt.Length))
-            using (var wav = new BinaryWriter (wav_file))
+            using (var wav_file = new MemoryStream(20 + fmt.Length))
+            using (var wav = new BinaryWriter(wav_file))
             {
-                wav.Write (Wav.Signature);
-                wav.Write (total_size);
-                wav.Write (0x45564157); // 'WAVE'
-                wav.Write (0x20746d66); // 'fmt '
-                wav.Write (fmt.Length);
-                wav.Write (fmt);
-                wav.Write (0x61746164); // 'data'
-                wav.Write (data.Length);
+                wav.Write(Wav.Signature);
+                wav.Write(total_size);
+                wav.Write(0x45564157); // 'WAVE'
+                wav.Write(0x20746d66); // 'fmt '
+                wav.Write(fmt.Length);
+                wav.Write(fmt);
+                wav.Write(0x61746164); // 'data'
+                wav.Write(data.Length);
                 var wav_header = wav_file.ToArray();
-                var data_stream = new MemoryStream (data);
-                var source = new PrefixStream (wav_header, data_stream);
-                var sound = new WaveInput (source);
+                var data_stream = new MemoryStream(data);
+                var source = new PrefixStream(wav_header, data_stream);
+                var sound = new WaveInput(source);
                 file.Dispose();
                 return sound;
             }
         }
 
-        public override void Write (SoundInput source, Stream output)
+        public override void Write(SoundInput source, Stream output)
         {
-            throw new System.NotImplementedException ("WwaFormat.Write not implemenented");
+            throw new System.NotImplementedException("WwaFormat.Write not implemenented");
         }
     }
 
     internal class WwaReader : WpxDecoder
     {
-        public WwaReader (Stream input, WpxSection section) : base (input, section)
+        public WwaReader(Stream input, WpxSection section) : base(input, section)
         {
             ResetInput();
         }
 
-        public byte[] Unpack (int flags) // sub_46B16C
+        public byte[] Unpack(int flags) // sub_46B16C
         {
             if (0 == (flags & 0x80) && 0 != PackedSize)
             {
                 if (0 != (flags & 8))
                 {
                     if (0 != (flags & 4))
-                        throw new NotImplementedException ();
+                        throw new NotImplementedException();
                     else if (0 != (flags & 2))
                         return UnpackVB(); // sub_461B34
                 }
                 else if (0 != (flags & 4))
-                    throw new NotImplementedException ();
+                    throw new NotImplementedException();
                 else if (0 != (flags & 2))
                     return UnpackV2();
-                throw new NotImplementedException ();
+                throw new NotImplementedException();
             }
             else
                 return ReadUncompressed();
         }
 
-        byte[] UnpackV2 () // 0x02 format
+        byte[] UnpackV2() // 0x02 format
         {
             m_available = FillBuffer();
             if (0 == m_available)
@@ -137,7 +137,7 @@ namespace GameRes.Formats.WildBug
             m_current = 1 + v9 + 128; // within m_buffer
 
             var ref_table = new byte[0x10000];
-            if (!FillRefTable (ref_table, 1 + v9))
+            if (!FillRefTable(ref_table, 1 + v9))
                 return null;
             while (remaining > 0)
             {
@@ -146,7 +146,7 @@ namespace GameRes.Formats.WildBug
                     int v20 = 0;
                     int v21 = 0;
                     v9 = 16384;
-                    for (;;)
+                    for (; ; )
                     {
                         ++v20;
                         if (0 != GetNextBit())
@@ -170,7 +170,7 @@ namespace GameRes.Formats.WildBug
                 }
                 else
                 {
-                    offset  = ReadNext();
+                    offset = ReadNext();
                     offset |= ReadNext() << 8;
                     count = 3;
                 }
@@ -180,14 +180,14 @@ namespace GameRes.Formats.WildBug
                 }
                 if (remaining < count)
                     return null;
-                Binary.CopyOverlapped (m_output, dst - offset - 1, dst, count);
+                Binary.CopyOverlapped(m_output, dst - offset - 1, dst, count);
                 dst += count;
                 remaining -= count;
             }
             return m_output;
         }
 
-        byte[] UnpackVB ()
+        byte[] UnpackVB()
         {
             m_available = FillBuffer();
             if (0 == m_available)
@@ -199,7 +199,7 @@ namespace GameRes.Formats.WildBug
             m_current = 1 + v6 + 128;
 
             var ref_table = new byte[0x10000];
-            if (!FillRefTable (ref_table, 1 + v6))
+            if (!FillRefTable(ref_table, 1 + v6))
                 return null;
             while (remaining > 0)
             {
@@ -208,7 +208,7 @@ namespace GameRes.Formats.WildBug
                     int v23 = 0;
                     int v24 = 0;
                     int v25 = 16384;
-                    for (;;)
+                    for (; ; )
                     {
                         ++v23;
                         if (0 != GetNextBit())
@@ -233,7 +233,7 @@ namespace GameRes.Formats.WildBug
                 }
                 if (remaining < count)
                     return null;
-                Binary.CopyOverlapped (m_output, src_offset, dst, count);
+                Binary.CopyOverlapped(m_output, src_offset, dst, count);
                 dst += count;
                 remaining -= count;
             }

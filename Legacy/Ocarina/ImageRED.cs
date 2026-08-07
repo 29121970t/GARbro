@@ -32,16 +32,16 @@ namespace GameRes.Formats.Ocarina
     [Export(typeof(ImageFormat))]
     public class RedFormat : ImageFormat
     {
-        public override string         Tag { get { return "RED"; } }
+        public override string Tag { get { return "RED"; } }
         public override string Description { get { return "Ocarina image format"; } }
-        public override uint     Signature { get { return 0x304552; } } // 'RE0'
+        public override uint Signature { get { return 0x304552; } } // 'RE0'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
             return new ImageMetaData { Width = 800, Height = 600, BPP = 32 };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
             file.Position = 4;
             var pixels = new uint[info.Width * info.Height];
@@ -54,12 +54,12 @@ namespace GameRes.Formats.Ocarina
                 else
                     dst += file.ReadUInt8();
             }
-            return ImageData.Create (info, PixelFormats.Bgra32, null, pixels);
+            return ImageData.Create(info, PixelFormats.Bgra32, null, pixels);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("RedFormat.Write not implemented");
+            throw new System.NotImplementedException("RedFormat.Write not implemented");
         }
     }
 }

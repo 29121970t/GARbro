@@ -32,21 +32,21 @@ namespace GameRes.Formats.Malie
 {
     public interface IMalieDecryptor
     {
-        void DecryptBlock (long block_offset, byte[] buffer, int index);
+        void DecryptBlock(long block_offset, byte[] buffer, int index);
     }
 
     public class CamelliaDecryptor : IMalieDecryptor
     {
-        Camellia   m_enc;
+        Camellia m_enc;
 
-        public CamelliaDecryptor (uint[] key)
+        public CamelliaDecryptor(uint[] key)
         {
-            m_enc = new Camellia (key);
+            m_enc = new Camellia(key);
         }
 
-        public void DecryptBlock (long block_offset, byte[] buffer, int index)
+        public void DecryptBlock(long block_offset, byte[] buffer, int index)
         {
-            m_enc.DecryptBlock (block_offset, buffer, index);
+            m_enc.DecryptBlock(block_offset, buffer, index);
         }
     }
 
@@ -55,25 +55,25 @@ namespace GameRes.Formats.Malie
         byte[] m_key;
         uint[] m_rotate_key;
 
-        public CfiDecryptor (byte[] key, uint[] rotate_key)
+        public CfiDecryptor(byte[] key, uint[] rotate_key)
         {
             m_key = key;
             m_rotate_key = rotate_key;
         }
 
-        public void DecryptBlock (long block_offset, byte[] data, int index)
+        public void DecryptBlock(long block_offset, byte[] data, int index)
         {
             if (null == data)
-                throw new ArgumentNullException ("data");
+                throw new ArgumentNullException("data");
             if (index < 0 || index + 0x10 > data.Length)
-                throw new ArgumentOutOfRangeException ("index");
+                throw new ArgumentOutOfRangeException("index");
             int offset = (int)block_offset;
             int o = offset & 0xF;
-            byte first = data[index+o];
+            byte first = data[index + o];
             for (int i = 0; i < 0x10; ++i)
             {
                 if (o != i)
-                    data[index+i] ^= first;
+                    data[index + i] ^= first;
             }
             offset >>= 4;
             unsafe
@@ -81,14 +81,14 @@ namespace GameRes.Formats.Malie
                 fixed (byte* data8 = &data[index])
                 {
                     uint* data32 = (uint*)data8;
-                    uint k = Binary.RotR (m_rotate_key[0], m_key[offset & 0x1F] ^ 0xA5);
-                    data32[0] = Binary.RotR (data32[0] ^ k, m_key[(offset + 12) & 0x1F] ^ 0xA5);
-                    k = Binary.RotL (m_rotate_key[1], m_key[(offset + 3) & 0x1F] ^ 0xA5);
-                    data32[1] = Binary.RotL (data32[1] ^ k, m_key[(offset + 15) & 0x1F] ^ 0xA5);
-                    k = Binary.RotR (m_rotate_key[2], m_key[(offset + 6) & 0x1F] ^ 0xA5);
-                    data32[2] = Binary.RotR (data32[2] ^ k, m_key[(offset - 14) & 0x1F] ^ 0xA5);
-                    k = Binary.RotL (m_rotate_key[3], m_key[(offset + 9) & 0x1F] ^ 0xA5);
-                    data32[3] = Binary.RotL (data32[3] ^ k, m_key[(offset - 11) & 0x1F] ^ 0xA5);
+                    uint k = Binary.RotR(m_rotate_key[0], m_key[offset & 0x1F] ^ 0xA5);
+                    data32[0] = Binary.RotR(data32[0] ^ k, m_key[(offset + 12) & 0x1F] ^ 0xA5);
+                    k = Binary.RotL(m_rotate_key[1], m_key[(offset + 3) & 0x1F] ^ 0xA5);
+                    data32[1] = Binary.RotL(data32[1] ^ k, m_key[(offset + 15) & 0x1F] ^ 0xA5);
+                    k = Binary.RotR(m_rotate_key[2], m_key[(offset + 6) & 0x1F] ^ 0xA5);
+                    data32[2] = Binary.RotR(data32[2] ^ k, m_key[(offset - 14) & 0x1F] ^ 0xA5);
+                    k = Binary.RotL(m_rotate_key[3], m_key[(offset + 9) & 0x1F] ^ 0xA5);
+                    data32[3] = Binary.RotL(data32[3] ^ k, m_key[(offset - 11) & 0x1F] ^ 0xA5);
                 }
             }
         }
@@ -96,26 +96,26 @@ namespace GameRes.Formats.Malie
 
     internal class EncryptedStream : Stream
     {
-        ArcView.Frame   m_view;
+        ArcView.Frame m_view;
         IMalieDecryptor m_dec;
-        long            m_max_offset;
-        long            m_position = 0;
-        byte[]          m_current_block = new byte[BlockLength];
-        int             m_current_block_length = 0;
-        long            m_current_block_position = 0;
+        long m_max_offset;
+        long m_position = 0;
+        byte[] m_current_block = new byte[BlockLength];
+        int m_current_block_length = 0;
+        long m_current_block_position = 0;
 
         public const int BlockLength = 0x1000;
 
         public IMalieDecryptor Decryptor { get { return m_dec; } }
 
-        public EncryptedStream (ArcView mmap, IMalieDecryptor decryptor)
+        public EncryptedStream(ArcView mmap, IMalieDecryptor decryptor)
         {
             m_view = mmap.CreateFrame();
             m_dec = decryptor;
             m_max_offset = mmap.MaxOffset;
         }
 
-        public override int Read (byte[] buf, int index, int count)
+        public override int Read(byte[] buf, int index, int count)
         {
             int total_read = 0;
             bool refill_buffer = !(m_position >= m_current_block_position && m_position < m_current_block_position + m_current_block_length);
@@ -123,12 +123,12 @@ namespace GameRes.Formats.Malie
             {
                 if (refill_buffer)
                 {
-                    m_current_block_position = m_position & ~((long)BlockLength-1);
+                    m_current_block_position = m_position & ~((long)BlockLength - 1);
                     FillBuffer();
                 }
-                int src_offset = (int)m_position & (BlockLength-1);
-                int available = Math.Min (count, m_current_block_length - src_offset);
-                Buffer.BlockCopy (m_current_block, src_offset, buf, index, available);
+                int src_offset = (int)m_position & (BlockLength - 1);
+                int available = Math.Min(count, m_current_block_length - src_offset);
+                Buffer.BlockCopy(m_current_block, src_offset, buf, index, available);
                 m_position += available;
                 total_read += available;
                 index += available;
@@ -138,19 +138,19 @@ namespace GameRes.Formats.Malie
             return total_read;
         }
 
-        private void FillBuffer ()
+        private void FillBuffer()
         {
-            m_current_block_length = m_view.Read (m_current_block_position, m_current_block, 0, (uint)BlockLength);
+            m_current_block_length = m_view.Read(m_current_block_position, m_current_block, 0, (uint)BlockLength);
             for (int offset = 0; offset < m_current_block_length; offset += 0x10)
             {
-                m_dec.DecryptBlock (m_current_block_position+offset, m_current_block, offset);
+                m_dec.DecryptBlock(m_current_block_position + offset, m_current_block, offset);
             }
         }
 
         #region IO.Stream methods
-        public override bool  CanRead { get { return !m_disposed; } }
+        public override bool CanRead { get { return !m_disposed; } }
         public override bool CanWrite { get { return false; } }
-        public override bool  CanSeek { get { return !m_disposed; } }
+        public override bool CanSeek { get { return !m_disposed; } }
 
         public override long Length { get { return m_max_offset; } }
         public override long Position
@@ -159,7 +159,7 @@ namespace GameRes.Formats.Malie
             set { m_position = value; }
         }
 
-        public override long Seek (long pos, SeekOrigin whence)
+        public override long Seek(long pos, SeekOrigin whence)
         {
             if (SeekOrigin.Current == whence)
                 m_position += pos;
@@ -170,24 +170,24 @@ namespace GameRes.Formats.Malie
             return m_position;
         }
 
-        public override void Write (byte[] buf, int index, int count)
+        public override void Write(byte[] buf, int index, int count)
         {
             throw new NotSupportedException();
         }
 
-        public override void SetLength (long length)
+        public override void SetLength(long length)
         {
             throw new NotSupportedException();
         }
 
-        public override void Flush ()
+        public override void Flush()
         {
         }
         #endregion
 
         #region IDisposable methods
         bool m_disposed = false;
-        protected override void Dispose (bool disposing)
+        protected override void Dispose(bool disposing)
         {
             if (!m_disposed)
             {

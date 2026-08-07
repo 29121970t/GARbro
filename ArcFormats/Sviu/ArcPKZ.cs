@@ -44,8 +44,8 @@ namespace GameRes.Formats.Sviu
     {
         public readonly byte[] Key;
 
-        public PkzArchive (ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, byte[] key)
-            : base (arc, impl, dir)
+        public PkzArchive(ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, byte[] key)
+            : base(arc, impl, dir)
         {
             Key = key;
         }
@@ -54,11 +54,11 @@ namespace GameRes.Formats.Sviu
     [Export(typeof(ArchiveFormat))]
     public class PkzOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "PKZ"; } }
+        public override string Tag { get { return "PKZ"; } }
         public override string Description { get { return "SVIU System resource archive"; } }
-        public override uint     Signature { get { return 0x305A4B50; } } // 'PKZ0'
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x305A4B50; } } // 'PKZ0'
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
         PkzScheme DefaultScheme = new PkzScheme { KnownSchemes = new Dictionary<string, byte[]>() };
 
@@ -68,59 +68,59 @@ namespace GameRes.Formats.Sviu
             set { DefaultScheme = (PkzScheme)value; }
         }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            int count = file.View.ReadInt32 (4);
-            if (!IsSaneCount (count))
+            int count = file.View.ReadInt32(4);
+            if (!IsSaneCount(count))
                 return null;
             var key = QueryKey();
             if (null == key)
                 return null;
             uint data_offset = (uint)count * 0x2Cu + 0x14u;
-            var index = file.View.ReadBytes (8, data_offset - 8);
-            DecryptData (index, key);
-            var dir = new List<Entry> (count);
+            var index = file.View.ReadBytes(8, data_offset - 8);
+            DecryptData(index, key);
+            var dir = new List<Entry>(count);
             int index_offset = 0xC;
             for (int i = 0; i < count; ++i)
             {
-                var name = Binary.GetCString (index, index_offset, 0x20);
-                var entry = FormatCatalog.Instance.Create<Entry> (name);
-                entry.Size   = index.ToUInt32 (index_offset+0x20);
-                entry.Offset = index.ToUInt32 (index_offset+0x24) + data_offset;
-                if (!entry.CheckPlacement (file.MaxOffset))
+                var name = Binary.GetCString(index, index_offset, 0x20);
+                var entry = FormatCatalog.Instance.Create<Entry>(name);
+                entry.Size = index.ToUInt32(index_offset + 0x20);
+                entry.Offset = index.ToUInt32(index_offset + 0x24) + data_offset;
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
-                dir.Add (entry);
+                dir.Add(entry);
                 index_offset += 0x2C;
             }
-            return new PkzArchive (file, this, dir, key);
+            return new PkzArchive(file, this, dir, key);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var parc = (PkzArchive)arc;
-            var data = arc.File.View.ReadBytes (entry.Offset, entry.Size);
-            DecryptData (data, parc.Key);
-            if (data.AsciiEqual (0, "SVS18"))
-                data = UnpackScript (data);
-            return new BinMemoryStream (data, entry.Name);
+            var data = arc.File.View.ReadBytes(entry.Offset, entry.Size);
+            DecryptData(data, parc.Key);
+            if (data.AsciiEqual(0, "SVS18"))
+                data = UnpackScript(data);
+            return new BinMemoryStream(data, entry.Name);
         }
 
-        byte[] UnpackScript (byte[] data)
+        byte[] UnpackScript(byte[] data)
         {
-            if (data.ToInt32 (0x10) == 0)
+            if (data.ToInt32(0x10) == 0)
                 return data;
-            int unpacked_size = data.ToInt32 (0xC);
-            int header_size = data.ToInt32 (0x14);
-            int packed_size = data.ToInt32 (0x1C);
+            int unpacked_size = data.ToInt32(0xC);
+            int header_size = data.ToInt32(0x14);
+            int packed_size = data.ToInt32(0x1C);
             var output = new byte[unpacked_size];
-            Buffer.BlockCopy (data, 0, output, 0, header_size);
-            LittleEndian.Pack (0, output, 0x10);
-            using (var input = new BinMemoryStream (data, header_size, packed_size))
-                LzUnpack (input, output, header_size);
+            Buffer.BlockCopy(data, 0, output, 0, header_size);
+            LittleEndian.Pack(0, output, 0x10);
+            using (var input = new BinMemoryStream(data, header_size, packed_size))
+                LzUnpack(input, output, header_size);
             return output;
         }
 
-        void LzUnpack (IBinaryStream input, byte[] output, int dst)
+        void LzUnpack(IBinaryStream input, byte[] output, int dst)
         {
             var frame = new byte[0x800];
             int frame_pos = 0x7E8;
@@ -157,9 +157,9 @@ namespace GameRes.Formats.Sviu
             }
         }
 
-        public static byte[] CreateKey (string key)
+        public static byte[] CreateKey(string key)
         {
-            var bkey = Encodings.cp932.GetBytes (key);
+            var bkey = Encodings.cp932.GetBytes(key);
             for (int i = 0; i < bkey.Length; ++i)
             {
                 bkey[i] += 6;
@@ -167,7 +167,7 @@ namespace GameRes.Formats.Sviu
             return bkey;
         }
 
-        void DecryptData (byte[] data, byte[] key)
+        void DecryptData(byte[] data, byte[] key)
         {
             for (int i = 0; i < data.Length; ++i)
             {
@@ -176,7 +176,7 @@ namespace GameRes.Formats.Sviu
             }
         }
 
-        byte[] QueryKey ()
+        byte[] QueryKey()
         {
             if (DefaultScheme.KnownSchemes.Count == 0)
                 return null;

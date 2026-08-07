@@ -34,40 +34,40 @@ namespace GameRes.Formats.FC01
 {
     internal class ClmMetaData : ImageMetaData
     {
-        public int  UnpackedSize;
+        public int UnpackedSize;
         public uint DataOffset;
     }
 
     [Export(typeof(ImageFormat))]
     public class ClmFormat : ImageFormat
     {
-        public override string         Tag { get { return "CLM"; } }
+        public override string Tag { get { return "CLM"; } }
         public override string Description { get { return "F&C Co. image format"; } }
-        public override uint     Signature { get { return 0x204D4C43; } } // 'CLM'
+        public override uint Signature { get { return 0x204D4C43; } } // 'CLM'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream stream)
+        public override ImageMetaData ReadMetaData(IBinaryStream stream)
         {
-            var header = stream.ReadHeader (0x40);
-            if (!header.AsciiEqual (4, "1.00"))
+            var header = stream.ReadHeader(0x40);
+            if (!header.AsciiEqual(4, "1.00"))
                 return null;
-            uint data_offset = header.ToUInt32 (0x10);
+            uint data_offset = header.ToUInt32(0x10);
             if (data_offset < 0x40)
                 return null;
-            uint width  = header.ToUInt32 (0x1C);
-            uint height = header.ToUInt32 (0x20);
-            int bpp = header.ToInt32 (0x24);
-            int unpacked_size = header.ToInt32 (0x28);
+            uint width = header.ToUInt32(0x1C);
+            uint height = header.ToUInt32(0x20);
+            int bpp = header.ToInt32(0x24);
+            int unpacked_size = header.ToInt32(0x28);
             return new ClmMetaData
             {
-                Width   = width,
-                Height  = height,
-                BPP     = bpp,
+                Width = width,
+                Height = height,
+                BPP = bpp,
                 UnpackedSize = unpacked_size,
                 DataOffset = data_offset,
             };
         }
 
-        public override ImageData Read (IBinaryStream stream, ImageMetaData info)
+        public override ImageData Read(IBinaryStream stream, ImageMetaData info)
         {
             var meta = (ClmMetaData)info;
             stream.Position = meta.DataOffset;
@@ -76,25 +76,25 @@ namespace GameRes.Formats.FC01
             if (8 == meta.BPP)
             {
                 format = PixelFormats.Indexed8;
-                palette = ReadPalette (stream.AsStream);
+                palette = ReadPalette(stream.AsStream);
             }
             else if (24 == meta.BPP)
                 format = PixelFormats.Bgr24;
             else if (32 == meta.BPP)
                 format = PixelFormats.Bgr32;
             else
-                throw new NotSupportedException ("Not supported CLM color depth");
+                throw new NotSupportedException("Not supported CLM color depth");
             int packed_size = (int)(stream.Length - stream.Position);
-            using (var reader = new MrgLzssReader (stream, packed_size, meta.UnpackedSize))
+            using (var reader = new MrgLzssReader(stream, packed_size, meta.UnpackedSize))
             {
                 reader.Unpack();
-                return ImageData.Create (info, format, palette, reader.Data);
+                return ImageData.Create(info, format, palette, reader.Data);
             }
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("ClmFormat.Write not implemented");
+            throw new System.NotImplementedException("ClmFormat.Write not implemented");
         }
     }
 }

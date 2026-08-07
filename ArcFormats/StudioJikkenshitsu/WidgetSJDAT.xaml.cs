@@ -9,10 +9,10 @@ namespace GameRes.Formats.GUI
     /// </summary>
     public partial class WidgetSJDAT : StackPanel
     {
-        public WidgetSJDAT (IEnumerable<string> known_schemes)
+        public WidgetSJDAT(IEnumerable<string> known_schemes)
         {
-            InitializeComponent ();
-            this.Title.ItemsSource = known_schemes.OrderBy (x => x);
+            InitializeComponent();
+            this.Title.ItemsSource = known_schemes.OrderBy(x => x);
         }
     }
 }

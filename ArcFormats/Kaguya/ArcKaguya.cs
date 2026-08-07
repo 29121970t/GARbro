@@ -33,89 +33,89 @@ namespace GameRes.Formats.Kaguya
 {
     internal class AriEntry : PackedEntry
     {
-        public ushort   Mode;
+        public ushort Mode;
     }
 
     [Export(typeof(ArchiveFormat))]
     public class ArcOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "ARC/ARI"; } }
+        public override string Tag { get { return "ARC/ARI"; } }
         public override string Description { get { return "KaGuYa script engine resource archive"; } }
-        public override uint     Signature { get { return 0x314c4657; } } // 'WFL1'
-        public override bool  IsHierarchic { get { return true; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x314c4657; } } // 'WFL1'
+        public override bool IsHierarchic { get { return true; } }
+        public override bool CanWrite { get { return false; } }
 
-        public ArcOpener ()
+        public ArcOpener()
         {
             Extensions = new string[] { "arc" };
             ContainedFormats = new[] { "AP", "APS3", "OGG", "DAT/GENERIC" };
         }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            var reader = new IndexReader (this);
-            var dir = reader.ReadIndex (file);
+            var reader = new IndexReader(this);
+            var dir = reader.ReadIndex(file);
             if (null == dir || 0 == dir.Count)
                 return null;
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
             var packed_entry = entry as PackedEntry;
             if (null == packed_entry || !packed_entry.IsPacked)
-                return arc.File.CreateStream (entry.Offset, entry.Size);
+                return arc.File.CreateStream(entry.Offset, entry.Size);
             if (0 == packed_entry.UnpackedSize)
-                packed_entry.UnpackedSize = arc.File.View.ReadUInt32 (entry.Offset-4);
-            using (var input = arc.File.CreateStream (entry.Offset, entry.Size))
-            using (var reader = new LzReader (input, entry.Size, packed_entry.UnpackedSize))
+                packed_entry.UnpackedSize = arc.File.View.ReadUInt32(entry.Offset - 4);
+            using (var input = arc.File.CreateStream(entry.Offset, entry.Size))
+            using (var reader = new LzReader(input, entry.Size, packed_entry.UnpackedSize))
             {
                 reader.Unpack();
-                return new BinMemoryStream (reader.Data, entry.Name);
+                return new BinMemoryStream(reader.Data, entry.Name);
             }
         }
     }
 
     internal class IndexReader
     {
-        ArchiveFormat   m_format;
-        byte[]          m_name_buf = new byte[0x20];
-        List<Entry>     m_dir = new List<Entry>();
+        ArchiveFormat m_format;
+        byte[] m_name_buf = new byte[0x20];
+        List<Entry> m_dir = new List<Entry>();
 
-        public IndexReader (ArchiveFormat format)
+        public IndexReader(ArchiveFormat format)
         {
             m_format = format;
         }
 
-        public List<Entry> ReadIndex (ArcView file)
+        public List<Entry> ReadIndex(ArcView file)
         {
-            string ari_name = Path.ChangeExtension (file.Name, "ari");
+            string ari_name = Path.ChangeExtension(file.Name, "ari");
             List<Entry> dir = null;
-            if (file.Name != ari_name && VFS.FileExists (ari_name))
-                dir = ReadAriIndex (file, ari_name);
+            if (file.Name != ari_name && VFS.FileExists(ari_name))
+                dir = ReadAriIndex(file, ari_name);
             if (null == dir || 0 == dir.Count)
-                dir = BuildIndex (file);
+                dir = BuildIndex(file);
             return dir;
         }
 
-        List<Entry> ReadAriIndex (ArcView file, string ari_name)
+        List<Entry> ReadAriIndex(ArcView file, string ari_name)
         {
             long arc_offset = 4;
-            using (var ari = VFS.OpenView (ari_name))
+            using (var ari = VFS.OpenView(ari_name))
             {
                 long index_offset = 0;
-                while (index_offset+4 < ari.MaxOffset)
+                while (index_offset + 4 < ari.MaxOffset)
                 {
-                    int name_len = ari.View.ReadInt32 (index_offset);
-                    var name = ReadName (ari, index_offset+4, name_len);
+                    int name_len = ari.View.ReadInt32(index_offset);
+                    var name = ReadName(ari, index_offset + 4, name_len);
                     if (null == name)
                         return null;
                     var entry = new AriEntry { Name = name };
                     index_offset += name_len + 4;
-                    entry.Mode = ari.View.ReadUInt16 (index_offset);
-                    entry.Size = ari.View.ReadUInt32 (index_offset+2);
+                    entry.Mode = ari.View.ReadUInt16(index_offset);
+                    entry.Size = ari.View.ReadUInt32(index_offset + 2);
                     entry.UnpackedSize = 0;
-                    SetType (entry);
+                    SetType(entry);
                     index_offset += 6;
                     arc_offset += name_len + 10;
                     if (1 == entry.Mode)
@@ -124,87 +124,87 @@ namespace GameRes.Formats.Kaguya
                         arc_offset += 4;
                     }
                     entry.Offset = arc_offset;
-                    if (!entry.CheckPlacement (file.MaxOffset))
+                    if (!entry.CheckPlacement(file.MaxOffset))
                         return null;
                     arc_offset += entry.Size;
-                    m_dir.Add (entry);
+                    m_dir.Add(entry);
                 }
             }
             return m_dir;
         }
 
-        List<Entry> BuildIndex (ArcView file)
+        List<Entry> BuildIndex(ArcView file)
         {
             long arc_offset = 4;
-            while (arc_offset+4 < file.MaxOffset)
+            while (arc_offset + 4 < file.MaxOffset)
             {
-                int name_len = file.View.ReadInt32 (arc_offset);
-                var name = ReadName (file, arc_offset+4, name_len);
+                int name_len = file.View.ReadInt32(arc_offset);
+                var name = ReadName(file, arc_offset + 4, name_len);
                 if (null == name)
                     return null;
                 var entry = new AriEntry { Name = name };
                 arc_offset += name_len + 4;
-                entry.Mode = file.View.ReadUInt16 (arc_offset);
-                entry.Size = file.View.ReadUInt32 (arc_offset+2);
-                SetType (entry);
+                entry.Mode = file.View.ReadUInt16(arc_offset);
+                entry.Size = file.View.ReadUInt32(arc_offset + 2);
+                SetType(entry);
                 arc_offset += 6;
                 if (1 == entry.Mode)
                 {
                     entry.IsPacked = true;
-                    entry.UnpackedSize = file.View.ReadUInt32 (arc_offset);
+                    entry.UnpackedSize = file.View.ReadUInt32(arc_offset);
                     arc_offset += 4;
                 }
                 entry.Offset = arc_offset;
-                if (!entry.CheckPlacement (file.MaxOffset))
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
                 arc_offset += entry.Size;
-                m_dir.Add (entry);
+                m_dir.Add(entry);
             }
             return m_dir;
         }
 
-        void SetType (AriEntry entry)
+        void SetType(AriEntry entry)
         {
             if (2 == entry.Mode)
                 entry.Type = "audio";
             else if (1 == entry.Mode)
                 entry.Type = "image";
             else
-                entry.Type = FormatCatalog.Instance.GetTypeFromName (entry.Name, m_format.ContainedFormats);
+                entry.Type = FormatCatalog.Instance.GetTypeFromName(entry.Name, m_format.ContainedFormats);
         }
 
-        string ReadName (ArcView file, long offset, int name_len)
+        string ReadName(ArcView file, long offset, int name_len)
         {
-            if (name_len <= 0 || offset+name_len+6 > file.MaxOffset || name_len > 0x100)
+            if (name_len <= 0 || offset + name_len + 6 > file.MaxOffset || name_len > 0x100)
                 return null;
             if (name_len > m_name_buf.Length)
                 m_name_buf = new byte[name_len];
-            file.View.Read (offset, m_name_buf, 0, (uint)name_len);
-            return DecryptName (m_name_buf, name_len).TrimStart ('\\');
+            file.View.Read(offset, m_name_buf, 0, (uint)name_len);
+            return DecryptName(m_name_buf, name_len).TrimStart('\\');
         }
 
-        string DecryptName (byte[] name_buf, int name_len)
+        string DecryptName(byte[] name_buf, int name_len)
         {
             for (int i = 0; i < name_len; ++i)
                 name_buf[i] ^= 0xff;
-            return Encodings.cp932.GetString (name_buf, 0, name_len);
+            return Encodings.cp932.GetString(name_buf, 0, name_len);
         }
     }
 
     internal sealed class LzReader : IDisposable, IDataUnpacker
     {
-        MsbBitStream    m_input;
-        byte[]          m_output;
+        MsbBitStream m_input;
+        byte[] m_output;
 
         public byte[] Data { get { return m_output; } }
 
-        public LzReader (Stream input, uint packed_size, uint unpacked_size)
+        public LzReader(Stream input, uint packed_size, uint unpacked_size)
         {
-            m_input = new MsbBitStream (input, true);
+            m_input = new MsbBitStream(input, true);
             m_output = new byte[unpacked_size];
         }
 
-        public void Unpack ()
+        public void Unpack()
         {
             int dst = 0;
             int frame_pos = 1;
@@ -218,14 +218,14 @@ namespace GameRes.Formats.Kaguya
                     break;
                 if (0 != bit)
                 {
-                    int data = m_input.GetBits (8);
+                    int data = m_input.GetBits(8);
                     m_output[dst++] = (byte)data;
                     frame[frame_pos++] = (byte)data;
                     frame_pos &= frame_mask;
                 }
                 else
                 {
-                    int win_offset = m_input.GetBits (12);
+                    int win_offset = m_input.GetBits(12);
                     if (-1 == win_offset || 0 == win_offset)
                         break;
 
@@ -243,7 +243,7 @@ namespace GameRes.Formats.Kaguya
 
         #region IDisposable Members
         bool _disposed = false;
-        public void Dispose ()
+        public void Dispose()
         {
             if (!_disposed)
             {

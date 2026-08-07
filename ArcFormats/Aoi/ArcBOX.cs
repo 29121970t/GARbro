@@ -36,8 +36,8 @@ namespace GameRes.Formats.Aoi
     {
         public readonly byte Key;
 
-        public BoxArchive (ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, byte key)
-            : base (arc, impl, dir)
+        public BoxArchive(ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, byte key)
+            : base(arc, impl, dir)
         {
             Key = key;
         }
@@ -46,11 +46,11 @@ namespace GameRes.Formats.Aoi
     [Export(typeof(ArchiveFormat))]
     public class BoxOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "BOX"; } }
+        public override string Tag { get { return "BOX"; } }
         public override string Description { get { return "Aoi engine script archive"; } }
-        public override uint     Signature { get { return 0x42494F41; } } // 'AOIB'
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x42494F41; } } // 'AOIB'
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
         static readonly Dictionary<int, byte> VersionKeyMap = new Dictionary<int, byte> {
             {  4, 0xAD },
@@ -61,140 +61,143 @@ namespace GameRes.Formats.Aoi
             { 12, 0xA5 },
         };
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
             int version;
-            if (file.View.AsciiEqual (4, "X10"))
+            if (file.View.AsciiEqual(4, "X10"))
                 version = 10;
-            else if (file.View.AsciiEqual (4, "X12"))
+            else if (file.View.AsciiEqual(4, "X12"))
                 version = 12;
-            else if (file.View.AsciiEqual (4, "OX7\0"))
+            else if (file.View.AsciiEqual(4, "OX7\0"))
                 version = 7;
-            else if (file.View.AsciiEqual (4, "OX6\0"))
+            else if (file.View.AsciiEqual(4, "OX6\0"))
                 version = 6;
-            else if (file.View.AsciiEqual (4, "OX5 "))
+            else if (file.View.AsciiEqual(4, "OX5 "))
                 version = 5;
-            else if (file.View.AsciiEqual (4, "OX4 "))
+            else if (file.View.AsciiEqual(4, "OX4 "))
                 version = 4;
             else
                 return null;
-            int count = file.View.ReadInt32 (8);
-            if (!IsSaneCount (count))
+            int count = file.View.ReadInt32(8);
+            if (!IsSaneCount(count))
                 return null;
             List<Entry> dir;
             if (version > 5)
-                dir = ReadIndexV6 (file, count);
+                dir = ReadIndexV6(file, count);
             else
-                dir = ReadIndexV5 (file, count);
+                dir = ReadIndexV5(file, count);
             if (null == dir)
                 return null;
-            return new BoxArchive (file, this, dir, VersionKeyMap[version]);
+            return new BoxArchive(file, this, dir, VersionKeyMap[version]);
         }
 
-        List<Entry> ReadIndexV6 (ArcView file, int count)
+        List<Entry> ReadIndexV6(ArcView file, int count)
         {
             int index_offset = 0x10;
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
-                var entry = new Entry {
-                    Name = file.View.ReadString (index_offset, 0x10),
+                var entry = new Entry
+                {
+                    Name = file.View.ReadString(index_offset, 0x10),
                     Type = "script",
-                    Offset = file.View.ReadUInt32 (index_offset+0x10),
-                    Size = file.View.ReadUInt32 (index_offset+0x14),
+                    Offset = file.View.ReadUInt32(index_offset + 0x10),
+                    Size = file.View.ReadUInt32(index_offset + 0x14),
                 };
-                if (!entry.CheckPlacement (file.MaxOffset))
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
-                dir.Add (entry);
+                dir.Add(entry);
                 index_offset += 0x18;
             }
             return dir;
         }
 
-        List<Entry> ReadIndexV5 (ArcView file, int count)
+        List<Entry> ReadIndexV5(ArcView file, int count)
         {
-            var base_name = Path.GetFileNameWithoutExtension (file.Name);
+            var base_name = Path.GetFileNameWithoutExtension(file.Name);
             int index_offset = 0xC;
-            uint next_offset = file.View.ReadUInt32 (index_offset);
-            var dir = new List<Entry> (count);
+            uint next_offset = file.View.ReadUInt32(index_offset);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
                 index_offset += 4;
-                var entry = new Entry {
-                    Name = string.Format ("{0}#{1:D2}.evt", base_name, i),
+                var entry = new Entry
+                {
+                    Name = string.Format("{0}#{1:D2}.evt", base_name, i),
                     Type = "script",
                     Offset = next_offset,
                 };
-                next_offset = i+1 == count ? (uint)file.MaxOffset : file.View.ReadUInt32 (index_offset);
+                next_offset = i + 1 == count ? (uint)file.MaxOffset : file.View.ReadUInt32(index_offset);
                 entry.Size = next_offset - (uint)entry.Offset;
-                if (!entry.CheckPlacement (file.MaxOffset))
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
-                dir.Add (entry);
+                dir.Add(entry);
             }
             return dir;
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
-            var input = arc.File.CreateStream (entry.Offset, entry.Size);
+            var input = arc.File.CreateStream(entry.Offset, entry.Size);
             var barc = arc as BoxArchive;
             if (null == barc)
                 return input;
-            return new XoredStream (input, barc.Key);
+            return new XoredStream(input, barc.Key);
         }
     }
 
     [Export(typeof(ArchiveFormat))]
     public class AoiMyOpener : ArchiveFormat
     {
-        public override string         Tag { get { return "AOIMY"; } }
+        public override string Tag { get { return "AOIMY"; } }
         public override string Description { get { return "Aoi engine script archive"; } }
-        public override uint     Signature { get { return 0x4D494F41; } } // 'AOIM'
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x4D494F41; } } // 'AOIM'
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public AoiMyOpener ()
+        public AoiMyOpener()
         {
             Extensions = new string[] { "box" };
         }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
-            if (!file.View.AsciiEqual (4, "Y01\0"))
+            if (!file.View.AsciiEqual(4, "Y01\0"))
                 return null;
-            int count = Binary.BigEndian (file.View.ReadInt32 (8));
-            if (!IsSaneCount (count))
+            int count = Binary.BigEndian(file.View.ReadInt32(8));
+            if (!IsSaneCount(count))
                 return null;
             int index_offset = 0x10;
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
-                var entry = new Entry {
-                    Name = file.View.ReadString (index_offset, 0x10),
+                var entry = new Entry
+                {
+                    Name = file.View.ReadString(index_offset, 0x10),
                     Type = "script",
-                    Offset = Binary.BigEndian (file.View.ReadUInt32 (index_offset+0x10)),
-                    Size = Binary.BigEndian (file.View.ReadUInt32 (index_offset+0x14)),
+                    Offset = Binary.BigEndian(file.View.ReadUInt32(index_offset + 0x10)),
+                    Size = Binary.BigEndian(file.View.ReadUInt32(index_offset + 0x14)),
                 };
-                if (!entry.CheckPlacement (file.MaxOffset))
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
-                dir.Add (entry);
+                dir.Add(entry);
                 index_offset += 0x18;
             }
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
 
-        public override Stream OpenEntry (ArcFile arc, Entry entry)
+        public override Stream OpenEntry(ArcFile arc, Entry entry)
         {
-            var data = arc.File.View.ReadBytes (entry.Offset, entry.Size);
+            var data = arc.File.View.ReadBytes(entry.Offset, entry.Size);
             uint offset = (uint)entry.Offset;
             for (int i = 0; i < data.Length; ++i)
             {
-                data[i] ^= KeyFromOffset (offset++);
+                data[i] ^= KeyFromOffset(offset++);
             }
-            return new BinMemoryStream (data, entry.Name);
+            return new BinMemoryStream(data, entry.Name);
         }
 
-        static byte KeyFromOffset (uint offset)
+        static byte KeyFromOffset(uint offset)
         {
             uint v1 = offset - 0x5CC8E9D7u + (0xA3371629u >> (int)((offset & 0xF) + 1)) - (0x5CC8E9D7u << (int)(31 - (offset & 0xF)));
 
@@ -219,45 +222,46 @@ namespace GameRes.Formats.Aoi
     [Export(typeof(ArchiveFormat))]
     public class AoiMyUnicodeOpener : AoiMyOpener
     {
-        public override string         Tag { get { return "AOIMY/UNICODE"; } }
+        public override string Tag { get { return "AOIMY/UNICODE"; } }
         public override string Description { get { return "Aoi engine script archive"; } }
-        public override uint     Signature { get { return 0x004F0041; } } // 'A O '
-        public override bool  IsHierarchic { get { return false; } }
-        public override bool      CanWrite { get { return false; } }
+        public override uint Signature { get { return 0x004F0041; } } // 'A O '
+        public override bool IsHierarchic { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
-        public override ArcFile TryOpen (ArcView file)
+        public override ArcFile TryOpen(ArcView file)
         {
             var name_buffer = new byte[0x20];
-            file.View.Read (0, name_buffer, 0, 0x16);
-            if ("AOIMY01\0" != Encoding.Unicode.GetString (name_buffer, 0, 0x10))
+            file.View.Read(0, name_buffer, 0, 0x16);
+            if ("AOIMY01\0" != Encoding.Unicode.GetString(name_buffer, 0, 0x10))
                 return null;
-            int count = Binary.BigEndian (file.View.ReadInt32 (0x10));
-            if (!IsSaneCount (count))
+            int count = Binary.BigEndian(file.View.ReadInt32(0x10));
+            if (!IsSaneCount(count))
                 return null;
             int index_offset = 0x18;
-            var dir = new List<Entry> (count);
+            var dir = new List<Entry>(count);
             for (int i = 0; i < count; ++i)
             {
-                if (0x20 != file.View.Read (index_offset, name_buffer, 0, 0x20))
+                if (0x20 != file.View.Read(index_offset, name_buffer, 0, 0x20))
                     return null;
                 int n;
                 for (n = 0; n < name_buffer.Length; n += 2)
-                    if (0 == name_buffer[n] && 0 == name_buffer[n+1])
+                    if (0 == name_buffer[n] && 0 == name_buffer[n + 1])
                         break;
                 if (0 == n)
                     return null;
-                var entry = new Entry {
-                    Name = Encoding.Unicode.GetString (name_buffer, 0, n),
+                var entry = new Entry
+                {
+                    Name = Encoding.Unicode.GetString(name_buffer, 0, n),
                     Type = "script",
-                    Offset = Binary.BigEndian (file.View.ReadUInt32 (index_offset+0x20)),
-                    Size = Binary.BigEndian (file.View.ReadUInt32 (index_offset+0x24)),
+                    Offset = Binary.BigEndian(file.View.ReadUInt32(index_offset + 0x20)),
+                    Size = Binary.BigEndian(file.View.ReadUInt32(index_offset + 0x24)),
                 };
-                if (!entry.CheckPlacement (file.MaxOffset))
+                if (!entry.CheckPlacement(file.MaxOffset))
                     return null;
-                dir.Add (entry);
+                dir.Add(entry);
                 index_offset += 0x28;
             }
-            return new ArcFile (file, this, dir);
+            return new ArcFile(file, this, dir);
         }
     }
 }

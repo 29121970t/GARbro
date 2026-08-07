@@ -39,25 +39,25 @@ namespace GameRes.Formats.Tobe
     [Export(typeof(ImageFormat))]
     public class WbiFormat : ImageFormat
     {
-        public override string         Tag => "WBI";
+        public override string Tag => "WBI";
         public override string Description => "TOBE image format";
-        public override uint     Signature => 0x2D494257; // 'WBI-'
+        public override uint Signature => 0x2D494257; // 'WBI-'
 
-        public override ImageMetaData ReadMetaData (IBinaryStream file)
+        public override ImageMetaData ReadMetaData(IBinaryStream file)
         {
-            var header = file.ReadHeader (0x20);
-            if (!header.AsciiEqual (4, "V1.00\0"))
+            var header = file.ReadHeader(0x20);
+            if (!header.AsciiEqual(4, "V1.00\0"))
                 return null;
             return new WbiMetaData
             {
-                Width = header.ToUInt16 (0xE),
-                Height = header.ToUInt16 (0x10),
+                Width = header.ToUInt16(0xE),
+                Height = header.ToUInt16(0x10),
                 BPP = 24,
                 RleCode = header[0x1C],
             };
         }
 
-        public override ImageData Read (IBinaryStream file, ImageMetaData info)
+        public override ImageData Read(IBinaryStream file, ImageMetaData info)
         {
             var wbi = (WbiMetaData)info;
             file.Position = 0x20;
@@ -86,7 +86,7 @@ namespace GameRes.Formats.Tobe
                         if (count <= 0)
                         {
                             count = 1;
-                            file.Seek (-2, SeekOrigin.Current);
+                            file.Seek(-2, SeekOrigin.Current);
                             skip = true;
                         }
                     }
@@ -96,12 +96,12 @@ namespace GameRes.Formats.Tobe
                 pixels[dst++] = g;
                 pixels[dst++] = r;
             }
-            return ImageData.CreateFlipped (info, PixelFormats.Bgr24, null, pixels, stride);
+            return ImageData.CreateFlipped(info, PixelFormats.Bgr24, null, pixels, stride);
         }
 
-        public override void Write (Stream file, ImageData image)
+        public override void Write(Stream file, ImageData image)
         {
-            throw new System.NotImplementedException ("WbiFormat.Write not implemented");
+            throw new System.NotImplementedException("WbiFormat.Write not implemented");
         }
     }
 }

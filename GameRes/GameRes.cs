@@ -36,12 +36,12 @@ namespace GameRes
     /// </summary>
     public class Entry
     {
-        public virtual string Name   { get; set; }
-        public virtual string Type   { get; set; }
-        public         long   Offset { get; set; }
-        public         uint   Size   { get; set; }
+        public virtual string Name { get; set; }
+        public virtual string Type { get; set; }
+        public long Offset { get; set; }
+        public uint Size { get; set; }
 
-        public Entry ()
+        public Entry()
         {
             Type = "";
             Offset = -1;
@@ -50,7 +50,7 @@ namespace GameRes
         /// <summary>
         /// Check whether entry lies within specified file bound.
         /// </summary>
-        public bool CheckPlacement (long max_offset)
+        public bool CheckPlacement(long max_offset)
         {
             return Offset < max_offset && Size <= max_offset && Offset <= max_offset - Size;
         }
@@ -59,15 +59,15 @@ namespace GameRes
         /// Change entry type to the type of resource <paramref name="res"/>.
         /// Entry name extension is changed accordingly.
         /// </summary>
-        public void ChangeType (IResource res)
+        public void ChangeType(IResource res)
         {
             if (null == res)
                 return;
             Type = res.Type;
             foreach (var ext in res.Extensions)
             {
-                if (!string.IsNullOrEmpty (ext))
-                    Name = Path.ChangeExtension (Name, ext);
+                if (!string.IsNullOrEmpty(ext))
+                    Name = Path.ChangeExtension(Name, ext);
                 break;
             }
         }
@@ -76,7 +76,7 @@ namespace GameRes
     public class PackedEntry : Entry
     {
         public uint UnpackedSize { get; set; }
-        public bool IsPacked     { get; set; }
+        public bool IsPacked { get; set; }
     }
 
     public abstract class IResource
@@ -109,42 +109,42 @@ namespace GameRes
         /// <summary>Resource access scheme suitable for serialization.</summary>
         public virtual ResourceScheme Scheme { get; set; }
 
-        protected IResource ()
+        protected IResource()
         {
             Extensions = new string[] { GetDefaultExtension() };
             Signatures = new uint[] { this.Signature };
         }
 
-        protected string GetDefaultExtension ()
+        protected string GetDefaultExtension()
         {
             var ext = Tag.ToLowerInvariant();
-            int slash = ext.IndexOf ('/');
+            int slash = ext.IndexOf('/');
             if (slash != -1)
-                ext = ext.Substring (0, slash);
+                ext = ext.Substring(0, slash);
             return ext;
         }
 
-        public virtual ResourceOptions GetDefaultOptions ()
+        public virtual ResourceOptions GetDefaultOptions()
         {
             return null;
         }
 
-        public virtual ResourceOptions GetOptions (object widget)
+        public virtual ResourceOptions GetOptions(object widget)
         {
             return GetDefaultOptions();
         }
 
-        public virtual object GetCreationWidget ()
+        public virtual object GetCreationWidget()
         {
             return null;
         }
 
-        public virtual object GetAccessWidget ()
+        public virtual object GetAccessWidget()
         {
             return null;
         }
 
-        protected OptType GetOptions<OptType> (ResourceOptions res_options) where OptType : ResourceOptions
+        protected OptType GetOptions<OptType>(ResourceOptions res_options) where OptType : ResourceOptions
         {
             var options = res_options as OptType;
             if (null == options)
@@ -152,14 +152,14 @@ namespace GameRes
             return options;
         }
 
-        protected OptType Query<OptType> (string notice) where OptType : ResourceOptions
+        protected OptType Query<OptType>(string notice) where OptType : ResourceOptions
         {
             var args = new ParametersRequestEventArgs { Notice = notice };
-            FormatCatalog.Instance.InvokeParametersRequest (this, args);
+            FormatCatalog.Instance.InvokeParametersRequest(this, args);
             if (!args.InputResult)
                 throw new OperationCanceledException();
 
-            return GetOptions<OptType> (args.Options);
+            return GetOptions<OptType>(args.Options);
         }
     }
 
@@ -182,9 +182,9 @@ namespace GameRes
     public interface IResourceAliasMetadata
     {
         string Extension { get; }
-        string    Target { get; }
+        string Target { get; }
         [DefaultValue(null)]
-        string      Type { get; }
+        string Type { get; }
     }
 
     public interface IResourceMetadata
@@ -193,19 +193,19 @@ namespace GameRes
         int Priority { get; }
     }
 
-    public delegate void ParametersRequestEventHandler (object sender, ParametersRequestEventArgs e);
+    public delegate void ParametersRequestEventHandler(object sender, ParametersRequestEventArgs e);
 
     public class ParametersRequestEventArgs : EventArgs
     {
         /// <summary>
         /// String describing request nature (encryption key etc).
         /// </summary>
-        public string Notice        { get; set; }
+        public string Notice { get; set; }
 
         /// <summary>
         /// Return value from ShowDialog()
         /// </summary>
-        public bool   InputResult   { get; set; }
+        public bool InputResult { get; set; }
 
         /// <summary>
         /// Archive-specific options set by InputWidget.
@@ -216,49 +216,49 @@ namespace GameRes
     public class InvalidFormatException : FileFormatException
     {
         public InvalidFormatException() : base(garStrings.MsgInvalidFormat) { }
-        public InvalidFormatException (string msg) : base (msg) { }
+        public InvalidFormatException(string msg) : base(msg) { }
     }
 
     public class UnknownEncryptionScheme : Exception
     {
         public UnknownEncryptionScheme() : base(garStrings.MsgUnknownEncryption) { }
-        public UnknownEncryptionScheme (string msg) : base (msg) { }
+        public UnknownEncryptionScheme(string msg) : base(msg) { }
     }
 
     public class InvalidEncryptionScheme : Exception
     {
         public InvalidEncryptionScheme() : base(garStrings.MsgInvalidEncryption) { }
-        public InvalidEncryptionScheme (string msg) : base (msg) { }
+        public InvalidEncryptionScheme(string msg) : base(msg) { }
     }
 
     public class FileSizeException : Exception
     {
-        public FileSizeException () : base (garStrings.MsgFileTooLarge) { }
-        public FileSizeException (string msg) : base (msg) { }
+        public FileSizeException() : base(garStrings.MsgFileTooLarge) { }
+        public FileSizeException(string msg) : base(msg) { }
     }
 
     public class InvalidFileName : Exception
     {
         public string FileName { get; set; }
 
-        public InvalidFileName (string filename)
-            : this (filename, garStrings.MsgInvalidFileName)
+        public InvalidFileName(string filename)
+            : this(filename, garStrings.MsgInvalidFileName)
         {
         }
 
-        public InvalidFileName (string filename, string message)
-            : base (message)
+        public InvalidFileName(string filename, string message)
+            : base(message)
         {
             FileName = filename;
         }
 
-        public InvalidFileName (string filename, Exception X)
-            : this (filename, garStrings.MsgInvalidFileName, X)
+        public InvalidFileName(string filename, Exception X)
+            : this(filename, garStrings.MsgInvalidFileName, X)
         {
         }
 
-        public InvalidFileName (string filename, string message, Exception X)
-            : base (message, X)
+        public InvalidFileName(string filename, string message, Exception X)
+            : base(message, X)
         {
             FileName = filename;
         }
