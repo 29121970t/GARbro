@@ -81,6 +81,7 @@ namespace GameRes.Formats.Qlie
         public override bool  IsHierarchic { get { return true; } }
         public override bool      CanWrite { get { return false; } }
         public Dictionary<string, byte[]> KnownKeys { get; }
+        [ImportingConstructor]
         public PackOpener (QlieScheme scheme)
         {
             KnownKeys = scheme.KnownKeys;

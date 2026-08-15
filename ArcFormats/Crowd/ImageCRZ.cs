@@ -54,6 +54,7 @@ namespace GameRes.Formats.Crowd
 
         private IDictionary<string, byte[]> KnownKeys { get; }
 
+        [ImportingConstructor]
         public CrzFormat(CrzScheme schema)
         {
             KnownKeys = schema.KnownKeys;

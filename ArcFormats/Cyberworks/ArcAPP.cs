@@ -37,6 +37,7 @@ namespace GameRes.Formats.Cyberworks
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
 
+        [ImportingConstructor]
         public AppOpener (SchemeMap scheme) : base(scheme)
         {
             Extensions = new string[] { "appendix" };

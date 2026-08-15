@@ -70,6 +70,7 @@ namespace GameRes.Formats.AVC
         internal static ArchiveScheme[] KnownSchemes;
 
 
+        [ImportingConstructor]
         public DatOpener (AvcScheme scheme)
         {
             KnownSchemes = scheme.KnownSchemes;

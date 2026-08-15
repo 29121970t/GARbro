@@ -83,6 +83,7 @@ namespace GameRes.Formats.Dac
 
         public static DpkScheme[] KnownSchemes = new DpkScheme[0];
 
+        [ImportingConstructor]
         public DpkOpener(ArchiveScheme scheme)
         {
             KnownSchemes = scheme.KnownSchemes;

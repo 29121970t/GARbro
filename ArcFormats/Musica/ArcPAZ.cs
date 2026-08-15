@@ -138,6 +138,7 @@ namespace GameRes.Formats.Musica
         public IDictionary<uint, PazScheme> KnownSchemes { get; }
         public IDictionary<string, PazScheme> KnownTitles { get; }
 
+        [ImportingConstructor]
         public PazOpener (MusicaScheme scheme)
         {
             KnownSchemes = scheme.KnownSchemes;

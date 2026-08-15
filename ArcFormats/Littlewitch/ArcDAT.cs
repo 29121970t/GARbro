@@ -78,6 +78,7 @@ namespace GameRes.Formats.Littlewitch
 
         public RepiScheme DatScheme {  get;  }
 
+        [ImportingConstructor]
         public DatOpener(RepiScheme datScheme)
         {
             DatScheme = datScheme;

@@ -41,6 +41,7 @@ namespace GameRes.Formats.Yatagarasu
         public override bool      CanWrite { get { return false; } }
 
         public IDictionary<string, uint[]> KnownKeys {  get;   }
+        [ImportingConstructor]
         public Pkg2Opener(PkgScheme scheme)
         {
             KnownKeys = scheme.KnownKeys;

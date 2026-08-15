@@ -122,6 +122,7 @@ namespace GameRes.Formats.CatSystem
 
         public Dictionary<string, KeyData> KnownSchemes { get; }
 
+        [ImportingConstructor]
         public IntOpener(IntScheme schema)
         {
             KnownSchemes = schema.KnownKeys;

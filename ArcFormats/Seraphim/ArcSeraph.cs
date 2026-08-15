@@ -81,6 +81,7 @@ namespace GameRes.Formats.Seraphim
 
         public IDictionary<string, ArchPacScheme> KnownSchemes { get; }
 
+        [ImportingConstructor]
         public ArchPacOpener (SeraphScheme scheme)
         {
             KnownSchemes = scheme.KnownSchemes;

@@ -104,7 +104,6 @@ namespace GameRes.Formats.AZSys
     {
         public readonly uint SysenvKey;
         public readonly uint RegularKey;
-
         public AzArchive (ArcView arc, ArchiveFormat impl, ICollection<Entry> dir, uint syskey, uint regkey)
             : base (arc, impl, dir)
         {
@@ -179,7 +178,7 @@ namespace GameRes.Formats.AZSys
             { "Default", new EncryptionScheme (EncryptionScheme.DefaultSeed) },
         };
 
-
+        [ImportingConstructor]
         public ArcEncryptedOpener (AzScheme schema)
         {
             KnownSchemes = schema.KnownSchemes;

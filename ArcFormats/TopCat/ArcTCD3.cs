@@ -84,6 +84,7 @@ namespace GameRes.Formats.TopCat
         public override bool      CanWrite { get { return false; } }
         public Dictionary<string, int> KnownKeys { get; }
 
+        [ImportingConstructor]
         public TcdOpener (TcdScheme scheme)
         {
             KnownKeys = scheme.KnownKeys;

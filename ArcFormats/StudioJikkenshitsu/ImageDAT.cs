@@ -64,6 +64,7 @@ namespace GameRes.Formats.Jikkenshitsu
         public override string Description { get { return "Studio Jikkenshitsu image format"; } }
         public override uint     Signature { get { return 0; } }
         SjSchemeMap DefaultScheme { get; }
+        [ImportingConstructor]
         public SpDatFormat (SjSchemeMap scheme)
         {
             DefaultScheme = scheme;

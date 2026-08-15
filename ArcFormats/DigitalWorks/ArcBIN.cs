@@ -73,6 +73,7 @@ namespace GameRes.Formats.DigitalWorks
         public override bool      CanWrite { get { return false; } }
         public IDictionary<string, IDictionary<string, BinScheme>> KnownSchemes { get; }
 
+        [ImportingConstructor]
         public BinOpener (PacScheme scheme)
         {
             KnownSchemes = scheme.KnownSchemes;

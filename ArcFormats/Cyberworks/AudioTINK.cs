@@ -48,6 +48,7 @@ namespace GameRes.Formats.Cyberworks
         static Dictionary<uint, byte[]> KnownKeys = new Dictionary<uint, byte[]>();
 
 
+        [ImportingConstructor]
         public TinkAudio (TinkAudioScheme scheme)
         {
             KnownKeys = scheme.KnownKeys;

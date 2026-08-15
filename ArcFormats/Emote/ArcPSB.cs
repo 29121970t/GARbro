@@ -62,6 +62,7 @@ namespace GameRes.Formats.Emote
 
         static uint[] KnownKeys = new uint[] { 970396437u };
 
+        [ImportingConstructor]
         public PsbOpener (PsbScheme scheme)
         {
             KnownKeys = scheme.KnownKeys;

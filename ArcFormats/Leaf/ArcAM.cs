@@ -42,6 +42,7 @@ namespace GameRes.Formats.Leaf
 
         public byte[] DecryptTable { get; }
         
+        [ImportingConstructor]
         public AmOpener (AmScheme scheme)
         {
             DecryptTable = scheme.DecryptTable;

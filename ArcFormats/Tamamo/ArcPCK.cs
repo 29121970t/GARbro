@@ -69,6 +69,7 @@ namespace GameRes.Formats.Tamamo
         public override bool      CanWrite { get { return false; } }
         public Dictionary<string, byte[]> KnownKeys { get; }
 
+        [ImportingConstructor]
         public PckOpener (PckScheme scheme)
         {
             KnownKeys = scheme.KnownKeys;

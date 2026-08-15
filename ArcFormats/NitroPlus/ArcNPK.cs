@@ -92,6 +92,7 @@ namespace GameRes.Formats.NitroPlus
         const uint DefaultSegmentSize = 0x10000;
         static readonly Encoding DefaultEncoding = Encoding.UTF8;
 
+        [ImportingConstructor]
         public NpkOpener(Npk2Scheme scheme)
         {
             KnownKeys = scheme.KnownKeys;

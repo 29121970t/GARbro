@@ -62,6 +62,7 @@ namespace GameRes.Formats.Actgs
         public readonly byte[][] KnownKeys;
 
 
+        [ImportingConstructor]
         public DatOpener (ActressScheme scheme)
         {
             this.KnownKeys = scheme.KnownKeys;

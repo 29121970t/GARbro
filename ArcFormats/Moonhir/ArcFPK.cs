@@ -66,6 +66,7 @@ namespace GameRes.Formats.MoonhirGames
 
         public uint[] KnownKeys { get; }
 
+        [ImportingConstructor]
         public FpkOpener(Fpk0100Scheme scheme)
         {
             KnownKeys = scheme.KnownKeys;

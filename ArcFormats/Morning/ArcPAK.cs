@@ -42,6 +42,7 @@ namespace GameRes.Formats.Morning
         public override bool      CanWrite { get { return false; } }
         public MorningScheme DefaultScheme { get; }
 
+        [ImportingConstructor]
         public PakOpener(MorningScheme scheme)
         {
             DefaultScheme = scheme;

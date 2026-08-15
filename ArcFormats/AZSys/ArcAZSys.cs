@@ -65,7 +65,7 @@ namespace GameRes.Formats.AZSys
         public override bool      CanWrite { get { return false; } }
         private Dictionary<string, uint> KnownKeys { get; }
 
-
+        [ImportingConstructor]
         public ArcOpener (AsbScheme scheme)
         {
             KnownKeys = scheme.KnownKeys;

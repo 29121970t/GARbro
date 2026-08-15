@@ -114,6 +114,7 @@ namespace GameRes.Formats.NitroPlus
         public const int DefaultKey1 = 0x4147414e;
         public const int DefaultKey2 = 0x21214f54;
 
+        [ImportingConstructor]
         public NpaOpener(NpaScheme scheme)
         {
             KnownSchemes = scheme.KnownSchemes;

@@ -135,6 +135,7 @@ namespace GameRes.Formats.Lucifen
         public override bool  IsHierarchic { get { return true; } }
         public override bool      CanWrite { get { return false; } }
 
+        [ImportingConstructor]
         public LpkOpener(LpkScheme scheme)
         {
             KnownSchemes = scheme.KnownSchemes;

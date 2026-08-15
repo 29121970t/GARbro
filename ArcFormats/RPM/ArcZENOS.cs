@@ -36,6 +36,7 @@ namespace GameRes.Formats.Rpm
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
 
+        [ImportingConstructor]
         public ZenosOpener(ArcScheme scheme) : base(scheme) { }
 
         public override ArcFile TryOpen (ArcView file)

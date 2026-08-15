@@ -102,6 +102,7 @@ namespace GameRes.Formats.PkWare
 
         ZipScheme DefaultScheme { get; }
 
+        [ImportingConstructor]
         public ZipOpener (ZipScheme scheme)
         {
             DefaultScheme = scheme;

@@ -114,6 +114,7 @@ namespace GameRes.Formats.NonColor
         public static readonly string PersistentFileMapName = "NCFileMap.dat";
 
 
+        [ImportingConstructor]
         public DatOpener (ArcDatScheme scheme)
         {
             KnownSchemes = scheme.KnownSchemes;

@@ -41,6 +41,7 @@ namespace GameRes.Formats.BellDa
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
 
+        [ImportingConstructor]
         public BldOpener ()
         {
             Signatures = new[] { this.Signature };

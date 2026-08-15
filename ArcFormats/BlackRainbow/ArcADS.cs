@@ -48,6 +48,7 @@ namespace GameRes.Formats.BlackRainbow
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
 
+        [ImportingConstructor]
         public AdsOpener (AdsScheme scheme)
         {
             KnownKeys = scheme.KnownKeys;

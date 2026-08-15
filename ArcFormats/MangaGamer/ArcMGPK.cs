@@ -66,6 +66,7 @@ namespace GameRes.Formats.Mg
 
         public Dictionary<string, byte[]> KnownKeys { get; }
 
+        [ImportingConstructor]
         public MgpkOpener (MgScheme scheme)
         {
             KnownKeys = scheme.KnownKeys;
@@ -214,6 +215,7 @@ namespace GameRes.Formats.Mg
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
 
+        [ImportingConstructor]
         public Mgpk0Opener(MgScheme scheme) : base(scheme) { }
 
         public override ArcFile TryOpen (ArcView file)

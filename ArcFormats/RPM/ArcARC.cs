@@ -45,6 +45,7 @@ namespace GameRes.Formats.Rpm
         public string   Keyword;
         public int      NameLength;
 
+        [ImportingConstructor]
         public EncryptionScheme (string key, int name_length = 32)
         {
             Keyword = key;
@@ -69,6 +70,7 @@ namespace GameRes.Formats.Rpm
         public override bool      CanWrite { get { return false; } }
         public Dictionary<string, EncryptionScheme> KnownSchemes { get; }
 
+        [ImportingConstructor]
         public ArcOpener (ArcScheme scheme)
         {
             KnownSchemes = scheme.KnownSchemes;

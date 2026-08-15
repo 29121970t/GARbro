@@ -45,6 +45,7 @@ namespace GameRes.Formats.DxLib
     {
         readonly byte[] Key;
 
+        [ImportingConstructor]
         public FudegakiEncryption (string keyword)
         {
             Key = Encodings.cp932.GetBytes (keyword);
@@ -101,6 +102,7 @@ namespace GameRes.Formats.DxLib
 
         static readonly ResourceInstance<ImageFormat> PrsFormat = new ResourceInstance<ImageFormat> ("PRS");
 
+        [ImportingConstructor]
         public MedOpener(ScrMedScheme scheme)
         {
             KnownSchemes = scheme.KnownSchemes;

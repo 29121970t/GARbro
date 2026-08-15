@@ -186,6 +186,7 @@ namespace GameRes.Formats.Cyberworks
         public Dictionary<string, AImageScheme> KnownSchemes { get; }
 
 
+        [ImportingConstructor]
         public DatOpener (SchemeMap scheme)
         {
             KnownSchemes = scheme.KnownSchemes;
@@ -396,6 +397,7 @@ namespace GameRes.Formats.Cyberworks
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
 
+        [ImportingConstructor]
         public OldDatOpener (SchemeMap scheme) : base (scheme)
         {
             Extensions = new string[] { "dat" };
@@ -470,6 +472,7 @@ namespace GameRes.Formats.Cyberworks
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
 
+        [ImportingConstructor]
         public OldDatOpener2 (SchemeMap scheme) : base (scheme)
         {
             Extensions = new string[] { "dat" };

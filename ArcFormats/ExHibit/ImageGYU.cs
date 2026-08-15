@@ -64,6 +64,7 @@ namespace GameRes.Formats.ExHibit
 
         private Dictionary<string, Dictionary<int, uint>> NumericKeys { get; }
         private Dictionary<string, Dictionary<string, uint>>  StringKeys {  get; } 
+        [ImportingConstructor]
         public GyuFormat (GyuMap scheme)
         {
             NumericKeys = scheme.NumericKeys;

@@ -51,6 +51,7 @@ namespace GameRes.Formats.FamilyAdvSystem
         internal IDictionary<string, string> KnownKeys { get; }
 
 
+        [ImportingConstructor]
         public CsafOpener (FamilyAdvScheme scheme)
         {
             KnownKeys = scheme.KnownKeys;

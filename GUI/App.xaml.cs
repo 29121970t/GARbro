@@ -98,7 +98,9 @@ namespace GARbro.GUI
                 if (!File.Exists (scheme_file))
                     return;
                 using (var file = File.OpenRead (scheme_file))
-                    FormatCatalog.Instance.DeserializeScheme (file);
+                    //FormatCatalog.Instance.DeserializeScheme (file);
+                FormatCatalog.Instance.init(file);
+
             }
             catch (Exception X)
             {

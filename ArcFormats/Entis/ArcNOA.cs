@@ -76,6 +76,7 @@ namespace GameRes.Formats.Entis
         public override bool      CanWrite { get { return false; } }
         public  Dictionary<string, Dictionary<string, string>> KnownKeys { get; }
 
+        [ImportingConstructor]
         public NoaOpener (NoaScheme scheme)
         {
             KnownKeys = scheme.KnownKeys;

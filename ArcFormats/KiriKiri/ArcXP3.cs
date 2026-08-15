@@ -95,6 +95,7 @@ namespace GameRes.Formats.KiriKiri
             get;
         }
 
+        [ImportingConstructor]
         public Xp3Opener (Xp3Scheme scheme)
         {
             KnownSchemes = scheme.KnownSchemes;

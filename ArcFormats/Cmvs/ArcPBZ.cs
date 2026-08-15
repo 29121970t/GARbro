@@ -69,6 +69,7 @@ namespace GameRes.Formats.Pvns
 
         public Dictionary<string, PbzKeys> KnownSchemes { get; }
 
+        [ImportingConstructor]
         public PbzOpener(PbzScheme scheme)
         {
             KnownSchemes = scheme.KnownSchemes;

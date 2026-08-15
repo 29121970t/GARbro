@@ -42,6 +42,7 @@ namespace GameRes.Formats.GameSystem
         public override bool      CanWrite { get { return false; } }
         internal IDictionary<string, byte[]> KnownKeys { get; }
 
+        [ImportingConstructor]
         public CmpOpener(CmpScheme scheme)
         {
             KnownKeys = scheme.KnownKeys;

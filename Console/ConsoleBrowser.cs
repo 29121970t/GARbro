@@ -70,6 +70,8 @@ namespace GARbro
         void Run (string[] args)
         {
             int argn = 0;
+            DeserializeGameData();
+
             while (argn < args.Length)
             {
                 if (args[argn].Equals ("-l"))
@@ -118,7 +120,6 @@ namespace GARbro
                 Usage();
                 return;
             }
-            DeserializeGameData();
             foreach (var file in VFS.GetFiles (args[argn]))
             {
                 m_arc_name = file.Name;
@@ -157,7 +158,8 @@ namespace GARbro
             try
             {
                 using (var file = File.OpenRead (scheme_file))
-                    FormatCatalog.Instance.DeserializeScheme (file);
+                    //FormatCatalog.Instance.DeserializeScheme (file);
+                    FormatCatalog.Instance.init (file);
             }
             catch (Exception X)
             {

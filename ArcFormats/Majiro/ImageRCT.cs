@@ -69,6 +69,7 @@ namespace GameRes.Formats.Majiro
 
         public Dictionary<string, string> KnownKeys { get; }
 
+        [ImportingConstructor]
         public RctFormat (RctScheme scheme)
         {
             KnownKeys = scheme.KnownKeys;

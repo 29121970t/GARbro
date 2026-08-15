@@ -332,6 +332,7 @@ namespace GameRes.Formats.Tactics
         public override string         Tag { get { return "ARC/Tactics/2"; } }
         public override bool      CanWrite { get { return false; } }
         public Dictionary<string, ArcScheme> KnownSchemes { get; }
+        [ImportingConstructor]
         public Arc2Opener (SchemeMap scheme)
         {
             KnownSchemes = scheme.KnownSchemes;

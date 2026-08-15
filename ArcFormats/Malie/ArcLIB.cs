@@ -139,6 +139,7 @@ namespace GameRes.Formats.Malie
                 
         public Dictionary<string, LibScheme> KnownSchemes { get; }
 
+        [ImportingConstructor]
         public DatOpener (MalieScheme scheme)
         {
             KnownSchemes = scheme.KnownSchemes;

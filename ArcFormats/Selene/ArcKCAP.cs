@@ -72,6 +72,7 @@ namespace GameRes.Formats.Selene
         static private string DefaultPassPhrase = "Selene.Default.Password";
         public Dictionary<string, string> KnownSchemes { get; }
 
+        [ImportingConstructor]
         public PackOpener (KcapScheme scheme)
         {
             KnownSchemes =scheme.KnownSchemes;

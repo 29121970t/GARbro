@@ -63,6 +63,7 @@ namespace GameRes.Formats.DxLib
 
          public IList<IDxKey> KnownKeys { get; }
 
+        [ImportingConstructor]
         public DxOpener (DxScheme scheme)
         {
             KnownKeys = scheme.KnownKeys;

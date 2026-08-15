@@ -71,6 +71,7 @@ namespace GameRes.Formats.ShiinaRio // 椎名里緒
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
 
+        [ImportingConstructor]
         public WarOpener(WarcScheme scheme)
         {
             Decoder.KnownSchemes = scheme.KnownSchemes;

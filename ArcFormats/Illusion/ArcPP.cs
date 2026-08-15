@@ -73,6 +73,7 @@ namespace GameRes.Formats.Illusion
 
         internal IDictionary<string, PpEncryptionScheme> KnownKeys { get; }
 
+        [ImportingConstructor]
         public PpOpener(PpScheme scheme)
         {
             KnownKeys = scheme.KnownKeys;

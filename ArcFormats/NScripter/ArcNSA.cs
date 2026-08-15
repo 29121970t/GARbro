@@ -78,6 +78,7 @@ namespace GameRes.Formats.NScripter
         public Dictionary<string, string> KnownKeys { get; }
 
 
+        [ImportingConstructor]
         public NsaOpener (NsaScheme scheme)
         {
             KnownKeys = scheme.KnownKeys;

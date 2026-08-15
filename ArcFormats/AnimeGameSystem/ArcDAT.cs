@@ -43,6 +43,7 @@ namespace GameRes.Formats.Ags
         public readonly Dictionary<string, EncryptionScheme> KnownSchemes;
         public readonly HashSet<string> EncryptedArchives;
 
+        [ImportingConstructor]
         public DatOpener (AgsScheme schema)
         {
             KnownSchemes = schema.KnownSchemes;

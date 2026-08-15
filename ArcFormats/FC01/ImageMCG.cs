@@ -62,6 +62,7 @@ namespace GameRes.Formats.FC01
 
         internal Dictionary<string, byte> KnownKeys { get; }
 
+        [ImportingConstructor]
         public McgFormat(McgScheme scheme)
         {
             KnownKeys = scheme.KnownKeys;

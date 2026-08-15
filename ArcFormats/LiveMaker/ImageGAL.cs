@@ -67,6 +67,7 @@ namespace GameRes.Formats.LiveMaker
         public override uint     Signature { get { return 0x656C6147; } } // 'Gale'
 
         public Dictionary<string, string> KnownKeys { get; }
+        [ImportingConstructor]
         public GalFormat(GalScheme scheme)
         {
             KnownKeys = scheme.KnownKeys;

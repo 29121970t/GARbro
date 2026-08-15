@@ -104,6 +104,7 @@ namespace GameRes.Formats.YuRis
         public override bool      CanWrite { get { return true; } }
         public Dictionary<string, YpfScheme> KnownSchemes { get; }
 
+        [ImportingConstructor]
         public YpfOpener (YuRisScheme scheme)
         {
             KnownSchemes = scheme.KnownSchemes;

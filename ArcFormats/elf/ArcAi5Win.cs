@@ -60,6 +60,7 @@ namespace GameRes.Formats.Elf
 
         public Dictionary<string, ArcIndexScheme> KnownSchemes { get; }
 
+        [ImportingConstructor]
         public ArcAI5Opener(Ai5Scheme scheme)
         {
             KnownSchemes = scheme.KnownSchemes;

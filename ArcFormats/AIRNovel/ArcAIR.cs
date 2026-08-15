@@ -84,6 +84,7 @@ namespace GameRes.Formats.AirNovel
 
         static readonly ResourceInstance<ArchiveFormat> Zip = new ResourceInstance<ArchiveFormat> ("ZIP");
 
+        [ImportingConstructor]
         public AirOpener(AirNovelScheme scheme)
         {
             this.KnownKeys = scheme.KnownKeys;

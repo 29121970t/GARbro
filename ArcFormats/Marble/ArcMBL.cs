@@ -66,6 +66,7 @@ namespace GameRes.Formats.Marble
 
         public Dictionary<string, string> KnownKeys { get; }
 
+        [ImportingConstructor]
         public MblOpener (MblScheme scheme)
         {
             KnownKeys = scheme.KnownKeys;

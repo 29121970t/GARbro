@@ -89,6 +89,7 @@ namespace GameRes.Formats.Unity
         public override bool      CanWrite { get { return false; } }
 
         BinPackScheme DefaultScheme { get; }
+        [ImportingConstructor]
         public BinOpener(BinPackScheme scheme)
         {
             DefaultScheme = scheme;

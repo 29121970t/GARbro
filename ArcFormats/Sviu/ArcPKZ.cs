@@ -60,6 +60,7 @@ namespace GameRes.Formats.Sviu
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
         PkzScheme DefaultScheme { get; }
+        [ImportingConstructor]
         public PkzOpener(PkzScheme scheme)
         {
             DefaultScheme = scheme;

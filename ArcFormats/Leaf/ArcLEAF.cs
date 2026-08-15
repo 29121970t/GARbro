@@ -61,6 +61,7 @@ namespace GameRes.Formats.Leaf
         public IDictionary<string, byte[]> KnownKeys { get; }
         
 
+        [ImportingConstructor]
         public LeafPackOpener (LeafPackScheme scheme)
         {
             KnownKeys = scheme.KnownSchemes;

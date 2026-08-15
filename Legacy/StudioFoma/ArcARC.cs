@@ -55,6 +55,7 @@ namespace GameRes.Formats.Foma
             get { return m_known_arc_names ?? (m_known_arc_names = new HashSet<string>(KnownSchemes.Values.SelectMany(v => v.Keys))); }
         }
 
+        [ImportingConstructor]
         public ArcOpener(Is9Scheme scheme)
         {
             KnownSchemes = scheme.KnownSchemes;

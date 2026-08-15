@@ -120,6 +120,7 @@ namespace GameRes.Formats.Ikura
         public Dictionary<string, byte[]> KnownSecrets { get; }
 
 
+        [ImportingConstructor]
         public MpxOpener (IsfScheme scheme)
         {
             KnownSecrets = scheme.KnownSecrets;

@@ -75,6 +75,7 @@ namespace GameRes.Formats.FC01
             get;
         }
 
+        [ImportingConstructor]
         public PakOpener (AgsiScheme scheme)
         {
             KnownSchemes = scheme.KnownSchemes;

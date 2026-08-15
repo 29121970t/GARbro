@@ -39,6 +39,7 @@ namespace GameRes.Formats.DxLib
         public override bool  IsHierarchic { get { return true; } }
         public override bool      CanWrite { get { return false; } }
 
+        [ImportingConstructor]
         public Dx8Opener (DxScheme scheme) : base(scheme)
         {
             Extensions = new[] { "bin" };

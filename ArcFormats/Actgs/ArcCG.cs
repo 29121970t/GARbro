@@ -41,7 +41,8 @@ namespace GameRes.Formats.Actgs
         public override uint     Signature { get { return 0; } }
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
-
+        
+        [ImportingConstructor]
         public CgOpener(ActressScheme scheme) : base(scheme) { }
 
         public override ArcFile TryOpen (ArcView file)
@@ -91,6 +92,7 @@ namespace GameRes.Formats.Actgs
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
 
+        [ImportingConstructor]
         public ArcCgOpener(ActressScheme scheme) : base(scheme) { }
 
 

@@ -54,6 +54,7 @@ namespace GameRes.Formats.NSystem
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
         public  Dictionary<string, string> KnownPasswords { get; }
+        [ImportingConstructor]
         public FjsysOpener (FjsysScheme scheme)
         {
             KnownPasswords = scheme.MsdPasswords;

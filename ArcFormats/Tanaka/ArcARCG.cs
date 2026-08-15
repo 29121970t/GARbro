@@ -46,6 +46,7 @@ namespace GameRes.Formats.Will
         {
             get;
         }
+        [ImportingConstructor]
         public ArcGOpener (BmiScheme scheme)
         {
             KnownKeys = scheme.KnownKeys;

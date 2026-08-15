@@ -43,6 +43,7 @@ namespace GameRes.Formats.Fmod
         public override uint     Signature { get { return 0x35425346; } } // 'FSB5'
         public override bool      CanWrite { get { return false; } }
 
+        [ImportingConstructor]
         public Fsb5Audio(FmodScheme scheme)
         {
             Fsb5Decoder.VorbisHeaders = scheme.VorbisHeaders;

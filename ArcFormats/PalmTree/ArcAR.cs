@@ -44,6 +44,7 @@ namespace GameRes.Formats.PalmTree
 
         static readonly byte[] ArDirSignature = { (byte)'A', (byte)'R', 5, 6 };
 
+        [ImportingConstructor]
         public ArcOpener (ZipScheme scheme) : base(scheme)
         {
             Settings = null;

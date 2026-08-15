@@ -90,6 +90,7 @@ namespace GameRes.Formats.Purple
 
         private Dictionary<string, CmvsScheme> KnownSchemes { get; }
 
+        [ImportingConstructor]
         public CpzOpener (CpzScheme scheme)
         {
             KnownSchemes = scheme.KnownSchemes;
