@@ -100,8 +100,11 @@ namespace GameRes.Formats.PkWare
 
         static readonly byte[] PkDirSignature = { (byte)'P', (byte)'K', 5, 6 };
 
-        public ZipOpener ()
+        ZipScheme DefaultScheme { get; }
+
+        public ZipOpener (ZipScheme scheme)
         {
+            DefaultScheme = scheme;
             Settings = new[] { ZipEncoding };
             Extensions = new string[] { "zip", "vndat" };
         }
@@ -229,13 +232,7 @@ namespace GameRes.Formats.PkWare
             }
         }
 
-        ZipScheme DefaultScheme = new ZipScheme { KnownKeys = new Dictionary<string, string>() };
 
-        public override ResourceScheme Scheme
-        {
-            get { return DefaultScheme; }
-            set { DefaultScheme = (ZipScheme)value; }
-        }
     }
 
     public class ZipOptions : ResourceOptions

@@ -85,9 +85,20 @@ namespace GameRes.Formats.KiriKiri
         public override uint     Signature { get { return 0x0d335058; } }
         public override bool  IsHierarchic { get { return true; } }
         public override bool      CanWrite { get { return true; } }
-
-        public Xp3Opener ()
+        public IDictionary<string, ICrypt> KnownSchemes
         {
+            get;
+        }
+
+        public ISet<string> NoCryptTitles
+        {
+            get;
+        }
+
+        public Xp3Opener (Xp3Scheme scheme)
+        {
+            KnownSchemes = scheme.KnownSchemes;
+            NoCryptTitles = scheme.NoCryptTitles;
             Signatures = new uint[] { 0x0d335058, 0x00905A4D, 0 };
             Extensions = new[] { "xp3", "exe" };
             ContainedFormats = new[] { "TLG", "BMP", "PNG", "JPEG", "OGG", "WAV", "TXT" };
@@ -396,7 +407,7 @@ NextEntry:
             return options.Scheme;
         }
 
-        public static ICrypt GetScheme (string scheme)
+        public ICrypt GetScheme (string scheme)
         {
             ICrypt algorithm;
             if (string.IsNullOrEmpty (scheme) || !KnownSchemes.TryGetValue (scheme, out algorithm))
@@ -693,27 +704,7 @@ NextEntry:
             return algorithm;
         }
 
-        static Xp3Scheme KiriKiriScheme = new Xp3Scheme
-        {
-            KnownSchemes = new Dictionary<string, ICrypt>(),
-            NoCryptTitles = new HashSet<string>()
-        };
-
-        public static IDictionary<string, ICrypt> KnownSchemes
-        {
-            get { return KiriKiriScheme.KnownSchemes; }
-        }
-
-        public static ISet<string> NoCryptTitles
-        {
-            get { return KiriKiriScheme.NoCryptTitles; }
-        }
-
-        public override ResourceScheme Scheme
-        {
-            get { return KiriKiriScheme; }
-            set { KiriKiriScheme = (Xp3Scheme)value; }
-        }
+        
     }
 
     internal class Xp3Stream : Stream

@@ -39,7 +39,7 @@ namespace GameRes.Formats.DxLib
         public override bool  IsHierarchic { get { return true; } }
         public override bool      CanWrite { get { return false; } }
 
-        public Dx8Opener ()
+        public Dx8Opener (DxScheme scheme) : base(scheme)
         {
             Extensions = new[] { "bin" };
             Signatures = new[] { 0x00085844u };

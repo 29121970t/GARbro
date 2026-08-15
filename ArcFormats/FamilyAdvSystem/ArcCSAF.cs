@@ -48,9 +48,12 @@ namespace GameRes.Formats.FamilyAdvSystem
         public override uint     Signature { get { return 0x46415343; } } // 'CSAF'
         public override bool  IsHierarchic { get { return true; } }
         public override bool      CanWrite { get { return false; } }
+        internal IDictionary<string, string> KnownKeys { get; }
 
-        public CsafOpener ()
+
+        public CsafOpener (FamilyAdvScheme scheme)
         {
+            KnownKeys = scheme.KnownKeys;
             Extensions = new string[] { "" };
         }
 
@@ -154,15 +157,7 @@ namespace GameRes.Formats.FamilyAdvSystem
             return key;
         }
 
-        FamilyAdvScheme DefaultScheme = new FamilyAdvScheme { KnownKeys = new Dictionary<string, string>() };
 
-        internal IDictionary<string, string> KnownKeys { get { return DefaultScheme.KnownKeys; } }
-
-        public override ResourceScheme Scheme
-        {
-            get { return DefaultScheme; }
-            set { DefaultScheme = (FamilyAdvScheme)value; }
-        }
     }
 
     internal class CsafEncryption : IDisposable

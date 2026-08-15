@@ -10,7 +10,8 @@
         <RowDefinition/>
     </Grid.RowDefinitions>
     <Label Content="{x:Static s:arcStrings.ArcTitleOrPassword}" Grid.Row="0" HorizontalAlignment="Left"/>
-    <ComboBox Name="Title" ItemsSource="{Binding Source={x:Static majiro:RctFormat.KnownKeys}, Mode=OneWay}"
+    <!--ItemsSource="{Binding Source={x:Static majiro:RctFormat.KnownKeys}, Mode=OneWay}"-->
+    <ComboBox Name="Title"  
               SelectedValue="{Binding Source={x:Static p:Settings.Default}, Path=RCTTitle, Mode=TwoWay}"
               SelectedValuePath="Key" DisplayMemberPath="Key" SelectionChanged="Title_SelectionChanged"
               Width="200" Grid.Row="1" HorizontalAlignment="Left"/>

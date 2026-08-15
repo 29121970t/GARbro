@@ -70,9 +70,14 @@ namespace GameRes.Formats.FC01
         public override uint     Signature { get { return 0x24A02028; } }
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
-
-        public PakOpener ()
+        public IDictionary<string, IDictionary<string, byte[]>> KnownSchemes
         {
+            get;
+        }
+
+        public PakOpener (AgsiScheme scheme)
+        {
+            KnownSchemes = scheme.KnownSchemes;
             Signatures = new uint[] { 0x4B434150, 0x24A02028, 0 }; // 'PACK'
         }
 
@@ -182,21 +187,7 @@ namespace GameRes.Formats.FC01
             return KnownSchemes[title];
         }
 
-        static AgsiScheme DefaultScheme = new AgsiScheme
-        {
-            KnownSchemes = new Dictionary<string, IDictionary<string, byte[]>>()
-        };
 
-        public IDictionary<string, IDictionary<string, byte[]>> KnownSchemes
-        {
-            get { return DefaultScheme.KnownSchemes; }
-        }
-
-        public override ResourceScheme Scheme
-        {
-            get { return DefaultScheme; }
-            set { DefaultScheme = (AgsiScheme)value; }
-        }
     }
 
     internal class IndexReader

@@ -52,6 +52,13 @@ namespace GameRes.Formats.Crowd
         public override string Description { get { return "Crowd encrypted image format"; } }
         public override uint     Signature { get { return 0x44445A53; } } // 'SZDD'
 
+        private IDictionary<string, byte[]> KnownKeys { get; }
+
+        public CrzFormat(CrzScheme schema)
+        {
+            KnownKeys = schema.KnownKeys;
+        }
+
         public override ImageMetaData ReadMetaData (IBinaryStream file)
         {
             file.Position = 0xE;
@@ -161,14 +168,5 @@ namespace GameRes.Formats.Crowd
             return key;
         }
 
-        CrzScheme DefaultScheme = new CrzScheme { KnownKeys = new Dictionary<string, byte[]>() };
-
-        public override ResourceScheme Scheme
-        {
-            get { return DefaultScheme; }
-            set { DefaultScheme = (CrzScheme)value; }
-        }
-
-        IDictionary<string, byte[]> KnownKeys { get { return DefaultScheme.KnownKeys; } }
     }
 }

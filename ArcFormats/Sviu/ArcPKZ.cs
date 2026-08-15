@@ -59,15 +59,11 @@ namespace GameRes.Formats.Sviu
         public override uint     Signature { get { return 0x305A4B50; } } // 'PKZ0'
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
-
-        PkzScheme DefaultScheme = new PkzScheme { KnownSchemes = new Dictionary<string, byte[]>() };
-
-        public override ResourceScheme Scheme
+        PkzScheme DefaultScheme { get; }
+        public PkzOpener(PkzScheme scheme)
         {
-            get { return DefaultScheme; }
-            set { DefaultScheme = (PkzScheme)value; }
+            DefaultScheme = scheme;
         }
-
         public override ArcFile TryOpen (ArcView file)
         {
             int count = file.View.ReadInt32 (4);

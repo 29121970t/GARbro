@@ -71,6 +71,13 @@ namespace GameRes.Formats.Illusion
 		    new byte[] { 0x3A, 0xE3, 0x87, 0xC2, 0xBD, 0x1E, 0xA6, 0xFE }
         };
 
+        internal IDictionary<string, PpEncryptionScheme> KnownKeys { get; }
+
+        public PpOpener(PpScheme scheme)
+        {
+            KnownKeys = scheme.KnownKeys;
+        }
+
         public override ArcFile TryOpen (ArcView file)
         {
             if (!file.View.AsciiEqual (0, "[PPVER]\0"))
@@ -210,18 +217,6 @@ namespace GameRes.Formats.Illusion
             }
         }
 
-        PpScheme DefaultScheme = new PpScheme
-        {
-            KnownKeys = new Dictionary<string, PpEncryptionScheme>()
-        };
-
-        internal IDictionary<string, PpEncryptionScheme> KnownKeys { get { return DefaultScheme.KnownKeys; } }
-
-        public override ResourceScheme Scheme
-        {
-            get { return DefaultScheme; }
-            set { DefaultScheme = (PpScheme)value; }
-        }
 
         PpEncryptionScheme QueryEncryptionScheme (ArcView file)
         {

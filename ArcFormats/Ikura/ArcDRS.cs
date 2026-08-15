@@ -117,8 +117,12 @@ namespace GameRes.Formats.Ikura
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
 
-        public MpxOpener ()
+        public Dictionary<string, byte[]> KnownSecrets { get; }
+
+
+        public MpxOpener (IsfScheme scheme)
         {
+            KnownSecrets = scheme.KnownSecrets;
             Extensions = Enumerable.Empty<string>(); // DRS archives have no extensions
         }
 
@@ -207,7 +211,7 @@ namespace GameRes.Formats.Ikura
         public override ResourceOptions GetDefaultOptions ()
         {
             return new IsfOptions {
-                Secret = GetSecret (Properties.Settings.Default.ISFScheme) ?? new byte[0]
+                Secret = GetSecret (Properties.Settings.Default.ISFScheme, KnownSecrets) ?? new byte[0]
             };
         }
 
@@ -222,7 +226,7 @@ namespace GameRes.Formats.Ikura
             return options.Secret;
         }
 
-        private static byte[] GetSecret (string scheme)
+        private static byte[] GetSecret (string scheme, Dictionary<string, byte[]> KnownSecrets)
         {
             byte[] secret;
             if (KnownSecrets.TryGetValue (scheme, out secret))
@@ -236,13 +240,7 @@ namespace GameRes.Formats.Ikura
                 data[i] = (byte)method (data[i]);
         }
 
-        public static Dictionary<string, byte[]> KnownSecrets = new Dictionary<string, byte[]>();
 
-        public override ResourceScheme Scheme
-        {
-            get { return new IsfScheme { KnownSecrets = KnownSecrets }; }
-            set { KnownSecrets = ((IsfScheme)value).KnownSecrets; }
-        }
     }
 
     internal class IsfDecoder

@@ -79,7 +79,15 @@ namespace GameRes.Formats.AirNovel
         public override bool  IsHierarchic { get { return true; } }
         public override bool      CanWrite { get { return false; } }
 
+        public readonly IDictionary<string, string> KnownKeys;
+
+
         static readonly ResourceInstance<ArchiveFormat> Zip = new ResourceInstance<ArchiveFormat> ("ZIP");
+
+        public AirOpener(AirNovelScheme scheme)
+        {
+            this.KnownKeys = scheme.KnownKeys;
+        }
 
         public override ArcFile TryOpen (ArcView file)
         {
@@ -174,16 +182,6 @@ namespace GameRes.Formats.AirNovel
                 xml.Load (reader);
                 return xml.DocumentElement.SelectSingleNode (xpath);
             }
-        }
-
-        AirNovelScheme DefaultScheme = new AirNovelScheme { KnownKeys = new Dictionary<string, string>() };
-
-        internal IDictionary<string, string> KnownKeys { get { return DefaultScheme.KnownKeys; } }
-
-        public override ResourceScheme Scheme
-        {
-            get { return DefaultScheme; }
-            set { DefaultScheme = (AirNovelScheme)value; }
         }
 
         string QueryEncryptionKey (ArcView file)

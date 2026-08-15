@@ -67,19 +67,14 @@ namespace GameRes.Formats.Rpm
         public override uint     Signature { get { return 0; } }
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
+        public Dictionary<string, EncryptionScheme> KnownSchemes { get; }
 
-        public ArcOpener ()
+        public ArcOpener (ArcScheme scheme)
         {
+            KnownSchemes = scheme.KnownSchemes;
             Extensions = new string[] { "arc" };
         }
 
-        public static Dictionary<string, EncryptionScheme> KnownSchemes = new Dictionary<string, EncryptionScheme>();
-
-        public override ResourceScheme Scheme
-        {
-            get { return new ArcScheme { KnownSchemes = KnownSchemes }; }
-            set { KnownSchemes = ((ArcScheme)value).KnownSchemes; }
-        }
 
         /// <summary>Minimum entry length across all possible archive schemes.</summary>
         const int MinEntryLength = 0x24;
@@ -149,7 +144,7 @@ namespace GameRes.Formats.Rpm
             return options.Scheme;
         }
 
-        static EncryptionScheme GetScheme (string title)
+        EncryptionScheme GetScheme (string title)
         {
             EncryptionScheme scheme = null;
             KnownSchemes.TryGetValue (title, out scheme);

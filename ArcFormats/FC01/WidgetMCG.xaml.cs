@@ -18,7 +18,8 @@ namespace GameRes.Formats.GUI
         {
             InitializeComponent();
             var none = new KeyValuePair<string, byte>[] { new KeyValuePair<string, byte> (arcStrings.ArcIgnoreEncryption, 0) };
-            Title.ItemsSource = none.Concat (McgFormat.KnownKeys.OrderBy (x => x.Key));
+            //TODO: FIX THIS
+            //Title.ItemsSource = none.Concat (McgFormat.KnownKeys.OrderBy (x => x.Key));
         }
 
         public byte GetKey ()

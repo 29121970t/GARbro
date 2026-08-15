@@ -70,21 +70,14 @@ namespace GameRes.Formats.Selene
         public override bool      CanWrite { get { return false; } }
 
         static private string DefaultPassPhrase = "Selene.Default.Password";
+        public Dictionary<string, string> KnownSchemes { get; }
 
-        public PackOpener ()
+        public PackOpener (KcapScheme scheme)
         {
+            KnownSchemes =scheme.KnownSchemes;
             Extensions = new string[] { "pack" };
         }
 
-        static KcapScheme DefaultScheme = new KcapScheme { KnownSchemes = new Dictionary<string,string>() };
-
-        public static Dictionary<string,string> KnownSchemes { get { return DefaultScheme.KnownSchemes; } }
-
-        public override ResourceScheme Scheme
-        {
-            get { return DefaultScheme; }
-            set { DefaultScheme = (KcapScheme)value; }
-        }
 
         public override ArcFile TryOpen (ArcView file)
         {
@@ -127,7 +120,7 @@ namespace GameRes.Formats.Selene
             return new InputCryptoStream (input, new KcapTransform(kpa.KeyTable));
         }
 
-        public static string GetPassPhrase (string title)
+        public string GetPassPhrase (string title)
         {
             string pass;
             if (string.IsNullOrEmpty (title) || !KnownSchemes.TryGetValue (title, out pass))

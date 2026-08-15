@@ -40,8 +40,13 @@ namespace GameRes.Formats.Ags
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
 
-        public DatOpener ()
+        public readonly Dictionary<string, EncryptionScheme> KnownSchemes;
+        public readonly HashSet<string> EncryptedArchives;
+
+        public DatOpener (AgsScheme schema)
         {
+            KnownSchemes = schema.KnownSchemes;
+            EncryptedArchives = schema.EncryptedArchives;
             Extensions = new string[] { "dat" };
         }
 
@@ -115,20 +120,6 @@ namespace GameRes.Formats.Ags
             return scheme;
         }
 
-        AgsScheme m_scheme = new AgsScheme
-        {
-            KnownSchemes = new Dictionary<string, EncryptionScheme>(),
-            EncryptedArchives = new HashSet<string>()
-        };
-
-        Dictionary<string, EncryptionScheme> KnownSchemes { get { return m_scheme.KnownSchemes; } }
-        HashSet<string>                 EncryptedArchives { get { return m_scheme.EncryptedArchives; } }
-
-        public override ResourceScheme Scheme
-        {
-            get { return m_scheme; }
-            set { m_scheme = (AgsScheme)value; }
-        }
     }
 
     internal class DatArchive : ArcFile

@@ -44,10 +44,9 @@ namespace GameRes.Formats.NScripter
 
         public static Dictionary<string, string> KnownKeys = new Dictionary<string, string>();
 
-        public override ResourceScheme Scheme
+        public Ns2Opener(NsaScheme scheme)
         {
-            get { return new NsaScheme { KnownKeys = KnownKeys }; }
-            set { KnownKeys = ((NsaScheme)value).KnownKeys; }
+            KnownKeys = scheme.KnownKeys;
         }
 
         public override ArcFile TryOpen (ArcView file)

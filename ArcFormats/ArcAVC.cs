@@ -67,8 +67,12 @@ namespace GameRes.Formats.AVC
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
 
-        public DatOpener ()
+        internal static ArchiveScheme[] KnownSchemes;
+
+
+        public DatOpener (AvcScheme scheme)
         {
+            KnownSchemes = scheme.KnownSchemes;
             Extensions = new string[] { "dat" };
         }
 
@@ -190,14 +194,7 @@ namespace GameRes.Formats.AVC
                 }
                 return dir;
             }
-
-            internal static ArchiveScheme[] KnownSchemes = new ArchiveScheme[0];
         }
 
-        public override ResourceScheme Scheme
-        {
-            get { return new AvcScheme { KnownSchemes = AdvReader.KnownSchemes }; }
-            set { AdvReader.KnownSchemes = ((AvcScheme)value).KnownSchemes; }
-        }
     }
 }

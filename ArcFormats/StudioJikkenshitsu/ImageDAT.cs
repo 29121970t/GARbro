@@ -63,9 +63,10 @@ namespace GameRes.Formats.Jikkenshitsu
         public override string         Tag { get { return "DAT/SPEED"; } }
         public override string Description { get { return "Studio Jikkenshitsu image format"; } }
         public override uint     Signature { get { return 0; } }
-
-        public SpDatFormat ()
+        SjSchemeMap DefaultScheme { get; }
+        public SpDatFormat (SjSchemeMap scheme)
         {
+            DefaultScheme = scheme;
             Extensions = new string[] { /* "dat" */ };
             Signatures = new uint[] { 0x010003, 0x010007, 0x01000B, 0x010046, 0 };
         }
@@ -114,15 +115,7 @@ namespace GameRes.Formats.Jikkenshitsu
         {
             throw new System.NotImplementedException ("SpDatFormat.Write not implemented");
         }
-
-        SjSchemeMap DefaultScheme = new SjSchemeMap { KnownSchemes = new Dictionary<string, byte[]>() };
-
-        public override ResourceScheme Scheme
-        {
-            get { return DefaultScheme; }
-            set { DefaultScheme = (SjSchemeMap)value; }
-        }
-
+                
         public override ResourceOptions GetDefaultOptions ()
         {
             return new SjOptions { Key = GetKey (Properties.Settings.Default.SJDatTitle) };

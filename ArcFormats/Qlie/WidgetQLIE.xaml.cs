@@ -14,7 +14,7 @@ namespace GameRes.Formats.GUI
         {
             InitializeComponent ();
             var keys = new string[] { arcStrings.QLIEDefaultScheme };
-            Scheme.ItemsSource = keys.Concat (PackOpener.KnownKeys.Keys.OrderBy (x => x));
+            //Scheme.ItemsSource = keys.Concat (PackOpener.KnownKeys.Keys.OrderBy (x => x));
             if (-1 == Scheme.SelectedIndex)
                 Scheme.SelectedIndex = 0;
         }

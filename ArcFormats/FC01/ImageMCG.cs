@@ -60,14 +60,11 @@ namespace GameRes.Formats.FC01
         public override string Description { get { return "F&C Co. image format"; } }
         public override uint     Signature { get { return 0x2047434D; } } // 'MCG'
 
-        internal static Dictionary<string, byte> KnownKeys { get { return DefaultScheme.KnownKeys; } }
+        internal Dictionary<string, byte> KnownKeys { get; }
 
-        static McgScheme DefaultScheme = new McgScheme { KnownKeys = new Dictionary<string, byte>() };
-
-        public override ResourceScheme Scheme
+        public McgFormat(McgScheme scheme)
         {
-            get { return DefaultScheme; }
-            set { DefaultScheme = (McgScheme)value; }
+            KnownKeys = scheme.KnownKeys;
         }
 
         public override ImageMetaData ReadMetaData (IBinaryStream stream)

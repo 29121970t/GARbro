@@ -58,14 +58,12 @@ namespace GameRes.Formats.Elf
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
 
-        static Ai5Scheme DefaultScheme = new Ai5Scheme { KnownSchemes = new Dictionary<string, ArcIndexScheme>() };
-        public Dictionary<string, ArcIndexScheme> KnownSchemes { get { return DefaultScheme.KnownSchemes; } }
+        public Dictionary<string, ArcIndexScheme> KnownSchemes { get; }
 
-        public override ResourceScheme Scheme
+        public ArcAI5Opener(Ai5Scheme scheme)
         {
-            get { return DefaultScheme; }
-            set { DefaultScheme = (Ai5Scheme)value; }
-        }
+            KnownSchemes = scheme.KnownSchemes;
+        } 
 
         public override ArcFile TryOpen (ArcView file)
         {

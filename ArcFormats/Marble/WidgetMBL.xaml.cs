@@ -15,7 +15,7 @@ namespace GameRes.Formats.GUI
         {
             InitializeComponent ();
             var keys = new[] { new KeyValuePair<string, string> (arcStrings.ArcDefault, "") };
-            EncScheme.ItemsSource = keys.Concat (MblOpener.KnownKeys);
+            //EncScheme.ItemsSource = keys.Concat (MblOpener.KnownKeys);
             if (-1 == EncScheme.SelectedIndex)
                 EncScheme.SelectedIndex = 0;
         }

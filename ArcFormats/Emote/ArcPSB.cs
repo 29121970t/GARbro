@@ -62,8 +62,9 @@ namespace GameRes.Formats.Emote
 
         static uint[] KnownKeys = new uint[] { 970396437u };
 
-        public PsbOpener ()
+        public PsbOpener (PsbScheme scheme)
         {
+            KnownKeys = scheme.KnownKeys;
             Extensions = new string[] { "psb", "pimg", "dpak", "psbz", "psp" };
         }
 
@@ -138,12 +139,6 @@ namespace GameRes.Formats.Emote
                 input.Dispose();
                 throw;
             }
-        }
-
-        public override ResourceScheme Scheme
-        {
-            get { return new PsbScheme { KnownKeys = KnownKeys }; }
-            set { KnownKeys = ((PsbScheme)value).KnownKeys; }
         }
 
         ImageFormat TlgFormat { get { return s_TlgFormat.Value; } }

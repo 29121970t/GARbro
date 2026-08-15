@@ -88,6 +88,12 @@ namespace GameRes.Formats.Unity
         public override bool  IsHierarchic { get { return true; } }
         public override bool      CanWrite { get { return false; } }
 
+        BinPackScheme DefaultScheme { get; }
+        public BinOpener(BinPackScheme scheme)
+        {
+            DefaultScheme = scheme;
+        }
+
         public override ArcFile TryOpen (ArcView file)
         {
             if (!file.Name.HasExtension (".bin"))
@@ -160,13 +166,7 @@ namespace GameRes.Formats.Unity
             return DefaultScheme.KnownKeys.Values.FirstOrDefault();
         }
 
-        static BinPackScheme DefaultScheme = new BinPackScheme { KnownKeys = new Dictionary<string, BinPackKey>() };
 
-        public override ResourceScheme Scheme
-        {
-            get { return DefaultScheme; }
-            set { DefaultScheme = (BinPackScheme)value; }
-        }
     }
 
     internal class BinDeserializer

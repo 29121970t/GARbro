@@ -42,9 +42,13 @@ namespace GameRes.Formats.Will
         public override uint     Signature { get { return 0x47435241; } } // 'ARCG'
         public override bool  IsHierarchic { get { return true; } }
         public override bool      CanWrite { get { return false; } }
-
-        public ArcGOpener ()
+        internal IDictionary<uint, string> KnownKeys
         {
+            get;
+        }
+        public ArcGOpener (BmiScheme scheme)
+        {
+            KnownKeys = scheme.KnownKeys;
             Extensions = new string[] { "arc", "bmx", "scb", "vpk" };
         }
 
@@ -173,18 +177,6 @@ namespace GameRes.Formats.Will
             string rootPathName, IntPtr volumeNameBuffer, int volumeNameSize,
             out uint volumeSerialNumber, IntPtr maximumComponentLength, IntPtr fileSystemFlags,
             IntPtr fileSystemNameBuffer, int nFileSystemNameSize);
-
-        BmiScheme KnownSchemes = new BmiScheme();
-
-        public override ResourceScheme Scheme
-        {
-            get { return KnownSchemes; }
-            set { KnownSchemes = (BmiScheme)value; }
-        }
-
-        internal IDictionary<uint, string> KnownKeys {
-            get { return KnownSchemes.KnownKeys ?? new Dictionary<uint, string>(); }
-        }
 
         internal static Lazy<ImageFormat> BcFormat = new Lazy<ImageFormat> (() => ImageFormat.FindByTag ("BC"));
     }

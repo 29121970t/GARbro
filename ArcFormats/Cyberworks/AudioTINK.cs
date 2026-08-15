@@ -45,19 +45,16 @@ namespace GameRes.Formats.Cyberworks
         public override string Description { get { return "Cyberworks encrypted OGG audio"; } }
         public override uint     Signature { get { return 0x6B6E6954; } }
 
-        public TinkAudio ()
+        static Dictionary<uint, byte[]> KnownKeys = new Dictionary<uint, byte[]>();
+
+
+        public TinkAudio (TinkAudioScheme scheme)
         {
+            KnownKeys = scheme.KnownKeys;
             Signatures = new uint[] { 0x6B6E6954, 0x676E6F53, 0 }; // 'Tink', 'Song'
             Extensions = new string[] { "j0", "k0", "u0" };
         }
 
-        static Dictionary<uint, byte[]> KnownKeys = new Dictionary<uint, byte[]>();
-
-        public override ResourceScheme Scheme
-        {
-            get { return new TinkAudioScheme { KnownKeys = KnownKeys }; }
-            set { KnownKeys = ((TinkAudioScheme)value).KnownKeys; }
-        }
 
         public override SoundInput TryOpen (IBinaryStream file)
         {

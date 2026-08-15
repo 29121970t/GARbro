@@ -58,8 +58,12 @@ namespace GameRes.Formats.Leaf
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
 
-        LeafPackOpener ()
+        public IDictionary<string, byte[]> KnownKeys { get; }
+        
+
+        public LeafPackOpener (LeafPackScheme scheme)
         {
+            KnownKeys = scheme.KnownSchemes;
             ContainedFormats = new[] { "LFG", "P16", "DAT/GENERIC" };
         }
 
@@ -148,16 +152,6 @@ namespace GameRes.Formats.Leaf
         public static readonly byte[] DefaultKey = {
             0x71, 0x48, 0x6A, 0x55, 0x9F, 0x13, 0x58, 0xF7, 0xD1, 0x7C, 0x3E
         };
-
-        static LeafPackScheme DefaultScheme = new LeafPackScheme { KnownSchemes = new Dictionary<string, byte[]>() };
-
-        public IDictionary<string, byte[]> KnownKeys { get { return DefaultScheme.KnownSchemes; } }
-
-        public override ResourceScheme Scheme
-        {
-            get { return DefaultScheme; }
-            set { DefaultScheme = (LeafPackScheme)value; }
-        }
     }
 
     public class LeafOptions : ResourceOptions

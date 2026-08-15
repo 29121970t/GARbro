@@ -340,9 +340,9 @@ namespace GameRes
 
                 foreach (var format in Formats)
                 {
-                    ResourceScheme scheme;
-                    if (db.SchemeMap.TryGetValue (format.Tag, out scheme))
-                        format.Scheme = scheme;
+                    //ResourceScheme scheme;
+                    //if (db.SchemeMap.TryGetValue (format.Tag, out scheme))
+                    //    format.Scheme = scheme;
                 }
                 CurrentSchemeVersion = db.Version;
                 if (db.GameMap != null)
@@ -359,9 +359,9 @@ namespace GameRes
             };
             foreach (var format in Formats)
             {
-                var scheme = format.Scheme;
-                if (null != scheme)
-                    db.SchemeMap[format.Tag] = scheme;
+                //var scheme = format.Scheme;
+                //if (null != scheme)
+                //    db.SchemeMap[format.Tag] = scheme;
             }
             SerializeScheme (output, db);
         }

@@ -107,15 +107,22 @@ namespace GameRes.Formats.NonColor
         public override uint     Signature { get { return 0; } }
         public override bool  IsHierarchic { get { return true; } }
         public override bool      CanWrite { get { return false; } }
-
-        public DatOpener ()
-        {
-            Extensions = new string[] { "dat" };
-        }
+        public Dictionary<string, Scheme> KnownSchemes { get; }
 
         internal const int SignatureKey = 0x26ACA46E;
 
         public static readonly string PersistentFileMapName = "NCFileMap.dat";
+
+
+        public DatOpener (ArcDatScheme scheme)
+        {
+            KnownSchemes = scheme.KnownSchemes;
+            Extensions = new string[] { "dat" };
+        }
+
+
+
+
 
         public override ArcFile TryOpen (ArcView file)
         {
@@ -239,16 +246,6 @@ namespace GameRes.Formats.NonColor
                     return name_map;
                 }
             }
-        }
-
-        static ArcDatScheme DefaultScheme = new ArcDatScheme { KnownSchemes = new Dictionary<string, Scheme>() };
-
-        public static Dictionary<string, Scheme> KnownSchemes { get { return DefaultScheme.KnownSchemes; } }
-
-        public override ResourceScheme Scheme
-        {
-            get { return DefaultScheme; }
-            set { DefaultScheme = (ArcDatScheme)value; }
         }
 
         internal Scheme QueryScheme (string arc_name)

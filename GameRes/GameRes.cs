@@ -107,7 +107,7 @@ namespace GameRes
         public IEnumerable<IResourceSetting> Settings { get; protected set; }
 
         /// <summary>Resource access scheme suitable for serialization.</summary>
-        public virtual ResourceScheme Scheme { get; set; }
+ 
 
         protected IResource ()
         {

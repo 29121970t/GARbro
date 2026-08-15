@@ -131,7 +131,8 @@ namespace GameRes.Formats.GUI
         public IntEncryptionViewModel (IntEncryptionInfo src)
         {
             Source = src ?? new IntEncryptionInfo();
-            KnownKeys = IntOpener.KnownSchemes;
+            //TODO: FIX THIS
+            //KnownKeys = IntOpener.KnownSchemes;
             m_message = Strings.arcStrings.INTMessage1;
         }
 

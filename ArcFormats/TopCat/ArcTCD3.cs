@@ -82,19 +82,14 @@ namespace GameRes.Formats.TopCat
         public override uint     Signature { get { return 0x33444354; } } // 'TCD3'
         public override bool  IsHierarchic { get { return true; } }
         public override bool      CanWrite { get { return false; } }
+        public Dictionary<string, int> KnownKeys { get; }
 
-        public TcdOpener ()
+        public TcdOpener (TcdScheme scheme)
         {
+            KnownKeys = scheme.KnownKeys;
             Signatures = new uint[] { 0x32444354, 0x33444354 }; // 'TCD2', 'TCD3'
         }
 
-        public static Dictionary<string, int> KnownKeys = new Dictionary<string, int>();
-
-        public override ResourceScheme Scheme
-        {
-            get { return new TcdScheme { KnownKeys = KnownKeys }; }
-            set { KnownKeys = ((TcdScheme)value).KnownKeys; }
-        }
 
         public override ArcFile TryOpen (ArcView file)
         {
@@ -146,7 +141,7 @@ namespace GameRes.Formats.TopCat
                 {
                     if (null == tcda.Key)
                     {
-                        foreach (var key in TcdOpener.KnownKeys.Values)
+                        foreach (var key in KnownKeys.Values)
                         {
                             int first = signature + key * (tcde.Index + 3);
                             if (0x43445053 == first) // 'SPDC'

@@ -48,18 +48,15 @@ namespace GameRes.Formats.BlackRainbow
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
 
-        public AdsOpener ()
+        public AdsOpener (AdsScheme scheme)
         {
+            KnownKeys = scheme.KnownKeys;
             Signatures = new uint[] { 0x84D9514E, 0 };
         }
 
-        public static Dictionary<string, byte[]> KnownKeys = new Dictionary<string, byte[]>();
+        public Dictionary<string, byte[]> KnownKeys { get; }
 
-        public override ResourceScheme Scheme
-        {
-            get { return new AdsScheme { KnownKeys = KnownKeys }; }
-            set { KnownKeys = ((AdsScheme)value).KnownKeys; }
-        }
+
 
         public override ArcFile TryOpen (ArcView file)
         {

@@ -71,9 +71,11 @@ namespace GameRes.Formats.DigitalWorks
         public override uint     Signature { get { return 0; } }
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
+        public IDictionary<string, IDictionary<string, BinScheme>> KnownSchemes { get; }
 
-        public BinOpener ()
+        public BinOpener (PacScheme scheme)
         {
+            KnownSchemes = scheme.KnownSchemes;
             ContainedFormats = new[] { "TX", "OGG", "SCR" };
         }
 
@@ -167,19 +169,6 @@ namespace GameRes.Formats.DigitalWorks
             { "_SE", "OGG" },
         };
 
-        PacScheme DefaultScheme = new PacScheme {
-            KnownSchemes = new Dictionary<string, IDictionary<string, BinScheme>>()
-        };
 
-        public IDictionary<string, IDictionary<string, BinScheme>> KnownSchemes
-        {
-            get { return DefaultScheme.KnownSchemes; }
-        }
-
-        public override ResourceScheme Scheme
-        {
-            get { return DefaultScheme; }
-            set { DefaultScheme = (PacScheme)value; }
-        }
     }
 }

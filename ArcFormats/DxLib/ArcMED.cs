@@ -97,18 +97,13 @@ namespace GameRes.Formats.DxLib
         public override uint     Signature { get { return 0; } }
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
+        public Dictionary<string, IScriptEncryption> KnownSchemes { get; }
 
         static readonly ResourceInstance<ImageFormat> PrsFormat = new ResourceInstance<ImageFormat> ("PRS");
 
-        static ScrMedScheme DefaultScheme = new ScrMedScheme {
-            KnownSchemes = new Dictionary<string, IScriptEncryption>()
-        };
-        public static Dictionary<string, IScriptEncryption> KnownSchemes { get { return DefaultScheme.KnownSchemes; } }
-
-        public override ResourceScheme Scheme
+        public MedOpener(ScrMedScheme scheme)
         {
-            get { return DefaultScheme; }
-            set { DefaultScheme = (ScrMedScheme)value; }
+            KnownSchemes = scheme.KnownSchemes;
         }
 
         public override ArcFile TryOpen (ArcView file)
@@ -179,7 +174,7 @@ namespace GameRes.Formats.DxLib
             return new GUI.WidgetSCR();
         }
 
-        public static IScriptEncryption GetEncryption (string scheme)
+        public IScriptEncryption GetEncryption (string scheme)
         {
             IScriptEncryption enc;
             if (string.IsNullOrEmpty (scheme) || !KnownSchemes.TryGetValue (scheme, out enc))

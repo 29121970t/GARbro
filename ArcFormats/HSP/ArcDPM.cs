@@ -116,16 +116,6 @@ namespace GameRes.Formats.HSP
                 return DefaultKey;
             return exe.View.ReadUInt32 (key_pos+0x17);
         }
-
-        DpmxScheme DefaultScheme = new DpmxScheme { KnownKeys = new Dictionary<string, uint>() };
-
-        public IDictionary<string, uint> KnownKeys { get { return DefaultScheme.KnownKeys; } }
-
-        public override ResourceScheme Scheme
-        {
-            get { return DefaultScheme; }
-            set { DefaultScheme = (DpmxScheme)value; }
-        }
     }
 
     internal class DpmEntry : Entry
@@ -179,11 +169,5 @@ namespace GameRes.Formats.HSP
                 data[i] = val;
             }
         }
-    }
-
-    [Serializable]
-    public class DpmxScheme : ResourceScheme
-    {
-        public IDictionary<string, uint>    KnownKeys;
     }
 }

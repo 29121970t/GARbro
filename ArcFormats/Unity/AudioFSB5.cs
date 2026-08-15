@@ -43,6 +43,11 @@ namespace GameRes.Formats.Fmod
         public override uint     Signature { get { return 0x35425346; } } // 'FSB5'
         public override bool      CanWrite { get { return false; } }
 
+        public Fsb5Audio(FmodScheme scheme)
+        {
+            Fsb5Decoder.VorbisHeaders = scheme.VorbisHeaders;
+        }
+
         public override SoundInput TryOpen (IBinaryStream file)
         {
             var fsb = new Fsb5Decoder (file);
@@ -51,11 +56,6 @@ namespace GameRes.Formats.Fmod
             return sound;
         }
 
-        public override ResourceScheme Scheme
-        {
-            get { return new FmodScheme { VorbisHeaders = Fsb5Decoder.VorbisHeaders }; }
-            set { Fsb5Decoder.VorbisHeaders = ((FmodScheme)value).VorbisHeaders; }
-        }
     }
 
     enum SoundFormat

@@ -45,7 +45,6 @@ namespace GameRes.Formats.BellDa
         {
             Signatures = new[] { this.Signature };
             Settings = null;
-            Scheme = null;
         }
 
         public override ArcFile TryOpen (ArcView file)

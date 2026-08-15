@@ -16,7 +16,7 @@ namespace GameRes.Formats.GUI
         {
             InitializeComponent ();
             var first = new Dictionary<string, string> { { arcStrings.ArcNoEncryption, "" } };
-            Title.ItemsSource = first.Concat (FjsysOpener.KnownPasswords.OrderBy (x => x.Key));
+            //Title.ItemsSource = first.Concat (FjsysOpener.KnownPasswords.OrderBy (x => x.Key));
         }
     }
 }

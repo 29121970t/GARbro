@@ -14,7 +14,8 @@ namespace GameRes.Formats.GUI
         {
             InitializeComponent ();
             var keys = new string[] { arcStrings.ArcIgnoreEncryption};
-            Scheme.ItemsSource = keys.Concat (MpxOpener.KnownSecrets.Keys.OrderBy (x => x));
+            //TODO: FIX THIS
+            //Scheme.ItemsSource = keys.Concat (MpxOpener.KnownSecrets.Keys.OrderBy (x => x));
             if (-1 == Scheme.SelectedIndex)
                 Scheme.SelectedIndex = 0;
         }

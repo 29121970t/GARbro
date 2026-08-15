@@ -16,7 +16,7 @@ namespace GameRes.Formats.GUI
         {
             InitializeComponent ();
             var keys = new[] { arcStrings.ArcDefault };
-            EncScheme.ItemsSource = keys.Concat (PackOpener.KnownSchemes.Keys);
+            //EncScheme.ItemsSource = keys.Concat (PackOpener.KnownSchemes.Keys);
             if (-1 == EncScheme.SelectedIndex)
                 EncScheme.SelectedIndex = 0;
             EncScheme.SelectionChanged += OnSchemeChanged;
@@ -25,9 +25,9 @@ namespace GameRes.Formats.GUI
         void OnSchemeChanged (object sender, SelectionChangedEventArgs e)
         {
             var widget = sender as ComboBox;
-            var pass = PackOpener.GetPassPhrase (widget.SelectedItem as string);
-            Passphrase.Text = pass;
-            Settings.Default.KCAPPassPhrase = pass;
+            //var pass = PackOpener.GetPassPhrase (widget.SelectedItem as string);
+            //Passphrase.Text = pass;
+            //Settings.Default.KCAPPassPhrase = pass;
         }
     }
 }

@@ -75,19 +75,15 @@ namespace GameRes.Formats.NScripter
     public class NsaOpener : SarOpener
     {
         public override string Tag { get { return "NSA"; } }
+        public Dictionary<string, string> KnownKeys { get; }
 
-        public NsaOpener ()
+
+        public NsaOpener (NsaScheme scheme)
         {
+            KnownKeys = scheme.KnownKeys;
             Extensions = new string[] { "nsa", "dat" };
         }
 
-        public static Dictionary<string, string> KnownKeys = new Dictionary<string, string>();
-
-        public override ResourceScheme Scheme
-        {
-            get { return new NsaScheme { KnownKeys = KnownKeys }; }
-            set { KnownKeys = ((NsaScheme)value).KnownKeys; }
-        }
 
         public override ArcFile TryOpen (ArcView file)
         {

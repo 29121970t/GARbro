@@ -67,9 +67,11 @@ namespace GameRes.Formats.Tamamo
         public override uint     Signature { get { return 0x4B434150; } } // 'PACK'
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
+        public Dictionary<string, byte[]> KnownKeys { get; }
 
-        public PckOpener ()
+        public PckOpener (PckScheme scheme)
         {
+            KnownKeys = scheme.KnownKeys;
             ContainedFormats = new[] { "PNG", "DDS", "OGG", "WAV", "TXT", "DAT/GENERIC" };
         }
 
@@ -217,17 +219,6 @@ namespace GameRes.Formats.Tamamo
             target.WritePixels (target_rect, transformed, dst_stride, dst_x, dst_y);
         }
 
-        PckScheme DefaultScheme = new PckScheme {
-            KnownKeys = new Dictionary<string, byte[]>()
-        };
-
-        public Dictionary<string, byte[]> KnownKeys { get { return DefaultScheme.KnownKeys;  } }
-
-        public override ResourceScheme Scheme
-        {
-            get { return DefaultScheme; }
-            set { DefaultScheme = (PckScheme)value; }
-        }
 
         public override object GetAccessWidget ()
         {

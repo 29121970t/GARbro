@@ -39,7 +39,7 @@ namespace GameRes.Formats.TopCat
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
 
-        public Tcd1Opener ()
+        public Tcd1Opener (TcdScheme scheme) : base (scheme)
         {
             Extensions = new string[] { "tcd" };
             Signatures = new uint[] { 0x31444354 };

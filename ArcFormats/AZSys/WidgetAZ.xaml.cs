@@ -13,7 +13,8 @@ namespace GameRes.Formats.GUI
         public WidgetAZ()
         {
             InitializeComponent();
-            Scheme.ItemsSource = ArcOpener.KnownKeys.Keys.OrderBy (x => x);
+            //TODO: get ArcOpener.KnownKeys from proper schema storage when it is implemented
+            //Scheme.ItemsSource = ArcOpener.KnownKeys.Keys.OrderBy (x => x);
         }
     }
 }

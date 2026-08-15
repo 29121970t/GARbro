@@ -43,7 +43,7 @@ namespace GameRes.Formats.FC01
         public override bool  IsHierarchic => false;
         public override bool      CanWrite => false;
 
-        public BdtOpener ()
+        public BdtOpener (AgsiScheme scheme) : base(scheme)
         {
             Signatures = new[] { 0x4B434150u, 0u };
         }

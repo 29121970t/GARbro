@@ -17,7 +17,7 @@ namespace GameRes.Formats.GUI
         {
             InitializeComponent();
             var guess = new Dictionary<string, YpfScheme> { { arcStrings.YPFTryGuess, null } };
-            Scheme.ItemsSource = guess.Concat (YpfOpener.KnownSchemes.OrderBy (x => x.Key));
+            //Scheme.ItemsSource = guess.Concat (YpfOpener.KnownSchemes.OrderBy (x => x.Key));
             if (-1 == Scheme.SelectedIndex)
                 Scheme.SelectedIndex = 0;
         }

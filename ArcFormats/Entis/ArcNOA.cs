@@ -74,9 +74,11 @@ namespace GameRes.Formats.Entis
         public override uint     Signature { get { return 0x69746e45; } } // 'Enti'
         public override bool  IsHierarchic { get { return true; } }
         public override bool      CanWrite { get { return false; } }
+        public  Dictionary<string, Dictionary<string, string>> KnownKeys { get; }
 
-        public NoaOpener ()
+        public NoaOpener (NoaScheme scheme)
         {
+            KnownKeys = scheme.KnownKeys;
             Extensions = new string[] { "noa", "dat", "rsa", "arc", "emc" };
             Signatures = new uint[] { 0x69746E45, 0x54534956 };
             Settings = new[] { NoaEncoding };
@@ -85,8 +87,7 @@ namespace GameRes.Formats.Entis
 
         EncodingSetting NoaEncoding = new EncodingSetting ("NOAEncodingCP", "DefaultEncoding");
 
-        public static Dictionary<string, Dictionary<string, string>> KnownKeys =
-            new Dictionary<string, Dictionary<string, string>>();
+        
 
         public override ArcFile TryOpen (ArcView file)
         {
@@ -352,12 +353,6 @@ namespace GameRes.Formats.Entis
                 }
                 return true;
             }
-        }
-
-        public override ResourceScheme Scheme
-        {
-            get { return new NoaScheme { KnownKeys = KnownKeys }; }
-            set { KnownKeys = ((NoaScheme)value).KnownKeys; }
         }
     }
 

@@ -183,9 +183,12 @@ namespace GameRes.Formats.Cyberworks
         public override uint     Signature { get { return 0; } }
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
+        public Dictionary<string, AImageScheme> KnownSchemes { get; }
 
-        public DatOpener ()
+
+        public DatOpener (SchemeMap scheme)
         {
+            KnownSchemes = scheme.KnownSchemes;
             Extensions = new string[] { "dat", "04", "05", "06", "app" };
         }
 
@@ -348,7 +351,7 @@ namespace GameRes.Formats.Cyberworks
             return new GUI.WidgetBELL();
         }
 
-        public static AImageScheme GetScheme (string title)
+        public AImageScheme GetScheme (string title)
         {
             AImageScheme scheme = null;
             if (string.IsNullOrEmpty (title) || !KnownSchemes.TryGetValue (title, out scheme))
@@ -356,17 +359,6 @@ namespace GameRes.Formats.Cyberworks
             return scheme;
         }
 
-        static SchemeMap DefaultScheme = new SchemeMap {
-            KnownSchemes = new Dictionary<string, AImageScheme>()
-        };
-
-        public static Dictionary<string, AImageScheme> KnownSchemes { get { return DefaultScheme.KnownSchemes; } }
-
-        public override ResourceScheme Scheme
-        {
-            get { return DefaultScheme; }
-            set { DefaultScheme = (SchemeMap)value; }
-        }
     }
 
     [Serializable]
@@ -404,7 +396,7 @@ namespace GameRes.Formats.Cyberworks
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
 
-        public OldDatOpener ()
+        public OldDatOpener (SchemeMap scheme) : base (scheme)
         {
             Extensions = new string[] { "dat" };
         }
@@ -478,7 +470,7 @@ namespace GameRes.Formats.Cyberworks
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
 
-        public OldDatOpener2 ()
+        public OldDatOpener2 (SchemeMap scheme) : base (scheme)
         {
             Extensions = new string[] { "dat" };
         }

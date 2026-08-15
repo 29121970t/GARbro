@@ -102,21 +102,15 @@ namespace GameRes.Formats.YuRis
         public override uint     Signature { get { return 0x00465059; } }
         public override bool  IsHierarchic { get { return true; } }
         public override bool      CanWrite { get { return true; } }
+        public Dictionary<string, YpfScheme> KnownSchemes { get; }
 
-        public YpfOpener ()
+        public YpfOpener (YuRisScheme scheme)
         {
+            KnownSchemes = scheme.KnownSchemes;
             Signatures = new uint[] { 0x00465059, 0x00905A4D, 0 };
         }
 
-        static public Dictionary<string, YpfScheme> KnownSchemes { get { return DefaultScheme.KnownSchemes; } }
 
-        static YuRisScheme DefaultScheme = new YuRisScheme { KnownSchemes = new Dictionary<string, YpfScheme>() };
-
-        public override ResourceScheme Scheme
-        {
-            get { return DefaultScheme; }
-            set { DefaultScheme = (YuRisScheme)value; }
-        }
 
         public override ArcFile TryOpen (ArcView file)
         {

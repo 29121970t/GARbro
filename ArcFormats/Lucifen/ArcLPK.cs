@@ -135,6 +135,16 @@ namespace GameRes.Formats.Lucifen
         public override bool  IsHierarchic { get { return true; } }
         public override bool      CanWrite { get { return false; } }
 
+        public LpkOpener(LpkScheme scheme)
+        {
+            KnownSchemes = scheme.KnownSchemes;
+            KnownKeys = scheme.KnownKeys;
+            foreach (var key in KnownSchemes.Keys.Where(x => null == KnownSchemes[x]).ToArray())
+            {
+                KnownSchemes[key] = DefaultScheme;
+            }
+        }
+
         [Serializable]
         public class Key
         {
@@ -367,21 +377,6 @@ namespace GameRes.Formats.Lucifen
             if (KnownKeys.TryGetValue (title, out file_map))
                 CurrentFileMap = new Dictionary<string, Key> (file_map);
             return KnownSchemes[title];
-        }
-
-        public override ResourceScheme Scheme
-        {
-            get { return new LpkScheme { KnownSchemes = KnownSchemes, KnownKeys = KnownKeys }; }
-            set
-            {
-                var scheme = (LpkScheme)value;
-                KnownSchemes = scheme.KnownSchemes;
-                KnownKeys = scheme.KnownKeys;
-                foreach (var key in KnownSchemes.Keys.Where (x => null == KnownSchemes[x]).ToArray())
-                {
-                    KnownSchemes[key] = DefaultScheme;
-                }
-            }
         }
     }
 

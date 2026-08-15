@@ -79,8 +79,11 @@ namespace GameRes.Formats.Seraphim
         public override bool      CanWrite { get { return false; } }
         public          bool   IsAmbiguous { get { return true; } }
 
-        public ArchPacOpener ()
+        public IDictionary<string, ArchPacScheme> KnownSchemes { get; }
+
+        public ArchPacOpener (SeraphScheme scheme)
         {
+            KnownSchemes = scheme.KnownSchemes;
             Extensions = new string[] { "dat" };
             ContainedFormats = new[] { "CB" };
         }
@@ -264,15 +267,7 @@ namespace GameRes.Formats.Seraphim
 
         internal static ResourceInstance<ImageFormat> CtFormat = new ResourceInstance<ImageFormat> ("CT");
 
-        SeraphScheme m_scheme = new SeraphScheme { KnownSchemes = new Dictionary<string, ArchPacScheme>() };
-
-        public override ResourceScheme Scheme
-        {
-            get { return m_scheme; }
-            set { m_scheme = (SeraphScheme)value; }
-        }
-
-        public IDictionary<string, ArchPacScheme> KnownSchemes { get { return m_scheme.KnownSchemes; } }
+       
     }
 
     internal class CtOverlayDecoder : BinaryImageDecoder

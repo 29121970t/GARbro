@@ -85,7 +85,7 @@ namespace GameRes.Formats.CatSystem
         public string   Scheme   { get; set; }
         public string   Password { get; set; }
 
-        public uint? GetKey ()
+        public uint? GetKey (Dictionary<string, KeyData> schemas)
         {
             if (null != Key && Key.HasValue)
                 return Key;
@@ -93,7 +93,7 @@ namespace GameRes.Formats.CatSystem
             if (!string.IsNullOrEmpty (Scheme))
             {
                 KeyData keydata;
-                if (IntOpener.KnownSchemes.TryGetValue (Scheme, out keydata))
+                if (schemas.TryGetValue (Scheme, out keydata))
                     return keydata.Key;
             }
 
@@ -119,6 +119,13 @@ namespace GameRes.Formats.CatSystem
         public override bool      CanWrite { get { return true; } }
 
         static readonly byte[] NameSizes = { 0x20, 0x40 };
+
+        public Dictionary<string, KeyData> KnownSchemes { get; }
+
+        public IntOpener(IntScheme schema)
+        {
+            KnownSchemes = schema.KnownKeys;
+        }
 
         public override ArcFile TryOpen (ArcView file)
         {
@@ -237,15 +244,7 @@ namespace GameRes.Formats.CatSystem
             return Encodings.cp932.GetString (name, 0, i);
         }
 
-        public static Dictionary<string, KeyData> KnownSchemes { get { return DefaultScheme.KnownKeys; } }
 
-        static IntScheme DefaultScheme = new IntScheme { KnownKeys = new Dictionary<string, KeyData>() };
-
-        public override ResourceScheme Scheme
-        {
-            get { return DefaultScheme; }
-            set { DefaultScheme = (IntScheme)value; }
-        }
 
         public override ResourceOptions GetDefaultOptions ()
         {
@@ -281,7 +280,7 @@ namespace GameRes.Formats.CatSystem
             if (!string.IsNullOrEmpty (title) && KnownSchemes.ContainsKey (title))
                 return KnownSchemes[title].Key;
             var options = Query<IntOptions> (arcStrings.INTNotice);
-            return options.EncryptionInfo.GetKey();
+            return options.EncryptionInfo.GetKey(KnownSchemes);
         }
 
         public override void Create (Stream output, IEnumerable<Entry> list, ResourceOptions options,

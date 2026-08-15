@@ -40,6 +40,12 @@ namespace GameRes.Formats.Morning
         public override uint     Signature { get { return 0x58668F8B; } }
         public override bool  IsHierarchic { get { return true; } }
         public override bool      CanWrite { get { return false; } }
+        public MorningScheme DefaultScheme { get; }
+
+        public PakOpener(MorningScheme scheme)
+        {
+            DefaultScheme = scheme;
+        }
 
         public override ArcFile TryOpen (ArcView file)
         {
@@ -100,13 +106,7 @@ namespace GameRes.Formats.Morning
             return DefaultScheme.DefaultKey;
         }
 
-        MorningScheme DefaultScheme = new MorningScheme();
 
-        public override ResourceScheme Scheme
-        {
-            get { return DefaultScheme; }
-            set { DefaultScheme = (MorningScheme)value; }
-        }
     }
 
     [Serializable]

@@ -59,14 +59,14 @@ namespace GameRes.Formats.Actgs
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
 
-        public DatOpener ()
+        public readonly byte[][] KnownKeys;
+
+
+        public DatOpener (ActressScheme scheme)
         {
+            this.KnownKeys = scheme.KnownKeys;
             Extensions = new string[] { "dat" };
         }
-
-        internal static byte[][] KnownKeys { get { return DefaultScheme.KnownKeys; } }
-
-        static ActressScheme DefaultScheme = new ActressScheme { KnownKeys = Array.Empty<byte[]>() };
 
         public override ArcFile TryOpen (ArcView file)
         {
@@ -159,12 +159,6 @@ namespace GameRes.Formats.Actgs
             var header = arc.File.View.ReadBytes (entry.Offset, length);
             Decrypt (header, 0, header.Length, arc.Key);
             return header;
-        }
-
-        public override ResourceScheme Scheme
-        {
-            get { return DefaultScheme; }
-            set { DefaultScheme = (ActressScheme)value; }
         }
     }
 

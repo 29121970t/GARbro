@@ -64,8 +64,11 @@ namespace GameRes.Formats.Mg
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
 
-        public MgpkOpener ()
+        public Dictionary<string, byte[]> KnownKeys { get; }
+
+        public MgpkOpener (MgScheme scheme)
         {
+            KnownKeys = scheme.KnownKeys;
             Extensions = new string[] { "pac" };
         }
 
@@ -191,7 +194,7 @@ namespace GameRes.Formats.Mg
             return new GUI.WidgetMGPK();
         }
 
-        public static byte[] GetKey (string title)
+        public byte[] GetKey (string title)
         {
             byte[] key;
             if (string.IsNullOrEmpty (title) || !KnownKeys.TryGetValue (title, out key))
@@ -199,15 +202,7 @@ namespace GameRes.Formats.Mg
             return key;
         }
 
-        public static Dictionary<string, byte[]> KnownKeys { get { return DefaultScheme.KnownKeys; } }
 
-        static MgScheme DefaultScheme = new MgScheme { KnownKeys = new Dictionary<string, byte[]>() };
-
-        public override ResourceScheme Scheme
-        {
-            get { return DefaultScheme; }
-            set { DefaultScheme = (MgScheme)value; }
-        }
     }
 
     [Export(typeof(ArchiveFormat))]
@@ -218,6 +213,8 @@ namespace GameRes.Formats.Mg
         public override uint     Signature { get { return 0x4B50474D; } } // MGPK
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
+
+        public Mgpk0Opener(MgScheme scheme) : base(scheme) { }
 
         public override ArcFile TryOpen (ArcView file)
         {
@@ -256,7 +253,5 @@ namespace GameRes.Formats.Mg
                 input[i] ^= key[i % key.Length];
             }
         }
-
-        public override ResourceScheme Scheme { get; set; }
     }
 }

@@ -76,6 +76,13 @@ namespace GameRes.Formats.Littlewitch
 
         static readonly string ListFileName = "littlewitch.lst";
 
+        public RepiScheme DatScheme {  get;  }
+
+        public DatOpener(RepiScheme datScheme)
+        {
+            DatScheme = datScheme;
+        }
+
         public override ArcFile TryOpen (ArcView file)
         {
             if (!file.View.AsciiEqual (4, "Pack"))
@@ -181,7 +188,7 @@ namespace GameRes.Formats.Littlewitch
             return new RepiEntry { Name = builder.ToString() };
         }
 
-        static uint[] FindKey (string arc_name, uint arc_key)
+        public uint[] FindKey (string arc_name, uint arc_key)
         {
             arc_name = Path.GetFileName (arc_name);
             var name_bytes = Encodings.cp932.GetBytes (arc_name);
@@ -189,13 +196,6 @@ namespace GameRes.Formats.Littlewitch
             return DatScheme.KnownSchemes.Values.FirstOrDefault (k => k[0] == arc_key);
         }
 
-        static RepiScheme DatScheme = new RepiScheme { KnownSchemes = new Dictionary<string, uint[]>() };
-
-        public override ResourceScheme Scheme
-        {
-            get { return DatScheme; }
-            set { DatScheme = (RepiScheme)value; }
-        }
 
         internal Dictionary<byte[], string> KnownNames { get { return s_known_file_names.Value; } }
 

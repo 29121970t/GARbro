@@ -87,17 +87,14 @@ namespace GameRes.Formats.NitroPlus
         public override uint     Signature { get { return 0x324B504E; } } // 'NPK2'
         public override bool  IsHierarchic { get { return true; } }
         public override bool      CanWrite { get { return true; } }
-
-        static Npk2Scheme DefaultScheme = new Npk2Scheme { KnownKeys = new Dictionary<string, byte[]>() };
-        internal Dictionary<string, byte[]> KnownKeys { get { return DefaultScheme.KnownKeys; } }
+        internal Dictionary<string, byte[]> KnownKeys { get; }
 
         const uint DefaultSegmentSize = 0x10000;
         static readonly Encoding DefaultEncoding = Encoding.UTF8;
 
-        public override ResourceScheme Scheme
+        public NpkOpener(Npk2Scheme scheme)
         {
-            get { return DefaultScheme; }
-            set { DefaultScheme = (Npk2Scheme)value; }
+            KnownKeys = scheme.KnownKeys;
         }
 
         public override ArcFile TryOpen (ArcView file)

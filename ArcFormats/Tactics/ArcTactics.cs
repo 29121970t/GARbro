@@ -331,9 +331,10 @@ namespace GameRes.Formats.Tactics
     {
         public override string         Tag { get { return "ARC/Tactics/2"; } }
         public override bool      CanWrite { get { return false; } }
-
-        public Arc2Opener ()
+        public Dictionary<string, ArcScheme> KnownSchemes { get; }
+        public Arc2Opener (SchemeMap scheme)
         {
+            KnownSchemes = scheme.KnownSchemes;
             Extensions = new string[] { "arc" };
         }
 
@@ -394,13 +395,6 @@ namespace GameRes.Formats.Tactics
             return new GUI.WidgetTactics();
         }
 
-        public static Dictionary<string, ArcScheme> KnownSchemes = new Dictionary<string, ArcScheme>();
-
-        public override ResourceScheme Scheme
-        {
-            get { return new SchemeMap { KnownSchemes = KnownSchemes }; }
-            set { KnownSchemes = ((SchemeMap)value).KnownSchemes; }
-        }
     }
 
     public class TacticsOptions : ResourceOptions

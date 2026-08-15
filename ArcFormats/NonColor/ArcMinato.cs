@@ -57,6 +57,8 @@ namespace GameRes.Formats.Minato
         public override bool  IsHierarchic { get { return true; } }
         public override bool      CanWrite { get { return false; } }
 
+        public MinatoDatOpener(ArcDatScheme scheme) : base(scheme) { }
+
         public override ArcFile TryOpen (ArcView file)
         {
             if (!file.Name.HasExtension (".dat"))

@@ -62,21 +62,15 @@ namespace GameRes.Formats.ExHibit
         public override string Description { get { return "ExHIBIT engine image format"; } }
         public override uint     Signature { get { return 0x1A555947; } } // 'GYU'
 
-        public GyuFormat ()
+        private Dictionary<string, Dictionary<int, uint>> NumericKeys { get; }
+        private Dictionary<string, Dictionary<string, uint>>  StringKeys {  get; } 
+        public GyuFormat (GyuMap scheme)
         {
+            NumericKeys = scheme.NumericKeys;
+            StringKeys = scheme.StringKeys;
             Extensions = new[] { "gyu", "lvg" };
         }
 
-        GyuMap DefaultScheme = new GyuMap {
-            NumericKeys = new Dictionary<string, Dictionary<int, uint>>(),
-            StringKeys  = new Dictionary<string, Dictionary<string, uint>>(),
-        };
-
-        public override ResourceScheme Scheme
-        {
-            get { return DefaultScheme; }
-            set { DefaultScheme = (GyuMap)value; }
-        }
 
         public override ImageMetaData ReadMetaData (IBinaryStream stream)
         {
@@ -144,17 +138,17 @@ namespace GameRes.Formats.ExHibit
 
         public override object GetAccessWidget ()
         {
-            var titles = DefaultScheme.NumericKeys.Keys.Concat (DefaultScheme.StringKeys.Keys).OrderBy (x => x);
+            var titles = NumericKeys.Keys.Concat (StringKeys.Keys).OrderBy (x => x);
             return new GUI.WidgetGYU (titles);
         }
 
         IDictionary GetScheme (string title)
         {
             Dictionary<int, uint> num_scheme = null;
-            if (DefaultScheme.NumericKeys.TryGetValue (title, out num_scheme))
+            if (NumericKeys.TryGetValue (title, out num_scheme))
                 return num_scheme;
             Dictionary<string, uint> str_scheme = null;
-            DefaultScheme.StringKeys.TryGetValue (title, out str_scheme);
+            StringKeys.TryGetValue (title, out str_scheme);
             return str_scheme;
         }
     }

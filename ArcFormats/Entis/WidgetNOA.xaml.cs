@@ -14,7 +14,8 @@ namespace GameRes.Formats.GUI
         {
             InitializeComponent ();
             var keys = new string[] { arcStrings.ArcIgnoreEncryption };
-            Scheme.ItemsSource = keys.Concat (NoaOpener.KnownKeys.Keys.OrderBy (x => x));
+            //TODO: FIX THIS
+            //Scheme.ItemsSource = keys.Concat (NoaOpener.KnownKeys.Keys.OrderBy (x => x));
             // select first scheme as default
             if (-1 == Scheme.SelectedIndex)
                 Scheme.SelectedIndex = 0;

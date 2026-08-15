@@ -67,12 +67,11 @@ namespace GameRes.Formats.Pvns
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
 
-        public static Dictionary<string, PbzKeys> KnownSchemes = new Dictionary<string, PbzKeys>();
+        public Dictionary<string, PbzKeys> KnownSchemes { get; }
 
-        public override ResourceScheme Scheme
+        public PbzOpener(PbzScheme scheme)
         {
-            get { return new PbzScheme { KnownSchemes = KnownSchemes }; }
-            set { KnownSchemes = ((PbzScheme)value).KnownSchemes; }
+            KnownSchemes = scheme.KnownSchemes;
         }
 
         public override ArcFile TryOpen (ArcView file)

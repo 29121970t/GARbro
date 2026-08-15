@@ -83,6 +83,11 @@ namespace GameRes.Formats.Dac
 
         public static DpkScheme[] KnownSchemes = new DpkScheme[0];
 
+        public DpkOpener(ArchiveScheme scheme)
+        {
+            KnownSchemes = scheme.KnownSchemes;
+        }
+
         public override ArcFile TryOpen (ArcView file)
         {
             var header = new byte[8];
@@ -214,23 +219,6 @@ namespace GameRes.Formats.Dac
         public override object GetAccessWidget ()
         {
             return new GUI.WidgetDPK();
-        }
-
-        public override ResourceScheme Scheme
-        {
-            get
-            {
-                var known = KnownSchemes.Clone() as DpkScheme[];
-                // first entry should be a default scheme, replace localized "Name" field
-                known[0] = new DpkScheme { Name = known[0].Name, Key1 = known[0].Key1, Key2 = known[0].Key2 };
-                return new ArchiveScheme { KnownSchemes = known };
-            }
-            set
-            {
-                KnownSchemes = ((ArchiveScheme)value).KnownSchemes;
-                if (string.IsNullOrEmpty (KnownSchemes[0].Name))
-                    KnownSchemes[0].Name = arcStrings.ArcDefault;
-            }
         }
     }
 }

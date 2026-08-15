@@ -40,8 +40,11 @@ namespace GameRes.Formats.Leaf
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
 
-        public AmOpener ()
+        public byte[] DecryptTable { get; }
+        
+        public AmOpener (AmScheme scheme)
         {
+            DecryptTable = scheme.DecryptTable;
             Extensions = new string[] { "am" };
         }
 
@@ -84,13 +87,8 @@ namespace GameRes.Formats.Leaf
             return new AmStream (input, DecryptTable);
         }
 
-        static byte[] DecryptTable = null;
+        
 
-        public override ResourceScheme Scheme
-        {
-            get { return new AmScheme { DecryptTable = DecryptTable }; }
-            set { DecryptTable = ((AmScheme)value).DecryptTable; }
-        }
     }
 
     internal class AmStream : InputProxyStream

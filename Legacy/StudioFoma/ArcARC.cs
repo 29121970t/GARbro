@@ -48,6 +48,18 @@ namespace GameRes.Formats.Foma
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
 
+        HashSet<string> m_known_arc_names = null;
+        internal IDictionary<string, IDictionary<string, uint>> KnownSchemes {  get;   }
+        internal HashSet<string> KnownArcNames
+        {
+            get { return m_known_arc_names ?? (m_known_arc_names = new HashSet<string>(KnownSchemes.Values.SelectMany(v => v.Keys))); }
+        }
+
+        public ArcOpener(Is9Scheme scheme)
+        {
+            KnownSchemes = scheme.KnownSchemes;
+        }
+
         public override ArcFile TryOpen (ArcView file)
         {
             var arc_name = Path.GetFileName (file.Name).ToUpperInvariant();
@@ -99,27 +111,5 @@ namespace GameRes.Formats.Foma
             }
         }
 
-        Is9Scheme m_scheme = new Is9Scheme
-        {
-            KnownSchemes = new Dictionary<string, IDictionary<string, uint>>()
-        };
-
-        HashSet<string> m_known_arc_names = null;
-
-        public override ResourceScheme Scheme
-        {
-            get { return m_scheme; }
-            set { m_scheme = (Is9Scheme)value; m_known_arc_names = null; }
-        }
-
-        internal IDictionary<string, IDictionary<string, uint>> KnownSchemes
-        {
-            get { return m_scheme.KnownSchemes; }
-        }
-
-        internal HashSet<string> KnownArcNames
-        {
-            get { return m_known_arc_names ?? (m_known_arc_names = new HashSet<string> (KnownSchemes.Values.SelectMany (v => v.Keys))); }
-        }
     }
 }

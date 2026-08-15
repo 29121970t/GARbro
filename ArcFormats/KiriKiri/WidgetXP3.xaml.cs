@@ -18,7 +18,8 @@ namespace GameRes.Formats.GUI
             var last_selected = Properties.Settings.Default.XP3Scheme;
             InitializeComponent();
             var keys = new[] { new KeyValuePair<string, ICrypt> (arcStrings.ArcNoEncryption, Xp3Opener.NoCryptAlgorithm) };
-            this.DataContext = keys.Concat (Xp3Opener.KnownSchemes.OrderBy (x => x.Key));
+            //TODO: FIX THIS
+            //this.DataContext = keys.Concat (Xp3Opener.KnownSchemes.OrderBy (x => x.Key));
             this.Loaded += (s, e) => {
                 if (!string.IsNullOrEmpty (last_selected))
                     this.Scheme.SelectedValue = last_selected;
@@ -26,11 +27,12 @@ namespace GameRes.Formats.GUI
                     this.Scheme.SelectedIndex = 0;
             };
         }
+        //TODO: FIX THIS
+        //public ICrypt GetScheme ()
+        //{
+        //    return Xp3Opener.GetScheme (Scheme.SelectedValue as string);
+        //}
 
-        public ICrypt GetScheme ()
-        {
-            return Xp3Opener.GetScheme (Scheme.SelectedValue as string);
-        }
     }
 
     internal class ClassNameConverter : IValueConverter

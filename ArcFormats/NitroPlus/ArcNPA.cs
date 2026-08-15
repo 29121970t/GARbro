@@ -109,16 +109,15 @@ namespace GameRes.Formats.NitroPlus
         public override bool  IsHierarchic { get { return true; } }
         public override bool      CanWrite { get { return true; } }
 
-        public static Dictionary<string, EncryptionScheme> KnownSchemes = new Dictionary<string, EncryptionScheme>();
-
-        public override ResourceScheme Scheme
-        {
-            get { return new NpaScheme { KnownSchemes = KnownSchemes }; }
-            set { KnownSchemes = ((NpaScheme)value).KnownSchemes; }
-        }
+        public Dictionary<string, EncryptionScheme> KnownSchemes { get; }
 
         public const int DefaultKey1 = 0x4147414e;
         public const int DefaultKey2 = 0x21214f54;
+
+        public NpaOpener(NpaScheme scheme)
+        {
+            KnownSchemes = scheme.KnownSchemes;
+        }
 
         public override ArcFile TryOpen (ArcView file)
         {
@@ -413,13 +412,13 @@ namespace GameRes.Formats.NitroPlus
             return scheme;
         }
 
-        public static NpaTitleId GetTitleId (string title)
+        public NpaTitleId GetTitleId (string title)
         {
             var scheme = GetScheme (title);
             return scheme != null ? scheme.TitleId : NpaTitleId.NotEncrypted;
         }
 
-        public static EncryptionScheme GetScheme (string title)
+        public EncryptionScheme GetScheme (string title)
         {
             EncryptionScheme scheme;
             if (KnownSchemes.TryGetValue (title, out scheme))

@@ -80,9 +80,10 @@ namespace GameRes.Formats.Qlie
         public override uint     Signature { get { return 0; } }
         public override bool  IsHierarchic { get { return true; } }
         public override bool      CanWrite { get { return false; } }
-
-        public PackOpener ()
+        public Dictionary<string, byte[]> KnownKeys { get; }
+        public PackOpener (QlieScheme scheme)
         {
+            KnownKeys = scheme.KnownKeys;
             Extensions = new string [] { "pack" };
             ContainedFormats = new[] { "ABMP/QLIE", "DPNG", "ARGB", "PNG", "JPEG", "OGG", "WAV" };
         }
@@ -92,15 +93,7 @@ namespace GameRes.Formats.Qlie
         /// </summary>
         static readonly string[] KeyLocations = { ".", "..", @"..\DLL", "DLL" };
 
-        static QlieScheme DefaultScheme = new QlieScheme { KnownKeys = new Dictionary<string, byte[]>() };
-
-        public static Dictionary<string, byte[]> KnownKeys { get { return DefaultScheme.KnownKeys; } }
-
-        public override ResourceScheme Scheme
-        {
-            get { return DefaultScheme; }
-            set { DefaultScheme = (QlieScheme)value; }
-        }
+        
 
         public override ArcFile TryOpen (ArcView file)
         {
@@ -297,7 +290,7 @@ namespace GameRes.Formats.Qlie
             return key;
         }
 
-        static byte[] GetKeyData (string scheme)
+        byte[] GetKeyData (string scheme)
         {
             byte[] key;
             if (KnownKeys.TryGetValue (scheme, out key))

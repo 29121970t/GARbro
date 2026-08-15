@@ -71,10 +71,9 @@ namespace GameRes.Formats.ShiinaRio // 椎名里緒
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
 
-        public override ResourceScheme Scheme
+        public WarOpener(WarcScheme scheme)
         {
-            get { return new WarcScheme { KnownSchemes = Decoder.KnownSchemes }; }
-            set { Decoder.KnownSchemes = ((WarcScheme)value).KnownSchemes; }
+            Decoder.KnownSchemes = scheme.KnownSchemes;
         }
 
         public override ArcFile TryOpen (ArcView file)

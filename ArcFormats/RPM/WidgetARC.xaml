@@ -4,6 +4,7 @@
       xmlns:fmt="clr-namespace:GameRes.Formats.Rpm"
       xmlns:p="clr-namespace:GameRes.Formats.Properties"
       MaxWidth="250">
-    <ComboBox Name="Scheme" ItemsSource="{Binding Source={x:Static fmt:ArcOpener.KnownSchemes}, Path=Keys, Mode=OneWay}"
+    <!--ItemsSource="{Binding Source={x:Static fmt:ArcOpener.KnownSchemes}, Path=Keys, Mode=OneWay}"-->
+    <ComboBox Name="Scheme" 
               SelectedValue="{Binding Source={x:Static p:Settings.Default}, Path=RPMScheme, Mode=TwoWay}" Width="200"/>
 </Grid>

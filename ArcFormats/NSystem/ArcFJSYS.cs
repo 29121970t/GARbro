@@ -53,9 +53,10 @@ namespace GameRes.Formats.NSystem
         public override uint     Signature { get { return 0x59534A46; } } // 'FJSY'
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
-
-        public FjsysOpener ()
+        public  Dictionary<string, string> KnownPasswords { get; }
+        public FjsysOpener (FjsysScheme scheme)
         {
+            KnownPasswords = scheme.MsdPasswords;
             Extensions = new string[] { "" };
         }
 
@@ -132,13 +133,6 @@ namespace GameRes.Formats.NSystem
             return new GUI.WidgetMSD();
         }
 
-        public static Dictionary<string, string> KnownPasswords = new Dictionary<string, string>();
-
-        public override ResourceScheme Scheme
-        {
-            get { return new FjsysScheme { MsdPasswords = KnownPasswords }; }
-            set { KnownPasswords = ((FjsysScheme)value).MsdPasswords; }
-        }
     }
 
     internal sealed class MsdTransform : ICryptoTransform

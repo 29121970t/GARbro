@@ -36,7 +36,7 @@ namespace GameRes.Formats.NonColor
         public override bool  IsHierarchic { get { return true; } }
         public override bool      CanWrite { get { return false; } }
 
-        public AcvOpener ()
+        public AcvOpener (ArcDatScheme scheme) : base(scheme)
         {
             Extensions = new string[] { "dat" };
         }

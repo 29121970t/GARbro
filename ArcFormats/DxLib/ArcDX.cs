@@ -61,8 +61,11 @@ namespace GameRes.Formats.DxLib
         public override bool  IsHierarchic { get { return true; } }
         public override bool      CanWrite { get { return false; } }
 
-        public DxOpener ()
+         public IList<IDxKey> KnownKeys { get; }
+
+        public DxOpener (DxScheme scheme)
         {
+            KnownKeys = scheme.KnownKeys;
             Extensions = new string[] { "dxa", "hud", "usi", "med", "dat", "bin", "bcx", "wolf" };
             Signatures = new uint[] {
                 0x19EF8ED4, 0xA9FCCEDD, 0x0AEE0FD3, 0x5523F211, 0x5524F211, 0x69FC5FE4, 0x09E19ED9, 0x7DCC5D83,
@@ -70,9 +73,7 @@ namespace GameRes.Formats.DxLib
             };
         }
 
-        DxScheme DefaultScheme = new DxScheme { KnownKeys = new List<IDxKey>() };
-
-        public IList<IDxKey> KnownKeys { get { return DefaultScheme.KnownKeys; } }
+        
 
         public override ArcFile TryOpen (ArcView file)
         {
@@ -320,12 +321,6 @@ namespace GameRes.Formats.DxLib
                 if (key.Length == key_pos)
                     key_pos = 0;
             }
-        }
-
-        public override ResourceScheme Scheme
-        {
-            get { return DefaultScheme; }
-            set { DefaultScheme = (DxScheme)value; }
         }
     }
 

@@ -40,6 +40,12 @@ namespace GameRes.Formats.Yatagarasu
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
 
+        public IDictionary<string, uint[]> KnownKeys {  get;   }
+        public Pkg2Opener(PkgScheme scheme)
+        {
+            KnownKeys = scheme.KnownKeys;
+        }
+
         public override ArcFile TryOpen (ArcView file)
         {
             if (!file.Name.HasExtension (".pkg"))
@@ -116,18 +122,6 @@ namespace GameRes.Formats.Yatagarasu
             return bytes;
         }
 
-        PkgScheme m_scheme = new PkgScheme { KnownKeys = new Dictionary<string, uint[]>() };
-
-        public IDictionary<string, uint[]> KnownKeys
-        {
-            get { return m_scheme.KnownKeys; }
-        }
-
-        public override ResourceScheme Scheme
-        {
-            get { return m_scheme; }
-            set { m_scheme = (PkgScheme)value; }
-        }
     }
 
     internal class Pkg2Archive : ArcFile

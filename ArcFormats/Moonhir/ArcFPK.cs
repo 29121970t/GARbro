@@ -64,12 +64,11 @@ namespace GameRes.Formats.MoonhirGames
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
 
-        public static uint[] KnownKeys = { 0 };
+        public uint[] KnownKeys { get; }
 
-        public override ResourceScheme Scheme
+        public FpkOpener(Fpk0100Scheme scheme)
         {
-            get { return new Fpk0100Scheme { KnownKeys = KnownKeys }; }
-            set { KnownKeys = ((Fpk0100Scheme)value).KnownKeys; }
+            KnownKeys = scheme.KnownKeys;
         }
 
         public override ArcFile TryOpen (ArcView file)

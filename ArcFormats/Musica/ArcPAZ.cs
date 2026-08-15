@@ -135,8 +135,13 @@ namespace GameRes.Formats.Musica
         public override bool  IsHierarchic { get { return true; } }
         public override bool      CanWrite { get { return false; } }
 
-        public PazOpener ()
+        public IDictionary<uint, PazScheme> KnownSchemes { get; }
+        public IDictionary<string, PazScheme> KnownTitles { get; }
+
+        public PazOpener (MusicaScheme scheme)
         {
+            KnownSchemes = scheme.KnownSchemes;
+            KnownTitles = scheme.KnownTitles;
             Extensions = new string[] { "paz", "dat" };
             Signatures = new uint[] {
                 0x858F8493, 0x8F889395, 0x6E656465, 0x848F8486, 0x61657453, 0x6873616D, 0x92808483,
@@ -334,21 +339,6 @@ namespace GameRes.Formats.Musica
                 return null;
             return scheme;
         }
-
-        public override ResourceScheme Scheme
-        {
-            get { return m_scheme; }
-            set { m_scheme = (MusicaScheme)value; }
-        }
-
-        MusicaScheme m_scheme = new MusicaScheme
-        {
-            KnownSchemes = new Dictionary<uint, PazScheme>(),
-            KnownTitles = new Dictionary<string, PazScheme>()
-        };
-
-        public IDictionary<uint, PazScheme>  KnownSchemes { get { return m_scheme.KnownSchemes; } }
-        public IDictionary<string, PazScheme> KnownTitles { get { return m_scheme.KnownTitles; } }
     }
 
     [Serializable]

@@ -136,9 +136,12 @@ namespace GameRes.Formats.Malie
         public override uint     Signature { get { return 0; } }
         public override bool  IsHierarchic { get { return true; } }
         public override bool      CanWrite { get { return false; } }
+                
+        public Dictionary<string, LibScheme> KnownSchemes { get; }
 
-        public DatOpener ()
+        public DatOpener (MalieScheme scheme)
         {
+            KnownSchemes = scheme.KnownSchemes;
             Extensions = new string[] { "lib", "dat" };
             Signatures = new uint[] { 0, 0x3F503FB1, 0xC237434E, 0x8CD11522, 0x09D411A7, 0xAAC48CAA, 0x9FC2BCB1, 0xAAC900A3 };
         }
@@ -337,12 +340,5 @@ namespace GameRes.Formats.Malie
             return Math.Min (length, read-offset_pad);
         }
 
-        public static Dictionary<string, LibScheme> KnownSchemes = new Dictionary<string, LibScheme>();
-
-        public override ResourceScheme Scheme
-        {
-            get { return new MalieScheme { KnownSchemes = KnownSchemes }; }
-            set { KnownSchemes = ((MalieScheme)value).KnownSchemes; }
-        }
     }
 }

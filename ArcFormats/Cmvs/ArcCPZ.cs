@@ -88,19 +88,12 @@ namespace GameRes.Formats.Purple
         public override bool  IsHierarchic { get { return true; } }
         public override bool      CanWrite { get { return false; } }
 
-        public CpzOpener ()
+        private Dictionary<string, CmvsScheme> KnownSchemes { get; }
+
+        public CpzOpener (CpzScheme scheme)
         {
+            KnownSchemes = scheme.KnownSchemes;
             Signatures = new uint[] { 0x355A5043, 0x365A5043, 0x375A5043 };
-        }
-
-        static CpzScheme DefaultScheme = new CpzScheme();
-
-        internal Dictionary<string, CmvsScheme> KnownSchemes { get { return DefaultScheme.KnownSchemes; } }
-
-        public override ResourceScheme Scheme
-        {
-            get { return DefaultScheme; }
-            set { DefaultScheme = (CpzScheme)value; }
         }
 
         public override ArcFile TryOpen (ArcView file)

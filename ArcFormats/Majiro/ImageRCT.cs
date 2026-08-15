@@ -67,8 +67,11 @@ namespace GameRes.Formats.Majiro
         public override uint     Signature { get { return 0x9a925a98; } }
         public override bool      CanWrite { get { return true; } }
 
-        public RctFormat ()
+        public Dictionary<string, string> KnownKeys { get; }
+
+        public RctFormat (RctScheme scheme)
         {
+            KnownKeys = scheme.KnownKeys;
             Settings = new[] { OverlayFrames, ApplyMask };
         }
 
@@ -76,14 +79,6 @@ namespace GameRes.Formats.Majiro
         LocalResourceSetting ApplyMask = new LocalResourceSetting ("RCTApplyMask");
 
         public const int BaseRecursionLimit = 8;
-
-        public static Dictionary<string, string> KnownKeys = new Dictionary<string, string>();
-
-        public override ResourceScheme Scheme
-        {
-            get { return new RctScheme { KnownKeys = KnownKeys }; }
-            set { KnownKeys = ((RctScheme)value).KnownKeys; }
-        }
 
         public override ImageMetaData ReadMetaData (IBinaryStream stream)
         {

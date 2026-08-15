@@ -16,11 +16,11 @@ namespace GameRes.Formats.GUI
             var selected = Settings.Default.NPAScheme;
             InitializeComponent();
             var keys = new string[] { arcStrings.ArcNoEncryption };
-            Scheme.ItemsSource = keys.Concat (NpaOpener.KnownSchemes.Keys.OrderBy (x => x));
-            if (NpaTitleId.NotEncrypted == NpaOpener.GetTitleId (selected))
-                Scheme.SelectedIndex = 0;
-            else
-                Scheme.SelectedValue = selected;
+            //Scheme.ItemsSource = keys.Concat (NpaOpener.KnownSchemes.Keys.OrderBy (x => x));
+            //if (NpaTitleId.NotEncrypted == NpaOpener.GetTitleId (selected))
+            //    Scheme.SelectedIndex = 0;
+            //else
+            //    Scheme.SelectedValue = selected;
         }
     }
 }

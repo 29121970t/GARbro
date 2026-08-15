@@ -40,7 +40,12 @@ namespace GameRes.Formats.GameSystem
         public override uint     Signature { get { return 0; } }
         public override bool  IsHierarchic { get { return true; } }
         public override bool      CanWrite { get { return false; } }
+        internal IDictionary<string, byte[]> KnownKeys { get; }
 
+        public CmpOpener(CmpScheme scheme)
+        {
+            KnownKeys = scheme.KnownKeys;
+        }
         public override ArcFile TryOpen (ArcView file)
         {
             if (file.MaxOffset <= 8)
@@ -146,18 +151,6 @@ namespace GameRes.Formats.GameSystem
             return new BinMemoryStream (data, entry.Name);
         }
 
-        internal static IDictionary<string, byte[]> KnownKeys
-        {
-            get { return GameScheme.KnownKeys; }
-        }
-
-        static CmpScheme GameScheme = new CmpScheme { KnownKeys = new Dictionary<string, byte[]> () };
-
-        public override ResourceScheme Scheme
-        {
-            get { return GameScheme; }
-            set { GameScheme = (CmpScheme)value; }
-        }
     }
 
     [Serializable]

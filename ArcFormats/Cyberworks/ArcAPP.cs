@@ -37,7 +37,7 @@ namespace GameRes.Formats.Cyberworks
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
 
-        public AppOpener ()
+        public AppOpener (SchemeMap scheme) : base(scheme)
         {
             Extensions = new string[] { "appendix" };
             Signatures = new uint[] { 0x2Fu };

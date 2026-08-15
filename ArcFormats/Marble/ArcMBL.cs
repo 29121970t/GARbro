@@ -64,8 +64,11 @@ namespace GameRes.Formats.Marble
         public override bool  IsHierarchic { get { return false; } }
         public override bool      CanWrite { get { return false; } }
 
-        public MblOpener ()
+        public Dictionary<string, string> KnownKeys { get; }
+
+        public MblOpener (MblScheme scheme)
         {
+            KnownKeys = scheme.KnownKeys;
             Extensions = new string[] { "mbl", "dns" };
         }
 
@@ -163,13 +166,6 @@ namespace GameRes.Formats.Marble
             }
         }
 
-        public static Dictionary<string, string> KnownKeys = new Dictionary<string, string>();
-
-        public override ResourceScheme Scheme
-        {
-            get { return new MblScheme { KnownKeys = KnownKeys }; }
-            set { KnownKeys = ((MblScheme)value).KnownKeys; }
-        }
 
         public override Stream OpenEntry (ArcFile arc, Entry entry)
         {

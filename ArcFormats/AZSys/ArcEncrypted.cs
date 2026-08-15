@@ -179,14 +179,10 @@ namespace GameRes.Formats.AZSys
             { "Default", new EncryptionScheme (EncryptionScheme.DefaultSeed) },
         };
 
-        public override ResourceScheme Scheme
-        {
-            get { return new AzScheme { KnownSchemes = KnownSchemes }; }
-            set { KnownSchemes = ((AzScheme)value).KnownSchemes; }
-        }
 
-        public ArcEncryptedOpener ()
+        public ArcEncryptedOpener (AzScheme schema)
         {
+            KnownSchemes = schema.KnownSchemes;
             Extensions = new string[] { "arc" };
             Signatures = new uint[] { 0x53EA06EB, 0x74F98F2F };
         }

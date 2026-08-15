@@ -15,7 +15,7 @@ namespace GameRes.Formats.GUI
         public WidgetTactics()
         {
             InitializeComponent();
-            Title.ItemsSource = Arc2Opener.KnownSchemes.OrderBy (x => x.Key);
+            //Title.ItemsSource = Arc2Opener.KnownSchemes.OrderBy (x => x.Key);
         }
     }
 }

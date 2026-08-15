@@ -44,7 +44,7 @@ namespace GameRes.Formats.PalmTree
 
         static readonly byte[] ArDirSignature = { (byte)'A', (byte)'R', 5, 6 };
 
-        public ArcOpener ()
+        public ArcOpener (ZipScheme scheme) : base(scheme)
         {
             Settings = null;
             Extensions = new string[] { "arc" };
@@ -65,8 +65,6 @@ namespace GameRes.Formats.PalmTree
                 throw;
             }
         }
-
-        public override ResourceScheme Scheme { get; set; }
     }
 
     /// <summary>

@@ -66,16 +66,12 @@ namespace GameRes.Formats.LiveMaker
         public override string Description { get { return "LiveMaker image format"; } }
         public override uint     Signature { get { return 0x656C6147; } } // 'Gale'
 
-        GalScheme DefaultScheme = new GalScheme { KnownKeys = new Dictionary<string, string>() };
-
-        public Dictionary<string, string> KnownKeys { get { return DefaultScheme.KnownKeys; } }
-
-        public override ResourceScheme Scheme
+        public Dictionary<string, string> KnownKeys { get; }
+        public GalFormat(GalScheme scheme)
         {
-            get { return DefaultScheme; }
-            set { DefaultScheme = (GalScheme)value; }
+            KnownKeys = scheme.KnownKeys;
         }
-
+     
         public override ImageMetaData ReadMetaData (IBinaryStream stream)
         {
             var header = new byte[0x30];
